@@ -1,0 +1,265 @@
+# Canonical domain -> action -> function map (strict)
+
+$Script:PmcCommandMap = @{
+    task = @{
+        add     = 'Add-PmcTask'
+        list    = 'Get-PmcTaskList'
+        view    = 'Show-PmcTask'
+        update  = 'Set-PmcTask'
+        done    = 'Complete-PmcTask'
+        delete  = 'Remove-PmcTask'
+        move    = 'Move-PmcTask'
+        postpone= 'Set-PmcTaskPostponed'
+        duplicate='Copy-PmcTask'
+        note    = 'Add-PmcTaskNote'
+        edit    = 'Edit-PmcTask'
+        search  = 'Find-PmcTask'
+        priority= 'Set-PmcTaskPriority'
+        agenda  = 'Show-PmcAgenda'
+        week    = 'Show-PmcWeekTasks'
+        month   = 'Show-PmcMonthTasks'
+    }
+    project = @{
+        add     = 'Add-PmcProject'
+        list    = 'Get-PmcProjectList'
+        view    = 'Show-PmcProject'
+        update  = 'Set-PmcProject'
+        edit    = 'Edit-PmcProject'
+        rename  = 'Rename-PmcProject'
+        delete  = 'Remove-PmcProject'
+        archive = 'Set-PmcProjectArchived'
+        'set-fields' = 'Set-PmcProjectFields'
+        'show-fields'= 'Show-PmcProjectFields'
+        stats   = 'Get-PmcProjectStats'
+        info    = 'Show-PmcProjectInfo'
+        recent  = 'Get-PmcRecentProjects'
+    }
+    activity = @{
+        list    = 'Get-PmcActivityList'
+    }
+    time = @{
+        log     = 'Add-PmcTimeEntry'
+        report  = 'Get-PmcTimeReport'
+        list    = 'Get-PmcTimeList'
+        edit    = 'Edit-PmcTimeEntry'
+        delete  = 'Remove-PmcTimeEntry'
+    }
+    timer = @{
+        start   = 'Start-PmcTimer'
+        stop    = 'Stop-PmcTimer'
+        status  = 'Get-PmcTimerStatus'
+    }
+    template = @{
+        save    = 'Save-PmcTemplate'
+        apply   = 'Invoke-PmcTemplate'
+        list    = 'Get-PmcTemplateList'
+        remove  = 'Remove-PmcTemplate'
+    }
+    recurring = @{
+        add     = 'Add-PmcRecurringTask'
+        list    = 'Get-PmcRecurringList'
+    }
+    alias = @{
+        add     = 'Add-PmcAlias'
+        remove  = 'Remove-PmcAlias'
+    }
+    dep = @{
+        add     = 'Add-PmcDependency'
+        remove  = 'Remove-PmcDependency'
+        show    = 'Show-PmcDependencies'
+        graph   = 'Show-PmcDependencyGraph'
+    }
+    focus = @{
+        set     = 'Set-PmcFocus'
+        clear   = 'Clear-PmcFocus'
+        status  = 'Get-PmcFocusStatus'
+    }
+    system = @{
+        undo    = 'Invoke-PmcUndo'
+        redo    = 'Invoke-PmcRedo'
+        backup  = 'New-PmcBackup'
+        clean   = 'Clear-PmcCompletedTasks'
+    }
+    view = @{
+        today     = 'Show-PmcTodayTasksInteractive'
+        tomorrow  = 'Show-PmcTomorrowTasks'
+        overdue   = 'Show-PmcOverdueTasksInteractive'
+        upcoming  = 'Show-PmcUpcomingTasks'
+        blocked   = 'Show-PmcBlockedTasks'
+        noduedate = 'Show-PmcTasksWithoutDueDate'
+        projects  = 'Show-PmcProjectsInteractive'
+        next      = 'Show-PmcNextTasks'
+    }
+    excel = @{
+        import   = 'Import-PmcExcelData'
+        bind     = 'Bind-PmcExcelImports'
+        view     = 'Show-PmcExcelPreview'
+        latest   = 'Get-PmcLatestExcelFile'
+    }
+    theme = @{
+        reset    = 'Reset-PmcTheme'
+        adjust   = 'Edit-PmcTheme'
+        list     = 'Get-PmcThemeList'
+        apply    = 'Apply-PmcTheme'
+        info     = 'Show-PmcThemeInfo'
+    }
+    interactive = @{
+        status   = 'Get-PmcInteractiveStatus'
+    }
+    config = @{
+        show    = 'Show-PmcConfig'
+        edit    = 'Edit-PmcConfig'
+        set     = 'Set-PmcConfigValue'
+        reload  = 'Reload-PmcConfig'
+        validate= 'Validate-PmcConfig'
+        icons   = 'Set-PmcIconMode'
+    }
+    import = @{
+        tasks   = 'Import-PmcTasks'
+    }
+    export = @{
+        tasks   = 'Export-PmcTasks'
+    }
+    show = @{
+        aliases = 'Get-PmcAliasList'
+        commands= 'Show-PmcCommands'
+    }
+    help = @{
+        all     = 'Show-PmcHelpAll'
+        show    = 'Show-PmcSmartHelp'
+        commands= 'Show-PmcCommandBrowser'
+        examples= 'Show-PmcHelpExamples'
+        guide   = 'Show-PmcHelpGuide'
+        domain  = 'Show-PmcHelpDomain'
+        command = 'Show-PmcHelpCommand'
+    }
+}
+
+# Single-word shortcuts (domain-less commands)
+$Script:PmcShortcutMap = @{
+    add       = 'Add-PmcTask'
+    done      = 'Complete-PmcTask'
+    delete    = 'Remove-PmcTask'
+    update    = 'Set-PmcTask'
+    move      = 'Move-PmcTask'
+    postpone  = 'Set-PmcTaskPostponed'
+    duplicate = 'Copy-PmcTask'
+    note      = 'Add-PmcTaskNote'
+    edit      = 'Edit-PmcTask'
+    list      = 'Get-PmcTaskList'
+    search    = 'Find-PmcTask'
+    priority  = 'Set-PmcTaskPriority'
+    agenda    = 'Show-PmcAgenda'
+    week      = 'Show-PmcWeekTasks'
+    month     = 'Show-PmcMonthTasks'
+    log       = 'Add-PmcTimeEntry'
+    report    = 'Get-PmcTimeReport'
+    today     = 'Show-PmcTodayTasks'
+    tomorrow  = 'Show-PmcTomorrowTasks'
+    overdue   = 'Show-PmcOverdueTasks'
+    upcoming  = 'Show-PmcUpcomingTasks'
+    blocked   = 'Show-PmcBlockedTasks'
+    noduedate = 'Show-PmcTasksWithoutDueDate'
+    projects  = 'Show-PmcProjectsView'
+    # Explicit interactive aliases
+    itoday    = 'Show-PmcTodayTasks'
+    ioverdue  = 'Show-PmcOverdueTasks'
+    iagenda   = 'Show-PmcAgenda'
+    iprojects = 'Show-PmcProjectsView'
+    itasks    = 'Show-PmcTodayTasks'
+    undo      = 'Invoke-PmcUndo'
+    redo      = 'Invoke-PmcRedo'
+    backup    = 'New-PmcBackup'
+    clean     = 'Clear-PmcCompletedTasks'
+    focus     = 'Set-PmcFocus'
+    unfocus   = 'Clear-PmcFocus'
+    context   = 'Get-PmcFocusStatus'
+    next      = 'Show-PmcNextTasks'
+    stats     = 'Get-PmcStats'
+    burndown  = 'Show-PmcBurndown'
+    velocity  = 'Get-PmcVelocity'
+    theme     = 'Set-PmcTheme'
+    prefs     = 'Show-PmcPreferences'
+    '#'       = 'Invoke-PmcShortcutNumber'
+    alias     = 'Get-PmcAliasList'
+    review    = 'Start-PmcReview'
+    import    = 'Import-PmcTasks'
+    export    = 'Export-PmcTasks'
+    tasks     = 'Show-PmcAllTasksInteractive'
+    q         = 'Invoke-PmcQuery'
+}
+
+# Minimal descriptions for help
+$Script:PmcCommandMeta = @{
+    'task add'      = @{ Desc='Add a new task' }
+    'task list'     = @{ Desc='List tasks' }
+    'task done'     = @{ Desc='Complete a task' }
+    'project add'   = @{ Desc='Create project' }
+    'project list'  = @{ Desc='List projects' }
+    'time log'      = @{ Desc='Log time entry' }
+    'time report'   = @{ Desc='Show time report' }
+    'time list'     = @{ Desc='List time logs' }
+    'timer start'   = @{ Desc='Start timer' }
+    'timer stop'    = @{ Desc='Stop timer' }
+    'timer status'  = @{ Desc='Show timer' }
+    'dep add'       = @{ Desc='Add task dependency' }
+    'dep remove'    = @{ Desc='Remove task dependency' }
+    'dep show'      = @{ Desc='Show task dependencies' }
+    'dep graph'     = @{ Desc='Visual dependency graph' }
+    'focus set'     = @{ Desc='Set project context' }
+    'focus clear'   = @{ Desc='Clear project context' }
+    'focus status'  = @{ Desc='Show current context' }
+    'system undo'   = @{ Desc='Undo last action' }
+    'system redo'   = @{ Desc='Redo last action' }
+    'system backup' = @{ Desc='Create data backup' }
+    'system clean'  = @{ Desc='Clean completed tasks' }
+    'view today'    = @{ Desc='Tasks due today' }
+    'view tomorrow' = @{ Desc='Tasks due tomorrow' }
+    'view overdue'  = @{ Desc='Overdue tasks' }
+    'view upcoming' = @{ Desc='Upcoming tasks (7 days)' }
+    'view blocked'  = @{ Desc='Tasks blocked by dependencies' }
+    'view noduedate'= @{ Desc='Tasks without due dates' }
+    'view projects' = @{ Desc='Projects dashboard' }
+    'view next'     = @{ Desc='Next actions summary' }
+    'excel import'  = @{ Desc='Import tasks from Excel/CSV' }
+    'excel view'    = @{ Desc='Preview Excel/CSV import' }
+    'excel latest'  = @{ Desc='Show latest Excel/CSV file' }
+    'theme reset'   = @{ Desc='Reset theme to default' }
+    'theme adjust'  = @{ Desc='Adjust theme interactively' }
+    'config icons'  = @{ Desc='Set icons: ascii|emoji' }
+    'stats'         = @{ Desc='Productivity statistics' }
+    'burndown'      = @{ Desc='Burndown overview (7d)' }
+    'velocity'      = @{ Desc='Velocity (last 4 weeks)' }
+    'prefs'         = @{ Desc='Edit preferences' }
+    'alias add'     = @{ Desc='Add user alias' }
+    'alias remove'  = @{ Desc='Remove user alias' }
+    'show aliases'  = @{ Desc='Show user aliases' }
+    'show commands' = @{ Desc='List all commands' }
+    'help all'      = @{ Desc='Full command help' }
+    'project stats' = @{ Desc='Project statistics' }
+    'project info'  = @{ Desc='Project information' }
+    'project recent'= @{ Desc='Recent projects' }
+    'import tasks'  = @{ Desc='Import tasks from CSV/JSON' }
+    'export tasks'  = @{ Desc='Export tasks to CSV/JSON' }
+    'review'        = @{ Desc='Weekly review workflow' }
+}
+
+# Ensure Universal Display is available and shortcuts are registered.
+function Ensure-PmcUniversalDisplay {
+    try {
+        $ud = Join-Path $PSScriptRoot 'UniversalDisplay.ps1'
+        # Load if core entry not available
+        if (-not (Get-Command Show-PmcData -ErrorAction SilentlyContinue)) {
+            if (-not (Test-Path $ud)) { throw "UniversalDisplay.ps1 not found at $ud" }
+            . $ud
+        }
+        if (Get-Command Register-PmcUniversalCommands -ErrorAction SilentlyContinue) {
+            Register-PmcUniversalCommands
+            return $true
+        }
+        throw 'Register-PmcUniversalCommands not found after loading UniversalDisplay.ps1'
+    } catch {
+        Write-PmcDebug -Level 1 -Category 'UniversalDisplay' -Message "Initialization failed" -Data @{ Error = $_.ToString() }
+        return $false
+    }
+}
