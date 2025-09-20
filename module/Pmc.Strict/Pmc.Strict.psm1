@@ -31,106 +31,115 @@ class PmcEditorState {
 }
 
 # Dot-source internal components with debug tracing
-Write-Host "Loading Pmc.Strict module..." -ForegroundColor Green
+# Module loading in progress...
 
 try {
-    Write-Host "  Loading Types.ps1..." -ForegroundColor Gray
+    # Loading Types.ps1...
     . $PSScriptRoot/src/Types.ps1
-    Write-Host "  ✓ Types.ps1 loaded" -ForegroundColor Green
+    # ✓ Types.ps1 loaded
 } catch {
-    Write-Host "  ✗ Types.ps1 failed: $_" -ForegroundColor Red
+    Write-Host "✗ PMC module loading failed: Types.ps1 - $_" -ForegroundColor Red
     throw
 }
 
 # Load terminal dimension service early as many modules depend on it
 try {
-    Write-Host "  Loading TerminalDimensions.ps1..." -ForegroundColor Gray
+    # Loading TerminalDimensions.ps1...
     . $PSScriptRoot/src/TerminalDimensions.ps1
-    Write-Host "  ✓ TerminalDimensions.ps1 loaded" -ForegroundColor Green
+    # ✓ TerminalDimensions.ps1 loaded
 } catch {
-    Write-Host "  ✗ TerminalDimensions.ps1 failed: $_" -ForegroundColor Red
+    Write-Host "✗ PMC module loading failed: TerminalDimensions.ps1 - $_" -ForegroundColor Red
     throw
 }
 
 # Ensure centralized state is available before any consumer
 try {
-    Write-Host "  Loading State.ps1..." -ForegroundColor Gray
+    # Loading State.ps1...
     . $PSScriptRoot/src/State.ps1
-    Write-Host "  ✓ State.ps1 loaded" -ForegroundColor Green
+    # ✓ State.ps1 loaded
 } catch {
-    Write-Host "  ✗ State.ps1 failed: $_" -ForegroundColor Red
+    Write-Host "✗ PMC module loading failed: State.ps1 - $_" -ForegroundColor Red
     throw
 }
 
 # Config providers and helpers before Debug/Security which consult config
 try {
-    Write-Host "  Loading Config.ps1..." -ForegroundColor Gray
+    # Loading Config.ps1...
     . $PSScriptRoot/src/Config.ps1
-    Write-Host "  ✓ Config.ps1 loaded" -ForegroundColor Green
+    # ✓ Config.ps1 loaded
 } catch {
-    Write-Host "  ✗ Config.ps1 failed: $_" -ForegroundColor Red
+    Write-Host "✗ PMC module loading failed: Config.ps1 - $_" -ForegroundColor Red
     throw
 }
 
 # Now load Debug and Security modules (no auto-init inside files)
 try {
-    Write-Host "  Loading Debug.ps1..." -ForegroundColor Gray
+    # Loading Debug.ps1...
     . $PSScriptRoot/src/Debug.ps1
-    Write-Host "  ✓ Debug.ps1 loaded" -ForegroundColor Green
+    # ✓ Debug.ps1 loaded
 } catch {
     Write-Host "  ✗ Debug.ps1 failed: $_" -ForegroundColor Red
     throw
 }
 
 try {
-    Write-Host "  Loading Security.ps1..." -ForegroundColor Gray
+    # Loading Security.ps1...
     . $PSScriptRoot/src/Security.ps1
-    Write-Host "  ✓ Security.ps1 loaded" -ForegroundColor Green
+    # ✓ Security.ps1 loaded
 } catch {
     Write-Host "  ✗ Security.ps1 failed: $_" -ForegroundColor Red
     throw
 }
 
 try {
-    Write-Host "  Loading Storage.ps1..." -ForegroundColor Gray
+    # Loading Storage.ps1...
     . $PSScriptRoot/src/Storage.ps1
-    Write-Host "  ✓ Storage.ps1 loaded" -ForegroundColor Green
+    # ✓ Storage.ps1 loaded
 } catch {
     Write-Host "  ✗ Storage.ps1 failed: $_" -ForegroundColor Red
     throw
 }
 
 try {
-    Write-Host "  Loading UI.ps1..." -ForegroundColor Gray
+    # Loading UI.ps1...
     . $PSScriptRoot/src/UI.ps1
-    Write-Host "  ✓ UI.ps1 loaded" -ForegroundColor Green
+    # ✓ UI.ps1 loaded
 } catch {
     Write-Host "  ✗ UI.ps1 failed: $_" -ForegroundColor Red
     throw
 }
 
 try {
-    Write-Host "  Loading Resolvers.ps1..." -ForegroundColor Gray
+    # Loading ScreenManager.ps1...
+    . $PSScriptRoot/src/ScreenManager.ps1
+    # ✓ ScreenManager.ps1 loaded
+} catch {
+    Write-Host "  ✗ ScreenManager.ps1 failed: $_" -ForegroundColor Red
+    throw
+}
+
+try {
+    # Loading Resolvers.ps1...
     . $PSScriptRoot/src/Resolvers.ps1
-    Write-Host "  ✓ Resolvers.ps1 loaded" -ForegroundColor Green
+    # ✓ Resolvers.ps1 loaded
 } catch {
     Write-Host "  ✗ Resolvers.ps1 failed: $_" -ForegroundColor Red
     throw
 }
 
 try {
-    Write-Host "  Loading CommandMap.ps1..." -ForegroundColor Gray
+    # Loading CommandMap.ps1...
     . $PSScriptRoot/src/CommandMap.ps1
-    Write-Host "  ✓ CommandMap.ps1 loaded" -ForegroundColor Green
+    # ✓ CommandMap.ps1 loaded
 } catch {
     Write-Host "  ✗ CommandMap.ps1 failed: $_" -ForegroundColor Red
     throw
 }
 
 try {
-    Write-Host "  Loading Schemas.ps1..." -ForegroundColor Gray
+    # Loading Schemas.ps1...
     . $PSScriptRoot/src/Schemas.ps1
-    Write-Host "  ✓ Schemas.ps1 loaded" -ForegroundColor Green
+    # ✓ Schemas.ps1 loaded
 } catch {
     Write-Host "  ✗ Schemas.ps1 failed: $_" -ForegroundColor Red
     throw
@@ -139,9 +148,9 @@ try {
 ## moved earlier
 
 try {
-    Write-Host "  Loading Execution.ps1..." -ForegroundColor Gray
+    # Loading Execution.ps1...
     . $PSScriptRoot/src/Execution.ps1
-    Write-Host "  ✓ Execution.ps1 loaded" -ForegroundColor Green
+    # ✓ Execution.ps1 loaded
 } catch {
     Write-Host "  ✗ Execution.ps1 failed: $_" -ForegroundColor Red
     throw
@@ -149,45 +158,45 @@ try {
 
 
 try {
-    Write-Host "  Loading Help.ps1..." -ForegroundColor Gray
+    # Loading Help.ps1...
     . $PSScriptRoot/src/Help.ps1
-    Write-Host "  ✓ Help.ps1 loaded" -ForegroundColor Green
+    # ✓ Help.ps1 loaded
 } catch {
     Write-Host "  ✗ Help.ps1 failed: $_" -ForegroundColor Red
     throw
 }
 
 try {
-    Write-Host "  Loading Interactive.ps1..." -ForegroundColor Gray
+    # Loading Interactive.ps1...
     . $PSScriptRoot/src/Interactive.ps1
-    Write-Host "  ✓ Interactive.ps1 loaded" -ForegroundColor Green
+    # ✓ Interactive.ps1 loaded
 } catch {
     Write-Host "  ✗ Interactive.ps1 failed: $_" -ForegroundColor Red
     throw
 }
 
 try {
-    Write-Host "  Loading Dependencies.ps1..." -ForegroundColor Gray
+    # Loading Dependencies.ps1...
     . $PSScriptRoot/src/Dependencies.ps1
-    Write-Host "  ✓ Dependencies.ps1 loaded" -ForegroundColor Green
+    # ✓ Dependencies.ps1 loaded
 } catch {
     Write-Host "  ✗ Dependencies.ps1 failed: $_" -ForegroundColor Red
     throw
 }
 
 try {
-    Write-Host "  Loading Focus.ps1..." -ForegroundColor Gray
+    # Loading Focus.ps1...
     . $PSScriptRoot/src/Focus.ps1
-    Write-Host "  ✓ Focus.ps1 loaded" -ForegroundColor Green
+    # ✓ Focus.ps1 loaded
 } catch {
     Write-Host "  ✗ Focus.ps1 failed: $_" -ForegroundColor Red
     throw
 }
 
 try {
-    Write-Host "  Loading UndoRedo.ps1..." -ForegroundColor Gray
+    # Loading UndoRedo.ps1...
     . $PSScriptRoot/src/UndoRedo.ps1
-    Write-Host "  ✓ UndoRedo.ps1 loaded" -ForegroundColor Green
+    # ✓ UndoRedo.ps1 loaded
 } catch {
     Write-Host "  ✗ UndoRedo.ps1 failed: $_" -ForegroundColor Red
     throw
@@ -196,36 +205,36 @@ try {
 # Views.ps1 functionality migrated to UniversalDisplay.ps1 during technical debt cleanup
 
 try {
-    Write-Host "  Loading Aliases.ps1..." -ForegroundColor Gray
+    # Loading Aliases.ps1...
     . $PSScriptRoot/src/Aliases.ps1
-    Write-Host "  ✓ Aliases.ps1 loaded" -ForegroundColor Green
+    # ✓ Aliases.ps1 loaded
 } catch {
     Write-Host "  ✗ Aliases.ps1 failed: $_" -ForegroundColor Red
     throw
 }
 
 try {
-    Write-Host "  Loading Analytics.ps1..." -ForegroundColor Gray
+    # Loading Analytics.ps1...
     . $PSScriptRoot/src/Analytics.ps1
-    Write-Host "  ✓ Analytics.ps1 loaded" -ForegroundColor Green
+    # ✓ Analytics.ps1 loaded
 } catch {
     Write-Host "  ✗ Analytics.ps1 failed: $_" -ForegroundColor Red
     throw
 }
 
 try {
-    Write-Host "  Loading Theme.ps1..." -ForegroundColor Gray
+    # Loading Theme.ps1...
     . $PSScriptRoot/src/Theme.ps1
-    Write-Host "  ✓ Theme.ps1 loaded" -ForegroundColor Green
+    # ✓ Theme.ps1 loaded
 } catch {
     Write-Host "  ✗ Theme.ps1 failed: $_" -ForegroundColor Red
     throw
 }
 
 try {
-    Write-Host "  Loading Excel.ps1..." -ForegroundColor Gray
+    # Loading Excel.ps1...
     . $PSScriptRoot/src/Excel.ps1
-    Write-Host "  ✓ Excel.ps1 loaded" -ForegroundColor Green
+    # ✓ Excel.ps1 loaded
 } catch {
     Write-Host "  ✗ Excel.ps1 failed: $_" -ForegroundColor Red
     throw
@@ -233,146 +242,251 @@ try {
 
 # Excel Flow Lite (interactive path pickers for source/dest)
 try {
-    Write-Host "  Loading ExcelFlowLite.ps1..." -ForegroundColor Gray
+    # Loading ExcelFlowLite.ps1...
     . $PSScriptRoot/src/ExcelFlowLite.ps1
-    Write-Host "  ✓ ExcelFlowLite.ps1 loaded" -ForegroundColor Green
+    # ✓ ExcelFlowLite.ps1 loaded
 } catch {
     Write-Host "  ✗ ExcelFlowLite.ps1 failed: $_" -ForegroundColor Red
     throw
 }
 
 try {
-    Write-Host "  Loading ImportExport.ps1..." -ForegroundColor Gray
+    # Loading ImportExport.ps1...
     . $PSScriptRoot/src/ImportExport.ps1
-    Write-Host "  ✓ ImportExport.ps1 loaded" -ForegroundColor Green
+    # ✓ ImportExport.ps1 loaded
 } catch {
     Write-Host "  ✗ ImportExport.ps1 failed: $_" -ForegroundColor Red
     throw
 }
 
 try {
-    Write-Host "  Loading Shortcuts.ps1..." -ForegroundColor Gray
+    # Loading Shortcuts.ps1...
     . $PSScriptRoot/src/Shortcuts.ps1
-    Write-Host "  ✓ Shortcuts.ps1 loaded" -ForegroundColor Green
+    # ✓ Shortcuts.ps1 loaded
 } catch {
     Write-Host "  ✗ Shortcuts.ps1 failed: $_" -ForegroundColor Red
     throw
 }
 
 try {
-    Write-Host "  Loading Review.ps1..." -ForegroundColor Gray
+    # Loading Review.ps1...
     . $PSScriptRoot/src/Review.ps1
-    Write-Host "  ✓ Review.ps1 loaded" -ForegroundColor Green
+    # ✓ Review.ps1 loaded
 } catch {
     Write-Host "  ✗ Review.ps1 failed: $_" -ForegroundColor Red
     throw
 }
 
+# Initialize help content data structure
+$Script:PmcHelpContent = @{
+    "Query & Search" = @{
+        Description = "Query language, filters, and search"
+        Items = @(
+            @{ Type = "🎯 PRIORITY"; Command = "q tasks p1"; Description = "High priority only (p1/p2/p3)" }
+            @{ Type = "🎯 PRIORITY"; Command = "q tasks p<=2"; Description = "High/medium priority" }
+            @{ Type = "🎯 PRIORITY"; Command = "q tasks p>=2"; Description = "Medium/low priority" }
+            @{ Type = "📅 DATE"; Command = "q tasks due:today"; Description = "Due today" }
+            @{ Type = "📅 DATE"; Command = "q tasks due>today"; Description = "Due in future" }
+            @{ Type = "📅 DATE"; Command = "q tasks overdue"; Description = "Past due" }
+            @{ Type = "📅 DATE"; Command = "q tasks due<=7d"; Description = "Due within 7 days" }
+            @{ Type = "📅 DATE"; Command = "q tasks due:2024-12-25"; Description = "Due on specific date" }
+            @{ Type = "🏷️ PROJECT"; Command = "q tasks @work"; Description = "Work project tasks" }
+            @{ Type = "🏷️ PROJECT"; Command = "q tasks #urgent"; Description = "Tagged urgent" }
+            @{ Type = "🏷️ PROJECT"; Command = "q tasks @work #urgent"; Description = "Work project, urgent tag" }
+            @{ Type = "🔗 ADVANCED"; Command = "q tasks p<=2 @work due>=today"; Description = "Multiple filters combined" }
+            @{ Type = "🔗 ADVANCED"; Command = "q tasks cols:id,text,due"; Description = "Select specific columns" }
+            @{ Type = "🔗 ADVANCED"; Command = "q tasks sort:due"; Description = "Sort by due date" }
+            @{ Type = "🔗 ADVANCED"; Command = "q tasks view:kanban"; Description = "Force kanban view" }
+            @{ Type = "🔗 ADVANCED"; Command = "q tasks group:status"; Description = "Group by status field" }
+        )
+    }
+    "Views & Filters" = @{
+        Description = "Display modes and visual layouts"
+        Items = @(
+            @{ Type = "📋 VIEWS"; Command = "agenda"; Description = "Calendar view of tasks" }
+            @{ Type = "📋 VIEWS"; Command = "today"; Description = "Today's tasks" }
+            @{ Type = "📋 VIEWS"; Command = "overdue"; Description = "Past due tasks" }
+            @{ Type = "📋 VIEWS"; Command = "upcoming"; Description = "Future tasks" }
+            @{ Type = "📋 VIEWS"; Command = "tasks"; Description = "All pending tasks" }
+            @{ Type = "📋 VIEWS"; Command = "projects"; Description = "Projects dashboard" }
+            @{ Type = "🎯 KANBAN"; Command = "q tasks group:status"; Description = "Auto-kanban by status" }
+            @{ Type = "🎯 KANBAN"; Command = "q tasks group:priority"; Description = "Kanban by priority" }
+            @{ Type = "🎯 KANBAN"; Command = "q tasks group:project"; Description = "Kanban by project" }
+            @{ Type = "🎯 KANBAN"; Command = "q tasks view:kanban"; Description = "Force kanban view" }
+            @{ Type = "⌨️ NAVIGATION"; Command = "↑ ↓ ← →"; Description = "Navigate kanban lanes and cards" }
+            @{ Type = "⌨️ NAVIGATION"; Command = "Space"; Description = "Move cards between lanes" }
+            @{ Type = "⌨️ NAVIGATION"; Command = "Enter"; Description = "Edit selected task/card" }
+            @{ Type = "⌨️ NAVIGATION"; Command = "Escape"; Description = "Exit kanban mode" }
+        )
+    }
+    "Task Management" = @{
+        Description = "Creating, editing, and organizing tasks"
+        Items = @(
+            @{ Type = "➕ CREATE"; Command = "task add 'New task'"; Description = "Add basic task" }
+            @{ Type = "➕ CREATE"; Command = "task add 'Meeting' @work p1 due:today"; Description = "Add task with project, priority, due date" }
+            @{ Type = "➕ CREATE"; Command = "task add 'Fix bug #123' #urgent"; Description = "Add task with tags" }
+            @{ Type = "✅ COMPLETE"; Command = "task done 5"; Description = "Mark task #5 complete" }
+            @{ Type = "✅ COMPLETE"; Command = "task done @work"; Description = "Complete all work tasks" }
+            @{ Type = "📝 EDIT"; Command = "task update 5 due:2024-12-25"; Description = "Set due date" }
+            @{ Type = "📝 EDIT"; Command = "task update 5 p2"; Description = "Change priority" }
+            @{ Type = "📝 EDIT"; Command = "task update 5 'Updated text'"; Description = "Change task text" }
+            @{ Type = "🔧 ADVANCED"; Command = "task edit 5"; Description = "Interactive task editor" }
+            @{ Type = "🔧 ADVANCED"; Command = "task move 5 @newproject"; Description = "Move to different project" }
+            @{ Type = "🔧 ADVANCED"; Command = "task delete 5"; Description = "Delete task (careful!)" }
+        )
+    }
+    "Project Management" = @{
+        Description = "Project creation and organization"
+        Items = @(
+            @{ Type = "🆕 CREATE"; Command = "project add 'New Project'"; Description = "Create new project" }
+            @{ Type = "🆕 CREATE"; Command = "project add 'Work' -description 'Work tasks'"; Description = "Create project with description" }
+            @{ Type = "📋 MANAGE"; Command = "project list"; Description = "Show all projects" }
+            @{ Type = "📋 MANAGE"; Command = "project show @work"; Description = "Show project details" }
+            @{ Type = "📋 MANAGE"; Command = "project stats"; Description = "Project statistics" }
+            @{ Type = "🗂️ ORGANIZE"; Command = "project archive 'Old Project'"; Description = "Archive completed project" }
+            @{ Type = "🗂️ ORGANIZE"; Command = "project rename 'Old' 'New Name'"; Description = "Rename project" }
+            @{ Type = "🗂️ ORGANIZE"; Command = "project delete 'Unwanted'"; Description = "Delete project (careful!)" }
+        )
+    }
+    "Configuration" = @{
+        Description = "Settings and customization"
+        Items = @(
+            @{ Type = "⚙️ SETTINGS"; Command = "config show"; Description = "View current settings" }
+            @{ Type = "⚙️ SETTINGS"; Command = "config set key value"; Description = "Set configuration value" }
+            @{ Type = "⚙️ SETTINGS"; Command = "config reset"; Description = "Reset to defaults" }
+            @{ Type = "🎨 THEMES"; Command = "theme set blue"; Description = "Change color theme" }
+            @{ Type = "🎨 THEMES"; Command = "theme list"; Description = "Show available themes" }
+            @{ Type = "🎨 THEMES"; Command = "theme preview"; Description = "Preview themes" }
+            @{ Type = "📊 STATUS"; Command = "status"; Description = "System status" }
+            @{ Type = "📊 STATUS"; Command = "stats"; Description = "Usage statistics" }
+            @{ Type = "📊 STATUS"; Command = "version"; Description = "Version information" }
+            @{ Type = "🔧 MAINTENANCE"; Command = "backup"; Description = "Backup data" }
+            @{ Type = "🔧 MAINTENANCE"; Command = "import tasks.json"; Description = "Import data" }
+            @{ Type = "🔧 MAINTENANCE"; Command = "export backup.json"; Description = "Export data" }
+        )
+    }
+}
+
+# Help data provider function - needs to be in same scope as $Script:PmcHelpContent
+function Get-PmcHelpData {
+    param([PmcCommandContext]$Context)
+    # Return help categories as domain data for universal display system
+    $helpCategories = @()
+
+    if ($Script:PmcHelpContent -and $Script:PmcHelpContent.Count -gt 0) {
+        $id = 1
+        foreach ($categoryEntry in $Script:PmcHelpContent.GetEnumerator()) {
+            $helpCategories += [PSCustomObject]@{
+                id = $id++
+                Category = $categoryEntry.Key
+                CommandCount = $categoryEntry.Value.Items.Count
+                Description = $categoryEntry.Value.Description
+            }
+        }
+    }
+
+    return $helpCategories
+}
+
 try {
-    Write-Host "  Loading HelpUI.ps1..." -ForegroundColor Gray
+    # Loading HelpUI.ps1...
     . $PSScriptRoot/src/HelpUI.ps1
-    Write-Host "  ✓ HelpUI.ps1 loaded" -ForegroundColor Green
+    # ✓ HelpUI.ps1 loaded
 } catch {
     Write-Host "  ✗ HelpUI.ps1 failed: $_" -ForegroundColor Red
     throw
 }
 
 try {
-    Write-Host "  Loading TaskEditor.ps1..." -ForegroundColor Gray
+    # Loading TaskEditor.ps1...
     . $PSScriptRoot/src/TaskEditor.ps1
-    Write-Host "  ✓ TaskEditor.ps1 loaded" -ForegroundColor Green
+    # ✓ TaskEditor.ps1 loaded
 } catch {
     Write-Host "  ✗ TaskEditor.ps1 failed: $_" -ForegroundColor Red
     throw
 }
 
-try {
-    Write-Host "  Loading ProjectWizard.ps1..." -ForegroundColor Gray
-    . $PSScriptRoot/src/ProjectWizard.ps1
-    Write-Host "  ✓ ProjectWizard.ps1 loaded" -ForegroundColor Green
-} catch {
-    Write-Host "  ✗ ProjectWizard.ps1 failed: $_" -ForegroundColor Red
-    throw
-}
+# ProjectWizard.ps1 removed - functionality replaced by enhanced Add-PmcProject
 
 try {
-    Write-Host "  Loading PraxisVT.ps1..." -ForegroundColor Gray
+    # Loading PraxisVT.ps1...
     . $PSScriptRoot/src/PraxisVT.ps1
-    Write-Host "  ✓ PraxisVT.ps1 loaded" -ForegroundColor Green
+    # ✓ PraxisVT.ps1 loaded
 } catch {
     Write-Host "  ✗ PraxisVT.ps1 failed: $_" -ForegroundColor Red
     throw
 }
 
 try {
-    Write-Host "  Loading PraxisStringBuilder.ps1..." -ForegroundColor Gray
+    # Loading PraxisStringBuilder.ps1...
     . $PSScriptRoot/src/PraxisStringBuilder.ps1
-    Write-Host "  ✓ PraxisStringBuilder.ps1 loaded" -ForegroundColor Green
+    # ✓ PraxisStringBuilder.ps1 loaded
 } catch {
     Write-Host "  ✗ PraxisStringBuilder.ps1 failed: $_" -ForegroundColor Red
     throw
 }
 
 try {
-    Write-Host "  Loading FieldSchemas.ps1..." -ForegroundColor Gray
+    # Loading FieldSchemas.ps1...
     . $PSScriptRoot/src/FieldSchemas.ps1
-    Write-Host "  ✓ FieldSchemas.ps1 loaded" -ForegroundColor Green
+    # ✓ FieldSchemas.ps1 loaded
 } catch {
     Write-Host "  ✗ FieldSchemas.ps1 failed: $_" -ForegroundColor Red
     throw
 }
 
 try {
-    Write-Host "  Loading QuerySpec.ps1..." -ForegroundColor Gray
+    # Loading QuerySpec.ps1...
     . $PSScriptRoot/src/QuerySpec.ps1
-    Write-Host "  ✓ QuerySpec.ps1 loaded" -ForegroundColor Green
+    # ✓ QuerySpec.ps1 loaded
 } catch {
     Write-Host "  ✗ QuerySpec.ps1 failed: $_" -ForegroundColor Red
     throw
 }
 
 try {
-    Write-Host "  Loading Query.ps1..." -ForegroundColor Gray
+    # Loading Query.ps1...
     . $PSScriptRoot/src/Query.ps1
-    Write-Host "  ✓ Query.ps1 loaded" -ForegroundColor Green
+    # ✓ Query.ps1 loaded
 } catch {
     Write-Host "  ✗ Query.ps1 failed: $_" -ForegroundColor Red
     throw
 }
 
 try {
-    Write-Host "  Loading PraxisFrameRenderer.ps1..." -ForegroundColor Gray
+    # Loading PraxisFrameRenderer.ps1...
     . $PSScriptRoot/src/PraxisFrameRenderer.ps1
-    Write-Host "  ✓ PraxisFrameRenderer.ps1 loaded" -ForegroundColor Green
+    # ✓ PraxisFrameRenderer.ps1 loaded
 } catch {
     Write-Host "  ✗ PraxisFrameRenderer.ps1 failed: $_" -ForegroundColor Red
     throw
 }
 
 try {
-    Write-Host "  Loading DataDisplay.ps1..." -ForegroundColor Gray
+    # Loading DataDisplay.ps1...
     . $PSScriptRoot/src/DataDisplay.ps1
-    Write-Host "  ✓ DataDisplay.ps1 loaded" -ForegroundColor Green
+    # ✓ DataDisplay.ps1 loaded
 } catch {
     Write-Host "  ✗ DataDisplay.ps1 failed: $_" -ForegroundColor Red
     throw
 }
 
 try {
-    Write-Host "  Loading UniversalDisplay.ps1..." -ForegroundColor Gray
+    # Loading UniversalDisplay.ps1...
     . $PSScriptRoot/src/UniversalDisplay.ps1
-    Write-Host "  ✓ UniversalDisplay.ps1 loaded" -ForegroundColor Green
+    # ✓ UniversalDisplay.ps1 loaded
 } catch {
     Write-Host "  ✗ UniversalDisplay.ps1 failed: $_" -ForegroundColor Red
     throw
 }
 
-Write-Host "Pmc.Strict module loaded successfully!" -ForegroundColor Green
 
-# Register universal command shortcuts so single-word routes map to the grid views
-Write-Host "  Registering universal command shortcuts..." -ForegroundColor Gray
-Register-PmcUniversalCommands
-Write-Host "  ✓ Universal shortcuts registered" -ForegroundColor Green
+# Clear screen after module loading completes
+if (Get-Command Reset-PmcScreen -ErrorAction SilentlyContinue) {
+    Reset-PmcScreen
+}
+
+Write-Host "✓ PMC loaded" -ForegroundColor Green
 
 # Ensure required public functions are exported (override narrow exports in sub-files)
 Export-ModuleMember -Function `
@@ -381,6 +495,7 @@ Export-ModuleMember -Function `
     Get-PmcFieldSchema, Get-PmcFieldSchemasForDomain, `
     Invoke-PmcQuery, `
     Get-PmcHelp, `
+    Get-PmcHelpData, `
     Set-PmcConfigProvider, `
     Ensure-PmcUniversalDisplay, `
     Write-PmcDebug, `
@@ -400,6 +515,7 @@ Export-ModuleMember -Function `
     Enable-PmcInteractiveMode, `
     Disable-PmcInteractiveMode, `
     Get-PmcInteractiveStatus, `
+    Read-PmcCommand, `
     Show-PmcSmartHelp, `
     Show-PmcHelpDomain, `
     Show-PmcHelpCommand, `
@@ -408,7 +524,6 @@ Export-ModuleMember -Function `
     Show-PmcHelpExamples, `
     Show-PmcHelpGuide, `
     Invoke-PmcTaskEditor, `
-    Invoke-PmcProjectWizard, `
     Show-PmcAgenda, `
     Show-PmcTodayTasks, `
     Show-PmcOverdueTasks, `
@@ -417,30 +532,28 @@ Export-ModuleMember -Function `
     Show-PmcTasksWithoutDueDate, `
     Show-PmcProjectsView, `
     Show-PmcDataGrid, Show-PmcCustomGrid, `
-    Show-PmcData
+    Show-PmcData, `
+    Initialize-PmcScreen, `
+    Clear-PmcContentArea, `
+    Get-PmcContentBounds, `
+    Set-PmcHeader, `
+    Set-PmcInputPrompt, `
+    Hide-PmcCursor, `
+    Show-PmcCursor, `
+    Reset-PmcScreen, `
+    Write-PmcAtPosition
+
+# Register universal command shortcuts after export so functions are available
 try {
-    Write-Host "  Loading ComputedFields.ps1..." -ForegroundColor Gray
-    . $PSScriptRoot/src/ComputedFields.ps1
-    Write-Host "  ✓ ComputedFields.ps1 loaded" -ForegroundColor Green
+    if (Get-Command Register-PmcUniversalCommands -ErrorAction SilentlyContinue) {
+        Register-PmcUniversalCommands
+        Write-Host "✓ Universal command shortcuts registered" -ForegroundColor Green
+    } else {
+        Write-Host "✗ Register-PmcUniversalCommands function not found" -ForegroundColor Red
+    }
 } catch {
-    Write-Host "  ✗ ComputedFields.ps1 failed: $_" -ForegroundColor Red
-    throw
+    Write-Host "✗ Universal Display initialization failed: $_" -ForegroundColor Red
 }
 
-try {
-    Write-Host "  Loading QueryEvaluator.ps1..." -ForegroundColor Gray
-    . $PSScriptRoot/src/QueryEvaluator.ps1
-    Write-Host "  ✓ QueryEvaluator.ps1 loaded" -ForegroundColor Green
-} catch {
-    Write-Host "  ✗ QueryEvaluator.ps1 failed: $_" -ForegroundColor Red
-    throw
-}
-
-try {
-    Write-Host "  Loading KanbanRenderer.ps1..." -ForegroundColor Gray
-    . $PSScriptRoot/src/KanbanRenderer.ps1
-    Write-Host "  ✓ KanbanRenderer.ps1 loaded" -ForegroundColor Green
-} catch {
-    Write-Host "  ✗ KanbanRenderer.ps1 failed: $_" -ForegroundColor Red
-    throw
-}
+# Modules loaded after Export-ModuleMember removed to fix export issues
+# ComputedFields.ps1, QueryEvaluator.ps1, KanbanRenderer.ps1 were loaded earlier

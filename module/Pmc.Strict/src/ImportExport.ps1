@@ -91,4 +91,4 @@ function Import-PmcTasks {
     Show-PmcWarning 'Unsupported file type (use .csv or .json)'
 }
 
-Export-ModuleMember -Function Export-PmcTasks, Import-PmcTasks
+#Export-ModuleMember -Function Export-PmcTasks, Import-PmcTasks

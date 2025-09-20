@@ -461,4 +461,4 @@ function Invoke-PmcTaskEditor {
 }
 
 # Export for module use
-Export-ModuleMember -Function Invoke-PmcTaskEditor
+#Export-ModuleMember -Function Invoke-PmcTaskEditor

@@ -12,6 +12,7 @@
         'Invoke-PmcCommand',
         'Get-PmcSchema',
         'Get-PmcHelp',
+        'Get-PmcHelpData',
         'Show-PmcHelpUI',
         'Show-PmcHelpDomain',
         'Show-PmcHelpCommand',
@@ -164,6 +165,7 @@
         'Export-PmcXFlowText',
         'Import-PmcXFlowMappingsFromFile',
         'Set-PmcXFlowLatestFromFile',
+        'Show-PmcXFlowConfig',
         # DATA DISPLAY SYSTEM
         'Show-PmcDataGrid',
         # UNIVERSAL DISPLAY SYSTEM
@@ -171,6 +173,7 @@
         'Get-PmcDefaultColumns',
         'Register-PmcUniversalCommands',
         'Get-PmcUniversalCommands',
+        'Ensure-PmcUniversalDisplay',
         # Interactive view entrypoints
         'Show-PmcTodayTasksInteractive',
         'Show-PmcOverdueTasksInteractive',
@@ -183,7 +186,17 @@
         'Get-PmcComputedRegistry',
         'Get-PmcQueryAlias',
         'Set-PmcQueryAlias',
-        'Show-PmcCustomGrid'
+        'Show-PmcCustomGrid',
+        # SCREEN MANAGEMENT SYSTEM
+        'Initialize-PmcScreen',
+        'Clear-PmcContentArea',
+        'Get-PmcContentBounds',
+        'Set-PmcHeader',
+        'Set-PmcInputPrompt',
+        'Hide-PmcCursor',
+        'Show-PmcCursor',
+        'Reset-PmcScreen',
+        'Write-PmcAtPosition'
     )
     AliasesToExport   = @()
     CmdletsToExport   = @()

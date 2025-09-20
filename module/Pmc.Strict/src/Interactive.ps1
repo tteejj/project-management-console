@@ -20,6 +20,19 @@ function Pmc-SetGhost([bool]$g) { Set-PmcState -Section 'Interactive' -Key 'Ghos
 function Pmc-GetInfoMap { $m = Get-PmcState -Section 'Interactive' -Key 'CompletionInfoMap'; if ($null -eq $m) { $m=@{}; Set-PmcState -Section 'Interactive' -Key 'CompletionInfoMap' -Value $m }; return $m }
 function Pmc-SetInfoMap($m) { Set-PmcState -Section 'Interactive' -Key 'CompletionInfoMap' -Value $m }
 
+# Insert literal text at cursor and re-render input line
+function Pmc-InsertAtCursor {
+    param([Parameter(Mandatory=$true)][string]$Text)
+    try {
+        $ed = Pmc-GetEditor
+        $before = $ed.Buffer
+        $pos = [Math]::Max(0, [Math]::Min($ed.CursorPos, $before.Length))
+        $ed.Buffer = $before.Substring(0, $pos) + $Text + $before.Substring($pos)
+        $ed.CursorPos = $pos + $Text.Length
+        Render-Interactive -Buffer $ed.Buffer -CursorPos $ed.CursorPos -InCompletion $false
+    } catch {}
+}
+
 # Fuzzy matching utilities (subsequence with ranking)
 function Invoke-PmcFuzzyFilter {
     param(
@@ -1257,4 +1270,4 @@ function Get-PmcInteractiveStatus {
 }
 
 # Export functions
-Export-ModuleMember -Function Enable-PmcInteractiveMode, Disable-PmcInteractiveMode, Get-PmcInteractiveStatus, Read-PmcCommand
+#Export-ModuleMember -Function Enable-PmcInteractiveMode, Disable-PmcInteractiveMode, Get-PmcInteractiveStatus, Read-PmcCommand

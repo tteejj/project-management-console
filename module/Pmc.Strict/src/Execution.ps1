@@ -406,4 +406,4 @@ function Test-PmcContext {
     return $true
 }
 
-Export-ModuleMember -Function Set-PmcContextDefaults, Normalize-PmcContextFields, Resolve-PmcHandler, Resolve-PmcProjectFromTokens, Parse-PmcArgsFromTokens, ConvertTo-PmcIdSet, ConvertTo-PmcContext, Invoke-PmcCommand, ConvertTo-PmcContextType, Test-PmcContext
+#Export-ModuleMember -Function Set-PmcContextDefaults, Normalize-PmcContextFields, Resolve-PmcHandler, Resolve-PmcProjectFromTokens, Parse-PmcArgsFromTokens, ConvertTo-PmcIdSet, ConvertTo-PmcContext, Invoke-PmcCommand, ConvertTo-PmcContextType, Test-PmcContext

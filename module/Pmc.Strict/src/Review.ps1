@@ -27,5 +27,5 @@ function Start-PmcReview {
     Show-PmcSuccess 'Review complete.'
 }
 
-Export-ModuleMember -Function Start-PmcReview
+#Export-ModuleMember -Function Start-PmcReview
 

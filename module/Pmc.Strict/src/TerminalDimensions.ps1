@@ -146,4 +146,4 @@ function Get-PmcTerminalDimensions { return [PmcTerminalService]::GetDimensions(
 function Test-PmcContentBounds { param([string]$Content, [int]$MaxWidth = 0, [int]$MaxHeight = 0) return [PmcTerminalService]::ValidateContent($Content, $MaxWidth, $MaxHeight) }
 function Set-PmcContentBounds { param([string]$Content, [int]$MaxWidth = 0, [int]$MaxHeight = 0) return [PmcTerminalService]::EnforceContentBounds($Content, $MaxWidth, $MaxHeight) }
 
-Export-ModuleMember -Function Get-PmcTerminalWidth, Get-PmcTerminalHeight, Get-PmcTerminalDimensions, Test-PmcContentBounds, Set-PmcContentBounds
+#Export-ModuleMember -Function Get-PmcTerminalWidth, Get-PmcTerminalHeight, Get-PmcTerminalDimensions, Test-PmcContentBounds, Set-PmcContentBounds

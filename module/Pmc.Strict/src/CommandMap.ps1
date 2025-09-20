@@ -104,6 +104,7 @@ $Script:PmcCommandMap = @{
         'export'        = 'Export-PmcXFlowText'
         'import-mappings' = 'Import-PmcXFlowMappingsFromFile'
         'set-latest'    = 'Set-PmcXFlowLatestFromFile'
+        'config'        = 'Show-PmcXFlowConfig'
     }
     theme = @{
         reset    = 'Reset-PmcTheme'
@@ -136,6 +137,7 @@ $Script:PmcCommandMap = @{
     help = @{
         all     = 'Show-PmcHelpAll'
         show    = 'Show-PmcSmartHelp'
+        list    = 'Get-PmcHelpData'
         commands= 'Show-PmcCommandBrowser'
         examples= 'Show-PmcHelpExamples'
         guide   = 'Show-PmcHelpGuide'
@@ -240,6 +242,7 @@ $Script:PmcCommandMeta = @{
     'xflow export'  = @{ Desc='Export last extract to CSV/JSON' }
     'xflow import-mappings' = @{ Desc='Import field mappings from settings.json' }
     'xflow set-latest' = @{ Desc='Set latest extract from JSON file' }
+    'xflow config' = @{ Desc='Show current xflow configuration' }
     'theme reset'   = @{ Desc='Reset theme to default' }
     'theme adjust'  = @{ Desc='Adjust theme interactively' }
     'config icons'  = @{ Desc='Set icons: ascii|emoji' }

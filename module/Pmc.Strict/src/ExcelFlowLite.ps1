@@ -2,6 +2,20 @@
 
 Set-StrictMode -Version Latest
 
+function Get-XFlowCfgVal {
+    param([object]$Cfg,[string]$Key,[object]$Default=$null)
+    if ($Cfg -is [hashtable]) { if ($Cfg.ContainsKey($Key)) { return $Cfg[$Key] } else { return $Default } }
+    if ($Cfg -is [pscustomobject]) { if ($Cfg.PSObject.Properties[$Key]) { return $Cfg.$Key } else { return $Default } }
+    return $Default
+}
+
+function Get-XFlowMapVal {
+    param([object]$Map,[string]$Key,[object]$Default=$null)
+    if ($Map -is [hashtable]) { if ($Map.ContainsKey($Key)) { return $Map[$Key] } else { return $Default } }
+    if ($Map -is [pscustomobject]) { if ($Map.PSObject.Properties[$Key]) { return $Map.$Key } else { return $Default } }
+    return $Default
+}
+
 function Get-PmcXFlowConfig {
     $data = Get-PmcData
     if (-not $data.PSObject.Properties['excelFlow']) {
@@ -106,15 +120,26 @@ function Invoke-PmcPathPicker {
             Modified = @{ Header='Modified'; Width=16; Alignment='Center' }
         }
 
-        # Render interactively using the grid renderer (pattern from HelpUI)
+        # Render interactively using ScreenManager header + grid in navigation mode
         $displayTitle = "{0} — {1}" -f $Title, $current
-        try {
+        if (Get-Command Set-PmcHeader -ErrorAction SilentlyContinue) {
+            Set-PmcHeader -Title $displayTitle -Status 'Nav: ENTER select  •  Q exit'
+            if (Get-Command Clear-PmcContentArea -ErrorAction SilentlyContinue) { Clear-PmcContentArea }
+        } else {
             Write-PmcStyled -Style 'Title' -Text ("`n$displayTitle")
             $winW = [PmcTerminalService]::GetWidth()
             Write-PmcStyled -Style 'Border' -Text ("─" * [Math]::Max(20, $winW))
-            $renderer = [PmcGridRenderer]::new($cols, @('help'), @{})
+        }
+
+        $selectedIndex = 1
+        try {
+            $renderer = [PmcGridRenderer]::new($cols, @('file-browser'), @{})
+            $renderer.EditMode = $false  # Navigation mode
+            $script:_xflow_picker_selectedIndex = -1
+            $renderer.OnSelectCallback = { param($item, $row) $script:_xflow_picker_selectedIndex = $row; $renderer.Interactive = $false }
             $renderer.StartInteractive($rows)
-            $selectedIndex = [int]$renderer.SelectedRow
+            if ($script:_xflow_picker_selectedIndex -ge 0) { $selectedIndex = [int]$script:_xflow_picker_selectedIndex }
+            else { $selectedIndex = [int]$renderer.SelectedRow }
         } catch {
             $selectedIndex = 1
         }
@@ -144,7 +169,7 @@ function Set-PmcXFlowSourcePathInteractive {
         $data = Get-PmcXFlowConfig
         $start = (Get-Location).Path
         if ($data.excelFlow.config.ContainsKey('SourceFile')) {
-            try { $start = Split-Path [string]$data.excelFlow.config.SourceFile -Parent } catch {}
+            try { $start = Split-Path [string]$data.excelFlow.config['SourceFile'] -Parent } catch {}
         }
         $path = Invoke-PmcPathPicker -StartDir $start -Pick 'File' -Extensions @('*.xls','*.xlsx','*.xlsm') -Title 'Select Source Excel Workbook'
         if ([string]::IsNullOrWhiteSpace($path)) {
@@ -164,9 +189,9 @@ function Set-PmcXFlowDestPathInteractive {
         $data = Get-PmcXFlowConfig
         $start = (Get-Location).Path
         if ($data.excelFlow.config.ContainsKey('DestFile')) {
-            try { $start = Split-Path [string]$data.excelFlow.config.DestFile -Parent } catch {}
+            try { $start = Split-Path [string]$data.excelFlow.config['DestFile'] -Parent } catch {}
         } elseif ($data.excelFlow.config.ContainsKey('SourceFile')) {
-            try { $start = Split-Path [string]$data.excelFlow.config.SourceFile -Parent } catch {}
+            try { $start = Split-Path [string]$data.excelFlow.config['SourceFile'] -Parent } catch {}
         }
         $path = Invoke-PmcPathPicker -StartDir $start -Pick 'File' -Extensions @('*.xls','*.xlsx','*.xlsm') -Title 'Select Destination Excel Workbook'
         if ([string]::IsNullOrWhiteSpace($path)) {
@@ -238,35 +263,36 @@ function Show-PmcXFlowPreview {
     $max = 10; try { if ($Context.Args.ContainsKey('max')) { $max = [int]$Context.Args['max'] } } catch {}
     $dry = $false; try { $dry = $Context.Args.ContainsKey('dry') } catch {}
     $cfg = Get-PmcXFlowConfigData
-    if (-not $cfg.FieldMappings -or @($cfg.FieldMappings.Keys).Count -eq 0) { Write-PmcStyled -Style 'Warning' -Text 'No FieldMappings configured. Import mappings first.'; return }
+    if (-not ($cfg -is [hashtable]) -or -not $cfg.ContainsKey('FieldMappings') -or @($cfg['FieldMappings'].Keys).Count -eq 0) { Write-PmcStyled -Style 'Warning' -Text 'No FieldMappings configured. Import mappings first.'; return }
 
     if ($dry) {
         Write-PmcStyled -Style 'Title' -Text 'XFlow Preview (dry)'
         Write-PmcStyled -Style 'Border' -Text ("─" * 50)
-        $names = $cfg.FieldMappings.Keys | Select-Object -First $max
+        $names = $cfg['FieldMappings'].Keys | Select-Object -First $max
         foreach ($n in $names) {
-            $map = $cfg.FieldMappings[$n]
-            $cell = $map.Cell
-            $srcSheet = if ($map.PSObject.Properties['Sheet'] -and $map.Sheet) { [string]$map.Sheet } else { [string]$cfg.SourceSheet }
+            $map = $cfg['FieldMappings'][$n]
+            $cell = [string](Get-XFlowMapVal $map 'Cell' '')
+            $srcSheet = [string](Get-XFlowMapVal $map 'Sheet' (Get-XFlowCfgVal $cfg 'SourceSheet' ''))
             Write-Host ("  {0,-20} {1,-12} {2,-10} {3}" -f $n, $srcSheet, $cell, '(dry)')
         }
         return
     }
 
-    if (-not $cfg.SourceFile) { Write-PmcStyled -Style 'Warning' -Text 'No SourceFile configured. Use xflow browse-source.'; return }
-    if (-not (Test-Path $cfg.SourceFile)) { Write-PmcStyled -Style 'Error' -Text ("Source file not found: {0}" -f $cfg.SourceFile); return }
+    $srcPath = [string](Get-XFlowCfgVal $cfg 'SourceFile' '')
+    if (-not $srcPath) { Write-PmcStyled -Style 'Warning' -Text 'No SourceFile configured. Use xflow browse-source.'; return }
+    if (-not (Test-Path $srcPath)) { Write-PmcStyled -Style 'Error' -Text ("Source file not found: {0}" -f $srcPath); return }
 
     $srcWb = $null
     try {
         $srcWb = Open-Workbook -Path $cfg.SourceFile -ReadOnly
         $sheetCache = @{}
-        $names = $cfg.FieldMappings.Keys | Select-Object -First $max
-        Write-PmcStyled -Style 'Title' -Text ("XFlow Preview - {0}" -f (Split-Path $cfg.SourceFile -Leaf))
+        $names = $cfg['FieldMappings'].Keys | Select-Object -First $max
+        Write-PmcStyled -Style 'Title' -Text ("XFlow Preview - {0}" -f (Split-Path $srcPath -Leaf))
         Write-PmcStyled -Style 'Border' -Text ("─" * 50)
         foreach ($n in $names) {
-            $map = $cfg.FieldMappings[$n]
-            $cell = $map.Cell
-            $srcSheet = if ($map.PSObject.Properties['Sheet'] -and $map.Sheet) { [string]$map.Sheet } else { [string]$cfg.SourceSheet }
+            $map = $cfg['FieldMappings'][$n]
+            $cell = [string](Get-XFlowMapVal $map 'Cell' '')
+            $srcSheet = [string](Get-XFlowMapVal $map 'Sheet' (Get-XFlowCfgVal $cfg 'SourceSheet' ''))
             if (-not $sheetCache.ContainsKey($srcSheet)) { $sheetCache[$srcSheet] = Get-Worksheet -Workbook $srcWb -Name $srcSheet }
             $wsSrc = $sheetCache[$srcSheet]
             $val = $null; try { $val = $wsSrc.Range($cell).Value2 } catch {}
@@ -291,7 +317,7 @@ function Invoke-PmcXFlowRun {
     $valuesPath = $null; if ($args.ContainsKey('values')) { $valuesPath = [string]$args['values'] }
 
     $cfg = Get-PmcXFlowConfigData
-    if (-not $cfg.FieldMappings -or @($cfg.FieldMappings.Keys).Count -eq 0) { Write-PmcStyled -Style 'Warning' -Text 'No FieldMappings configured. Import mappings first.'; return }
+    if (-not ($cfg -is [hashtable]) -or -not $cfg.ContainsKey('FieldMappings') -or @($cfg['FieldMappings'].Keys).Count -eq 0) { Write-PmcStyled -Style 'Warning' -Text 'No FieldMappings configured. Import mappings first.'; return }
 
     $start = Get-Date
     $srcWb = $null; $dstWb = $null
@@ -308,26 +334,27 @@ function Invoke-PmcXFlowRun {
                     if ($raw.ContainsKey('Data')) { $provided = $raw['Data'] } else { $provided = $raw }
                 } catch { $provided = $null; $errors += "Failed to parse values file: $valuesPath" }
             }
-            foreach ($field in $cfg.FieldMappings.Keys) {
-                if ($provided -and $provided.ContainsKey($field)) {
+            foreach ($field in $cfg['FieldMappings'].Keys) {
+                if ($provided -and ($provided -is [hashtable]) -and $provided.ContainsKey($field)) {
                     $extracted[$field] = $provided[$field]
                 } else {
-                    $m = $cfg.FieldMappings[$field]
-                    $srcSheet = if ($m.PSObject.Properties['Sheet'] -and $m.Sheet) { [string]$m.Sheet } else { [string]$cfg.SourceSheet }
-                    $cell = $m.Cell
+                    $m = $cfg['FieldMappings'][$field]
+                    $srcSheet = [string](Get-XFlowMapVal $m 'Sheet' (Get-XFlowCfgVal $cfg 'SourceSheet' ''))
+                    $cell = [string](Get-XFlowMapVal $m 'Cell' '')
                     $extracted[$field] = ("<{0}!{1}>" -f $srcSheet, $cell)
                 }
             }
         } else {
-            if (-not $cfg.SourceFile) { Write-PmcStyled -Style 'Warning' -Text 'No SourceFile configured. Use xflow browse-source.'; return }
-            if (-not (Test-Path $cfg.SourceFile)) { Write-PmcStyled -Style 'Error' -Text ("Source file not found: {0}" -f $cfg.SourceFile); return }
+            $srcPath = [string](Get-XFlowCfgVal $cfg 'SourceFile' '')
+            if (-not $srcPath) { Write-PmcStyled -Style 'Warning' -Text 'No SourceFile configured. Use xflow browse-source.'; return }
+            if (-not (Test-Path $srcPath)) { Write-PmcStyled -Style 'Error' -Text ("Source file not found: {0}" -f $srcPath); return }
             if ($whatIf) { Write-PmcStyled -Style 'Info' -Text 'WhatIf: extracting values (no writes).' }
-            $srcWb = Open-Workbook -Path $cfg.SourceFile -ReadOnly
+            $srcWb = Open-Workbook -Path $srcPath -ReadOnly
             $srcSheets = @{}
-            foreach ($field in $cfg.FieldMappings.Keys) {
-                $map = $cfg.FieldMappings[$field]
-                $cell = $map.Cell
-                $srcSheet = if ($map.PSObject.Properties['Sheet'] -and $map.Sheet) { [string]$map.Sheet } else { [string]$cfg.SourceSheet }
+            foreach ($field in $cfg['FieldMappings'].Keys) {
+                $map = $cfg['FieldMappings'][$field]
+                $cell = [string](Get-XFlowMapVal $map 'Cell' '')
+                $srcSheet = [string](Get-XFlowMapVal $map 'Sheet' (Get-XFlowCfgVal $cfg 'SourceSheet' ''))
                 try {
                     if (-not $srcSheets.ContainsKey($srcSheet)) { $srcSheets[$srcSheet] = Get-Worksheet -Workbook $srcWb -Name $srcSheet }
                     $wsSrc = $srcSheets[$srcSheet]
@@ -336,14 +363,15 @@ function Invoke-PmcXFlowRun {
                 $extracted[$field] = $val
             }
 
-            if (-not $noExcel -and $cfg.DestFile) {
+            $destPath = [string](Get-XFlowCfgVal $cfg 'DestFile' '')
+            if (-not $noExcel -and $destPath) {
                 if (-not $whatIf) {
-                    if (Test-Path $cfg.DestFile) { $dstWb = Open-Workbook -Path $cfg.DestFile } else { $dstWb = New-XFlowWorkbook -Path $cfg.DestFile }
+                    if (Test-Path $destPath) { $dstWb = Open-Workbook -Path $destPath } else { $dstWb = New-XFlowWorkbook -Path $destPath }
                     $dstSheets = @{}
-                    foreach ($field in $cfg.FieldMappings.Keys) {
-                        $map = $cfg.FieldMappings[$field]
-                        $dest = $map.DestCell
-                        $dstSheetName = if ($map.PSObject.Properties['DestSheet'] -and $map.DestSheet) { [string]$map.DestSheet } else { [string]$cfg.DestSheet }
+                    foreach ($field in $cfg['FieldMappings'].Keys) {
+                        $map = $cfg['FieldMappings'][$field]
+                        $dest = [string](Get-XFlowMapVal $map 'DestCell' '')
+                        $dstSheetName = [string](Get-XFlowMapVal $map 'DestSheet' (Get-XFlowCfgVal $cfg 'DestSheet' ''))
                         if ($dest -and $dest.Trim().Length -gt 0) {
                             try {
                                 if (-not $dstSheets.ContainsKey($dstSheetName)) { $dstSheets[$dstSheetName] = Get-OrAddWorksheet -Workbook $dstWb -Name $dstSheetName }
@@ -352,9 +380,9 @@ function Invoke-PmcXFlowRun {
                             } catch { $errors += "Write failed: $field $dstSheetName!$dest" }
                         }
                     }
-                    try { Save-Workbook -Workbook $dstWb } catch { $errors += "Save failed: $($cfg.DestFile)" }
+                    try { Save-Workbook -Workbook $dstWb } catch { $errors += "Save failed: $destPath" }
                 } else {
-                    Write-PmcStyled -Style 'Info' -Text ("WhatIf: would update destination workbook: {0}" -f $cfg.DestFile)
+                    Write-PmcStyled -Style 'Info' -Text ("WhatIf: would update destination workbook: {0}" -f $destPath)
                 }
             }
         }
@@ -374,9 +402,9 @@ function Invoke-PmcXFlowRun {
         $data = Get-PmcXFlowConfig
         $run = [ordered]@{
             Timestamp = (Get-Date).ToString('yyyy-MM-dd HH:mm:ss')
-            SourceFile = if ($cfg.SourceFile) { $cfg.SourceFile } else { '(dry)' }
-            DestFile = if ($cfg.DestFile) { $cfg.DestFile } else { '' }
-            FieldCount = $cfg.FieldMappings.Count
+            SourceFile = (Get-XFlowCfgVal $cfg 'SourceFile' '(dry)')
+            DestFile = (Get-XFlowCfgVal $cfg 'DestFile' '')
+            FieldCount = @($cfg['FieldMappings'].Keys).Count
             Success = ($errors.Count -eq 0)
             Errors = $errors
             DurationMs = [int]((Get-Date) - $start).TotalMilliseconds
@@ -406,9 +434,22 @@ function Invoke-PmcXFlowRun {
 
 function Import-PmcXFlowMappingsFromFile {
     param([PmcCommandContext]$Context)
-    $args = $Context.Args
-    if (-not $args.ContainsKey('path')) { Write-PmcStyled -Style 'Info' -Text "Usage: xflow import-mappings path:<settings.json>"; return }
-    $path = [string]$args['path']
+    # Parse FreeText tokens like path:<file> or a single <file>
+    $path = $null
+    foreach ($t in $Context.FreeText) {
+        if ($t -match '^(?i)path:(.+)$') { $path = $matches[1]; break }
+        # If a token looks like a json file path and path: not used, take it
+        if ($t -match '\.json$') { $path = $t; break }
+    }
+    if (-not $path) {
+        # No path provided: open interactive file picker for JSON
+        try {
+            $start = (Get-Location).Path
+            $picked = Invoke-PmcPathPicker -StartDir $start -Pick 'File' -Extensions @('*.json') -Title 'Select ExcelDataFlow settings.json'
+            if ($picked) { $path = $picked }
+        } catch { }
+    }
+    if (-not $path) { Write-PmcStyled -Style 'Info' -Text "Usage: xflow import-mappings path:<settings.json> (or choose interactively)"; return }
     if (-not (Test-Path $path)) { Write-PmcStyled -Style 'Error' -Text ("File not found: {0}" -f $path); return }
     try {
         $json = Get-Content -Path $path -Raw | ConvertFrom-Json -AsHashtable
@@ -469,5 +510,36 @@ function Set-PmcXFlowLatestFromFile {
         Write-PmcStyled -Style 'Success' -Text ("latestExtract set from {0}. Fields: {1}" -f $path, $dict.Keys.Count)
     } catch {
         Write-PmcStyled -Style 'Error' -Text ("Failed to set latest: {0}" -f $_)
+    }
+}
+
+function Show-PmcXFlowConfig {
+    param([PmcCommandContext]$Context)
+    $cfg = Get-PmcXFlowConfigData
+    if (-not ($cfg -is [hashtable])) { Write-PmcStyled -Style 'Info' -Text 'No xflow config found.'; return }
+    $sf = [string](Get-XFlowCfgVal $cfg 'SourceFile' '')
+    $ss = [string](Get-XFlowCfgVal $cfg 'SourceSheet' '')
+    $df = [string](Get-XFlowCfgVal $cfg 'DestFile' '')
+    $ds = [string](Get-XFlowCfgVal $cfg 'DestSheet' '')
+    $fm = $null; if ($cfg.ContainsKey('FieldMappings')) { $fm = $cfg['FieldMappings'] } else { $fm = @{} }
+    $count = @($fm.Keys).Count
+    Write-PmcStyled -Style 'Title' -Text 'XFlow Configuration'
+    Write-Host ("  SourceFile  : {0}" -f ($sf ? $sf : '(none)'))
+    Write-Host ("  SourceSheet : {0}" -f ($ss ? $ss : '(none)'))
+    Write-Host ("  DestFile    : {0}" -f ($df ? $df : '(none)'))
+    Write-Host ("  DestSheet   : {0}" -f ($ds ? $ds : '(none)'))
+    Write-Host ("  Fields      : {0}" -f $count)
+    if ($count -gt 0) {
+        Write-PmcStyled -Style 'Border' -Text ("─" * 50)
+        $names = $fm.Keys | Sort-Object | Select-Object -First 10
+        foreach ($n in $names) {
+            $m = $fm[$n]
+            $sheet = [string](Get-XFlowMapVal $m 'Sheet' $ss)
+            $cell  = [string](Get-XFlowMapVal $m 'Cell' '')
+            $dsh   = [string](Get-XFlowMapVal $m 'DestSheet' $ds)
+            $dcl   = [string](Get-XFlowMapVal $m 'DestCell' '')
+            Write-Host ("  {0,-20} {1,-12} {2,-8} -> {3,-12} {4}" -f $n, $sheet, $cell, $dsh, $dcl)
+        }
+        if ($count -gt 10) { Write-PmcStyled -Style 'Muted' -Text ("  ... and {0} more" -f ($count - 10)) }
     }
 }

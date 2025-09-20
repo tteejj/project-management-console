@@ -268,4 +268,4 @@ function Show-PmcDependencyGraph {
     Write-PmcDebug -Level 2 -Category "Dependencies" -Message "Dependency graph shown successfully" -Data @{ DependentTasks = $dependentCount; BlockedTasks = $blockedCount }
 }
 
-Export-ModuleMember -Function Update-PmcBlockedStatus, Add-PmcDependency, Remove-PmcDependency, Show-PmcDependencies, Show-PmcDependencyGraph
+#Export-ModuleMember -Function Update-PmcBlockedStatus, Add-PmcDependency, Remove-PmcDependency, Show-PmcDependencies, Show-PmcDependencyGraph

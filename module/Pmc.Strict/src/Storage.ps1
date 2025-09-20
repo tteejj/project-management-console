@@ -417,4 +417,4 @@ function Get-PmcNextTimeLogId {
     try { $ids = @($data.timelogs | ForEach-Object { try { [int]$_.id } catch { 0 } }); $max = ($ids | Measure-Object -Maximum).Maximum; return ([int]$max + 1) } catch { return 1 }
 }
 
-Export-ModuleMember -Function Add-PmcUndoEntry, Get-PmcTaskFilePath, Initialize-PmcDataSchema, Normalize-PmcData, Get-PmcData, Get-PmcSafePath, Lock-PmcFile, Unlock-PmcFile, Invoke-PmcBackupRotation, Add-PmcUndoState
+#Export-ModuleMember -Function Add-PmcUndoEntry, Get-PmcTaskFilePath, Initialize-PmcDataSchema, Normalize-PmcData, Get-PmcData, Get-PmcSafePath, Lock-PmcFile, Unlock-PmcFile, Invoke-PmcBackupRotation, Add-PmcUndoState

@@ -244,4 +244,4 @@ function Get-PmcFieldSchema {
     return $null
 }
 
-Export-ModuleMember -Function Get-PmcFieldSchemasForDomain, Get-PmcFieldSchema
+#Export-ModuleMember -Function Get-PmcFieldSchemasForDomain, Get-PmcFieldSchema

@@ -54,7 +54,7 @@ if (-not (Test-Path $moduleManifest)) { Write-Host "Strict module not found at $
 
 try {
     $loaded = Import-Module $moduleManifest -Force -ErrorAction Stop -PassThru
-    Write-Host ("✓ PMC module loaded successfully (from {0})" -f $loaded.ModuleBase) -ForegroundColor Green
+    # Module loading message already displayed by module itself
 } catch {
     Write-Host "✗ Failed to import PMC module: $_" -ForegroundColor Red
     exit 1
@@ -82,13 +82,7 @@ try {
             throw "UniversalDisplay.ps1 not found at $udPath"
         }
     }
-    if (Get-Command Register-PmcUniversalCommands -ErrorAction SilentlyContinue) {
-        Write-Host "  Registering universal command shortcuts (startup)..." -ForegroundColor Gray
-        Register-PmcUniversalCommands
-        Write-Host "  ✓ Universal shortcuts registered (startup)" -ForegroundColor Green
-    } else {
-        throw 'Register-PmcUniversalCommands not available after loading UniversalDisplay.ps1'
-    }
+    # Register-PmcUniversalCommands is now handled during module loading
 } catch {
     Write-Host "✗ Universal Display initialization failed: $_" -ForegroundColor Red
     exit 1
@@ -166,12 +160,24 @@ Write-Host "✓ Security level: $SecurityLevel" -ForegroundColor Green
 Initialize-PmcThemeSystem
 
 function Show-StrictHelp {
-    if (Get-Command Pmc-ShowHelpUI -ErrorAction SilentlyContinue) {
+    if (Get-Command Show-PmcSmartHelp -ErrorAction SilentlyContinue) {
+        Show-PmcSmartHelp
+    } elseif (Get-Command Pmc-ShowHelpUI -ErrorAction SilentlyContinue) {
         Pmc-ShowHelpUI
     } else {
-        $rows = Get-PmcHelp
-        foreach ($r in ($rows | Sort-Object Domain, Action)) {
-            Write-Host ("  {0} {1}  {2}" -f $r.Domain, $r.Action, $r.Description)
+        # Fallback to raw data if interactive help not available
+        Write-Host "Available commands:" -ForegroundColor Green
+        $rows = @()
+        if (Get-Command Get-PmcHelp -ErrorAction SilentlyContinue) {
+            # Get raw data directly if the function exists
+            $commandMap = Get-Variable -Name 'PmcCommandMap' -Scope Script -ErrorAction SilentlyContinue
+            if ($commandMap) {
+                foreach ($d in ($commandMap.Value.Keys | Sort-Object)) {
+                    foreach ($a in ($commandMap.Value[$d].Keys | Sort-Object)) {
+                        Write-Host ("  {0} {1}" -f $d, $a) -ForegroundColor Cyan
+                    }
+                }
+            }
         }
     }
 }
@@ -239,12 +245,19 @@ function Start-PmcShell {
         try {
             $ok = Enable-PmcInteractiveMode
             if (-not $ok) { throw "Interactive mode not available" }
-            # Clear screen and show banner on fresh start
-            if (Get-Command Clear-CommandOutput -ErrorAction SilentlyContinue) {
-                Clear-CommandOutput
+
+            # Initialize persistent screen layout
+            if (Get-Command Initialize-PmcScreen -ErrorAction SilentlyContinue) {
+                Initialize-PmcScreen -Title "pmc — enhanced project management console"
+                Write-PmcDebug -Level 2 -Category 'SHELL' -Message "Persistent screen layout initialized"
+            } else {
+                # Fallback to old banner system
+                if (Get-Command Clear-CommandOutput -ErrorAction SilentlyContinue) {
+                    Clear-CommandOutput
+                }
+                Show-PmcBanner
+                Write-Host ""
             }
-            Show-PmcBanner
-            Write-Host ""
         } catch {
             Write-PmcDebug -Level 2 -Category 'SHELL' -Message "Interactive init failed: $_"
             Write-PmcStyled -Style 'Error' -Text ("Interactive mode failed to start: {0}" -f $_)
@@ -284,6 +297,10 @@ function Start-PmcShell {
         switch -Regex ($line) {
             '^(?i)(exit|quit|q)$' {
                 if ($Interactive) {
+                    # Clean up screen management
+                    if (Get-Command Reset-PmcScreen -ErrorAction SilentlyContinue) {
+                        Reset-PmcScreen
+                    }
                     Disable-PmcInteractiveMode
                 }
                 break
@@ -327,16 +344,30 @@ function Start-PmcShell {
             }
             default {
                 try {
-                    # Clear screen for command output, leaving input area at bottom
-                    if (Get-Command Clear-CommandOutput -ErrorAction SilentlyContinue) {
+                    # Clear content area for command output, preserving header/input areas
+                    if (Get-Command Clear-PmcContentArea -ErrorAction SilentlyContinue) {
+                        Clear-PmcContentArea
+                        Hide-PmcCursor
+                    } elseif (Get-Command Clear-CommandOutput -ErrorAction SilentlyContinue) {
                         Clear-CommandOutput
                     }
-                    # Execute command - output will appear at top of screen
+
+                    # Execute command - output will appear in content area
                     Invoke-PmcCommand -Buffer $line
-                    # After command execution, add some spacing before next prompt
-                    Write-Host ""
+
+                    # Restore input prompt after command execution
+                    if (Get-Command Set-PmcInputPrompt -ErrorAction SilentlyContinue) {
+                        Set-PmcInputPrompt -Prompt "pmc> "
+                    } else {
+                        # Fallback spacing
+                        Write-Host ""
+                    }
                 } catch {
                     Write-PmcStyled -Style 'Error' -Text ("Error: {0}" -f $_)
+                    # Restore prompt even on error
+                    if (Get-Command Set-PmcInputPrompt -ErrorAction SilentlyContinue) {
+                        Set-PmcInputPrompt -Prompt "pmc> "
+                    }
                 }
             }
         }

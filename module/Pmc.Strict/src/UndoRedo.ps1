@@ -236,4 +236,4 @@ function Get-PmcUndoStatus {
     }
 }
 
-Export-ModuleMember -Function Invoke-PmcUndo, Invoke-PmcRedo, New-PmcBackup, Clear-PmcBackups, Initialize-PmcUndoSystem, Record-PmcUndoState, Save-PmcUndoStack, Save-PmcDataDirect, Get-PmcUndoStatus
+#Export-ModuleMember -Function Invoke-PmcUndo, Invoke-PmcRedo, New-PmcBackup, Clear-PmcBackups, Initialize-PmcUndoSystem, Record-PmcUndoState, Save-PmcUndoStack, Save-PmcDataDirect, Get-PmcUndoStatus

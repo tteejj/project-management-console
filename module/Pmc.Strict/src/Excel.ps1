@@ -316,5 +316,5 @@ function Get-PmcLatestExcelData {
     }
 }
 
-Export-ModuleMember -Function New-ExcelApp, Close-ExcelApp, Open-Workbook, Save-Workbook, Close-Workbook, Get-Worksheet, Copy-CellValue, Extract-T2020Fields, Copy-T2020ForFile, Invoke-T2020Batch, Set-ExcelT2020Config, Import-PmcFromExcel, Import-PmcExcelData, Show-PmcExcelPreview, Get-PmcLatestExcelFile, Show-PmcExcelData, Get-PmcLatestExcelData
+#Export-ModuleMember -Function New-ExcelApp, Close-ExcelApp, Open-Workbook, Save-Workbook, Close-Workbook, Get-Worksheet, Copy-CellValue, Extract-T2020Fields, Copy-T2020ForFile, Invoke-T2020Batch, Set-ExcelT2020Config, Import-PmcFromExcel, Import-PmcExcelData, Show-PmcExcelPreview, Get-PmcLatestExcelFile, Show-PmcExcelData, Get-PmcLatestExcelData
 

@@ -117,4 +117,4 @@ function Expand-PmcUserAliases {
     return $Buffer
 }
 
-Export-ModuleMember -Function Get-PmcAliasTable, Save-PmcAliases, Get-PmcAliasList, Add-PmcAlias, Remove-PmcAlias, Expand-PmcUserAliases
+#Export-ModuleMember -Function Get-PmcAliasTable, Save-PmcAliases, Get-PmcAliasList, Add-PmcAlias, Remove-PmcAlias, Expand-PmcUserAliases

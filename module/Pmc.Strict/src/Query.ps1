@@ -477,4 +477,4 @@ function Get-PmcQueryHistory { param([int]$Last = 10)
     } catch { return @() }
 }
 
-Export-ModuleMember -Function Invoke-PmcQuery, Register-PmcQueryCompleter, Get-PmcQueryStoreDir, Get-PmcQueryAliasPath, Get-PmcQueryHistoryPath, Get-PmcQueryAlias, Set-PmcQueryAlias, Add-PmcQueryHistory, Get-PmcQueryHistory
+#Export-ModuleMember -Function Invoke-PmcQuery, Register-PmcQueryCompleter, Get-PmcQueryStoreDir, Get-PmcQueryAliasPath, Get-PmcQueryHistoryPath, Get-PmcQueryAlias, Set-PmcQueryAlias, Add-PmcQueryHistory, Get-PmcQueryHistory

@@ -16,9 +16,15 @@ class PmcGridRenderer {
     [int] $SelectedColumn = 0
     [string] $NavigationMode = "Row"  # Row, Cell, MultiSelect
     [bool] $Interactive = $false
+    [bool] $ShowInternalHeader = $true
+    [string] $TitleText = 'PMC Interactive Data Grid'
     [object[]] $CurrentData = @()
     [object[]] $AllData = @()
     [hashtable] $KeyBindings = @{}
+
+    # NEW: Navigation mode flags
+    [bool] $EditMode = $true          # true = Enter edits cells, false = Enter navigates/selects
+    [scriptblock] $OnSelectCallback = $null  # Callback for navigation mode Enter
 
     # NEW: Editing state
     [bool] $InEditMode = $false
@@ -407,10 +413,10 @@ class PmcGridRenderer {
             "Shift+DownArrow" = { $this.ExtendSelectionDown() }
             "Ctrl+A"          = { $this.SelectAll() }
 
-            # Editing
-            "Enter"      = { $this.StartCellEdit() }
+            # Editing/Navigation
+            "Enter"      = { $this.HandleEnterKey() }
             "F2"         = { $this.StartCellEdit() }
-            "Escape"     = { $this.CancelEdit() }
+            "Escape"     = { if ($this.InEditMode -or $this.InlineEditMode) { $this.CancelEdit() } else { $this.ExitInteractive() } }
             "Delete"     = { $this.DeleteSelected() }
 
             # Actions
@@ -555,6 +561,35 @@ class PmcGridRenderer {
     }
 
     # Editing methods
+    # NEW: Handle Enter key based on mode
+    [void] HandleEnterKey() {
+        Write-PmcDebug -Level 3 -Category 'DataDisplay' -Message 'HandleEnterKey' -Data @{ EditMode=$this.EditMode; HasCallback=($this.OnSelectCallback -ne $null) }
+
+        if ($this.EditMode) {
+            # Edit mode: Start cell editing (original behavior)
+            $this.StartCellEdit()
+        } else {
+            # Navigation mode: Execute selection callback or exit
+            if ($this.OnSelectCallback -ne $null) {
+                Write-PmcDebug -Level 2 -Category 'DataDisplay' -Message 'Executing OnSelectCallback'
+                try {
+                    $selectedItem = if (@($this.CurrentData).Count -gt 0 -and $this.SelectedRow -lt @($this.CurrentData).Count) {
+                        $this.CurrentData[$this.SelectedRow]
+                    } else {
+                        $null
+                    }
+                    & $this.OnSelectCallback $selectedItem $this.SelectedRow
+                } catch {
+                    Write-PmcDebug -Level 1 -Category 'DataDisplay' -Message 'OnSelectCallback error' -Data @{ Error = $_.Exception.Message }
+                }
+            } else {
+                # No callback, exit interactive mode
+                Write-PmcDebug -Level 2 -Category 'DataDisplay' -Message 'No callback, exiting interactive mode'
+                $this.Interactive = $false
+            }
+        }
+    }
+
     [void] StartCellEdit() {
         Write-PmcDebug -Level 3 -Category 'DataDisplay' -Message 'StartCellEdit' -Data @{ Nav=$this.NavigationMode; Row=$this.SelectedRow; Count=@($this.CurrentData).Count }
 
@@ -1050,20 +1085,65 @@ class PmcGridRenderer {
     [void] RefreshDisplay() {
         if (-not $this.Interactive) { return }
 
-        Write-PmcDebug -Level 3 -Category 'DataDisplay' -Message 'RefreshDisplay' -Data @{ Row=$this.SelectedRow }
+        Write-PmcDebug -Level 3 -Category 'DataDisplay' -Message 'RefreshDisplay using PMC content bounds' -Data @{ Row=$this.SelectedRow }
 
-        # Build complete frame content using Praxis approach
-        $frameContent = [PraxisGridFrameBuilder]::BuildGridFrame(
-            $this.CurrentData,
-            $this.ColumnConfig,
-            "PMC Interactive Data Grid",
-            $this.SelectedRow,
-            $this.ThemeConfig,
-            $this
-        )
+        # Get PMC content bounds instead of taking over screen
+        $contentBounds = Get-PmcContentBounds
+        if (-not $contentBounds) {
+            Write-PmcDebug -Level 1 -Category 'DataDisplay' -Message 'PMC content bounds not available, fallback to frame renderer'
+            # Fallback to original behavior
+            $frameContent = [PraxisGridFrameBuilder]::BuildGridFrame(
+                $this.CurrentData,
+                $this.ColumnConfig,
+                "PMC Interactive Data Grid",
+                $this.SelectedRow,
+                $this.ThemeConfig,
+                $this
+            )
+            $this.FrameRenderer.RenderFrame($frameContent)
+            return
+        }
 
-        # Use Praxis frame renderer for clean double-buffered output
-        $this.FrameRenderer.RenderFrame($frameContent)
+        # Clear content area only
+        Clear-PmcContentArea
+
+        # Render grid within PMC content bounds
+        $gridLines = $this.RenderGridWithinBounds($this.CurrentData, $contentBounds)
+
+        # Position output within content area
+        $row = 0
+        foreach ($line in $gridLines) {
+            if ($row -ge $contentBounds.Height) { break }
+            Write-PmcAtPosition -X 0 -Y $row -Text $line
+            $row++
+        }
+    }
+
+    [string[]] RenderGridWithinBounds([object[]]$Data, [object]$ContentBounds) {
+        Write-PmcDebug -Level 3 -Category 'DataDisplay' -Message 'RenderGridWithinBounds' -Data @{
+            DataCount = @($Data).Count
+            BoundsWidth = $ContentBounds.Width
+            BoundsHeight = $ContentBounds.Height
+        }
+
+        # Use BuildInteractiveLines instead of deprecated RenderGrid
+        $this.CurrentData = $Data
+        $allLines = $this.BuildInteractiveLines()
+
+        # Truncate to fit within content bounds
+        $maxLines = $ContentBounds.Height - 1  # Reserve space for status
+        $gridLines = @()
+
+        for ($i = 0; $i -lt [Math]::Min($allLines.Count, $maxLines); $i++) {
+            $line = $allLines[$i]
+            # Truncate line to fit width
+            if ($line.Length -gt $ContentBounds.Width) {
+                $line = $line.Substring(0, $ContentBounds.Width - 3) + "..."
+            }
+            $gridLines += $line
+        }
+
+        return $gridLines
     }
 
     [void] ShowStatusLine() {
@@ -1274,8 +1354,10 @@ class PmcGridRenderer {
             $this.WindowHeight = $this.GetTerminalHeight()
         } catch {}
         $widths = $this.GetColumnWidths($this.CurrentData)
-        $lines += $this.StyleText('Title', 'PMC Interactive Data Grid')
-        $lines += $this.StyleText('Border', ("═" * 50))
+        if ($this.ShowInternalHeader) {
+            $lines += $this.StyleText('Title', $this.TitleText)
+            $lines += $this.StyleText('Border', ("═" * 50))
+        }
         $headerLine = $this.FormatRow($null, $widths, $true, -1, $false)
         if ($this.SortDirection -ne 'None' -and $this.SortColumn) {
             $arrow = if ($this.SortDirection -eq 'Asc') { '↑' } else { '↓' }
@@ -1314,11 +1396,12 @@ class PmcGridRenderer {
         $styledText = $this.ConvertPmcStyleToAnsi($Text, $sty, @{})
 
         # Apply screen bounds enforcement
-        return $this.EnforceScreenBounds($styledText)
+        return $this.EnforceScreenBounds($styledText, 0, 0)
     }
 
     # Main interactive method
     [void] StartInteractive([object[]]$Data) {
+        Write-PmcDebug -Level 1 -Category 'Grid' -Message "StartInteractive called" -Data @{ DataCount = @($Data).Count }
         $this.Interactive = $true
         $this.AllData = $Data
         $this.ApplyFilter()
@@ -1332,6 +1415,7 @@ class PmcGridRenderer {
 
         # Hide cursor for cleaner display
         Write-Host ([PmcVT]::Hide())
+        Write-PmcDebug -Level 1 -Category 'Grid' -Message "Starting interactive loop"
 
         try {
             # Initial display
@@ -1342,6 +1426,7 @@ class PmcGridRenderer {
                 try {
                     if ([Console]::KeyAvailable) {
                         $key = [Console]::ReadKey($true)
+                        Write-PmcDebug -Level 2 -Category 'Grid' -Message "Key pressed" -Data @{ Key = $key.Key; KeyChar = $key.KeyChar }
                         $this.HandleKeyPress($key)
                     } else {
                         if ($this.RefreshIntervalMs -gt 0) {
@@ -1763,8 +1848,14 @@ function Show-PmcDataGrid {
         }
     }
 
-    # Get filtered data
-    $data = Get-PmcFilteredData -Domains $Domains -Filters $Filters
+    # Get filtered data - HACK for help domain
+    if ($Domains -contains "help") {
+        # Use Get-PmcHelpData function for consistent help data
+        $data = Get-PmcHelpData -Context $null
+        Write-PmcDebug -Level 2 -Category "DataDisplay" -Message "Help data retrieved" -Data @{ Count = @($data).Count }
+    } else {
+        $data = Get-PmcFilteredData -Domains $Domains -Filters $Filters
+    }
 
     # Optional sorting for static mode
     if (-not $Interactive.IsPresent -and $Sort) {
@@ -1791,27 +1882,20 @@ function Show-PmcDataGrid {
     }
 
     if (-not $data -or @($data).Count -eq 0) {
+        Write-PmcDebug -Level 2 -Category "DataDisplay" -Message "No data found for display" -Data @{
+            DataIsNull = ($data -eq $null)
+            DataCount = if ($data) { @($data).Count } else { "null" }
+            Domains = $Domains -join ","
+        }
         Write-PmcStyled -Style 'Muted' -Text "No items match the specified criteria"
         return
     }
 
-    # Create renderer and display grid
-    $renderer = [PmcGridRenderer]::new($Columns, $Domains, $Filters)
-
-    # Apply theme configuration if provided
-    if ($Theme.Count -gt 0) {
-        $renderer.ThemeConfig = $renderer.InitializeTheme($Theme)
-    }
-
-    # Choose rendering mode
-    if ($Interactive) {
-        # Start interactive mode
-        if ($PSBoundParameters.ContainsKey('RefreshIntervalMs')) { $renderer.RefreshIntervalMs = [int]$RefreshIntervalMs }
-        $renderer.StartInteractive($data)
-    } else {
-        # Standard static rendering
-        $gridLines = $renderer.RenderGrid($data)
-        foreach ($line in $gridLines) {
+    # Simple grid display for help data - no old renderer dependencies
+    if (@($data).Count -gt 0) {
+        # Display data in simple table format
+        foreach ($item in $data) {
+            $line = "{0,-25} {1,8} {2}" -f $item.Category, $item.CommandCount, $item.Description
             Write-Host $line
         }
     }
@@ -1822,56 +1906,7 @@ function Show-PmcDataGrid {
     }
 }
 
-function Show-PmcCustomGrid {
-    param(
-        [string]$Domain,
-        [hashtable]$Columns = @{},
-        [array]$Data = @(),
-        [string]$Title = "",
-        [string]$Group,
-        [string]$View = 'list',
-        [switch]$Interactive
-    )
-
-    Write-PmcDebug -Level 2 -Category 'DataDisplay' -Message 'Show-PmcCustomGrid (DEPRECATED) - redirecting to Show-PmcDataGrid' -Data @{ Domain=$Domain; DataCount=@($Data).Count; ColumnCount=@($Columns.Keys).Count; Interactive=$Interactive.IsPresent }
-
-    # Legacy compatibility wrapper - redirect to unified Show-PmcDataGrid
-    $params = @{
-        Domains = @($Domain)
-        Columns = $Columns
-        Title = $Title
-        Interactive = $Interactive
-    }
-
-    # Handle special kanban mode
-    if ($Interactive -and ($View -eq 'kanban') -and -not [string]::IsNullOrEmpty($Group)) {
-        try {
-            $kb = [PmcKanbanRenderer]::new($Domain, $Group, $Columns)
-            $kb.StartInteractive($Data)
-            return
-        } catch {
-            Write-PmcDebug -Level 1 -Category 'DataDisplay' -Message 'Kanban render failed, falling back to grid' -Data @{ Error = $_.Exception.Message }
-        }
-    }
-
-    # Use universal display system with injected data
-    $renderer = [PmcGridRenderer]::new($Columns, @($Domain), @{})
-    $renderer.AllData = $Data
-    $renderer.CurrentData = $Data
-
-    if ($Title) {
-        Write-PmcStyled -Style 'Title' -Text "`n$Title"
-        Write-PmcStyled -Style 'Border' -Text ("─" * 50)
-    }
-
-    if ($Interactive) {
-        Write-PmcDebug -Level 2 -Category 'DataDisplay' -Message 'Starting interactive grid via compatibility wrapper'
-        $renderer.StartInteractive($Data)
-    } else {
-        Write-PmcDebug -Level 2 -Category 'DataDisplay' -Message 'Using non-interactive display via compatibility wrapper'
-        $renderer.RenderStaticGrid($Data)
-    }
-}
+# DELETED Show-PmcCustomGrid - use universal display system only
 
 # Export functions for module manifest
-Export-ModuleMember -Function Show-PmcDataGrid
+#Export-ModuleMember -Function Show-PmcDataGrid

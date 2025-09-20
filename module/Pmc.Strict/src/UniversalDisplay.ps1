@@ -26,9 +26,18 @@ function Show-PmcData {
         $Columns = Get-PmcDefaultColumns -DataType $DataType
     }
 
+    # Add help navigation callback if this is help data
+    $additionalParams = @{}
+    if ($DataType -eq "help" -and $Interactive) {
+        $additionalParams.OnSelectCallback = {
+            param($selectedItem)
+            Show-PmcHelpCategory -Category $selectedItem.Category -Context $Context
+        }
+    }
+
     # Call the enhanced grid system
     Write-PmcDebug -Level 2 -Category 'UniversalDisplay' -Message 'Show-PmcData calling Show-PmcDataGrid' -Data @{ DataType = $DataType; Interactive = $Interactive.IsPresent }
-    Show-PmcDataGrid -Domains @($DataType) -Columns $Columns -Filters $Filters -Title $Title -Theme $Theme -Interactive:$Interactive
+    Show-PmcDataGrid -Domains @($DataType) -Columns $Columns -Filters $Filters -Title $Title -Theme $Theme -Interactive:$Interactive @additionalParams
 }
 
 function Get-PmcDefaultColumns {
@@ -46,9 +55,9 @@ function Get-PmcDefaultColumns {
         }
         "help" {
             return @{
-                "Domain" = @{ Header = "Domain"; Width = 12; Alignment = "Left"; Editable = $false }
-                "Action" = @{ Header = "Action"; Width = 16; Alignment = "Left"; Editable = $false }
-                "Description" = @{ Header = "Description"; Width = 0; Alignment = "Left"; Editable = $false }
+                "Category" = @{ Header = "Category"; Width = 25; Alignment = "Left"; Editable = $false }
+                "CommandCount" = @{ Header = "Commands"; Width = 10; Alignment = "Right"; Editable = $false }
+                "Description" = @{ Header = "Description"; Width = 50; Alignment = "Left"; Editable = $false }
             }
         }
         "project" {
@@ -319,5 +328,46 @@ function Get-PmcUniversalTheme {
     return $baseTheme
 }
 
-# Export the universal display functions
-Export-ModuleMember -Function Show-PmcData, Get-PmcDefaultColumns, Register-PmcUniversalCommands, Get-PmcUniversalCommands, Show-PmcTodayTasksInteractive, Show-PmcOverdueTasksInteractive, Show-PmcAgendaInteractive, Show-PmcProjectsInteractive, Show-PmcAllTasksInteractive, Show-PmcTomorrowTasksInteractive, Show-PmcUpcomingTasksInteractive, Show-PmcBlockedTasksInteractive, Show-PmcTasksWithoutDueDateInteractive, Show-PmcNextTasksInteractive, Show-PmcWeekTasksInteractive, Show-PmcMonthTasksInteractive
+# Help category drill-down function
+function Show-PmcHelpCategory {
+    param(
+        [string]$Category,
+        [PmcCommandContext]$Context
+    )
+
+    Write-PmcDebug -Level 1 -Category 'Help' -Message "Showing help category" -Data @{ Category = $Category }
+
+    # Get help content for this category
+    if (-not $Script:PmcHelpContent.ContainsKey($Category)) {
+        Write-Host "⚠️  Category '$Category' not found in help content" -ForegroundColor Yellow
+        return
+    }
+
+    $categoryData = $Script:PmcHelpContent[$Category]
+    $helpItems = @()
+    $id = 1
+
+    # Convert help items to display format
+    foreach ($item in $categoryData.Items) {
+        $helpItems += [PSCustomObject]@{
+            id = $id++
+            Type = $item.Type
+            Command = $item.Command
+            Description = $item.Description
+        }
+    }
+
+    # Use universal display system for detailed help
+    $columns = @{
+        "Type" = @{ Header = "Type"; Width = 12; Alignment = "Left"; Editable = $false }
+        "Command" = @{ Header = "Command"; Width = 35; Alignment = "Left"; Editable = $false }
+        "Description" = @{ Header = "Description"; Width = 50; Alignment = "Left"; Editable = $false }
+    }
+
+    $title = "📚 {0} - {1}" -f $Category, $categoryData.Description
+
+    # Display with interactive mode for further navigation
+    Show-PmcDataGrid -Data $helpItems -Columns $columns -Title $title -Interactive
+}
+
+# Export-ModuleMember removed - handled by main module to avoid overriding other exports

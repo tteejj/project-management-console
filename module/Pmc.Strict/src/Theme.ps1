@@ -248,4 +248,4 @@ function Reload-PmcConfig { param([PmcCommandContext]$Context)
     Write-Host "Configuration reloaded and systems re-initialized" -ForegroundColor Green
 }
 
-Export-ModuleMember -Function Initialize-PmcThemeSystem, Set-PmcTheme, Reset-PmcTheme, Set-PmcIconMode, Edit-PmcTheme, Show-Slider, Show-PmcPreferences, Get-PmcThemeList, Apply-PmcTheme, Show-PmcThemeInfo
+#Export-ModuleMember -Function Initialize-PmcThemeSystem, Set-PmcTheme, Reset-PmcTheme, Set-PmcIconMode, Edit-PmcTheme, Show-Slider, Show-PmcPreferences, Get-PmcThemeList, Apply-PmcTheme, Show-PmcThemeInfo

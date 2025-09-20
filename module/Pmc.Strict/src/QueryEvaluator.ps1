@@ -283,4 +283,4 @@ function Evaluate-PmcQuery {
     return @{ Domain=$Spec.Domain; Rows=$rows }
 }
 
-Export-ModuleMember -Function Evaluate-PmcQuery
+#Export-ModuleMember -Function Evaluate-PmcQuery

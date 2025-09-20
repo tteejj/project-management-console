@@ -18,4 +18,4 @@ function Invoke-PmcShortcut {
     Show-PmcTask -Context $ctx
 }
 
-Export-ModuleMember -Function Invoke-PmcShortcut
+#Export-ModuleMember -Function Invoke-PmcShortcut
