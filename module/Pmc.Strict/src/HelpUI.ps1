@@ -84,119 +84,141 @@ $Script:PmcCommandCategories = $commandCategories
 function Show-PmcSmartHelp {
     <#
     .SYNOPSIS
-    Display smart help system with categorized command browser
+    Two-step grouped help with arrow selector (fits screen)
 
     .DESCRIPTION
-    Rich interactive help system based on t2.ps1's help experience:
-    - Categorized command browser
-    - Interactive navigation with arrow keys
-    - Search and filter capabilities
-    - Command examples and usage patterns
-    - Context-sensitive help
+    Step 1: Select a category with ↑/↓ and Enter.
+    Step 2: Select a command in that category with ↑/↓ and Enter to open details.
+    B goes back, Q/Esc exits.
     #>
 
-    Clear-Host
+    if (-not $Script:PmcCommandCategories -or $Script:PmcCommandCategories.Count -eq 0) {
+        # Fallback to flat grid if categories missing
+        Show-PmcHelpUI
+        return
+    }
 
-    # Initialize help state
-    if (-not $Script:PmcHelpState) {
-        $Script:PmcHelpState = @{
-            CurrentCategory = 'All'
-            SelectedCommand = 0
-            ViewMode = 'Categories'
+    $categories = @($Script:PmcCommandCategories.Keys)
+    $catIndex = 0
+    $inCommands = $false
+    $cmdIndex = 0
+    $currentCat = ''
+
+    while ($true) {
+        try { $winW = [Console]::WindowWidth; $winH = [Console]::WindowHeight } catch { $winW = 80; $winH = 24 }
+        if ($inCommands) { $title = "PMC HELP — $currentCat" } else { $title = 'PMC HELP — CATEGORIES' }
+        Write-PmcStyled -Style 'Title' -Text ("`n$title")
+        Write-PmcStyled -Style 'Border' -Text ("─" * [Math]::Max(20, $winW))
+
+        $reserved = 5  # title + border + footer + padding
+        $available = [Math]::Max(1, $winH - $reserved)
+
+        if (-not $inCommands) {
+            # Render categories list
+            $viewStart = [Math]::Max(0, $catIndex - [Math]::Floor($available/2))
+            $view = $categories | Select-Object -Index ($viewStart..([Math]::Min($categories.Count-1, $viewStart+$available-1)))
+            for ($i=0; $i -lt $view.Count; $i++) {
+                $name = $view[$i]
+                $count = ($Script:PmcCommandCategories[$name]).Count
+                $isSel = (($viewStart + $i) -eq $catIndex)
+                $marker = ' '; if ($isSel) { $marker = '►' }
+                $line = "  {0} {1,-24} ({2} commands)" -f $marker, $name, $count
+                $style = 'Body'; if ($isSel) { $style = 'Header' }
+                Write-PmcStyled -Style $style -Text $line
+            }
+            if ($viewStart + $view.Count -lt $categories.Count) { Write-PmcStyled -Style 'Muted' -Text ("  … more ({0})" -f ($categories.Count - ($viewStart + $view.Count))) }
+            Write-PmcStyled -Style 'Border' -Text ("─" * [Math]::Max(20, $winW))
+            Write-PmcStyled -Style 'Muted' -Text "  ↑/↓ Move   Enter Select   Q/Esc Exit"
+        } else {
+            # Render commands for selected category
+            $cmds = $Script:PmcCommandCategories[$currentCat]
+            $viewStart = [Math]::Max(0, $cmdIndex - [Math]::Floor($available/2))
+            $to = [Math]::Min($cmds.Count-1, $viewStart+$available-1)
+            for ($i=$viewStart; $i -le $to; $i++) {
+                $cmd = $cmds[$i]
+                $isSel = ($i -eq $cmdIndex)
+                $marker = ' '; if ($isSel) { $marker = '►' }
+                $display = "{0} {1,-18} {2}" -f $marker, $cmd.Command, $cmd.Desc
+                $style2 = 'Info'; if ($isSel) { $style2 = 'Header' }
+                Write-PmcStyled -Style $style2 -Text ('  ' + $display)
+            }
+            if ($to -lt $cmds.Count-1) { Write-PmcStyled -Style 'Muted' -Text ("  … more ({0})" -f (($cmds.Count-1) - $to)) }
+            Write-PmcStyled -Style 'Border' -Text ("─" * [Math]::Max(20, $winW))
+            Write-PmcStyled -Style 'Muted' -Text "  ↑/↓ Move   Enter Details   B Back   Q/Esc Exit"
         }
-    } else {
-        $Script:PmcHelpState.CurrentCategory = 'All'
-        $Script:PmcHelpState.SelectedCommand = 0
-        $Script:PmcHelpState.ViewMode = 'Categories'
-    }
 
-    # Initialize command categories if not set
-    if (-not $Script:PmcCommandCategories) {
-        $Script:PmcCommandCategories = $commandCategories
-    }
+        # Handle input
+        try { $key = [Console]::ReadKey($true) } catch { break }
+        switch ($key.Key) {
+            'UpArrow'   { if (-not $inCommands) { if ($catIndex -gt 0) { $catIndex-- } } else { if ($cmdIndex -gt 0) { $cmdIndex-- } }; Clear-Host; continue }
+            'DownArrow' {
+                if (-not $inCommands) {
+                    if ($catIndex -lt ($categories.Count-1)) { $catIndex++ }
+                } else {
+                    $cmds = $Script:PmcCommandCategories[$currentCat]; if ($cmdIndex -lt ($cmds.Count-1)) { $cmdIndex++ }
+                }
+                Clear-Host; continue
+            }
+            'Enter'     {
+                if (-not $inCommands) {
+                    $currentCat = $categories[$catIndex]; $cmdIndex = 0; $inCommands = $true; Clear-Host; continue
+                } else {
+                    # Details sub-loop: stay in help and allow prev/next
+                    while ($true) {
+                        Clear-Host
+                        $cmds = $Script:PmcCommandCategories[$currentCat]
+                        if ($cmdIndex -lt 0) { $cmdIndex = 0 }
+                        if ($cmdIndex -ge $cmds.Count) { $cmdIndex = $cmds.Count - 1 }
+                        $sel = $cmds[$cmdIndex]
+                        if ($sel -and $sel.Command -match '^(\S+)\s+(\S+)$') {
+                            $domain = $matches[1]; $action = $matches[2]
+                            $ctx = [PmcCommandContext]::new('help','command')
+                            $ctx.FreeText = @($domain, $action)
+                            Show-PmcHelpCommand -Context $ctx
+                        } else {
+                            Write-PmcStyled -Style 'Warning' -Text 'Invalid command entry.'
+                        }
+                        try { $w = [Console]::WindowWidth } catch { $w = 80 }
+                        Write-PmcStyled -Style 'Border' -Text ("─" * [Math]::Max(20, $w))
+                        Write-PmcStyled -Style 'Muted' -Text "  ↑/↓ Prev/Next   B Back   Q/Esc Exit"
 
+                        try { $k2 = [Console]::ReadKey($true) } catch { break }
+                        switch ($k2.Key) {
+                            'UpArrow'   { if ($cmdIndex -gt 0) { $cmdIndex-- }; continue }
+                            'DownArrow' { $cmds2 = $Script:PmcCommandCategories[$currentCat]; if ($cmdIndex -lt ($cmds2.Count-1)) { $cmdIndex++ }; continue }
+                            'B'         { Clear-Host; break }
+                            'Escape'    { return }
+                            'Q'         { return }
+                            default     { Clear-Host; break }
+                        }
+                    }
+                    Clear-Host; continue
+                }
+            }
+            'B'         { if ($inCommands) { $inCommands = $false; Clear-Host; continue } else { return } }
+            'Escape'    { return }
+            'Q'         { return }
+            default     { Clear-Host; continue }
+        }
+    }
+}
+
+# Helper: interactive grid selector for help rows. Accepts selection on Q.
+function Invoke-PmcHelpSelector {
+    param(
+        [Parameter(Mandatory)] [string]$Title,
+        [Parameter(Mandatory)] [array]$Rows,
+        [Parameter(Mandatory)] [hashtable]$Columns
+    )
     try {
-        $render = {
-            Clear-Host
-            Show-PmcHelpHeader
-            Show-PmcHelpNavigation
-            Show-PmcHelpContent
-            Write-Host ""
-            Write-PmcStyled -Style 'Muted' -Text "  Navigation: ↑/↓ browse, Enter select, B back, C categories, S search, Q quit"
-            Write-Host ""
-        }
-
-        & $render
-
-        while ($true) {
-            try {
-                $key = [Console]::ReadKey($true)
-            } catch {
-                break
-            }
-
-            switch ($key.Key) {
-                'UpArrow' {
-                    if ($Script:PmcHelpState.SelectedCommand -gt 0) { $Script:PmcHelpState.SelectedCommand-- }
-                    & $render; continue
-                }
-                'DownArrow' {
-                    $max = 0
-                    if ($Script:PmcHelpState.ViewMode -eq 'Categories') {
-                        $max = (@($Script:PmcCommandCategories.Keys)).Count - 1
-                    } elseif ($Script:PmcHelpState.ViewMode -eq 'Commands' -or $Script:PmcHelpState.ViewMode -eq 'Examples') {
-                        $cmds = if ($Script:PmcHelpState.CurrentCategory -eq 'All') { $all=@(); foreach ($v in $Script:PmcCommandCategories.Values) { $all += $v }; $all } else { $Script:PmcCommandCategories[$Script:PmcHelpState.CurrentCategory] }
-                        $max = $cmds.Count - 1
-                    }
-                    if ($Script:PmcHelpState.SelectedCommand -lt $max) { $Script:PmcHelpState.SelectedCommand++ }
-                    & $render; continue
-                }
-                'Enter' {
-                    if ($Script:PmcHelpState.ViewMode -eq 'Categories') {
-                        $keys = @($Script:PmcCommandCategories.Keys)
-                        if ($keys.Count -gt 0) {
-                            $idx = [Math]::Max(0, [Math]::Min($Script:PmcHelpState.SelectedCommand, $keys.Count-1))
-                            $Script:PmcHelpState.CurrentCategory = $keys[$idx]
-                            $Script:PmcHelpState.ViewMode = 'Commands'
-                            $Script:PmcHelpState.SelectedCommand = 0
-                        }
-                    } elseif ($Script:PmcHelpState.ViewMode -eq 'Commands') {
-                        $Script:PmcHelpState.ViewMode = 'Examples'
-                    } else {
-                        $Script:PmcHelpState.ViewMode = 'Categories'
-                    }
-                    & $render; continue
-                }
-                'LeftArrow' { $Script:PmcHelpState.ViewMode = 'Categories'; $Script:PmcHelpState.SelectedCommand = 0; & $render; continue }
-                'RightArrow' {
-                    if ($Script:PmcHelpState.ViewMode -eq 'Categories') {
-                        $keys = @($Script:PmcCommandCategories.Keys)
-                        if ($keys.Count -gt 0) {
-                            $idx = [Math]::Max(0, [Math]::Min($Script:PmcHelpState.SelectedCommand, $keys.Count-1))
-                            $Script:PmcHelpState.CurrentCategory = $keys[$idx]
-                            $Script:PmcHelpState.ViewMode = 'Commands'
-                            $Script:PmcHelpState.SelectedCommand = 0
-                            & $render; continue
-                        }
-                    } elseif ($Script:PmcHelpState.ViewMode -eq 'Commands') {
-                        $Script:PmcHelpState.ViewMode = 'Examples'; & $render; continue
-                    } else { continue }
-                }
-                'S' {
-                    Show-PmcHelpSearch
-                    & $render; continue
-                }
-                'B' { $Script:PmcHelpState.ViewMode = 'Categories'; $Script:PmcHelpState.SelectedCommand = 0; & $render; continue }
-                'C' { $Script:PmcHelpState.ViewMode = 'Categories'; $Script:PmcHelpState.SelectedCommand = 0; & $render; continue }
-                'Q' { return }
-                'Escape' { return }
-                default { continue }
-            }
-        }
-
+        $renderer = [PmcGridRenderer]::new($Columns, @('help'), @{})
+        Write-PmcStyled -Style 'Title' -Text ("`n$Title")
+        $winW = 0; try { $winW = [Console]::WindowWidth } catch { $winW = 80 }
+        Write-PmcStyled -Style 'Border' -Text ("─" * [Math]::Max(20, $winW))
+        $renderer.StartInteractive($Rows)
+        return [int]$renderer.SelectedRow
     } catch {
-        Write-PmcDebug -Level 1 -Category 'HELP' -Message "Smart help error: $_"
-        Write-PmcStyled -Style 'Error' -Text ("Help system error: {0}" -f $_)
+        return -1
     }
 }
 

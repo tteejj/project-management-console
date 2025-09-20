@@ -703,6 +703,14 @@ class PmcGridRenderer {
         $item = $this.CurrentData[$RowIndex]
         if (-not $item) { throw "No item at row $RowIndex" }
 
+        # Wizard/form editing: in-memory only, no persistence
+        $primaryDomain = $this.GetPrimaryDomain()
+        if ($primaryDomain -eq 'wizard') {
+            if ($item.PSObject.Properties[$ColumnName]) { $item.$ColumnName = [string]$NewValue }
+            else { $item | Add-Member -NotePropertyName $ColumnName -NotePropertyValue ([string]$NewValue) -Force }
+            return
+        }
+
         # Update in persistent store by ID when available
         $id = $null
         if ($item.PSObject.Properties['id']) { $id = [int]$item.id }
@@ -1241,46 +1249,7 @@ class PmcGridRenderer {
     }
 
     [object[]] RenderGrid([object[]]$Data) {
-        if (-not $Data -or @($Data).Count -eq 0) {
-            return @("  No data to display")
-        }
-
-        $widths = $this.GetColumnWidths($Data)
-        $lines = @()
-
-        # Render header (row index -1 for header)
-        $headerLine = $this.FormatRow($null, $widths, $true, -1, $false)
-        $lines += $headerLine
-
-        # Render separator with theming
-        $separatorParts = @()
-        foreach ($col in $this.ColumnConfig.Keys) {
-            $separatorParts += "-" * $widths[$col]
-        }
-        $separatorLine = "  " + ($separatorParts -join "  ")
-        # Apply separator styling using PMC's style system
-        if ($this.ThemeConfig.Rows.PSObject.Properties['Separator']) {
-            $sepStyle = $this.ThemeConfig.Rows.Separator
-            if ($sepStyle.PSObject.Properties['Style']) {
-                Write-PmcStyled -Style $sepStyle.Style -Text $separatorLine -NoNewline
-                $lines += ""  # Add to lines array for consistency
-            } else {
-                $lines += $separatorLine
-            }
-        } else {
-            $lines += $separatorLine
-        }
-
-        # Render data rows with row index
-        $rowIndex = 0
-        foreach ($item in $Data) {
-            if ($item -ne $null) {
-                $lines += $this.FormatRow($item, $widths, $false, $rowIndex, $false)
-                $rowIndex++
-            }
-        }
-
-        return $lines
+        throw "RenderGrid is DEPRECATED! This method generates old table format with dashes/pipes. All displays must use interactive mode or alternative rendering. NO FALLBACKS ALLOWED."
     }
 
     [object[]] BuildInteractiveLines() {
@@ -1851,8 +1820,62 @@ function Show-PmcCustomGrid {
     } else {
         Write-PmcDebug -Level 2 -Category 'DataDisplay' -Message 'Using non-interactive display'
         if ([string]::IsNullOrEmpty($Group) -and ($View -eq 'list')) {
-            $lines = $renderer.RenderGrid($Data)
-            foreach ($line in $lines) { Write-Host $line }
+            # Use simple non-interactive display instead of deprecated RenderGrid
+            $widths = $renderer.GetColumnWidths($Data)
+
+            # Display header
+            $headerParts = @()
+            foreach ($col in $Columns.Keys) {
+                $colConfig = $Columns[$col]
+                $headerText = if ($colConfig.PSObject.Properties['Header']) { $colConfig.Header } else { $col }
+                $width = $widths[$col]
+                $alignment = if ($colConfig.PSObject.Properties['Alignment']) { $colConfig.Alignment } else { 'Left' }
+
+                if ($alignment -eq 'Right') {
+                    $headerParts += $headerText.PadLeft($width)
+                } elseif ($alignment -eq 'Center') {
+                    $padding = $width - $headerText.Length
+                    $leftPad = [Math]::Floor($padding / 2)
+                    $rightPad = $padding - $leftPad
+                    $headerParts += (' ' * $leftPad) + $headerText + (' ' * $rightPad)
+                } else {
+                    $headerParts += $headerText.PadRight($width)
+                }
+            }
+            Write-Host ("  " + ($headerParts -join "  "))
+
+            # Display separator
+            $sepParts = @()
+            foreach ($col in $Columns.Keys) { $sepParts += "─" * $widths[$col] }
+            Write-Host ("  " + ($sepParts -join '  '))
+
+            # Display data rows
+            foreach ($item in $Data) {
+                if ($item -ne $null) {
+                    $rowParts = @()
+                    foreach ($col in $Columns.Keys) {
+                        $value = $renderer.GetItemValue($item, $col)
+                        $width = $widths[$col]
+                        $colConfig = $Columns[$col]
+                        $alignment = if ($colConfig.PSObject.Properties['Alignment']) { $colConfig.Alignment } else { 'Left' }
+
+                        # Truncate if needed
+                        if ($value.Length -gt $width) { $value = $value.Substring(0, $width-1) + '…' }
+
+                        if ($alignment -eq 'Right') {
+                            $rowParts += $value.PadLeft($width)
+                        } elseif ($alignment -eq 'Center') {
+                            $padding = $width - $value.Length
+                            $leftPad = [Math]::Floor($padding / 2)
+                            $rightPad = $padding - $leftPad
+                            $rowParts += (' ' * $leftPad) + $value + (' ' * $rightPad)
+                        } else {
+                            $rowParts += $value.PadRight($width)
+                        }
+                    }
+                    Write-Host ("  " + ($rowParts -join "  "))
+                }
+            }
         } else {
             # For now, treat view:kanban the same as grouped list. Later: add side-by-side lanes.
             # Static grouped rendering: one header per group, single column header at top

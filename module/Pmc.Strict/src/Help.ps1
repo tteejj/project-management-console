@@ -26,12 +26,24 @@ function Show-PmcHelpDomain { param([PmcCommandContext]$Context)
         $desc = if ($Script:PmcCommandMeta.ContainsKey($key)) { $Script:PmcCommandMeta[$key].Desc } else { '' }
         $actions += @{ action=$a; desc=$desc }
     }
-    $cols = @(
-        @{ key='action'; title='Action'; width=16 },
-        @{ key='desc'; title='Description'; width=56 }
-    )
-    Show-PmcHeader -Title ("Help — {0}" -f $domain)
-    Show-PmcTable -Columns $cols -Rows $actions
+    # Convert to universal display format
+    $columns = @{
+        "action" = @{ Header = "Action"; Width = 16; Alignment = "Left"; Editable = $false }
+        "desc" = @{ Header = "Description"; Width = 56; Alignment = "Left"; Editable = $false }
+    }
+
+    # Convert rows to PSCustomObject format
+    $dataObjects = @()
+    foreach ($row in $actions) {
+        $obj = New-Object PSCustomObject
+        foreach ($key in $row.Keys) {
+            $obj | Add-Member -NotePropertyName $key -NotePropertyValue $row[$key]
+        }
+        $dataObjects += $obj
+    }
+
+    $title = "Help — {0}" -f $domain
+    Show-PmcCustomGrid -Domain "help" -Columns $columns -Data $dataObjects -Title $title
 }
 
 function Show-PmcHelpCommand { param([PmcCommandContext]$Context)
@@ -43,7 +55,7 @@ function Show-PmcHelpCommand { param([PmcCommandContext]$Context)
     if (-not $Script:PmcCommandMap[$domain].ContainsKey($action)) { Write-PmcStyled -Style 'Error' -Text "Unknown action '$action' for domain '$domain'"; return }
 
     $desc = if ($Script:PmcCommandMeta.ContainsKey($key)) { $Script:PmcCommandMeta[$key].Desc } else { '' }
-    Show-PmcHeader -Title ("Help — {0} {1}" -f $domain, $action)
+    $title = "Help — {0} {1}" -f $domain, $action
     if ($desc) { Show-PmcTip $desc }
 
     $schema = Get-PmcSchema -Domain $domain -Action $action
@@ -58,45 +70,81 @@ function Show-PmcHelpCommand { param([PmcCommandContext]$Context)
             desc = [string]$def['Description']
         }
     }
-    $cols = @(
-        @{ key='arg'; title='Arg'; width=14 },
-        @{ key='prefix'; title='Prefix'; width=8 },
-        @{ key='type'; title='Type'; width=14 },
-        @{ key='required'; title='Req'; width=4 },
-        @{ key='desc'; title='Description'; width=48 }
-    )
-    Show-PmcTable -Columns $cols -Rows $rows
+    # Convert to universal display format
+    $columns = @{
+        "arg" = @{ Header = "Arg"; Width = 14; Alignment = "Left"; Editable = $false }
+        "prefix" = @{ Header = "Prefix"; Width = 8; Alignment = "Left"; Editable = $false }
+        "type" = @{ Header = "Type"; Width = 14; Alignment = "Left"; Editable = $false }
+        "required" = @{ Header = "Req"; Width = 4; Alignment = "Center"; Editable = $false }
+        "desc" = @{ Header = "Description"; Width = 48; Alignment = "Left"; Editable = $false }
+    }
+
+    # Convert rows to PSCustomObject format
+    $dataObjects = @()
+    foreach ($row in $rows) {
+        $obj = New-Object PSCustomObject
+        foreach ($key in $row.Keys) {
+            $obj | Add-Member -NotePropertyName $key -NotePropertyValue $row[$key]
+        }
+        $dataObjects += $obj
+    }
+
+    Show-PmcCustomGrid -Domain "help" -Columns $columns -Data $dataObjects -Title $title
 }
 
 function Show-PmcCommandList {
-    $rows = Get-PmcHelp
-    foreach ($r in ($rows | Sort-Object Domain, Action)) {
-        Write-PmcStyled -Style 'Body' -Text ("{0} {1}  {2}" -f $r.Domain, $r.Action, $r.Description)
+    $rows = Get-PmcHelp | Sort-Object Domain, Action
+    # Fit to one screen grouped by Domain
+    $winH = 24; try { $winH = [Console]::WindowHeight } catch {}
+    $reserved = 6
+    $available = [Math]::Max(1, $winH - $reserved)
+    $final = @()
+    foreach ($dom in (@($rows.Domain | Select-Object -Unique))) {
+        if ($available -le 0) { break }
+        $items = @($rows | Where-Object { $_.Domain -eq $dom })
+        $room = $available - 2
+        if ($room -le 0) { break }
+        $final += $items | Select-Object -First $room
+        $available -= (2 + [Math]::Min($room, $items.Count))
     }
+    $columns = @{
+        "Action" = @{ Header = "Action"; Width = 20; Alignment = "Left"; Editable = $false }
+        "Description" = @{ Header = "Description"; Width = 54; Alignment = "Left"; Editable = $false }
+    }
+    # Re-map rows to per-domain grouping
+    $finalRows = @()
+    foreach ($r in $final) { $finalRows += [pscustomobject]@{ Domain=$r.Domain; Action=$r.Action; Description=$r.Description } }
+    Show-PmcCustomGrid -Domain "help" -Columns $columns -Data $finalRows -Title "PMC Commands" -Group 'Domain'
+    $winW = 80; try { $winW = [Console]::WindowWidth } catch {}
+    Write-PmcStyled -Style 'Border' -Text ("─" * [Math]::Max(20, $winW))
 }
 function Show-PmcHelpAll { Show-PmcHelpUI }
 
 function Show-PmcHelpUI {
+    # Get all help data
     $rows = Get-PmcHelp | Sort-Object Domain, Action
-    $domains = @($rows | Select-Object -ExpandProperty Domain -Unique)
-    foreach ($d in $domains) {
-        Show-PmcHeader -Title ("Help — {0}" -f $d)
-        $vm = @()
-        foreach ($r in ($rows | Where-Object { $_.Domain -eq $d })) {
-            $vm += @{ action=$r.Action; desc=$r.Description }
-        }
-        $cols = @(
-            @{ key='action'; title='Action'; width=16 },
-            @{ key='desc'; title='Description'; width=56 }
-        )
-        Show-PmcTable -Columns $cols -Rows $vm
-        Write-Host ""
+
+    # Add prominent help topics at the top
+    $helpTopics = @(
+        [PSCustomObject]@{ Domain = "help"; Action = "guide"; Description = "📚 Interactive guides for query language and kanban" }
+        [PSCustomObject]@{ Domain = "help"; Action = "examples"; Description = "💡 Practical examples for queries and kanban workflows" }
+        [PSCustomObject]@{ Domain = "help"; Action = "guide query"; Description = "🔍 Complete query language reference" }
+        [PSCustomObject]@{ Domain = "help"; Action = "guide kanban"; Description = "📋 Kanban view guide with controls" }
+        [PSCustomObject]@{ Domain = "help"; Action = "examples query"; Description = "⚡ Query language examples" }
+        [PSCustomObject]@{ Domain = "help"; Action = "examples kanban"; Description = "🎯 Kanban workflow examples" }
+    )
+
+    # Combine help topics with regular commands
+    $allRows = @($helpTopics) + @($rows)
+
+    # Use universal display system
+    $columns = @{
+        "Domain" = @{ Header = "Domain"; Width = 12; Alignment = "Left"; Editable = $false }
+        "Action" = @{ Header = "Action"; Width = 18; Alignment = "Left"; Editable = $false }
+        "Description" = @{ Header = "Description"; Width = 0; Alignment = "Left"; Editable = $false }
     }
-    Show-PmcTip "Examples:"
-    Show-PmcTip "  task add buy milk @inbox p2 due:today"
-    Show-PmcTip "  task agenda"
-    Show-PmcTip "  time report week --withids out:time.csv"
-    Show-PmcTip "  project set-fields @work ID2=WORK CAAName=Ops"
+
+    Show-PmcCustomGrid -Domain "help" -Columns $columns -Data $allRows -Title "PMC Help - All Commands"
 }
 
 ## Internal module state for list index mapping (centralized state)
@@ -171,37 +219,60 @@ function Get-PmcTaskList { param([PmcCommandContext]$Context)
     $tasks = $tasks | Sort-Object `
         @{Expression={ if (Pmc-HasProp $_ 'priority'){ 4 - [int]$_.priority } else { 0 } }}, `
         @{Expression={ if (Pmc-HasProp $_ 'due'){ try { [datetime]$_.due } catch { [datetime]::MaxValue } } else { [datetime]::MaxValue } }}
+
     $mapList = @{}
     Set-PmcLastTaskListMap $mapList
-    if ($tasks.Count -eq 0) { Show-PmcHeader -Title 'TASKS'; Show-PmcTip 'No pending tasks'; return }
-    $rows = @(); $i=1
+
+    if ($tasks.Count -eq 0) {
+        Write-Host "No pending tasks" -ForegroundColor Yellow
+        return
+    }
+
+    # Convert to PSCustomObject array for universal display
+    $displayData = @()
+    $i = 1
     foreach ($t in $tasks) {
         $mapList[$i] = $t.id
         Set-PmcLastTaskListMap $mapList
+
         $priVal = ''
         if ((Pmc-HasProp $t 'priority') -and $t.priority) { $priVal = 'p' + $t.priority }
+
         $dueVal = ''
-        if ((Pmc-HasProp $t 'due') -and $t.due) { try { $dueVal = ([datetime]$t.due).ToString('MM/dd') } catch {
-            # Date formatting failed - dueVal remains empty
-        } }
+        if ((Pmc-HasProp $t 'due') -and $t.due) {
+            try { $dueVal = ([datetime]$t.due).ToString('MM/dd') } catch { }
+        }
+
         $textVal = if (Pmc-HasProp $t 'text') { $t.text } else { '' }
+
         # Indicate project when assigned (non-inbox)
         try {
             if ($t.PSObject.Properties['project'] -and $t.project -and $t.project -ne 'inbox') {
                 $textVal = ("{0}  @{1}" -f $textVal, $t.project)
             }
         } catch {}
-        $rows += @{ idx = ('[{0,2}]' -f $i); text = $textVal; pri = $priVal; due = $dueVal }
+
+        $displayData += [PSCustomObject]@{
+            idx = "[$i]"
+            text = $textVal
+            priority = $priVal
+            due = $dueVal
+            id = $t.id
+            status = $t.status
+            project = if ($t.PSObject.Properties['project']) { $t.project } else { '' }
+        }
         $i++
     }
-    $cols = @(
-        @{ key='idx'; title='#'; width=5; align='right' },
-        @{ key='text'; title='Task'; width=46 },
-        @{ key='pri'; title='Pri'; width=4 },
-        @{ key='due'; title='Due'; width=8 }
-    )
-    Show-PmcTable -Columns $cols -Rows $rows -Title 'TASKS'
-    Show-PmcTip "Use 'task view <#>', 'task done <#>', 'task edit <#>'"
+
+    # Use universal display system
+    $columns = @{
+        "idx" = @{ Header = "#"; Width = 5; Alignment = "Right"; Editable = $false }
+        "text" = @{ Header = "Task"; Width = 46; Alignment = "Left"; Editable = $true }
+        "priority" = @{ Header = "Pri"; Width = 4; Alignment = "Center"; Editable = $true }
+        "due" = @{ Header = "Due"; Width = 8; Alignment = "Center"; Editable = $true }
+    }
+
+    Show-PmcCustomGrid -Domain "task" -Columns $columns -Data $displayData -Title "TASKS" -Interactive
 }
 
 function Show-PmcTask { param([PmcCommandContext]$Context)
@@ -562,15 +633,27 @@ function Show-PmcTaskAgenda { param([PmcCommandContext]$Context)
             $rows += @{ idx = ('[{0,2}]' -f $i); id = ('#' + $t.id); pri = $priVal; task = $taskText; project = $projName; due = $dueVal }
             $i++
         }
-        $cols = @(
-            @{ key='idx'; title='#'; width=5; align='right' },
-            @{ key='id'; title='ID'; width=6 },
-            @{ key='pri'; title='Pri'; width=4 },
-            @{ key='task'; title='Task'; width=40 },
-            @{ key='project'; title='Project'; width=18 },
-            @{ key='due'; title='Due'; width=8 }
-        )
-        Show-PmcTable -Columns $cols -Rows $rows -Title $title
+        # Convert to universal display format
+        $columns = @{
+            "idx" = @{ Header = "#"; Width = 5; Alignment = "Right"; Editable = $false }
+            "id" = @{ Header = "ID"; Width = 6; Alignment = "Left"; Editable = $false }
+            "pri" = @{ Header = "Pri"; Width = 4; Alignment = "Center"; Editable = $false }
+            "task" = @{ Header = "Task"; Width = 40; Alignment = "Left"; Editable = $false }
+            "project" = @{ Header = "Project"; Width = 18; Alignment = "Left"; Editable = $false }
+            "due" = @{ Header = "Due"; Width = 8; Alignment = "Center"; Editable = $false }
+        }
+
+        # Convert rows to PSCustomObject format
+        $dataObjects = @()
+        foreach ($row in $rows) {
+            $obj = New-Object PSCustomObject
+            foreach ($key in $row.Keys) {
+                $obj | Add-Member -NotePropertyName $key -NotePropertyValue $row[$key]
+            }
+            $dataObjects += $obj
+        }
+
+        Show-PmcCustomGrid -Domain "task" -Columns $columns -Data $dataObjects -Title $title
     }
     Show-PmcHeader -Title ("AGENDA: {0}" -f $today.ToString('yyyy-MM-dd'))
     render-section 'OVERDUE' $overdue
@@ -593,12 +676,24 @@ function Show-PmcTaskWeek { param([PmcCommandContext]$Context)
         $text = if (@($items).Count -gt 0) { (@($items | Select-Object -First 3 | ForEach-Object { $_.text })) -join '; ' } else { '' }
         $rows += @{ day=$day.ToString('ddd MM/dd'); count=@($items).Count; tasks=$text }
     }
-    $cols = @(
-        @{ key='day'; title='Day'; width=12 },
-        @{ key='count'; title='Count'; width=7; align='right' },
-        @{ key='tasks'; title='Tasks'; width=50 }
-    )
-    Show-PmcTable -Columns $cols -Rows $rows
+    # Convert to universal display format
+    $columns = @{
+        "day" = @{ Header = "Day"; Width = 12; Alignment = "Left"; Editable = $false }
+        "count" = @{ Header = "Count"; Width = 7; Alignment = "Right"; Editable = $false }
+        "tasks" = @{ Header = "Tasks"; Width = 50; Alignment = "Left"; Editable = $false }
+    }
+
+    # Convert rows to PSCustomObject format
+    $dataObjects = @()
+    foreach ($row in $rows) {
+        $obj = New-Object PSCustomObject
+        foreach ($key in $row.Keys) {
+            $obj | Add-Member -NotePropertyName $key -NotePropertyValue $row[$key]
+        }
+        $dataObjects += $obj
+    }
+
+    Show-PmcCustomGrid -Domain "task" -Columns $columns -Data $dataObjects
 }
 
 function Show-PmcTaskMonth { param([PmcCommandContext]$Context)
@@ -616,21 +711,73 @@ function Show-PmcTaskMonth { param([PmcCommandContext]$Context)
         if (@($items).Count -gt 0) { $rows += @{ date=$day.ToString('MM/dd ddd'); count=@($items).Count; sample=(@($items | Select-Object -First 2 | ForEach-Object { $_.text }) -join '; ') } }
     }
     if (@($rows).Count -eq 0) { Show-PmcTip 'No scheduled tasks this month'; return }
-    $cols = @(
-        @{ key='date'; title='Date'; width=12 },
-        @{ key='count'; title='Count'; width=7; align='right' },
-        @{ key='sample'; title='Tasks'; width=50 }
-    )
-    Show-PmcTable -Columns $cols -Rows $rows
+    # Convert to universal display format
+    $columns = @{
+        "date" = @{ Header = "Date"; Width = 12; Alignment = "Left"; Editable = $false }
+        "count" = @{ Header = "Count"; Width = 7; Alignment = "Right"; Editable = $false }
+        "sample" = @{ Header = "Tasks"; Width = 50; Alignment = "Left"; Editable = $false }
+    }
+
+    # Convert rows to PSCustomObject format
+    $dataObjects = @()
+    foreach ($row in $rows) {
+        $obj = New-Object PSCustomObject
+        foreach ($key in $row.Keys) {
+            $obj | Add-Member -NotePropertyName $key -NotePropertyValue $row[$key]
+        }
+        $dataObjects += $obj
+    }
+
+    Show-PmcCustomGrid -Domain "task" -Columns $columns -Data $dataObjects
 }
 
 # ===== PROJECTS =====
 function Add-PmcProject { param([PmcCommandContext]$Context)
-    $name = ($Context.FreeText -join ' ').Trim()
-    if ([string]::IsNullOrWhiteSpace($name)) { Write-Host "Usage: project add <name>" -ForegroundColor Yellow; return }
+    # If no name provided, launch the interactive project wizard
+    if (-not $Context.FreeText -or $Context.FreeText.Count -eq 0) {
+        try {
+            if (Get-Command Invoke-PmcProjectWizard -ErrorAction SilentlyContinue) {
+                Invoke-PmcProjectWizard
+                return
+            }
+        } catch { }
+        Write-Host "Usage: project add <name> [--description <text>]" -ForegroundColor Yellow
+        return
+    }
+
+    # Parse FreeText for name and optional description flags
+    $nameTokens = @()
+    $descTokens = @()
+    $readingDesc = $false
+    for ($i = 0; $i -lt $Context.FreeText.Count; $i++) {
+        $tok = $Context.FreeText[$i]
+        if (-not $readingDesc) {
+            if ($tok -match '^(?i)--description$' -or $tok -match '^(?i)--desc$') {
+                $readingDesc = $true
+                continue
+            }
+            if ($tok -match '^(?i)desc:(.+)$') {
+                $descTokens += $matches[1]
+                $readingDesc = $true
+                continue
+            }
+            $nameTokens += $tok
+        } else {
+            $descTokens += $tok
+        }
+    }
+
+    $name = ($nameTokens -join ' ').Trim()
+    $description = ($descTokens -join ' ').Trim()
+    if ([string]::IsNullOrWhiteSpace($name)) {
+        Write-Host "Usage: project add <name> [--description <text>]" -ForegroundColor Yellow
+        return
+    }
+
     $data = Get-PmcDataAlias
     if ($data.projects | Where-Object { $_.name -eq $name }) { Write-Host "Project '$name' already exists" -ForegroundColor Yellow; return }
-    $proj = [pscustomobject]@{ name=$name; description="Created $(Get-Date -Format yyyy-MM-dd)"; aliases=@(); created=(Get-Date).ToString('yyyy-MM-dd HH:mm:ss') }
+    if ([string]::IsNullOrWhiteSpace($description)) { $description = "Created $(Get-Date -Format yyyy-MM-dd)" }
+    $proj = [pscustomobject]@{ name=$name; description=$description; aliases=@(); created=(Get-Date).ToString('yyyy-MM-dd HH:mm:ss') }
     $data.projects += $proj; Save-StrictData $data 'project add'
     Write-Host "Project '$name' created." -ForegroundColor Green
 }
@@ -651,12 +798,24 @@ function Get-PmcProjectList { param([PmcCommandContext]$Context)
         }
         Write-PmcDebug -Level 1 -Category 'COMMAND' -Message "PROJECT LIST DEBUG: Created $($rows.Count) rows"
 
-        $cols = @(
-            @{ key='project'; title='Project'; width=22 },
-            @{ key='tasks'; title='Tasks'; width=7; align='right' },
-            @{ key='desc'; title='Description'; width=40 }
-        )
-        Show-PmcTable -Columns $cols -Rows $rows -Title 'PROJECTS'
+        # Convert to universal display format
+        $columns = @{
+            "project" = @{ Header = "Project"; Width = 22; Alignment = "Left"; Editable = $false }
+            "tasks" = @{ Header = "Tasks"; Width = 7; Alignment = "Right"; Editable = $false }
+            "desc" = @{ Header = "Description"; Width = 40; Alignment = "Left"; Editable = $false }
+        }
+
+        # Convert rows to PSCustomObject format
+        $dataObjects = @()
+        foreach ($row in $rows) {
+            $obj = New-Object PSCustomObject
+            foreach ($key in $row.Keys) {
+                $obj | Add-Member -NotePropertyName $key -NotePropertyValue $row[$key]
+            }
+            $dataObjects += $obj
+        }
+
+        Show-PmcCustomGrid -Domain "project" -Columns $columns -Data $dataObjects -Title 'PROJECTS'
     } catch {
         Write-PmcDebug -Level 1 -Category 'COMMAND' -Message "PROJECT LIST ERROR: $_ | StackTrace: $($_.ScriptStackTrace)"
         Write-Host "Error: $_" -ForegroundColor Red
@@ -815,14 +974,30 @@ function Get-PmcProjectStats { param([PmcCommandContext]$Context)
         }
     }
     $blocked = @($pending | Where-Object { $_.PSObject.Properties.Match('blocked').Count -gt 0 -and $_.blocked })
-    $cols = @(@{key='metric';title='Metric';width=18}, @{key='value';title='Value';width=8;align='right'})
+    # Convert to universal display format
+    $columns = @{
+        "metric" = @{ Header = "Metric"; Width = 18; Alignment = "Left"; Editable = $false }
+        "value" = @{ Header = "Value"; Width = 8; Alignment = "Right"; Editable = $false }
+    }
+
     $rows = @(
         @{ metric='Pending'; value=(@($pending).Count) },
         @{ metric='Completed'; value=(@($done).Count) },
         @{ metric='Overdue'; value=$overdueCount },
         @{ metric='Blocked'; value=(@($blocked).Count) }
     )
-    Show-PmcTable -Columns $cols -Rows $rows -Title ("PROJECT STATS: {0}" -f $proj.name)
+
+    # Convert rows to PSCustomObject format
+    $dataObjects = @()
+    foreach ($row in $rows) {
+        $obj = New-Object PSCustomObject
+        foreach ($key in $row.Keys) {
+            $obj | Add-Member -NotePropertyName $key -NotePropertyValue $row[$key]
+        }
+        $dataObjects += $obj
+    }
+
+    Show-PmcCustomGrid -Domain "project" -Columns $columns -Data $dataObjects -Title ("PROJECT STATS: {0}" -f $proj.name)
 }
 
 function Show-PmcProjectInfo { param([PmcCommandContext]$Context)
@@ -843,7 +1018,24 @@ function Get-PmcRecentProjects { param([PmcCommandContext]$Context)
         if ($latest) { $recent += @{ project=$p.name; last=($latest.created ?? '') } }
     }
     if ($recent.Count -eq 0) { Write-Host 'No recent projects' -ForegroundColor Yellow; return }
-    Show-PmcTable -Columns @(@{key='project';title='Project';width=22}, @{key='last';title='Last Activity';width=20}) -Rows ($recent | Sort-Object last -Descending) -Title 'RECENT PROJECTS'
+    # Convert to universal display format
+    $columns = @{
+        "project" = @{ Header = "Project"; Width = 22; Alignment = "Left"; Editable = $false }
+        "last" = @{ Header = "Last Activity"; Width = 20; Alignment = "Left"; Editable = $false }
+    }
+
+    # Convert rows to PSCustomObject format and sort
+    $sortedRows = $recent | Sort-Object last -Descending
+    $dataObjects = @()
+    foreach ($row in $sortedRows) {
+        $obj = New-Object PSCustomObject
+        foreach ($key in $row.Keys) {
+            $obj | Add-Member -NotePropertyName $key -NotePropertyValue $row[$key]
+        }
+        $dataObjects += $obj
+    }
+
+    Show-PmcCustomGrid -Domain "project" -Columns $columns -Data $dataObjects -Title 'RECENT PROJECTS'
 }
 
 # ===== TIME =====
@@ -1117,20 +1309,57 @@ function Get-PmcTimeReport { param([PmcCommandContext]$Context)
         $rows += $row
     }
 
-    Show-PmcHeader -Title ("TIME REPORT (Mon–Fri): {0} → {1}" -f $days[0].ToString('yyyy-MM-dd'), $days[-1].ToString('yyyy-MM-dd'))
-    Show-PmcTable -Columns $cols -Rows $rows
+    # Universal Display header handled via grid Title
+    $reportTitle = "TIME REPORT (Mon–Fri): {0} → {1}" -f $days[0].ToString('yyyy-MM-dd'), $days[-1].ToString('yyyy-MM-dd')
+
+    # Convert to universal display format
+    $dataObjects = @()
+    foreach ($row in $rows) {
+        $obj = New-Object PSCustomObject
+        foreach ($key in $row.Keys) {
+            $obj | Add-Member -NotePropertyName $key -NotePropertyValue $row[$key]
+        }
+        $dataObjects += $obj
+    }
+
+    # Convert column format
+    $columns = @{}
+    foreach ($col in $cols) {
+        $alignment = if ($col.ContainsKey('align') -and $col.align -eq 'right') { "Right" } else { "Left" }
+        $columns[$col.key] = @{
+            Header = $col.title
+            Width = $col.width
+            Alignment = $alignment
+            Editable = $false
+        }
+    }
+
+    Show-PmcCustomGrid -Domain "time" -Columns $columns -Data $dataObjects -Title $reportTitle
     Show-PmcTip ("TOTAL: {0} h" -f ([Math]::Round($grand/60,2)))
     if ($withIds) {
         $detailRows=@()
         foreach ($l in ($logs | Sort-Object date, time)) { $detailRows += @{ date=$l.date; time=($l.time ?? ''); project=$l.project; hours=([Math]::Round($l.minutes/60,2)).ToString('0.##'); notes=($l.notes ?? '') } }
-        $dcols = @(
-            @{ key='date'; title='Date'; width=10 },
-            @{ key='time'; title='Time'; width=6 },
-            @{ key='project'; title='Project'; width=18 },
-            @{ key='hours'; title='Hours'; width=7; align='right' },
-            @{ key='notes'; title='Description'; width=40 }
-        )
-        Show-PmcTable -Columns $dcols -Rows $detailRows -Title 'DETAILS'
+        # Convert to universal display format for details
+        $dColumns = @{
+            "date" = @{ Header = "Date"; Width = 10; Alignment = "Center"; Editable = $false }
+            "time" = @{ Header = "Time"; Width = 6; Alignment = "Center"; Editable = $false }
+            "project" = @{ Header = "Project"; Width = 18; Alignment = "Left"; Editable = $false }
+            "hours" = @{ Header = "Hours"; Width = 7; Alignment = "Right"; Editable = $false }
+            "notes" = @{ Header = "Description"; Width = 40; Alignment = "Left"; Editable = $false }
+        }
+
+        # Convert detail rows to PSCustomObject format
+        $detailObjects = @()
+        foreach ($row in $detailRows) {
+            $obj = New-Object PSCustomObject
+            foreach ($key in $row.Keys) {
+                $obj | Add-Member -NotePropertyName $key -NotePropertyValue $row[$key]
+            }
+            $detailObjects += $obj
+        }
+
+        $detailsTitle = "TIME REPORT DETAILS: {0} → {1}" -f $days[0].ToString('yyyy-MM-dd'), $days[-1].ToString('yyyy-MM-dd')
+        Show-PmcCustomGrid -Domain "time" -Columns $dColumns -Data $detailObjects -Title $detailsTitle
     }
     if ($outPath) {
         try {
@@ -1175,12 +1404,24 @@ function Get-PmcActivityList { param([PmcCommandContext]$Context)
     $rows = @()
     foreach ($a in ($data.activityLog | Select-Object -Last 50)) { $rows += @{ ts=$a.timestamp; user=($a.user ?? ''); action=$a.action } }
     if (@($rows).Count -eq 0) { Show-PmcHeader -Title 'ACTIVITY'; Show-PmcTip 'No activity entries'; return }
-    $cols = @(
-        @{ key='ts'; title='Timestamp'; width=20 },
-        @{ key='user'; title='User'; width=10 },
-        @{ key='action'; title='Action'; width=40 }
-    )
-    Show-PmcTable -Columns $cols -Rows $rows -Title 'ACTIVITY (last 50)'
+    # Convert to universal display format
+    $columns = @{
+        "ts" = @{ Header = "Timestamp"; Width = 20; Alignment = "Left"; Editable = $false }
+        "user" = @{ Header = "User"; Width = 10; Alignment = "Left"; Editable = $false }
+        "action" = @{ Header = "Action"; Width = 40; Alignment = "Left"; Editable = $false }
+    }
+
+    # Convert rows to PSCustomObject format
+    $dataObjects = @()
+    foreach ($row in $rows) {
+        $obj = New-Object PSCustomObject
+        foreach ($key in $row.Keys) {
+            $obj | Add-Member -NotePropertyName $key -NotePropertyValue $row[$key]
+        }
+        $dataObjects += $obj
+    }
+
+    Show-PmcCustomGrid -Domain "activity" -Columns $columns -Data $dataObjects -Title 'ACTIVITY (last 50)'
 }
 
 # ===== TIMER =====
@@ -1418,7 +1659,24 @@ function Show-PmcDependencies { param([PmcCommandContext]$Context)
             $dep = $data.tasks | Where-Object { $_.id -eq $rid } | Select-Object -First 1
             $rows += @{ id=('#'+$rid); text=($dep.text ?? '(missing)'); status=($dep.status ?? '') }
         }
-        Show-PmcTable -Columns @(@{key='id';title='Requires';width=8}, @{key='text';title='Task';width=44}, @{key='status';title='Status';width=8}) -Rows $rows -Title ("BLOCKERS FOR #{0}" -f $tid)
+        # Convert to universal display format
+        $columns = @{
+            "id" = @{ Header = "Requires"; Width = 8; Alignment = "Left"; Editable = $false }
+            "text" = @{ Header = "Task"; Width = 44; Alignment = "Left"; Editable = $false }
+            "status" = @{ Header = "Status"; Width = 8; Alignment = "Center"; Editable = $false }
+        }
+
+        # Convert rows to PSCustomObject format
+        $dataObjects = @()
+        foreach ($row in $rows) {
+            $obj = New-Object PSCustomObject
+            foreach ($key in $row.Keys) {
+                $obj | Add-Member -NotePropertyName $key -NotePropertyValue $row[$key]
+            }
+            $dataObjects += $obj
+        }
+
+        Show-PmcCustomGrid -Domain "task" -Columns $columns -Data $dataObjects -Title ("BLOCKERS FOR #{0}" -f $tid)
     }
 }
 
@@ -1551,8 +1809,8 @@ function Get-PmcAliasList { param([PmcCommandContext]$Context)
 }
 
 function Show-PmcCommands { param([PmcCommandContext]$Context)
-    Write-PmcStyled -Style 'Title' -Text "Available Commands"
-    Write-PmcStyled -Style 'Info' -Text "Use 'help' for detailed command list."
+    # Route to smart help grid for a consistent universal display experience
+    try { Show-PmcSmartHelp } catch { Write-PmcStyled -Style 'Error' -Text ("Help unavailable: {0}" -f $_) }
 }
 
 function Show-PmcCommandBrowser { param([PmcCommandContext]$Context)
@@ -1560,11 +1818,159 @@ function Show-PmcCommandBrowser { param([PmcCommandContext]$Context)
 }
 
 function Show-PmcHelpExamples { param([PmcCommandContext]$Context)
-    Write-PmcStyled -Style 'Info' -Text "Help examples not implemented."
+    $topic = if ($Context.FreeText.Count -gt 0) { $Context.FreeText[0].ToLower() } else { '' }
+
+    switch ($topic) {
+        'query' {
+            # Create examples data for query
+            $queryExamples = @(
+                [PSCustomObject]@{ Category = "🎯 PRIORITY"; Command = "q tasks p1"; Description = "Only high priority tasks" }
+                [PSCustomObject]@{ Category = "🎯 PRIORITY"; Command = "q tasks p<=2"; Description = "High and medium priority" }
+                [PSCustomObject]@{ Category = "🎯 PRIORITY"; Command = "q tasks p>2"; Description = "Only low priority tasks" }
+                [PSCustomObject]@{ Category = "📅 DATE"; Command = "q tasks due:today"; Description = "Due today" }
+                [PSCustomObject]@{ Category = "📅 DATE"; Command = "q tasks due>today"; Description = "Due in future" }
+                [PSCustomObject]@{ Category = "📅 DATE"; Command = "q tasks overdue"; Description = "Past due" }
+                [PSCustomObject]@{ Category = "🏷️ PROJECT"; Command = "q tasks @work"; Description = "Work project tasks" }
+                [PSCustomObject]@{ Category = "🏷️ PROJECT"; Command = "q tasks #urgent"; Description = "Tagged urgent" }
+                [PSCustomObject]@{ Category = "📊 VIEWS"; Command = "q tasks group:status"; Description = "Kanban by status" }
+                [PSCustomObject]@{ Category = "📊 VIEWS"; Command = "q tasks view:kanban"; Description = "Force kanban view" }
+                [PSCustomObject]@{ Category = "⚡ COMPLEX"; Command = "q tasks p<=2 @work due>=today"; Description = "High/med priority work due today+" }
+                [PSCustomObject]@{ Category = "⚡ COMPLEX"; Command = "q tasks #urgent overdue group:status"; Description = "Urgent overdue in kanban" }
+            )
+
+            $columns = @{
+                "Category" = @{ Header = "Category"; Width = 15; Alignment = "Left"; Editable = $false }
+                "Command" = @{ Header = "Command"; Width = 35; Alignment = "Left"; Editable = $false }
+                "Description" = @{ Header = "Description"; Width = 0; Alignment = "Left"; Editable = $false }
+            }
+
+            Show-PmcCustomGrid -Domain "help-examples" -Columns $columns -Data $queryExamples -Title "Query Language Examples"
+        }
+        'kanban' {
+            # Create examples data for kanban
+            $kanbanExamples = @(
+                [PSCustomObject]@{ Category = "🎯 ACCESS"; Command = "q tasks group:status"; Description = "Auto-kanban by status" }
+                [PSCustomObject]@{ Category = "🎯 ACCESS"; Command = "q tasks group:project"; Description = "Kanban by project" }
+                [PSCustomObject]@{ Category = "🎯 ACCESS"; Command = "q tasks view:kanban"; Description = "Force kanban view" }
+                [PSCustomObject]@{ Category = "🎮 NAVIGATION"; Command = "←/→ arrows"; Description = "Move between lanes" }
+                [PSCustomObject]@{ Category = "🎮 NAVIGATION"; Command = "↑/↓ arrows"; Description = "Move between items" }
+                [PSCustomObject]@{ Category = "🎮 NAVIGATION"; Command = "Space"; Description = "Start/complete move" }
+                [PSCustomObject]@{ Category = "🎮 NAVIGATION"; Command = "/"; Description = "Filter cards" }
+                [PSCustomObject]@{ Category = "🎮 NAVIGATION"; Command = "?/H"; Description = "Help overlay" }
+                [PSCustomObject]@{ Category = "💡 WORKFLOWS"; Command = "q tasks @team group:status"; Description = "Daily standup review" }
+                [PSCustomObject]@{ Category = "💡 WORKFLOWS"; Command = "q tasks p<=2 group:status"; Description = "Sprint planning" }
+                [PSCustomObject]@{ Category = "💡 WORKFLOWS"; Command = "q tasks #urgent group:project"; Description = "Issue triage" }
+            )
+
+            $columns = @{
+                "Category" = @{ Header = "Category"; Width = 15; Alignment = "Left"; Editable = $false }
+                "Command" = @{ Header = "Command/Key"; Width = 30; Alignment = "Left"; Editable = $false }
+                "Description" = @{ Header = "Description"; Width = 0; Alignment = "Left"; Editable = $false }
+            }
+
+            Show-PmcCustomGrid -Domain "help-examples" -Columns $columns -Data $kanbanExamples -Title "Kanban Workflow Examples"
+        }
+        default {
+            # Show quick start examples
+            $quickExamples = @(
+                [PSCustomObject]@{ Category = "🚀 QUICK START"; Command = "q tasks"; Description = "List all tasks" }
+                [PSCustomObject]@{ Category = "🚀 QUICK START"; Command = "q tasks p<=2"; Description = "High/medium priority" }
+                [PSCustomObject]@{ Category = "🚀 QUICK START"; Command = "q tasks due:today"; Description = "Due today" }
+                [PSCustomObject]@{ Category = "🚀 QUICK START"; Command = "q tasks group:status"; Description = "Kanban board" }
+                [PSCustomObject]@{ Category = "📚 MORE HELP"; Command = "help examples query"; Description = "Query language examples" }
+                [PSCustomObject]@{ Category = "📚 MORE HELP"; Command = "help examples kanban"; Description = "Kanban workflow examples" }
+                [PSCustomObject]@{ Category = "📚 MORE HELP"; Command = "help guide query"; Description = "Complete query guide" }
+                [PSCustomObject]@{ Category = "📚 MORE HELP"; Command = "help guide kanban"; Description = "Complete kanban guide" }
+            )
+
+            $columns = @{
+                "Category" = @{ Header = "Category"; Width = 18; Alignment = "Left"; Editable = $false }
+                "Command" = @{ Header = "Command"; Width = 25; Alignment = "Left"; Editable = $false }
+                "Description" = @{ Header = "Description"; Width = 0; Alignment = "Left"; Editable = $false }
+            }
+
+            Show-PmcCustomGrid -Domain "help-examples" -Columns $columns -Data $quickExamples -Title "PMC Examples - Quick Start"
+        }
+    }
 }
 
 function Show-PmcHelpGuide { param([PmcCommandContext]$Context)
-    Write-PmcStyled -Style 'Info' -Text "Help guide not implemented."
+    $topic = if ($Context.FreeText.Count -gt 0) { $Context.FreeText[0].ToLower() } else { '' }
+
+    switch ($topic) {
+        'query' {
+            # Create help data for query guide
+            $guideData = @(
+                [PSCustomObject]@{ Section = "🔍 BASIC SYNTAX"; Item = "q <domain> [filters] [columns] [sort] [view]"; Description = "Core query structure" }
+                [PSCustomObject]@{ Section = "🎯 PRIORITY FILTERS"; Item = "p1, p2, p3"; Description = "Exact priority (1=high, 2=med, 3=low)" }
+                [PSCustomObject]@{ Section = "🎯 PRIORITY FILTERS"; Item = "p<=2"; Description = "Priority 1 or 2 (high/medium)" }
+                [PSCustomObject]@{ Section = "🎯 PRIORITY FILTERS"; Item = "p>=2, p>1, p<3"; Description = "Priority comparisons" }
+                [PSCustomObject]@{ Section = "📅 DATE FILTERS"; Item = "due:today"; Description = "Due today" }
+                [PSCustomObject]@{ Section = "📅 DATE FILTERS"; Item = "due>today"; Description = "Due after today" }
+                [PSCustomObject]@{ Section = "📅 DATE FILTERS"; Item = "due<2024-12-31"; Description = "Due before date" }
+                [PSCustomObject]@{ Section = "📅 DATE FILTERS"; Item = "overdue"; Description = "Past due date" }
+                [PSCustomObject]@{ Section = "🏷️ PROJECT & TAGS"; Item = "@work"; Description = "Project 'work'" }
+                [PSCustomObject]@{ Section = "🏷️ PROJECT & TAGS"; Item = "#urgent"; Description = "Has 'urgent' tag" }
+                [PSCustomObject]@{ Section = "🏷️ PROJECT & TAGS"; Item = "status:done"; Description = "Completed tasks" }
+                [PSCustomObject]@{ Section = "📊 VIEWS & SORTING"; Item = "view:kanban"; Description = "Kanban board view" }
+                [PSCustomObject]@{ Section = "📊 VIEWS & SORTING"; Item = "group:status"; Description = "Group by status (auto-kanban)" }
+                [PSCustomObject]@{ Section = "📊 VIEWS & SORTING"; Item = "sort:due,priority"; Description = "Sort by multiple fields" }
+                [PSCustomObject]@{ Section = "💡 INTERACTIVE"; Item = "Tab completion"; Description = "Available for all filters!" }
+            )
+
+            $columns = @{
+                "Section" = @{ Header = "Category"; Width = 20; Alignment = "Left"; Editable = $false }
+                "Item" = @{ Header = "Filter/Command"; Width = 25; Alignment = "Left"; Editable = $false }
+                "Description" = @{ Header = "Description"; Width = 0; Alignment = "Left"; Editable = $false }
+            }
+
+            Show-PmcCustomGrid -Domain "help-guide" -Columns $columns -Data $guideData -Title "Query Language Guide"
+        }
+        'kanban' {
+            # Create help data for kanban guide
+            $kanbanData = @(
+                [PSCustomObject]@{ Category = "🎯 ACCESS"; Command = "q tasks group:status"; Description = "Auto-enable kanban by status" }
+                [PSCustomObject]@{ Category = "🎯 ACCESS"; Command = "q tasks view:kanban"; Description = "Manual kanban view" }
+                [PSCustomObject]@{ Category = "🎮 NAVIGATION"; Command = "←/→ arrows"; Description = "Move between lanes" }
+                [PSCustomObject]@{ Category = "🎮 NAVIGATION"; Command = "↑/↓ arrows"; Description = "Move between items" }
+                [PSCustomObject]@{ Category = "🎮 NAVIGATION"; Command = "Space"; Description = "Start/complete move" }
+                [PSCustomObject]@{ Category = "🎮 NAVIGATION"; Command = "Enter"; Description = "Drill down details" }
+                [PSCustomObject]@{ Category = "🎮 NAVIGATION"; Command = "/"; Description = "Filter cards by text" }
+                [PSCustomObject]@{ Category = "🎮 NAVIGATION"; Command = "?/H"; Description = "Help overlay" }
+                [PSCustomObject]@{ Category = "🎨 VISUAL"; Command = "🔴🟡🟢"; Description = "Priority indicators" }
+                [PSCustomObject]@{ Category = "🎨 VISUAL"; Command = "⚠️📅⏰📆"; Description = "Due date indicators" }
+                [PSCustomObject]@{ Category = "🎨 VISUAL"; Command = "✅🔄🚫⏳"; Description = "Status indicators" }
+                [PSCustomObject]@{ Category = "🔄 MOVE PROCESS"; Command = "1-4 Steps"; Description = "Select → Space → Navigate → Enter" }
+                [PSCustomObject]@{ Category = "💡 TIP"; Command = "Auto-save"; Description = "Moving cards saves immediately!" }
+            )
+
+            $columns = @{
+                "Category" = @{ Header = "Category"; Width = 18; Alignment = "Left"; Editable = $false }
+                "Command" = @{ Header = "Command/Key"; Width = 20; Alignment = "Left"; Editable = $false }
+                "Description" = @{ Header = "Description"; Width = 0; Alignment = "Left"; Editable = $false }
+            }
+
+            Show-PmcCustomGrid -Domain "help-guide" -Columns $columns -Data $kanbanData -Title "Kanban View Guide"
+        }
+        default {
+            # Show available guide topics
+            $topicData = @(
+                [PSCustomObject]@{ Topic = "help guide query"; Description = "🔍 Query Language & Filtering Guide" }
+                [PSCustomObject]@{ Topic = "help guide kanban"; Description = "📋 Kanban View Guide" }
+                [PSCustomObject]@{ Topic = "help examples"; Description = "💡 Practical examples" }
+                [PSCustomObject]@{ Topic = "q tasks"; Description = "📝 List all tasks" }
+                [PSCustomObject]@{ Topic = "q tasks p<=2"; Description = "🎯 High/medium priority" }
+                [PSCustomObject]@{ Topic = "q tasks group:status"; Description = "📋 Kanban board" }
+            )
+
+            $columns = @{
+                "Topic" = @{ Header = "Command"; Width = 25; Alignment = "Left"; Editable = $false }
+                "Description" = @{ Header = "Description"; Width = 0; Alignment = "Left"; Editable = $false }
+            }
+
+            Show-PmcCustomGrid -Domain "help-guide" -Columns $columns -Data $topicData -Title "PMC Help Guide - Available Topics"
+        }
+    }
 }
 
 # SHORTCUT-ONLY FUNCTIONS

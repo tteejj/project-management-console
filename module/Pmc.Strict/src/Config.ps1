@@ -85,3 +85,5 @@ function Validate-PmcConfig { param([PmcCommandContext]$Context)
 
 # Explicitly export the function to ensure it's available
 Export-ModuleMember -Function Get-PmcConfig
+
+# Removed inline config editor per request

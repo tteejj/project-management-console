@@ -20,7 +20,14 @@ function Evaluate-PmcQuery {
         $proj = if ($Spec.Filters.ContainsKey('project')) { [string]$Spec.Filters['project'] } else { $null }
         $overdue = ($Spec.Filters.ContainsKey('overdue'))
         $dueTok = if ($Spec.Filters.ContainsKey('due')) { [string]$Spec.Filters['due'] } else { $null }
+        $due_gt = if ($Spec.Filters.ContainsKey('due_gt')) { [string]$Spec.Filters['due_gt'] } else { $null }
+        $due_lt = if ($Spec.Filters.ContainsKey('due_lt')) { [string]$Spec.Filters['due_lt'] } else { $null }
+        $due_ge = if ($Spec.Filters.ContainsKey('due_ge')) { [string]$Spec.Filters['due_ge'] } else { $null }
+        $due_le = if ($Spec.Filters.ContainsKey('due_le')) { [string]$Spec.Filters['due_le'] } else { $null }
         $p_le = if ($Spec.Filters.ContainsKey('p_le')) { [int]$Spec.Filters['p_le'] } else { 0 }
+        $p_ge = if ($Spec.Filters.ContainsKey('p_ge')) { [int]$Spec.Filters['p_ge'] } else { 0 }
+        $p_gt = if ($Spec.Filters.ContainsKey('p_gt')) { [int]$Spec.Filters['p_gt'] } else { 0 }
+        $p_lt = if ($Spec.Filters.ContainsKey('p_lt')) { [int]$Spec.Filters['p_lt'] } else { 0 }
         $p_eq = if ($Spec.Filters.ContainsKey('p_eq')) { [int]$Spec.Filters['p_eq'] } else { 0 }
         $tagsIn = if ($Spec.Filters.ContainsKey('tags_in')) { @($Spec.Filters['tags_in']) } else { @() }
         $tagsOut = if ($Spec.Filters.ContainsKey('tags_out')) { @($Spec.Filters['tags_out']) } else { @() }
@@ -36,6 +43,18 @@ function Evaluate-PmcQuery {
             if ($p_le -gt 0) {
                 $v = if ($_.PSObject.Properties['priority']) { try { [int]$_.priority } catch { 0 } } else { 0 }
                 $ok = $ok -and ($v -gt 0 -and $v -le $p_le)
+            }
+            if ($p_ge -gt 0) {
+                $v = if ($_.PSObject.Properties['priority']) { try { [int]$_.priority } catch { 0 } } else { 0 }
+                $ok = $ok -and ($v -gt 0 -and $v -ge $p_ge)
+            }
+            if ($p_gt -gt 0) {
+                $v = if ($_.PSObject.Properties['priority']) { try { [int]$_.priority } catch { 0 } } else { 0 }
+                $ok = $ok -and ($v -gt $p_gt)
+            }
+            if ($p_lt -gt 0) {
+                $v = if ($_.PSObject.Properties['priority']) { try { [int]$_.priority } catch { 0 } } else { 0 }
+                $ok = $ok -and ($v -gt 0 -and $v -lt $p_lt)
             }
             if ($p_eq -gt 0) {
                 $v = if ($_.PSObject.Properties['priority']) { try { [int]$_.priority } catch { 0 } } else { 0 }
@@ -74,6 +93,70 @@ function Evaluate-PmcQuery {
                 try { $start=[datetime]$startTok; $end=[datetime]$endTok } catch { $start=$null; $end=$null }
                 if ($start -ne $null -and $end -ne $null -and $_.PSObject.Properties['due']) {
                     try { $dd=[datetime]$_.due; $ok = $ok -and ($dd -ge $start -and $dd -le $end) } catch { $ok = $false }
+                }
+            }
+            if ($due_gt -and $_.PSObject.Properties['due']) {
+                $d = $null
+                try {
+                    $schemas = Get-PmcFieldSchemasForDomain -Domain 'task'
+                    if ($schemas.ContainsKey('due') -and $schemas.due.ContainsKey('Normalize')) {
+                        $normalizedDate = & $schemas.due.Normalize $due_gt
+                        if ($normalizedDate) { $d = [datetime]$normalizedDate }
+                    }
+                } catch {
+                    if ($due_gt -match '^(?i)today$') { $d = (Get-Date).Date }
+                    elseif ($due_gt -match '^\d{4}-\d{2}-\d{2}$') { try { $d = [datetime]$due_gt } catch { $d=$null } }
+                }
+                if ($d -ne $null) {
+                    try { $ok = $ok -and (([datetime]$_.due).Date -gt $d.Date) } catch { $ok = $false }
+                }
+            }
+            if ($due_lt -and $_.PSObject.Properties['due']) {
+                $d = $null
+                try {
+                    $schemas = Get-PmcFieldSchemasForDomain -Domain 'task'
+                    if ($schemas.ContainsKey('due') -and $schemas.due.ContainsKey('Normalize')) {
+                        $normalizedDate = & $schemas.due.Normalize $due_lt
+                        if ($normalizedDate) { $d = [datetime]$normalizedDate }
+                    }
+                } catch {
+                    if ($due_lt -match '^(?i)today$') { $d = (Get-Date).Date }
+                    elseif ($due_lt -match '^\d{4}-\d{2}-\d{2}$') { try { $d = [datetime]$due_lt } catch { $d=$null } }
+                }
+                if ($d -ne $null) {
+                    try { $ok = $ok -and (([datetime]$_.due).Date -lt $d.Date) } catch { $ok = $false }
+                }
+            }
+            if ($due_ge -and $_.PSObject.Properties['due']) {
+                $d = $null
+                try {
+                    $schemas = Get-PmcFieldSchemasForDomain -Domain 'task'
+                    if ($schemas.ContainsKey('due') -and $schemas.due.ContainsKey('Normalize')) {
+                        $normalizedDate = & $schemas.due.Normalize $due_ge
+                        if ($normalizedDate) { $d = [datetime]$normalizedDate }
+                    }
+                } catch {
+                    if ($due_ge -match '^(?i)today$') { $d = (Get-Date).Date }
+                    elseif ($due_ge -match '^\d{4}-\d{2}-\d{2}$') { try { $d = [datetime]$due_ge } catch { $d=$null } }
+                }
+                if ($d -ne $null) {
+                    try { $ok = $ok -and (([datetime]$_.due).Date -ge $d.Date) } catch { $ok = $false }
+                }
+            }
+            if ($due_le -and $_.PSObject.Properties['due']) {
+                $d = $null
+                try {
+                    $schemas = Get-PmcFieldSchemasForDomain -Domain 'task'
+                    if ($schemas.ContainsKey('due') -and $schemas.due.ContainsKey('Normalize')) {
+                        $normalizedDate = & $schemas.due.Normalize $due_le
+                        if ($normalizedDate) { $d = [datetime]$normalizedDate }
+                    }
+                } catch {
+                    if ($due_le -match '^(?i)today$') { $d = (Get-Date).Date }
+                    elseif ($due_le -match '^\d{4}-\d{2}-\d{2}$') { try { $d = [datetime]$due_le } catch { $d=$null } }
+                }
+                if ($d -ne $null) {
+                    try { $ok = $ok -and (([datetime]$_.due).Date -le $d.Date) } catch { $ok = $false }
                 }
             }
             if (@($tagsIn).Count -gt 0) {

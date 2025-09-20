@@ -6023,3 +6023,8 @@
 [2025-09-19 15:53:00.993] [ad0ac86b] [DBG2] [DataDisplay] Failed to load project lookup | Data: {"Error":"The term 'Get-PmcDataProvider' is not recognized as a name of a cmdlet, function, script file, or executable program.\nCheck the spelling of the name, or if a path was included, verify that the path is correct and try again."}
 [2025-09-19 15:53:01.027] [ad0ac86b] [DBG2] [DataDisplay] Renderer created, determining display mode | Data: {"View":"list","Group":"","Interactive":true}
 [2025-09-19 15:53:01.031] [ad0ac86b] [DBG2] [DataDisplay] Starting interactive grid
+[2025-09-19 19:06:47.384] [a2f1488a] [DBG1] [SYSTEM] Debug system initialized (Level=2, Session=a2f1488a)
+[2025-09-19 19:06:47.484] [a2f1488a] [DBG1] [SECURITY] Security level changed to: balanced | Data: {"InputValidationEnabled":true,"AuditLoggingEnabled":true,"MaxExecutionTime":300000,"AllowedWritePaths":["/home/****/pmc","/home/****/pmc/reports","/home/****/pmc/backups","/home/****/pmc/exports","/tmp/"],"MaxFileSize":104857600,"SensitiveDataScanEnabled":true,"ResourceLimitsEnabled":true,"TemplateExecutionEnabled":false,"MaxMemoryUsage":524288000,"PathWhitelistEnabled":true}
+[2025-09-19 19:06:47.538] [a2f1488a] [DBG1] [INTERACTIVE] Enabling PMC interactive mode with full t2.ps1 feature set
+[2025-09-19 19:06:47.686] [a2f1488a] [DBG2] [INPUT] Starting Read-PmcCommand session
+[2025-09-19 19:06:47.753] [a2f1488a] [DBG2] [RENDER] Bottom HUD render: bufferLen=0, cursorPos=0, width=80

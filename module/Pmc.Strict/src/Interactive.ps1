@@ -608,14 +608,14 @@ function Get-PmcArgumentCompletions {
         }
 
         # Date completions (due:)
-        if ($Filter.StartsWith('due:') -or [string]::IsNullOrWhiteSpace($Filter)) {
-            $dates = @("due:today", "due:tomorrow", "due:friday", "due:+1w", "due:+1m")
+        if ($Filter.StartsWith('due') -or [string]::IsNullOrWhiteSpace($Filter)) {
+            $dates = @("due:today", "due:tomorrow", "due:friday", "due:+1w", "due:+1m", "due>today", "due<today", "due>=today", "due<=today", "due>2024-12-31", "due<2024-12-31")
             $completions += (Invoke-PmcFuzzyFilter -Items $dates -Query $Filter)
         }
 
         # Priority completions
         if ($Filter.StartsWith('p') -or [string]::IsNullOrWhiteSpace($Filter)) {
-            $priorities = @("p1", "p2", "p3")
+            $priorities = @("p1", "p2", "p3", "p<=1", "p<=2", "p<=3", "p>=1", "p>=2", "p>=3", "p>1", "p>2", "p<2", "p<3")
             $completions += (Invoke-PmcFuzzyFilter -Items $priorities -Query $Filter)
         }
 
@@ -647,6 +647,21 @@ function Get-PmcArgumentCompletions {
                 if ($tags.Count -eq 0) { $tags = @("#urgent", "#todo", "#review") }
                 $tags = @($tags | Select-Object -Unique)
                 $completions += (Invoke-PmcFuzzyFilter -Items $tags -Query $Filter)
+            }
+        }
+
+        # Add query history suggestions if no specific prefix
+        if ([string]::IsNullOrWhiteSpace($Filter) -or ($Filter.Length -eq 1 -and $Filter -match '^[a-z]$')) {
+            try {
+                $history = Get-PmcQueryHistory -Last 5
+                $historyCompletions = @()
+                foreach ($h in $history) {
+                    if ($h -and $h.Trim() -ne '' -and $h -notlike "*$Filter*") { continue }
+                    $historyCompletions += "◄ $h"
+                }
+                $completions += $historyCompletions
+            } catch {
+                Write-PmcDebug -Level 2 -Category 'COMPLETION' -Message "History loading error: $_"
             }
         }
 

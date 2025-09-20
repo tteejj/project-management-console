@@ -71,18 +71,40 @@ function Get-PmcColorPalette {
     $dim = @{
         R = [int]([Math]::Max(0, $rgb.R * 0.7)); G = [int]([Math]::Max(0, $rgb.G * 0.7)); B = [int]([Math]::Max(0, $rgb.B * 0.7))
     }
+    $text = @{ R=220; G=220; B=220 }
+    $muted = @{ R=150; G=150; B=150 }
+    $warning = @{ R=220; G=180; B=80 }
+    $error = @{ R=220; G=80; B=80 }
+    $success = @{ R=80; G=200; B=120 }
+
+    # Provide all tokens used by interactive UIs (wizard/editor)
     return @{
-        Primary = $rgb
-        Border = $dim
-        Text = @{ R=220; G=220; B=220 }
-        Muted = @{ R=150; G=150; B=150 }
-        Error = @{ R=220; G=80; B=80 }
-        Warning = @{ R=220; G=180; B=80 }
-        Success = @{ R=80; G=200; B=120 }
+        Primary  = $rgb
+        Border   = $dim
+        Text     = $text
+        Muted    = $muted
+        Error    = $error
+        Warning  = $warning
+        Success  = $success
+        # Additional expected tokens
+        Header   = $rgb
+        Label    = $muted
+        Highlight= $rgb
+        Footer   = $dim
+        Cursor   = $rgb
+        Status   = $muted
     }
 }
 
-function Get-PmcColorSequence { param($rgb) return ([PmcVT]::FgRGB($rgb.R, $rgb.G, $rgb.B)) }
+function Get-PmcColorSequence {
+    param($rgb)
+    try {
+        if ($rgb -and $rgb.PSObject -and $rgb.PSObject.Properties['R'] -and $rgb.PSObject.Properties['G'] -and $rgb.PSObject.Properties['B']) {
+            return ([PmcVT]::FgRGB([int]$rgb.R, [int]$rgb.G, [int]$rgb.B))
+        }
+    } catch { }
+    return ''
+}
 
 # Cell-level theming hook for grid renderer (Stage 1.3)
 function Get-PmcCellStyle {
@@ -152,50 +174,9 @@ function Show-PmcSeparator { param([int]$Width=40) Write-PmcStyled -Style 'Borde
 
 function Show-PmcTable {
     param(
-        [array]$Columns, # array of @{ key='id'; title='#'; width=4; align='right' }
-        [array]$Rows,    # array of hashtables or psobjects
+        [array]$Columns,
+        [array]$Rows,
         [string]$Title=''
     )
-    if ($Title) { Show-PmcHeader -Title $Title }
-    # Header
-    $header = '  ' + ($Columns | ForEach-Object {
-        if (-not ($_ -is [hashtable])) { throw "Show-PmcTable: Column must be a hashtable with keys: key[,title,width,align]" }
-        if (-not $_.ContainsKey('key')) { throw "Show-PmcTable: Column missing required 'key'" }
-        $t = if ($_.ContainsKey('title')) { [string]$_['title'] } else { [string]$_['key'] }
-        $w = if ($_.ContainsKey('width')) { [int]$_['width'] } else { 8 }
-        $t.PadRight($w)
-    }) -join '  '
-    Write-PmcStyled -Style 'Header' -Text $header
-    $sep = '  ' + ($Columns | ForEach-Object {
-        if (-not ($_ -is [hashtable])) { throw "Show-PmcTable: Column must be hashtable" }
-        $w = if ($_.ContainsKey('width')) { [int]$_['width'] } else { 8 }
-        ('-' * $w)
-    }) -join '  '
-    Write-PmcStyled -Style 'Border' -Text $sep
-    # Rows
-    foreach ($row in $Rows) {
-        $line = '  '
-        foreach ($col in $Columns) {
-            if (-not ($col -is [hashtable])) { throw "Show-PmcTable: Column must be hashtable" }
-            if (-not $col.ContainsKey('key')) { throw "Show-PmcTable: Column missing 'key'" }
-            $k = [string]$col['key']
-            $w = if ($col.ContainsKey('width')) { [int]$col['width'] } else { 8 }
-            $a = if ($col.ContainsKey('align')) { [string]$col['align'] } else { 'left' }
-            if ($a -notin @('left','right')) { throw "Show-PmcTable: Invalid align '$a' (use 'left' or 'right')" }
-            $v = ''
-            try {
-                $v = ''
-                if ($row.PSObject -and $row.PSObject.Properties[$k]) {
-                    $v = [string]$row.$k
-                } elseif ($row[$k]) {
-                    $v = [string]$row[$k]
-                }
-            } catch {
-                # Property access failed - use empty string
-            }
-            if ($v.Length -gt $w) { $v = $v.Substring(0, [Math]::Max(0,$w-1)) + '…' }
-            if ($a -eq 'right') { $line += $v.PadLeft($w) + '  ' } else { $line += $v.PadRight($w) + '  ' }
-        }
-        Write-PmcStyled -Style 'Body' -Text ($line.TrimEnd())
-    }
+    throw "Show-PmcTable is DEPRECATED and should not be used! All views must use Show-PmcCustomGrid. Function called with Title: '$Title'"
 }

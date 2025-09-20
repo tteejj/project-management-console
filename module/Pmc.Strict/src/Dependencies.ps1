@@ -182,13 +182,24 @@ function Show-PmcDependencies {
         $rows += @{ id = "#$depId"; status = $status; text = $text }
     }
 
-    $cols = @(
-        @{ key='id'; title='ID'; width=6 },
-        @{ key='status'; title='Status'; width=10 },
-        @{ key='text'; title='Task'; width=50 }
-    )
+    # Convert to universal display format
+    $columns = @{
+        "id" = @{ Header = "ID"; Width = 6; Alignment = "Left"; Editable = $false }
+        "status" = @{ Header = "Status"; Width = 10; Alignment = "Center"; Editable = $false }
+        "text" = @{ Header = "Task"; Width = 50; Alignment = "Left"; Editable = $false }
+    }
 
-    Show-PmcTable -Columns $cols -Rows $rows -Title "Dependencies for Task #$taskId"
+    # Convert rows to PSCustomObject format
+    $dataObjects = @()
+    foreach ($row in $rows) {
+        $obj = New-Object PSCustomObject
+        foreach ($key in $row.Keys) {
+            $obj | Add-Member -NotePropertyName $key -NotePropertyValue $row[$key]
+        }
+        $dataObjects += $obj
+    }
+
+    Show-PmcCustomGrid -Domain "task" -Columns $columns -Data $dataObjects -Title "Dependencies for Task #$taskId"
 
     # Show if this task is blocked
     if ($task.blocked) {
@@ -226,14 +237,25 @@ function Show-PmcDependencyGraph {
         return
     }
 
-    $cols = @(
-        @{ key='task'; title='Task'; width=8 },
-        @{ key='depends'; title='Depends On'; width=15 },
-        @{ key='status'; title='Status'; width=12 },
-        @{ key='text'; title='Description'; width=40 }
-    )
+    # Convert to universal display format
+    $columns = @{
+        "task" = @{ Header = "Task"; Width = 8; Alignment = "Left"; Editable = $false }
+        "depends" = @{ Header = "Depends On"; Width = 15; Alignment = "Left"; Editable = $false }
+        "status" = @{ Header = "Status"; Width = 12; Alignment = "Center"; Editable = $false }
+        "text" = @{ Header = "Description"; Width = 40; Alignment = "Left"; Editable = $false }
+    }
 
-    Show-PmcTable -Columns $cols -Rows $rows -Title 'DEPENDENCY GRAPH'
+    # Convert rows to PSCustomObject format
+    $dataObjects = @()
+    foreach ($row in $rows) {
+        $obj = New-Object PSCustomObject
+        foreach ($key in $row.Keys) {
+            $obj | Add-Member -NotePropertyName $key -NotePropertyValue $row[$key]
+        }
+        $dataObjects += $obj
+    }
+
+    Show-PmcCustomGrid -Domain "task" -Columns $columns -Data $dataObjects -Title 'DEPENDENCY GRAPH'
 
     # Summary statistics
     $blockedCount = @($data.tasks | Where-Object { $_.blocked }).Count

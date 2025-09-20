@@ -132,12 +132,56 @@
       "action": "edit:text",
       "user": null,
       "timestamp": "2025-09-19 08:29:37"
+    },
+    {
+      "user": null,
+      "timestamp": "2025-09-19 18:40:26",
+      "action": "time log"
+    },
+    {
+      "user": null,
+      "timestamp": "2025-09-19 18:40:31",
+      "action": "time report"
+    },
+    {
+      "timestamp": "2025-09-19 18:49:05",
+      "action": "time report",
+      "user": null
+    },
+    {
+      "user": null,
+      "timestamp": "2025-09-19 19:00:21",
+      "action": "time report"
+    },
+    {
+      "timestamp": "2025-09-19 19:20:09",
+      "action": "time report",
+      "user": null
+    },
+    {
+      "timestamp": "2025-09-19 19:41:23",
+      "action": "time report",
+      "user": null
+    },
+    {
+      "user": null,
+      "action": "time report",
+      "timestamp": "2025-09-19 19:48:11"
     }
   ],
   "aliases": {},
+  "timelogs": [
+    {
+      "project": "webapp",
+      "time": "18:40",
+      "date": "2025-09-19",
+      "notes": "",
+      "minutes": 60,
+      "id": 1
+    }
+  ],
   "deleted": [],
   "completed": [],
-  "timelogs": [],
   "templates": [],
   "recurringTemplates": []
 }

@@ -25,11 +25,23 @@ function Get-PmcStatistics {
         @{ metric='Added (7d)'; value=$added7 },
         @{ metric='Hours logged (7d)'; value=$hours7 }
     )
-    $cols = @(
-        @{ key='metric'; title='Metric'; width=26 },
-        @{ key='value'; title='Value'; width=10; align='right' }
-    )
-    Show-PmcTable -Columns $cols -Rows $rows -Title 'STATS'
+    # Convert to universal display format
+    $columns = @{
+        "metric" = @{ Header = "Metric"; Width = 26; Alignment = "Left"; Editable = $false }
+        "value" = @{ Header = "Value"; Width = 10; Alignment = "Right"; Editable = $false }
+    }
+
+    # Convert rows to PSCustomObject format
+    $dataObjects = @()
+    foreach ($row in $rows) {
+        $obj = New-Object PSCustomObject
+        foreach ($key in $row.Keys) {
+            $obj | Add-Member -NotePropertyName $key -NotePropertyValue $row[$key]
+        }
+        $dataObjects += $obj
+    }
+
+    Show-PmcCustomGrid -Domain "stats" -Columns $columns -Data $dataObjects -Title 'STATS'
 
     Write-PmcDebug -Level 2 -Category "Analytics" -Message "Stats completed" -Data @{ Pending=$pending; Completed7=$completed7; Hours7=$hours7 }
 }
@@ -55,11 +67,23 @@ function Show-PmcBurndownChart {
         $rows += @{ date=$day.ToString('yyyy-MM-dd'); remaining=$remaining }
     }
 
-    $cols = @(
-        @{ key='date'; title='Date'; width=12 },
-        @{ key='remaining'; title='Remaining'; width=12; align='right' }
-    )
-    Show-PmcTable -Columns $cols -Rows $rows -Title 'BURNDOWN (next 7 days)'
+    # Convert to universal display format
+    $columns = @{
+        "date" = @{ Header = "Date"; Width = 12; Alignment = "Center"; Editable = $false }
+        "remaining" = @{ Header = "Remaining"; Width = 12; Alignment = "Right"; Editable = $false }
+    }
+
+    # Convert rows to PSCustomObject format
+    $dataObjects = @()
+    foreach ($row in $rows) {
+        $obj = New-Object PSCustomObject
+        foreach ($key in $row.Keys) {
+            $obj | Add-Member -NotePropertyName $key -NotePropertyValue $row[$key]
+        }
+        $dataObjects += $obj
+    }
+
+    Show-PmcCustomGrid -Domain "stats" -Columns $columns -Data $dataObjects -Title 'BURNDOWN (next 7 days)'
     Show-PmcTip 'Simple burndown: remaining tasks projected by day'
 
     Write-PmcDebug -Level 2 -Category "Analytics" -Message "Burndown completed"
@@ -81,12 +105,25 @@ function Get-PmcVelocity {
         $rows += @{ week=$wStart.ToString('yyyy-MM-dd'); completed=$done; hours=$hrs }
     }
 
-    $cols = @(
-        @{ key='week'; title='Week'; width=12 },
-        @{ key='completed'; title='Done'; width=8; align='right' },
-        @{ key='hours'; title='Hours'; width=8; align='right' }
-    )
-    Show-PmcTable -Columns $cols -Rows ($rows | Sort-Object week) -Title 'VELOCITY (last 4 weeks)'
+    # Convert to universal display format
+    $columns = @{
+        "week" = @{ Header = "Week"; Width = 12; Alignment = "Center"; Editable = $false }
+        "completed" = @{ Header = "Done"; Width = 8; Alignment = "Right"; Editable = $false }
+        "hours" = @{ Header = "Hours"; Width = 8; Alignment = "Right"; Editable = $false }
+    }
+
+    # Convert rows to PSCustomObject format and sort
+    $sortedRows = $rows | Sort-Object week
+    $dataObjects = @()
+    foreach ($row in $sortedRows) {
+        $obj = New-Object PSCustomObject
+        foreach ($key in $row.Keys) {
+            $obj | Add-Member -NotePropertyName $key -NotePropertyValue $row[$key]
+        }
+        $dataObjects += $obj
+    }
+
+    Show-PmcCustomGrid -Domain "stats" -Columns $columns -Data $dataObjects -Title 'VELOCITY (last 4 weeks)'
     Write-PmcDebug -Level 2 -Category "Analytics" -Message "Velocity completed"
 }
 

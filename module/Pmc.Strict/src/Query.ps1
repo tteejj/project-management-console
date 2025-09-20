@@ -92,7 +92,17 @@ function Invoke-PmcQuery {
         elseif ($t -match '^(?i)task:(\d+)$') { $spec.Filters['taskId'] = [int]$matches[1] }
         elseif ($t -match '^(?i)p<=([1-3])$') { $spec.Filters['p_le'] = [int]$matches[1] }
         elseif ($t -match '^(?i)p_le=([1-3])$') { $spec.Filters['p_le'] = [int]$matches[1] }
+        elseif ($t -match '^(?i)p>=([1-3])$') { $spec.Filters['p_ge'] = [int]$matches[1] }
+        elseif ($t -match '^(?i)p_ge=([1-3])$') { $spec.Filters['p_ge'] = [int]$matches[1] }
+        elseif ($t -match '^(?i)p>([1-3])$') { $spec.Filters['p_gt'] = [int]$matches[1] }
+        elseif ($t -match '^(?i)p_gt=([1-3])$') { $spec.Filters['p_gt'] = [int]$matches[1] }
+        elseif ($t -match '^(?i)p<([1-3])$') { $spec.Filters['p_lt'] = [int]$matches[1] }
+        elseif ($t -match '^(?i)p_lt=([1-3])$') { $spec.Filters['p_lt'] = [int]$matches[1] }
         elseif ($t -match '^(?i)p([1-3])$') { $spec.Filters['p_eq'] = [int]$matches[1] }
+        elseif ($t -match '^(?i)due>(.+)$') { $spec.Filters['due_gt'] = $matches[1] }
+        elseif ($t -match '^(?i)due<(.+)$') { $spec.Filters['due_lt'] = $matches[1] }
+        elseif ($t -match '^(?i)due>=(.+)$') { $spec.Filters['due_ge'] = $matches[1] }
+        elseif ($t -match '^(?i)due<=(.+)$') { $spec.Filters['due_le'] = $matches[1] }
         elseif ($t -match '^#(.+)$') {
             if (-not $spec.Filters.ContainsKey('tags_in')) { $spec.Filters['tags_in'] = @() }
             $spec.Filters['tags_in'] += $matches[1]
@@ -128,6 +138,43 @@ function Invoke-PmcQuery {
     if ($spec.Group -eq 'status' -and $spec.View -eq 'list') {
         $spec.View = 'kanban'
         Write-PmcDebug -Level 2 -Category 'Query' -Message 'Auto-switching to kanban view for status grouping'
+    }
+
+    # Validate filter values
+    $priorityFilters = @('p_le', 'p_ge', 'p_gt', 'p_lt', 'p_eq')
+    foreach ($pf in $priorityFilters) {
+        if ($spec.Filters.ContainsKey($pf)) {
+            $val = $spec.Filters[$pf]
+            if ($val -lt 1 -or $val -gt 3) {
+                Write-Host "Warning: Priority value '$val' should be between 1-3" -ForegroundColor Yellow
+            }
+        }
+    }
+
+    # Validate date filters
+    $dateFilters = @('due', 'due_gt', 'due_lt', 'due_ge', 'due_le')
+    foreach ($df in $dateFilters) {
+        if ($spec.Filters.ContainsKey($df)) {
+            $dateTok = $spec.Filters[$df]
+            $isValid = $false
+            try {
+                if ($dateTok -match '^(?i)today$') { $isValid = $true }
+                elseif ($dateTok -match '^\d{4}-\d{2}-\d{2}$') {
+                    try { [datetime]$dateTok | Out-Null; $isValid = $true } catch { $isValid = $false }
+                }
+                else {
+                    $schemas = Get-PmcFieldSchemasForDomain -Domain 'task'
+                    if ($schemas.ContainsKey('due') -and $schemas.due.ContainsKey('Normalize')) {
+                        $normalizedDate = & $schemas.due.Normalize $dateTok
+                        if ($normalizedDate) { $isValid = $true }
+                    }
+                }
+            } catch { $isValid = $false }
+
+            if (-not $isValid) {
+                Write-Host "Warning: Invalid date format '$dateTok'. Use YYYY-MM-DD, 'today', or relative dates like '+1d'" -ForegroundColor Yellow
+            }
+        }
     }
 
     # Build Columns hashtable if cols provided; else use defaults
@@ -411,4 +458,19 @@ function Add-PmcQueryHistory { param([string]$Args)
     $path = Get-PmcQueryHistoryPath
     $line = "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') | q $Args"
     try { Add-Content -Path $path -Value $line -Encoding UTF8 } catch {}
+}
+
+function Get-PmcQueryHistory { param([int]$Last = 10)
+    $path = Get-PmcQueryHistoryPath
+    if (-not (Test-Path $path)) { return @() }
+    try {
+        $lines = Get-Content -Path $path -Encoding UTF8 -ErrorAction SilentlyContinue
+        $queries = @()
+        foreach ($line in ($lines | Select-Object -Last $Last)) {
+            if ($line -match '^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} \| q (.+)$') {
+                $queries += $matches[1]
+            }
+        }
+        return $queries
+    } catch { return @() }
 }

@@ -236,6 +236,8 @@ $Script:PmcCommandMeta = @{
     'show aliases'  = @{ Desc='Show user aliases' }
     'show commands' = @{ Desc='List all commands' }
     'help all'      = @{ Desc='Full command help' }
+    'help guide'    = @{ Desc='Interactive guides for query language and kanban' }
+    'help examples' = @{ Desc='Practical examples for queries and kanban workflows' }
     'project stats' = @{ Desc='Project statistics' }
     'project info'  = @{ Desc='Project information' }
     'project recent'= @{ Desc='Recent projects' }

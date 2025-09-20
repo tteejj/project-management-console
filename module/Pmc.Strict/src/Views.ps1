@@ -326,18 +326,29 @@ function Show-TaskListWithIndex {
         $i++
     }
 
-    $cols = @(
-        @{ key='idx'; title='#'; width=5; align='right' },
-        @{ key='text'; title='Task'; width=46 },
-        @{ key='project'; title='Project'; width=15 },
-        @{ key='pri'; title='Pri'; width=4 },
-        @{ key='due'; title='Due'; width=10 }
-    )
-
-    if ($ShowBlockers) {
-        $cols += @{ key='blockers'; title='Blocked By'; width=12 }
+    # Convert to universal display format
+    $columns = @{
+        "idx" = @{ Header = "#"; Width = 5; Alignment = "Right"; Editable = $false }
+        "text" = @{ Header = "Task"; Width = 46; Alignment = "Left"; Editable = $true }
+        "project" = @{ Header = "Project"; Width = 15; Alignment = "Left"; Editable = $false }
+        "pri" = @{ Header = "Pri"; Width = 4; Alignment = "Center"; Editable = $true }
+        "due" = @{ Header = "Due"; Width = 10; Alignment = "Center"; Editable = $true }
     }
 
-    Show-PmcTable -Columns $cols -Rows $rows -Title $Title
+    if ($ShowBlockers) {
+        $columns["blockers"] = @{ Header = "Blocked By"; Width = 12; Alignment = "Left"; Editable = $false }
+    }
+
+    # Convert rows to PSCustomObject format
+    $dataObjects = @()
+    foreach ($row in $rows) {
+        $obj = New-Object PSCustomObject
+        foreach ($key in $row.Keys) {
+            $obj | Add-Member -NotePropertyName $key -NotePropertyValue $row[$key]
+        }
+        $dataObjects += $obj
+    }
+
+    Show-PmcCustomGrid -Domain "task" -Columns $columns -Data $dataObjects -Title $Title
     Show-PmcTip "Use 'task view <#>', 'task done <#>', 'task edit <#>'"
 }

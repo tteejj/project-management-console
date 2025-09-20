@@ -79,7 +79,8 @@ $Script:PmcParameterMap = @{
 
     # Project advanced
     'project add' = @(
-        @{ Name='Name'; Type='FreeText'; Required=$true }
+        # Name is optional to allow launching the Project Wizard when omitted
+        @{ Name='Name'; Type='FreeText'; Required=$false }
     )
     'project list' = @()
     'project stats' = @()

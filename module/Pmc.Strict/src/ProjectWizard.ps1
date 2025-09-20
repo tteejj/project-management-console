@@ -623,6 +623,106 @@ class PmcProjectWizard {
             # Focus command might not exist in all PMC versions
         }
     }
+
+    [hashtable] StartUniversal() {
+        $this.IsActive = $true
+        # 1) Template selection via universal display
+        $templateRows = @()
+        foreach ($k in $this.Templates.Keys) {
+            $t = $this.Templates[$k]
+            $templateRows += [pscustomobject]@{ key=$k; name=$t.name; description=$t.description; weeks=$t.timeline_weeks }
+        }
+        $tplColumns = @{
+            'name' = @{ Header='Template'; Width=24; Alignment='Left'; Editable=$false }
+            'description' = @{ Header='Description'; Width=40; Alignment='Left'; Editable=$false }
+            'weeks' = @{ Header='Weeks'; Width=6; Alignment='Right'; Editable=$false }
+        }
+        Show-PmcTip "Select a template, then press Q to confirm"
+        $sel = Invoke-PmcWizardListSelection -Title 'PROJECT TEMPLATES' -Rows $templateRows -Columns $tplColumns
+        if ($sel -ge 0 -and $sel -lt $templateRows.Count) { $this.ProjectData.template = [string]$templateRows[$sel].key } else { $this.ProjectData.template = 'custom' }
+
+        # 2) Basic info form
+        $initial = [pscustomobject]@{
+            name = $this.ProjectData.name
+            description = $this.ProjectData.description
+        }
+        $formColumns = @{
+            'name' = @{ Header='Project Name'; Width=30; Alignment='Left'; Editable=$true }
+            'description' = @{ Header='Description'; Width=50; Alignment='Left'; Editable=$true }
+        }
+        Show-PmcTip "Edit fields. Enter to save a cell. Q to continue"
+        $updated = Invoke-PmcWizardForm -Title 'PROJECT DETAILS' -Columns $formColumns -Object $initial
+        if ($updated) { $this.ProjectData.name = [string]$updated.name; $this.ProjectData.description = [string]$updated.description }
+
+        # 3) Goals form (semicolon-separated)
+        $goalsSeed = ''
+        if ($this.ProjectData.template -and $this.Templates.ContainsKey($this.ProjectData.template)) {
+            $goalsSeed = ($this.Templates[$this.ProjectData.template].goals -join '; ')
+        }
+        if (@($this.ProjectData.goals).Count -gt 0) { $goalsSeed = ($this.ProjectData.goals -join '; ') }
+        $goalsObj = [pscustomobject]@{ goals = $goalsSeed }
+        $goalsCols = @{
+            'goals' = @{ Header='Goals (separate with ";")'; Width=70; Alignment='Left'; Editable=$true }
+        }
+        Show-PmcTip "Enter goals separated by ';'. Q to continue"
+        $goalsOut = Invoke-PmcWizardForm -Title 'PROJECT GOALS' -Columns $goalsCols -Object $goalsObj
+        if ($goalsOut -and $goalsOut.goals) {
+            $this.ProjectData.goals = @(([string]$goalsOut.goals).Split(';') | ForEach-Object { $_.Trim() } | Where-Object { $_.Length -gt 0 })
+        }
+
+        # 4) Timeline form
+        $suggestedEnd = ''
+        if ($this.ProjectData.template -and $this.Templates.ContainsKey($this.ProjectData.template)) {
+            $weeks = [int]$this.Templates[$this.ProjectData.template].timeline_weeks
+            $suggestedEnd = (Get-Date).AddDays($weeks * 7).ToString('yyyy-MM-dd')
+        }
+        $timelineObj = [pscustomobject]@{ start = ($this.ProjectData.timeline.start ?? ''); deadline = ($this.ProjectData.timeline.deadline ?? $suggestedEnd) }
+        $timeCols = @{
+            'start' = @{ Header='Start (YYYY-MM-DD)'; Width=18; Alignment='Left'; Editable=$true }
+            'deadline' = @{ Header='Deadline (YYYY-MM-DD)'; Width=22; Alignment='Left'; Editable=$true }
+        }
+        Show-PmcTip "Edit dates. Q to continue"
+        $timeOut = Invoke-PmcWizardForm -Title 'PROJECT TIMELINE' -Columns $timeCols -Object $timelineObj
+        if ($timeOut) { $this.ProjectData.timeline.start = [string]$timeOut.start; $this.ProjectData.timeline.deadline = [string]$timeOut.deadline }
+
+        # 5) Resources form
+        $resObj = [pscustomobject]@{
+            budget = ($this.ProjectData.resources.budget ?? '')
+            team = (($this.ProjectData.resources.team ?? @()) -join ', ')
+            tools = (($this.ProjectData.resources.tools ?? @()) -join ', ')
+        }
+        $resCols = @{
+            'budget' = @{ Header='Budget'; Width=12; Alignment='Left'; Editable=$true }
+            'team' = @{ Header='Team (comma separated)'; Width=40; Alignment='Left'; Editable=$true }
+            'tools' = @{ Header='Tools (comma separated)'; Width=40; Alignment='Left'; Editable=$true }
+        }
+        Show-PmcTip "Edit resources. Q to continue"
+        $resOut = Invoke-PmcWizardForm -Title 'PROJECT RESOURCES' -Columns $resCols -Object $resObj
+        if ($resOut) {
+            $this.ProjectData.resources.budget = [string]$resOut.budget
+            $this.ProjectData.resources.team = @(([string]$resOut.team).Split(',') | ForEach-Object { $_.Trim() } | Where-Object { $_.Length -gt 0 })
+            $this.ProjectData.resources.tools = @(([string]$resOut.tools).Split(',') | ForEach-Object { $_.Trim() } | Where-Object { $_.Length -gt 0 })
+        }
+
+        # 6) Review summary via universal display
+        $summaryRows = @(
+            [pscustomobject]@{ Field='Name'; Value=$this.ProjectData.name }
+            [pscustomobject]@{ Field='Description'; Value=$this.ProjectData.description }
+            [pscustomobject]@{ Field='Template'; Value=($this.Templates[$this.ProjectData.template].name ?? 'Custom') }
+            [pscustomobject]@{ Field='Start'; Value=$this.ProjectData.timeline.start }
+            [pscustomobject]@{ Field='Deadline'; Value=$this.ProjectData.timeline.deadline }
+            [pscustomobject]@{ Field='Goals'; Value=($this.ProjectData.goals -join '; ') }
+            [pscustomobject]@{ Field='Team'; Value=($this.ProjectData.resources.team -join ', ') }
+            [pscustomobject]@{ Field='Tools'; Value=($this.ProjectData.resources.tools -join ', ') }
+        )
+        $sumCols = @{
+            'Field' = @{ Header='Field'; Width=16; Alignment='Left'; Editable=$false }
+            'Value' = @{ Header='Value'; Width=70; Alignment='Left'; Editable=$false }
+        }
+        Show-PmcCustomGrid -Domain 'wizard' -Columns $sumCols -Data $summaryRows -Title 'REVIEW' -Interactive:$false
+        Show-PmcTip "Press Enter to create, or type 'b' to abort"
+        return @{}
+    }
 }
 
 function Invoke-PmcProjectWizard {
@@ -641,8 +741,10 @@ function Invoke-PmcProjectWizard {
 
     try {
         $wizard = [PmcProjectWizard]::new()
-        $wizard.Start()
-
+        # Use universal display version
+        $wizard.StartUniversal() | Out-Null
+        # Create project using gathered data
+        $wizard.CreateProject()
     } catch {
         Write-PmcStyled -Style 'Error' -Text ("Error launching project wizard: {0}" -f $_)
     }
@@ -650,3 +752,41 @@ function Invoke-PmcProjectWizard {
 
 # Export for module use
 Export-ModuleMember -Function Invoke-PmcProjectWizard
+
+# Helper functions for wizard universal display integration
+function Invoke-PmcWizardListSelection {
+    param(
+        [Parameter(Mandatory)] [string]$Title,
+        [Parameter(Mandatory)] [array]$Rows,
+        [Parameter(Mandatory)] [hashtable]$Columns
+    )
+    try {
+        $renderer = [PmcGridRenderer]::new($Columns, @('wizard'), @{})
+        Write-PmcStyled -Style 'Title' -Text "`n$Title"
+        Write-PmcStyled -Style 'Border' -Text ("─" * 50)
+        $renderer.StartInteractive($Rows)
+        return [int]$renderer.SelectedRow
+    } catch {
+        return 0
+    }
+}
+
+function Invoke-PmcWizardForm {
+    param(
+        [Parameter(Mandatory)] [string]$Title,
+        [Parameter(Mandatory)] [hashtable]$Columns,
+        [Parameter(Mandatory)] [pscustomobject]$Object
+    )
+    try {
+        $renderer = [PmcGridRenderer]::new($Columns, @('wizard'), @{})
+        Write-PmcStyled -Style 'Title' -Text "`n$Title"
+        Write-PmcStyled -Style 'Border' -Text ("─" * 50)
+        $renderer.StartInteractive(@($Object))
+        if ($renderer.CurrentData -and @($renderer.CurrentData).Count -gt 0) {
+            return $renderer.CurrentData[0]
+        }
+        return $Object
+    } catch {
+        return $Object
+    }
+}

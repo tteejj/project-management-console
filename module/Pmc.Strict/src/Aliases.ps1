@@ -44,7 +44,24 @@ function Get-PmcAliasList {
     }
     if (@($rows).Count -eq 0) { Write-Host 'No aliases defined' -ForegroundColor Yellow; return }
     $rows = $rows | Sort-Object alias
-    Show-PmcTable -Columns @(@{key='alias';title='Alias';width=16}, @{key='expands';title='Expands To';width=48}) -Rows $rows
+
+    # Convert to universal display format
+    $columns = @{
+        "alias" = @{ Header = "Alias"; Width = 16; Alignment = "Left"; Editable = $false }
+        "expands" = @{ Header = "Expands To"; Width = 48; Alignment = "Left"; Editable = $false }
+    }
+
+    # Convert rows to PSCustomObject format
+    $dataObjects = @()
+    foreach ($row in $rows) {
+        $obj = New-Object PSCustomObject
+        foreach ($key in $row.Keys) {
+            $obj | Add-Member -NotePropertyName $key -NotePropertyValue $row[$key]
+        }
+        $dataObjects += $obj
+    }
+
+    Show-PmcCustomGrid -Domain "config" -Columns $columns -Data $dataObjects -Title "User Aliases"
 }
 
 function Add-PmcAlias {

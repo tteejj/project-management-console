@@ -16,6 +16,9 @@ class PmcKanbanRenderer {
     [int] $MoveTargetIndex = -1
     [array] $CurrentData = @()
     [int[]] $LaneOffsets = @()
+    [bool] $ShowHelp = $false
+    [string] $FilterText = ''
+    [bool] $FilterActive = $false
 
     PmcKanbanRenderer([string]$domain, [string]$group, [hashtable]$columns) {
         $this.Domain = $domain
@@ -60,19 +63,95 @@ class PmcKanbanRenderer {
         $text = $this.GridHelper.GetItemValue($item, 'text')
         $prio = $this.GridHelper.GetItemValue($item, 'priority')
         $due = $this.GridHelper.GetItemValue($item, 'due')
-        $badges = @()
-        if ($prio) { $badges += $prio }
-        if ($due) { $badges += $due }
-        $suffix = ''
-        if ($badges.Count -gt 0) { $suffix = ' [' + ($badges -join ' ') + ']' }
-        $label = ''
-        if ($id) { $label = ('#{0} {1}{2}' -f $id, $text, $suffix) } else { $label = ($text + $suffix) }
-        if ($label.Length -gt $width) { $label = $label.Substring(0, [Math]::Max(0,$width-1)) + '…' }
+        $status = $this.GridHelper.GetItemValue($item, 'status')
+
+        # Priority indicators with colors
+        $prioIndicator = ''
+        $prioColor = ''
+        if ($prio) {
+            try {
+                $p = [int]$prio
+                switch ($p) {
+                    1 { $prioIndicator = '🔴'; $prioColor = 'Red' }
+                    2 { $prioIndicator = '🟡'; $prioColor = 'Yellow' }
+                    3 { $prioIndicator = '🟢'; $prioColor = 'Green' }
+                    default { $prioIndicator = '●'; $prioColor = 'Gray' }
+                }
+            } catch {
+                $prioIndicator = '●'; $prioColor = 'Gray'
+            }
+        }
+
+        # Due date highlighting
+        $dueIndicator = ''
+        $dueColor = ''
+        if ($due) {
+            try {
+                $dueDate = [datetime]$due
+                $today = (Get-Date).Date
+                $daysDiff = ($dueDate.Date - $today).Days
+                if ($daysDiff -lt 0) {
+                    $dueIndicator = '⚠️'; $dueColor = 'Red'  # Overdue
+                } elseif ($daysDiff -eq 0) {
+                    $dueIndicator = '⏰'; $dueColor = 'Yellow'  # Due today
+                } elseif ($daysDiff -le 3) {
+                    $dueIndicator = '📅'; $dueColor = 'Cyan'  # Due soon
+                } else {
+                    $dueIndicator = '📆'; $dueColor = 'Gray'  # Future
+                }
+            } catch {
+                $dueIndicator = '📅'; $dueColor = 'Gray'
+            }
+        }
+
+        # Status indicator
+        $statusIndicator = ''
+        if ($status) {
+            switch ($status.ToLower()) {
+                'done' { $statusIndicator = '✅' }
+                'in progress' { $statusIndicator = '🔄' }
+                'blocked' { $statusIndicator = '🚫' }
+                'pending' { $statusIndicator = '⏳' }
+                default { $statusIndicator = '📋' }
+            }
+        }
+
+        # Build card content
+        $indicators = @()
+        if ($prioIndicator) { $indicators += $prioIndicator }
+        if ($dueIndicator) { $indicators += $dueIndicator }
+        if ($statusIndicator) { $indicators += $statusIndicator }
+
+        $prefix = if ($indicators.Count -gt 0) { ($indicators -join '') + ' ' } else { '' }
+        $idText = if ($id) { "#{0} " -f $id } else { '' }
+        $mainText = $text
+
+        # Calculate available space for text
+        $prefixLen = ($prefix -replace '[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]', 'XX').Length
+        $availableWidth = $width - $prefixLen - $idText.Length
+        if ($mainText.Length -gt $availableWidth -and $availableWidth -gt 3) {
+            $mainText = $mainText.Substring(0, $availableWidth - 1) + '…'
+        }
+
+        $label = $prefix + $idText + $mainText
+        $label = $label.PadRight($width)
+
         if ($isSelected) {
             $style = Get-PmcStyle 'Selected'
-            return $this.GridHelper.ConvertPmcStyleToAnsi($label.PadRight($width), $style, @{})
+            return $this.GridHelper.ConvertPmcStyleToAnsi($label, $style, @{})
         }
-        return $label.PadRight($width)
+
+        # Apply priority-based coloring for non-selected cards
+        if ($prioColor -and $prioColor -ne 'Gray') {
+            try {
+                $style = @{ ForegroundColor = $prioColor }
+                return $this.GridHelper.ConvertPmcStyleToAnsi($label, $style, @{})
+            } catch {
+                return $label
+            }
+        }
+
+        return $label
     }
 
     [string] BuildFrame() {
@@ -94,9 +173,24 @@ class PmcKanbanRenderer {
                 $lane = $this.Lanes[$i]
                 $lines = @()
                 $isTarget = ($this.MoveActive -and $i -eq $this.MoveTargetLane)
-                $header = ('{0} ({1})' -f ($lane.Key ?? '(none)'), @($lane.Items).Count)
+                $itemCount = @($lane.Items).Count
+                $header = ('{0} ({1})' -f ($lane.Key ?? '(none)'), $itemCount)
                 if ($header.Length -gt $laneWidth) { $header = $header.Substring(0, [Math]::Max(0,$laneWidth-1)) + '…' }
-                if ($isTarget) {
+
+                # Enhanced header styling for move mode
+                if ($isTarget -and $this.MoveActive) {
+                    $moveIndicator = '📥 '
+                    $header = $moveIndicator + $header
+                    if ($header.Length -gt $laneWidth) { $header = $header.Substring(0, [Math]::Max(0,$laneWidth-1)) + '…' }
+                    $style = @{ BackgroundColor = 'DarkBlue'; ForegroundColor = 'White' }
+                    $lines += $this.GridHelper.ConvertPmcStyleToAnsi($header.PadRight($laneWidth), $style, @{})
+                } elseif ($this.MoveActive -and $i -eq $this.MoveSourceLane) {
+                    $moveIndicator = '📤 '
+                    $header = $moveIndicator + $header
+                    if ($header.Length -gt $laneWidth) { $header = $header.Substring(0, [Math]::Max(0,$laneWidth-1)) + '…' }
+                    $style = @{ BackgroundColor = 'DarkRed'; ForegroundColor = 'White' }
+                    $lines += $this.GridHelper.ConvertPmcStyleToAnsi($header.PadRight($laneWidth), $style, @{})
+                } elseif ($i -eq $this.SelectedLane -and -not $this.MoveActive) {
                     $style = Get-PmcStyle 'Selected'
                     $lines += $this.GridHelper.ConvertPmcStyleToAnsi($header.PadRight($laneWidth), $style, @{})
                 } else {
@@ -108,12 +202,34 @@ class PmcKanbanRenderer {
                 $visible = @($lane.Items | Select-Object -Skip $offset -First $maxItemsPerLane)
                 foreach ($it in $visible) {
                     $isSel = ($i -eq $this.SelectedLane -and ($offset + $idx) -eq $this.SelectedIndex)
-                    if ($this.MoveActive -and $i -eq $this.MoveSourceLane -and ($offset + $idx) -eq $this.MoveSourceIndex) {
-                        # Indicate picked card
-                        $isSel = $true
+                    $isBeingMoved = ($this.MoveActive -and $i -eq $this.MoveSourceLane -and ($offset + $idx) -eq $this.MoveSourceIndex)
+                    $isDropTarget = ($this.MoveActive -and $i -eq $this.MoveTargetLane -and ($offset + $idx) -eq $this.MoveTargetIndex)
+
+                    if ($isBeingMoved) {
+                        # Show card being moved with special styling
+                        $cardText = $this.FormatCard($it, $laneWidth, $false)
+                        $style = @{ BackgroundColor = 'DarkRed'; ForegroundColor = 'Yellow' }
+                        $moveIndicator = '📦 MOVING → '
+                        $cardText = $moveIndicator + $cardText.Trim()
+                        if ($cardText.Length -gt $laneWidth) { $cardText = $cardText.Substring(0, [Math]::Max(0,$laneWidth-1)) + '…' }
+                        $lines += $this.GridHelper.ConvertPmcStyleToAnsi($cardText.PadRight($laneWidth), $style, @{})
+                    } elseif ($isDropTarget) {
+                        # Show drop target position
+                        $dropIndicator = '▼ DROP HERE ▼'
+                        $style = @{ BackgroundColor = 'DarkGreen'; ForegroundColor = 'White' }
+                        $lines += $this.GridHelper.ConvertPmcStyleToAnsi($dropIndicator.PadRight($laneWidth), $style, @{})
+                        $lines += $this.FormatCard($it, $laneWidth, $isSel)
+                    } else {
+                        $lines += $this.FormatCard($it, $laneWidth, $isSel)
                     }
-                    $lines += $this.FormatCard($it, $laneWidth, $isSel)
                     $idx++
+                }
+
+                # Add drop target at end of lane if target is beyond items
+                if ($this.MoveActive -and $i -eq $this.MoveTargetLane -and $this.MoveTargetIndex -ge @($lane.Items).Count) {
+                    $dropIndicator = '▼ DROP HERE ▼'
+                    $style = @{ BackgroundColor = 'DarkGreen'; ForegroundColor = 'White' }
+                    $lines += $this.GridHelper.ConvertPmcStyleToAnsi($dropIndicator.PadRight($laneWidth), $style, @{})
                 }
                 $laneLines += ,$lines
                 if ($lines.Count -gt $maxLines) { $maxLines = $lines.Count }
@@ -130,12 +246,54 @@ class PmcKanbanRenderer {
                 $sb.AppendLine(($lineParts -join (' ' * $gap))) | Out-Null
             }
 
-            # Status
+            # Enhanced Status and Help
             $laneName = if ($this.Lanes.Count -gt 0) { $this.Lanes[$this.SelectedLane].Key } else { '' }
-            $mode = if ($this.MoveActive) { "MOVE: select lane (←/→) and position (↑/↓), Enter/Space=drop, Esc=cancel" } else { "" }
-            $status = ('LANE [{0}/{1}] {2} | ITEM {3} {4}' -f ($this.SelectedLane+1), $laneCount, $laneName, ($this.SelectedIndex+1), $mode)
+            $itemCount = if ($this.Lanes.Count -gt 0) { @($this.Lanes[$this.SelectedLane].Items).Count } else { 0 }
+
+            $filterStatus = if ($this.FilterActive) { " | 🔍 Filter: '$($this.FilterText)'" } else { '' }
+
+            if ($this.MoveActive) {
+                $sourceLane = $this.Lanes[$this.MoveSourceLane].Key
+                $targetLane = $this.Lanes[$this.MoveTargetLane].Key
+                $status1 = ('🔄 MOVING from [{0}] to [{1}] | Position: {2}{3}' -f $sourceLane, $targetLane, ($this.MoveTargetIndex+1), $filterStatus)
+                $status2 = ('📋 ←/→: change lane | ↑/↓: change position | Enter/Space: drop | Esc: cancel')
+            } else {
+                $selectedItem = if ($itemCount -gt 0 -and $this.SelectedIndex -lt $itemCount) {
+                    $item = $this.Lanes[$this.SelectedLane].Items[$this.SelectedIndex]
+                    $text = $this.GridHelper.GetItemValue($item, 'text')
+                    if ($text.Length -gt 30) { $text.Substring(0, 27) + '...' } else { $text }
+                } else { '' }
+
+                $status1 = ('📂 LANE [{0}/{1}] {2} | ITEM [{3}/{4}] {5}{6}' -f ($this.SelectedLane+1), $laneCount, $laneName, ($this.SelectedIndex+1), $itemCount, $selectedItem, $filterStatus)
+                $status2 = ('🎮 ←/→: lanes | ↑/↓: items | Space: move | Enter: drill down | /: filter | c: clear filter | ?/H: help | Q/Esc: exit')
+            }
+
             $sb.AppendLine('') | Out-Null
-            $sb.Append($status) | Out-Null
+            $sb.AppendLine($status1) | Out-Null
+            $sb.Append($status2) | Out-Null
+        })
+    }
+
+    [string] BuildHelpOverlay() {
+        return [PraxisStringBuilderPool]::Build({ param($sb)
+            $sb.AppendLine('╔═══════════════════════════════ KANBAN HELP ═══════════════════════════════╗') | Out-Null
+            $sb.AppendLine('║                                                                           ║') | Out-Null
+            $sb.AppendLine('║  NAVIGATION:                          ACTIONS:                           ║') | Out-Null
+            $sb.AppendLine('║  ←/→  Navigate between lanes          Space    Start/complete move       ║') | Out-Null
+            $sb.AppendLine('║  ↑/↓  Navigate between items          Enter    Drill down to item detail ║') | Out-Null
+            $sb.AppendLine('║  PgUp/PgDn  Page through items        /        Filter cards by text      ║') | Out-Null
+            $sb.AppendLine('║                                       c        Clear current filter      ║') | Out-Null
+            $sb.AppendLine('║  VISUAL INDICATORS:                   r        Refresh view             ║') | Out-Null
+            $sb.AppendLine('║  🔴🟡🟢  Priority (High/Med/Low)         ?/h      Show/hide this help      ║') | Out-Null
+            $sb.AppendLine('║  ⚠️📅⏰   Due (Overdue/Soon/Today)        Q/Esc    Exit kanban view         ║') | Out-Null
+            $sb.AppendLine('║  ✅🔄🚫   Status (Done/Progress/Block)                                    ║') | Out-Null
+            $sb.AppendLine('║  📥📤     Move target/source lanes                                       ║') | Out-Null
+            $sb.AppendLine('║                                                                           ║') | Out-Null
+            $sb.AppendLine('║  MOVE MODE: Select item → Space → Navigate to target → Enter/Space      ║') | Out-Null
+            $sb.AppendLine('║                                                                           ║') | Out-Null
+            $sb.AppendLine('╚═══════════════════════════════════════════════════════════════════════════╝') | Out-Null
+            $sb.AppendLine('') | Out-Null
+            $sb.Append('Press any key to continue...') | Out-Null
         })
     }
 
@@ -145,12 +303,24 @@ class PmcKanbanRenderer {
         $refresh = $true
         while ($true) {
             if ($refresh) {
-                $content = $this.BuildFrame()
+                if ($this.ShowHelp) {
+                    $content = $this.BuildHelpOverlay()
+                } else {
+                    $content = $this.BuildFrame()
+                }
                 $this.FrameRenderer.RenderFrame($content)
                 $refresh = $false
             }
             if ([Console]::KeyAvailable) {
                 $k = [Console]::ReadKey($true)
+
+                # Handle help overlay
+                if ($this.ShowHelp) {
+                    $this.ShowHelp = $false
+                    $refresh = $true
+                    continue
+                }
+
                 switch ($k.Key) {
                     'LeftArrow'  {
                         if ($this.MoveActive) { if ($this.MoveTargetLane -gt 0) { $this.MoveTargetLane--; $refresh=$true } }
@@ -225,7 +395,14 @@ class PmcKanbanRenderer {
                     }
                     'Escape'     { if ($this.MoveActive) { $this.MoveActive=$false; $refresh=$true } else { break } }
                     'Q' { break }
-                    default {}
+                    'H' { $this.ShowHelp = $true; $refresh = $true }
+                    'R' { $this.BuildLanes($this.CurrentData); $refresh = $true }
+                    'C' { $this.FilterText = ''; $this.FilterActive = $false; $this.BuildLanes($this.CurrentData); $refresh = $true }
+                    default {
+                        # Handle special characters
+                        if ($k.KeyChar -eq '?') { $this.ShowHelp = $true; $refresh = $true }
+                        elseif ($k.KeyChar -eq '/') { $this.StartFilter(); $refresh = $true }
+                    }
                 }
             } else {
                 Start-Sleep -Milliseconds 50
@@ -289,6 +466,33 @@ class PmcKanbanRenderer {
             $this.MoveSourceLane = -1
             $this.MoveSourceIndex = -1
             $this.MoveTargetIndex = -1
+        }
+    }
+
+    [void] StartFilter() {
+        Write-Host "`r`e[2KFilter: " -NoNewline
+        $filter = Read-Host
+        if (-not [string]::IsNullOrWhiteSpace($filter)) {
+            $this.FilterText = $filter.Trim()
+            $this.FilterActive = $true
+            $this.ApplyFilter()
+        }
+    }
+
+    [void] ApplyFilter() {
+        if ($this.FilterActive -and -not [string]::IsNullOrWhiteSpace($this.FilterText)) {
+            $filteredData = @()
+            foreach ($item in $this.CurrentData) {
+                if ($null -eq $item) { continue }
+                $text = $this.GridHelper.GetItemValue($item, 'text')
+                $id = if ($item.PSObject.Properties['id']) { [string]$item.id } else { '' }
+                if ($text.ToLower().Contains($this.FilterText.ToLower()) -or $id.Contains($this.FilterText)) {
+                    $filteredData += $item
+                }
+            }
+            $this.BuildLanes($filteredData)
+        } else {
+            $this.BuildLanes($this.CurrentData)
         }
     }
 }

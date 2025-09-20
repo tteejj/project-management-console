@@ -44,6 +44,13 @@ function Get-PmcDefaultColumns {
                 "priority" = @{ Header = "P"; Width = 3; Alignment = "Center"; Editable = $true }
             }
         }
+        "help" {
+            return @{
+                "Domain" = @{ Header = "Domain"; Width = 12; Alignment = "Left"; Editable = $false }
+                "Action" = @{ Header = "Action"; Width = 16; Alignment = "Left"; Editable = $false }
+                "Description" = @{ Header = "Description"; Width = 0; Alignment = "Left"; Editable = $false }
+            }
+        }
         "project" {
             return @{
                 "name" = @{ Header = "Project"; Width = 20; Alignment = "Left" }
