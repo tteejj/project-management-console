@@ -42,6 +42,16 @@ try {
     throw
 }
 
+# Load terminal dimension service early as many modules depend on it
+try {
+    Write-Host "  Loading TerminalDimensions.ps1..." -ForegroundColor Gray
+    . $PSScriptRoot/src/TerminalDimensions.ps1
+    Write-Host "  ✓ TerminalDimensions.ps1 loaded" -ForegroundColor Green
+} catch {
+    Write-Host "  ✗ TerminalDimensions.ps1 failed: $_" -ForegroundColor Red
+    throw
+}
+
 # Ensure centralized state is available before any consumer
 try {
     Write-Host "  Loading State.ps1..." -ForegroundColor Gray
@@ -183,14 +193,7 @@ try {
     throw
 }
 
-try {
-    Write-Host "  Loading Views.ps1..." -ForegroundColor Gray
-    . $PSScriptRoot/src/Views.ps1
-    Write-Host "  ✓ Views.ps1 loaded" -ForegroundColor Green
-} catch {
-    Write-Host "  ✗ Views.ps1 failed: $_" -ForegroundColor Red
-    throw
-}
+# Views.ps1 functionality migrated to UniversalDisplay.ps1 during technical debt cleanup
 
 try {
     Write-Host "  Loading Aliases.ps1..." -ForegroundColor Gray
