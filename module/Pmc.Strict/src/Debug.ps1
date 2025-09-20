@@ -415,3 +415,5 @@ function Update-PmcDebugFromConfig {
 }
 
 # Note: Debug system is initialized by the root orchestrator after config providers are set
+
+Export-ModuleMember -Function Initialize-PmcDebugSystem, Ensure-PmcDebugLogPath, Get-PmcDebugLogPath, Write-PmcDebug, Protect-PmcSensitiveData, Measure-PmcOperation, Write-PmcDebugCommand, Write-PmcDebugCompletion, Write-PmcDebugUI, Write-PmcDebugStorage, Get-PmcDebugStatus, Show-PmcDebugLog, Update-PmcDebugFromConfig

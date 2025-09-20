@@ -40,7 +40,7 @@ function Add-PmcDependency {
     $ids = $Context.FreeText
 
     if ($ids.Count -lt 2) {
-        Write-Host "Usage: dep add <task> <depends-on>" -ForegroundColor Yellow
+        Write-PmcStyled -Style 'Warning' -Text "Usage: dep add <task> <depends-on>"
         return
     }
 
@@ -52,7 +52,7 @@ function Add-PmcDependency {
     if ($ids[1] -match '^\d+$') { $dependsOnId = [int]$ids[1] }
 
     if (-not $taskId -or -not $dependsOnId) {
-        Write-Host "Invalid task IDs" -ForegroundColor Red
+        Write-PmcStyled -Style 'Error' -Text "Invalid task IDs"
         return
     }
 
@@ -60,12 +60,12 @@ function Add-PmcDependency {
     $dependsOnTask = $data.tasks | Where-Object { $_.id -eq $dependsOnId } | Select-Object -First 1
 
     if (-not $task) {
-        Write-Host "Task #$taskId not found" -ForegroundColor Red
+        Write-PmcStyled -Style 'Error' -Text "Task #$taskId not found"
         return
     }
 
     if (-not $dependsOnTask) {
-        Write-Host "Task #$dependsOnId not found" -ForegroundColor Red
+        Write-PmcStyled -Style 'Error' -Text "Task #$dependsOnId not found"
         return
     }
 
@@ -74,7 +74,7 @@ function Add-PmcDependency {
 
     # Check if dependency already exists
     if ($task.depends -contains $dependsOnId) {
-        Write-Host "Dependency already exists" -ForegroundColor Yellow
+        Write-PmcStyled -Style 'Warning' -Text "Dependency already exists"
         return
     }
 
@@ -85,7 +85,7 @@ function Add-PmcDependency {
     Update-PmcBlockedStatus -data $data
 
     Save-StrictData $data 'dep add'
-    Write-Host "Added dependency: Task #$taskId depends on Task #$dependsOnId" -ForegroundColor Green
+    Write-PmcStyled -Style 'Success' -Text "Added dependency: Task #$taskId depends on Task #$dependsOnId"
 
     Write-PmcDebug -Level 2 -Category "Dependencies" -Message "Dependency added successfully" -Data @{ TaskId = $taskId; DependsOn = $dependsOnId }
 }
@@ -98,7 +98,7 @@ function Remove-PmcDependency {
     $ids = $Context.FreeText
 
     if ($ids.Count -lt 2) {
-        Write-Host "Usage: dep remove <task> <depends-on>" -ForegroundColor Yellow
+        Write-PmcStyled -Style 'Warning' -Text "Usage: dep remove <task> <depends-on>"
         return
     }
 
@@ -110,14 +110,14 @@ function Remove-PmcDependency {
     if ($ids[1] -match '^\d+$') { $dependsOnId = [int]$ids[1] }
 
     if (-not $taskId -or -not $dependsOnId) {
-        Write-Host "Invalid task IDs" -ForegroundColor Red
+        Write-PmcStyled -Style 'Error' -Text "Invalid task IDs"
         return
     }
 
     $task = $data.tasks | Where-Object { $_.id -eq $taskId } | Select-Object -First 1
 
     if (-not $task -or -not (Pmc-HasProp $task 'depends') -or -not $task.depends) {
-        Write-Host "No such dependency found" -ForegroundColor Yellow
+        Write-PmcStyled -Style 'Warning' -Text "No such dependency found"
         return
     }
 
@@ -159,13 +159,13 @@ function Show-PmcDependencies {
     $task = $data.tasks | Where-Object { $_.id -eq $taskId } | Select-Object -First 1
 
     if (-not $task) {
-        Write-Host "Task #$taskId not found" -ForegroundColor Red
+        Write-PmcStyled -Style 'Error' -Text "Task #$taskId not found"
         return
     }
 
     Write-Host "`nDEPENDENCIES for Task #$taskId" -ForegroundColor Cyan
     Write-Host ("Task: {0}" -f $task.text) -ForegroundColor White
-    Write-Host "─────────────────────────────────" -ForegroundColor DarkGray
+    Write-PmcStyled -Style 'Border' -Text "─────────────────────────────────"
 
     $depends = if ((Pmc-HasProp $task 'depends') -and $task.depends) { $task.depends } else { @() }
 
@@ -267,3 +267,5 @@ function Show-PmcDependencyGraph {
 
     Write-PmcDebug -Level 2 -Category "Dependencies" -Message "Dependency graph shown successfully" -Data @{ DependentTasks = $dependentCount; BlockedTasks = $blockedCount }
 }
+
+Export-ModuleMember -Function Update-PmcBlockedStatus, Add-PmcDependency, Remove-PmcDependency, Show-PmcDependencies, Show-PmcDependencyGraph

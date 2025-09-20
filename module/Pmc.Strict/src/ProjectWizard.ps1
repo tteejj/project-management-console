@@ -388,9 +388,9 @@ class PmcProjectWizard {
             Write-Host "$textColor Press any key to continue...$resetColor"
 
         } catch {
-            Write-Host "✗ Error creating project: $_" -ForegroundColor Red
+            Write-PmcStyled -Style 'Error' -Text "✗ Error creating project: $_"
             Write-Host ""
-            Write-Host "Press any key to continue..." -ForegroundColor Yellow
+            Write-PmcStyled -Style 'Warning' -Text "Press any key to continue..."
         }
     }
 

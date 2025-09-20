@@ -111,7 +111,7 @@ function Edit-PmcTheme {
     $done = $false
     while (-not $done) {
         # Render UI
-        Clear-Host
+        Write-Host ([PraxisVT]::ClearScreen())
         Show-PmcHeader -Title 'THEME ADJUSTER' -Icon '🎨'
         Write-Host ''
 
@@ -172,7 +172,7 @@ function Show-PmcPreferences {
     param([PmcCommandContext]$Context)
     $cfg = Get-PmcConfig
     Write-Host "\nPREFERENCES" -ForegroundColor Cyan
-    Write-Host "───────────" -ForegroundColor DarkGray
+    Write-PmcStyled -Style 'Border' -Text "───────────"
     Write-Host ("1) Theme color: {0}" -f ($cfg.Display.Theme.Hex ?? '#33aaff'))
     Write-Host ("2) Icons: {0}" -f ($cfg.Display.Icons.Mode ?? 'emoji'))
     Write-Host ("3) CSV ledger: {0}" -f ($cfg.Behavior.EnableCsvLedger ?? $true))
@@ -244,5 +244,8 @@ function Reload-PmcConfig { param([PmcCommandContext]$Context)
     Initialize-PmcDebugSystem -Level $lvl
     Initialize-PmcSecuritySystem
     Initialize-PmcThemeSystem
+    Ensure-PmcUniversalDisplay
     Write-Host "Configuration reloaded and systems re-initialized" -ForegroundColor Green
 }
+
+Export-ModuleMember -Function Initialize-PmcThemeSystem, Set-PmcTheme, Reset-PmcTheme, Set-PmcIconMode, Edit-PmcTheme, Show-Slider, Show-PmcPreferences, Get-PmcThemeList, Apply-PmcTheme, Show-PmcThemeInfo

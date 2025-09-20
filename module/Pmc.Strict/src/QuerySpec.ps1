@@ -1,3 +1,5 @@
+# Query specification classes for the PMC query language system
+
 Set-StrictMode -Version Latest
 
 class PmcQuerySpec {
@@ -20,3 +22,5 @@ class PmcQuerySpec {
         $this.Filters = @{}
     }
 }
+
+# QuerySpec.ps1 contains only classes, no functions to export

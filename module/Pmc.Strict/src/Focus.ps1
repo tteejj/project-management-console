@@ -187,3 +187,5 @@ function Get-PmcContextTasks {
 
     return @($tasks)
 }
+
+Export-ModuleMember -Function Set-PmcFocus, Clear-PmcFocus, Get-PmcFocusStatus, Get-PmcCurrentContext, Get-PmcContextTasks

@@ -1,3 +1,5 @@
+# Query evaluation engine for the PMC query language system
+
 Set-StrictMode -Version Latest
 
 function Evaluate-PmcQuery {
@@ -280,3 +282,5 @@ function Evaluate-PmcQuery {
 
     return @{ Domain=$Spec.Domain; Rows=$rows }
 }
+
+Export-ModuleMember -Function Evaluate-PmcQuery

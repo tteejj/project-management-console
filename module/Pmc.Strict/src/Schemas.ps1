@@ -213,3 +213,5 @@ $Script:PmcParameterMap = @{
     'view projects' = @()
     'view next' = @()
 }
+
+# Schemas.ps1 contains only data structures, no functions to export

@@ -122,8 +122,8 @@
 - [ ] Fully integrate UniversalDisplay system
 
 ### Phase 3: Technical Debt (LOW PRIORITY)
-- [ ] Consolidate border drawing patterns
-- [ ] Replace Clear-Host with VT100 sequences
+- [x] Consolidate border drawing patterns ✅ COMPLETED
+- [x] Replace Clear-Host with VT100 sequences ✅ COMPLETED
 - [ ] Standardize error handling patterns
 - [ ] Add comprehensive documentation
 

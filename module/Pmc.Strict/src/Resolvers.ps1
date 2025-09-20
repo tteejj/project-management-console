@@ -27,3 +27,5 @@ function Resolve-Project {
     }
     return $null
 }
+
+Export-ModuleMember -Function Resolve-Project

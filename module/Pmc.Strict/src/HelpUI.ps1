@@ -456,3 +456,5 @@ function Search-PmcCommands {
 
     return $results
 }
+
+Export-ModuleMember -Function Show-PmcSmartHelp, Show-PmcHelpCategoryCommands, Invoke-PmcHelpSelector, Show-PmcHelpHeader, Show-PmcHelpNavigation, Show-PmcHelpContent, Show-PmcHelpCategories, Show-PmcHelpCommands, Show-PmcHelpSearch, Show-PmcHelpExamples

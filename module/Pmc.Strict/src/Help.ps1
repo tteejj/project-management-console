@@ -462,7 +462,7 @@ function Edit-PmcTask { param([PmcCommandContext]$Context)
     $sel = 0; $modified = $false
 
     function render-task([pscustomobject]$task,[int]$idx) {
-        Clear-Host
+        Write-Host ([PraxisVT]::ClearScreen())
         Show-PmcHeader -Title ("EDIT TASK #{0}" -f $task.id)
         for ($i=0; $i -lt $fields.Count; $i++) {
             $f = $fields[$i]
@@ -496,7 +496,7 @@ function Edit-PmcTask { param([PmcCommandContext]$Context)
                 if ($null -ne $inp -and $inp -ne '') {
                     switch ($f.Key) {
                         'priority' { try { $p=[int]$inp; if ($p -ge 0 -and $p -le 3) { $t.priority=$p; $modified=$true } } catch {} }
-                        'due' { try { $d=[datetime]::ParseExact($inp,'yyyy-MM-dd',$null); $t.due=$d.ToString('yyyy-MM-dd'); $modified=$true } catch { Write-Host 'Invalid date' -ForegroundColor Yellow } }
+                        'due' { try { $d=[datetime]::ParseExact($inp,'yyyy-MM-dd',$null); $t.due=$d.ToString('yyyy-MM-dd'); $modified=$true } catch { Show-PmcWarning 'Invalid date format (use YYYY-MM-DD)' } }
                         'tags' { $arr = @($inp -split '[,\s]+' | Where-Object { $_ }); $t | Add-Member -NotePropertyName tags -NotePropertyValue $arr -Force; $modified=$true }
                         default { $t | Add-Member -NotePropertyName $f.Key -NotePropertyValue $inp -Force; $modified=$true }
                     }
@@ -542,7 +542,7 @@ function Edit-PmcProject { param([PmcCommandContext]$Context)
     $sel = 0; $modified = $false
 
     function render-proj([pscustomobject]$p,[int]$idx) {
-        Clear-Host
+        Write-Host ([PraxisVT]::ClearScreen())
         Show-PmcHeader -Title ("EDIT PROJECT: {0}" -f $p.name)
         for ($i=0; $i -lt $fields.Count; $i++) {
             $f = $fields[$i]
@@ -1045,7 +1045,7 @@ function Get-PmcTimeList { param([PmcCommandContext]$Context)
     $logs = @($data.timelogs | Where-Object { $_ -ne $null } | Sort-Object date, time | Select-Object -Last 50)
     Set-PmcLastTimeListMap @{}
     Write-Host "\nTIME LOGS (recent)" -ForegroundColor Cyan
-    Write-Host "────────────────────" -ForegroundColor DarkGray
+    Write-PmcStyled -Style 'Border' -Text "────────────────────"
     if ($logs.Count -eq 0) { Write-Host "No time entries found" -ForegroundColor Yellow; return }
     $i=1
     foreach ($l in $logs) {
@@ -1383,7 +1383,7 @@ function Get-PmcTimeReport { param([PmcCommandContext]$Context)
                 $line | Add-Content -Path $out -Encoding UTF8
             }
             Show-PmcTip ("Exported to: {0}" -f $out)
-        } catch { Write-Host "Export failed: $_" -ForegroundColor Red }
+        } catch { Show-PmcError "Export failed: $_" }
     }
     if ($jsonPath) {
         try {
@@ -1392,7 +1392,7 @@ function Get-PmcTimeReport { param([PmcCommandContext]$Context)
             $arr = @(); foreach ($l in ($logs | Sort-Object date, time)) { $arr += [pscustomobject]@{ date=$l.date; time=($l.time ?? ''); project=$l.project; minutes=$l.minutes; hours=[Math]::Round($l.minutes/60,2); notes=($l.notes ?? ''); id=$l.id } }
             $arr | ConvertTo-Json -Depth 6 | Set-Content -Path $out -Encoding UTF8
             Show-PmcTip ("Exported JSON to: {0}" -f $out)
-        } catch { Write-Host "JSON export failed: $_" -ForegroundColor Red }
+        } catch { Show-PmcError "JSON export failed: $_" }
     }
     Save-StrictData $data 'time report'
     Write-PmcDebug -Level 1 -Category 'REPORT' -Message 'TIME REPORT: done'
@@ -1563,7 +1563,7 @@ function Invoke-PmcTemplate { param([PmcCommandContext]$Context)
 function Get-PmcTemplateList { param([PmcCommandContext]$Context)
     $data = Get-PmcDataAlias
     Write-Host "\nTEMPLATES" -ForegroundColor Cyan
-    Write-Host "─────────" -ForegroundColor DarkGray
+    Write-PmcStyled -Style 'Border' -Text "─────────"
     if (-not $data.templates -or @($data.templates.Keys).Count -eq 0) { Write-Host 'No templates' -ForegroundColor Yellow; return }
     foreach ($k in $data.templates.Keys) { Write-Host ("  - {0}" -f $k) }
 }
@@ -1591,7 +1591,7 @@ function Add-PmcRecurringTask { param([PmcCommandContext]$Context)
 function Get-PmcRecurringTaskList { param([PmcCommandContext]$Context)
     $data = Get-PmcDataAlias
     Write-Host "\nRECURRING" -ForegroundColor Cyan
-    Write-Host "──────────" -ForegroundColor DarkGray
+    Write-PmcStyled -Style 'Border' -Text "──────────"
     if (-not $data.recurringTemplates -or @($data.recurringTemplates).Count -eq 0) { Write-Host 'No recurring templates' -ForegroundColor Yellow; return }
     $i=1
     foreach ($r in $data.recurringTemplates) { Write-Host ("  [{0,2}] {1} :: {2}" -f $i, $r.pattern, ($r.body ?? '')) ; $i++ }
@@ -1810,7 +1810,7 @@ function Get-PmcAliasList { param([PmcCommandContext]$Context)
 
 function Show-PmcCommands { param([PmcCommandContext]$Context)
     # Route to smart help grid for a consistent universal display experience
-    try { Show-PmcSmartHelp } catch { Write-PmcStyled -Style 'Error' -Text ("Help unavailable: {0}" -f $_) }
+    try { Show-PmcSmartHelp } catch { Show-PmcError "Help unavailable: $_" }
 }
 
 function Show-PmcCommandBrowser { param([PmcCommandContext]$Context)
@@ -2004,3 +2004,5 @@ function Invoke-PmcShortcutNumber { param([PmcCommandContext]$Context)
 function Start-PmcReview { param([PmcCommandContext]$Context)
     Write-PmcStyled -Style 'Info' -Text "Review workflow not implemented."
 }
+
+# Help.ps1 contains 99+ functions - exports would be too long. Consider splitting this file per TECH_DEBT.md recommendations.

@@ -169,3 +169,5 @@ function Get-PmcRelationResolvers {
     }
     return $map
 }
+
+Export-ModuleMember -Function Get-PmcComputedRegistry, Get-PmcMetricsForDomain, Get-PmcRelationResolvers

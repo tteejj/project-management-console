@@ -43,3 +43,5 @@ function Get-PooledStringBuilder([int]$capacity = 1024) {
 function Return-PooledStringBuilder([System.Text.StringBuilder]$sb) {
     [PraxisStringBuilderPool]::Return($sb)
 }
+
+Export-ModuleMember -Function Get-PooledStringBuilder, Return-PooledStringBuilder

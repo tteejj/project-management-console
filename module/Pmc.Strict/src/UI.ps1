@@ -180,3 +180,5 @@ function Show-PmcTable {
     )
     throw "Show-PmcTable is DEPRECATED and should not be used! All views must use Show-PmcCustomGrid. Function called with Title: '$Title'"
 }
+
+Export-ModuleMember -Function Sanitize-PmcOutput, Get-PmcStyle, Write-PmcStyled, ConvertFrom-PmcHex, Get-PmcColorPalette, Get-PmcColorSequence, Get-PmcCellStyle, Show-PmcHeader, Show-PmcTip, Get-PmcIcon

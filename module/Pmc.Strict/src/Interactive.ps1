@@ -824,8 +824,8 @@ function Read-PmcCommand {
             # Key press details reduced to completion/input summaries only
 
         } catch {
-            Write-Host "Console.ReadKey failed: $_" -ForegroundColor Red
-            Write-Host "Interactive mode not available (input redirected or no TTY)" -ForegroundColor Yellow
+            Write-PmcStyled -Style 'Error' -Text "Console.ReadKey failed: $_"
+            Write-PmcStyled -Style 'Warning' -Text "Interactive mode not available (input redirected or no TTY)"
             break
         }
 
@@ -1195,7 +1195,7 @@ function Read-PmcCommand {
             $snapshot = Get-EditorStateSnapshot
             Write-PmcDebug -Level 1 -Category 'INPUT' -Message "EXCEPTION: Input processing error: $_ | FULL STATE DUMP: $($snapshot | ConvertTo-Json -Depth 5 -Compress) | StackTrace: $($_.ScriptStackTrace)"
             Write-PmcDebug -Level 1 -Category 'INPUT' -Message "EXCEPTION CONTEXT: Key=$($key.Key), KeyChar='$($key.KeyChar)', Modifiers=$($key.Modifiers)"
-            Write-Host "Input processing failed: $_" -ForegroundColor Red
+            Write-PmcStyled -Style 'Error' -Text "Input processing failed: $_"
             break
         }
     }

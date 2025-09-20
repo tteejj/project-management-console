@@ -281,3 +281,6 @@ function Ensure-PmcUniversalDisplay {
         return $false
     }
 }
+
+# Initialize Universal Display system when this module is loaded
+Ensure-PmcUniversalDisplay

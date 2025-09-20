@@ -226,7 +226,7 @@ function Invoke-PmcCommand {
         $parsed = ConvertTo-PmcContext $tokens
         if (-not $parsed.Success) {
             Write-PmcDebugCommand -Command $Buffer -Status 'PARSE_ERROR' -Context @{ Error = $parsed.Error } -Timing $stopwatch.ElapsedMilliseconds
-            Write-Host "Error: $($parsed.Error)" -ForegroundColor Red
+            Write-PmcStyled -Style 'Error' -Text "Error: $($parsed.Error)"
             return
         }
 
@@ -266,13 +266,13 @@ function Invoke-PmcCommand {
             Write-PmcDebugCommand -Command $Buffer -Status 'SUCCESS' -Context @{ Domain = $ctx.Domain; Action = $ctx.Action; Handler = $fn } -Timing $stopwatch.ElapsedMilliseconds
         } else {
             Write-PmcDebugCommand -Command $Buffer -Status 'NO_HANDLER' -Context @{ Domain = $ctx.Domain; Action = $ctx.Action; Handler = $fn } -Timing $stopwatch.ElapsedMilliseconds
-            Write-Host "Not implemented: $($ctx.Domain) $($ctx.Action)" -ForegroundColor Yellow
+            Write-PmcStyled -Style 'Warning' -Text "Not implemented: $($ctx.Domain) $($ctx.Action)"
         }
 
     } catch {
         $stopwatch.Stop()
         Write-PmcDebugCommand -Command $Buffer -Status 'ERROR' -Context @{ Error = $_.ToString(); Exception = $_.Exception.GetType().Name } -Timing $stopwatch.ElapsedMilliseconds
-        Write-Host "Command execution failed: $_" -ForegroundColor Red
+        Write-PmcStyled -Style 'Error' -Text "Command execution failed: $_"
     }
 }
 
@@ -400,8 +400,10 @@ function Test-PmcContext {
         foreach ($tag in @($Context.Args['tags'])) { if (-not $tag -or ($tag -match '\s')) { $errors += ("Invalid tag '{0}'" -f $tag) } }
     }
     if (@($errors).Count -gt 0) {
-        foreach ($e in $errors) { Write-Host ("Error: {0}" -f $e) -ForegroundColor Red }
+        foreach ($e in $errors) { Write-PmcStyled -Style 'Error' -Text ("Error: {0}" -f $e) }
         return $false
     }
     return $true
 }
+
+Export-ModuleMember -Function Set-PmcContextDefaults, Normalize-PmcContextFields, Resolve-PmcHandler, Resolve-PmcProjectFromTokens, Parse-PmcArgsFromTokens, ConvertTo-PmcIdSet, ConvertTo-PmcContext, Invoke-PmcCommand, ConvertTo-PmcContextType, Test-PmcContext

@@ -30,8 +30,8 @@ function Save-PmcAliases($aliases) {
 function Get-PmcAliasList {
     param([PmcCommandContext]$Context)
     $aliases = Get-PmcAliasTable
-    Write-Host "\nALIASES" -ForegroundColor Cyan
-    Write-Host "────────" -ForegroundColor DarkGray
+    Write-PmcStyled -Style 'Header' -Text "\nALIASES"
+    Write-PmcStyled -Style 'Border' -Text "────────"
     $rows = @()
     if ($aliases -is [hashtable]) {
         foreach ($entry in $aliases.GetEnumerator()) {
@@ -42,7 +42,7 @@ function Get-PmcAliasList {
             $rows += @{ alias = [string]$p.Name; expands = [string]$p.Value }
         }
     }
-    if (@($rows).Count -eq 0) { Write-Host 'No aliases defined' -ForegroundColor Yellow; return }
+    if (@($rows).Count -eq 0) { Write-PmcStyled -Style 'Warning' -Text 'No aliases defined'; return }
     $rows = $rows | Sort-Object alias
 
     # Convert to universal display format
@@ -67,23 +67,23 @@ function Get-PmcAliasList {
 function Add-PmcAlias {
     param([PmcCommandContext]$Context)
     $text = ($Context.FreeText -join ' ').Trim()
-    if (-not $text -or -not ($text -match '^(\S+)\s+(.+)$')) { Write-Host "Usage: alias add <name> <expansion...>" -ForegroundColor Yellow; return }
+    if (-not $text -or -not ($text -match '^(\S+)\s+(.+)$')) { Write-PmcStyled -Style 'Warning' -Text "Usage: alias add <name> <expansion...>"; return }
     $name = $matches[1]; $expansion = $matches[2]
     $aliases = Get-PmcAliasTable
     $aliases[$name] = $expansion
     Save-PmcAliases $aliases
-    Write-Host ("Added alias '{0}' = {1}" -f $name, $expansion) -ForegroundColor Green
+    Write-PmcStyled -Style 'Success' -Text ("Added alias '{0}' = {1}" -f $name, $expansion)
 }
 
 function Remove-PmcAlias {
     param([PmcCommandContext]$Context)
     $name = ($Context.FreeText -join ' ').Trim()
-    if ([string]::IsNullOrWhiteSpace($name)) { Write-Host "Usage: alias remove <name>" -ForegroundColor Yellow; return }
+    if ([string]::IsNullOrWhiteSpace($name)) { Write-PmcStyled -Style 'Warning' -Text "Usage: alias remove <name>"; return }
     $aliases = Get-PmcAliasTable
-    if (-not $aliases.ContainsKey($name)) { Write-Host ("Alias '{0}' not found" -f $name) -ForegroundColor Red; return }
+    if (-not $aliases.ContainsKey($name)) { Write-PmcStyled -Style 'Error' -Text ("Alias '{0}' not found" -f $name); return }
     $aliases.Remove($name) | Out-Null
     Save-PmcAliases $aliases
-    Write-Host ("Removed alias '{0}'" -f $name) -ForegroundColor Green
+    Write-PmcStyled -Style 'Success' -Text ("Removed alias '{0}'" -f $name)
 }
 
 function Expand-PmcUserAliases {
@@ -116,3 +116,5 @@ function Expand-PmcUserAliases {
     }
     return $Buffer
 }
+
+Export-ModuleMember -Function Get-PmcAliasTable, Save-PmcAliases, Get-PmcAliasList, Add-PmcAlias, Remove-PmcAlias, Expand-PmcUserAliases

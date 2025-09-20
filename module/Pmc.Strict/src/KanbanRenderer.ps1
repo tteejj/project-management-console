@@ -1,3 +1,5 @@
+# Kanban-style rendering system for grouped task and project views
+
 Set-StrictMode -Version Latest
 
 class PmcKanbanRenderer {

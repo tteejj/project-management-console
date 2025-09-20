@@ -540,3 +540,5 @@ function Get-PmcStateSnapshot {
 Initialize-PmcCentralizedState
 
 # Debug logging removed to avoid circular dependency during initialization
+
+Export-ModuleMember -Function Get-PmcRootPath, Get-PmcState, Set-PmcState, Get-PmcLastTaskListMap, Set-PmcLastTaskListMap, Get-PmcLastTimeListMap, Set-PmcLastTimeListMap, Update-PmcStateSection, Get-PmcConfigProviders, Set-PmcConfigProviders, Get-PmcSecurityState, Get-PmcDebugState, Get-PmcHelpState, Get-PmcCommandCategories, Get-PmcTaskListMap, Set-PmcTaskListMap, Get-PmcTimeListMap, Set-PmcTimeListMap, Get-PmcUndoRedoState, Get-PmcInteractiveState, Get-PmcCommandMaps, Initialize-PmcCentralizedState, Reset-PmcState, Get-PmcStateSnapshot

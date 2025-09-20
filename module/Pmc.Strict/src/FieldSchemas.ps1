@@ -243,3 +243,5 @@ function Get-PmcFieldSchema {
     if ($all.ContainsKey($Field)) { return $all[$Field] }
     return $null
 }
+
+Export-ModuleMember -Function Get-PmcFieldSchemasForDomain, Get-PmcFieldSchema

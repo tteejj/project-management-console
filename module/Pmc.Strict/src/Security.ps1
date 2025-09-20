@@ -543,3 +543,5 @@ function Update-PmcSecurityFromConfig {
 }
 
 # Note: Security system is initialized by the root orchestrator after config providers are set
+
+Export-ModuleMember -Function Initialize-PmcSecuritySystem, Test-PmcInputSafety, Test-PmcPathSafety, Invoke-PmcSecureFileOperation, Protect-PmcUserInput, Test-PmcResourceLimits, Get-PmcSecurityStatus, Set-PmcSecurityLevel, Update-PmcSecurityFromConfig

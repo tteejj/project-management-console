@@ -2,7 +2,7 @@
 
 function Start-PmcReview {
     param([PmcCommandContext]$Context)
-    Clear-Host
+    Write-Host ([PraxisVT]::ClearScreen())
     Show-PmcHeader -Title 'WEEKLY REVIEW' -Icon '🗓'
     Show-PmcTip 'Walk through overdue, today/tomorrow, upcoming, blocked, and projects.'
 
@@ -26,4 +26,6 @@ function Start-PmcReview {
     Show-PmcSeparator -Width 60
     Show-PmcSuccess 'Review complete.'
 }
+
+Export-ModuleMember -Function Start-PmcReview
 

@@ -46,7 +46,7 @@ function Export-PmcTasks {
 function Import-PmcTasks {
     param([PmcCommandContext]$Context)
     $pathArg = ($Context.FreeText -join ' ').Trim()
-    if ([string]::IsNullOrWhiteSpace($pathArg)) { Write-Host "Usage: import tasks <path.csv|path.json>" -ForegroundColor Yellow; return }
+    if ([string]::IsNullOrWhiteSpace($pathArg)) { Write-PmcStyled -Style 'Warning' -Text "Usage: import tasks <path.csv|path.json>"; return }
     $path = Get-PmcSafePath $pathArg
     if (-not (Test-Path $path)) { Show-PmcError ("File not found: {0}" -f $path); return }
     $data = Get-PmcDataAlias
@@ -90,3 +90,5 @@ function Import-PmcTasks {
     }
     Show-PmcWarning 'Unsupported file type (use .csv or .json)'
 }
+
+Export-ModuleMember -Function Export-PmcTasks, Import-PmcTasks

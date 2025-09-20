@@ -1,3 +1,5 @@
+# PMC Query Language implementation and command processors
+
 Set-StrictMode -Version Latest
 
 function Invoke-PmcQuery {
@@ -7,7 +9,7 @@ function Invoke-PmcQuery {
 
     # Usage: pmc q <tasks|projects|timelogs> [tokens ...]
     if (-not $Context -or $Context.FreeText.Count -lt 1) {
-        Write-Host "Usage: q <tasks|projects|timelogs> [filters/directives]" -ForegroundColor Yellow
+        Write-PmcStyled -Style 'Warning' -Text "Usage: q <tasks|projects|timelogs> [filters/directives]"
         return
     }
 
@@ -18,7 +20,7 @@ function Invoke-PmcQuery {
     if ($loadAlias) {
         $aliasName = ($loadAlias -replace '^(?i)load:','')
         $loaded = Get-PmcQueryAlias -Name $aliasName
-        if ($loaded) { $tokens = @($loaded) } else { Write-Host ("Unknown query alias '{0}'" -f $aliasName) -ForegroundColor Red; return }
+        if ($loaded) { $tokens = @($loaded) } else { Write-PmcStyled -Style 'Error' -Text ("Unknown query alias '{0}'" -f $aliasName); return }
     }
     $domTok = [string]$tokens[0]
     $rest = @($tokens | Select-Object -Skip 1)
@@ -31,7 +33,7 @@ function Invoke-PmcQuery {
         'projects' { $domain = 'project' }
         'timelog' { $domain = 'timelog' }
         'timelogs' { $domain = 'timelog' }
-        default { Write-Host ("Unknown domain '{0}'. Use tasks|projects|timelogs" -f $domTok) -ForegroundColor Red; return }
+        default { Write-PmcStyled -Style 'Error' -Text ("Unknown domain '{0}'. Use tasks|projects|timelogs" -f $domTok); return }
     }
 
     $spec = [PmcQuerySpec]::new()
@@ -146,7 +148,7 @@ function Invoke-PmcQuery {
         if ($spec.Filters.ContainsKey($pf)) {
             $val = $spec.Filters[$pf]
             if ($val -lt 1 -or $val -gt 3) {
-                Write-Host "Warning: Priority value '$val' should be between 1-3" -ForegroundColor Yellow
+                Write-PmcStyled -Style 'Warning' -Text "Warning: Priority value '$val' should be between 1-3"
             }
         }
     }
@@ -172,7 +174,7 @@ function Invoke-PmcQuery {
             } catch { $isValid = $false }
 
             if (-not $isValid) {
-                Write-Host "Warning: Invalid date format '$dateTok'. Use YYYY-MM-DD, 'today', or relative dates like '+1d'" -ForegroundColor Yellow
+                Write-PmcStyled -Style 'Warning' -Text "Warning: Invalid date format '$dateTok'. Use YYYY-MM-DD, 'today', or relative dates like '+1d'"
             }
         }
     }
@@ -182,7 +184,7 @@ function Invoke-PmcQuery {
     if (@($spec.Columns).Count -gt 0) {
         $fs = Get-PmcFieldSchemasForDomain -Domain $spec.Domain
         foreach ($name in $spec.Columns) {
-            if (-not $fs.ContainsKey($name)) { Write-Host ("Unknown column '{0}' for {1}" -f $name, $spec.Domain) -ForegroundColor Yellow; continue }
+            if (-not $fs.ContainsKey($name)) { Write-PmcStyled -Style 'Warning' -Text ("Unknown column '{0}' for {1}" -f $name, $spec.Domain); continue }
             $sch = $fs[$name]
             $w = if ($sch.ContainsKey('DefaultWidth')) { [int]$sch.DefaultWidth } else { 12 }
             $al = 'Left'
@@ -218,8 +220,8 @@ function Invoke-PmcQuery {
         $validMetrics = Get-PmcMetricsForDomain -Domain $spec.Domain
         $invalidMetrics = @($spec.Metrics | Where-Object { -not $validMetrics.ContainsKey($_) })
         if (@($invalidMetrics).Count -gt 0) {
-            Write-Host ("Unknown metrics for {0}: {1}" -f $spec.Domain, ($invalidMetrics -join ', ')) -ForegroundColor Yellow
-            Write-Host ("Available metrics: {0}" -f ($validMetrics.Keys -join ', ')) -ForegroundColor Gray
+            Write-PmcStyled -Style 'Warning' -Text ("Unknown metrics for {0}: {1}" -f $spec.Domain, ($invalidMetrics -join ', '))
+            Write-PmcStyled -Style 'Muted' -Text ("Available metrics: {0}" -f ($validMetrics.Keys -join ', '))
         }
     }
 
@@ -228,7 +230,7 @@ function Invoke-PmcQuery {
         $result = Evaluate-PmcQuery -Spec $spec
         Write-PmcDebug -Level 2 -Category 'Query' -Message 'Query evaluation completed' -Data @{ RowCount=@($result.Rows).Count }
     } catch {
-        Write-Host "Query evaluation failed: $($_.Exception.Message)" -ForegroundColor Red
+        Write-PmcStyled -Style 'Error' -Text "Query evaluation failed: $($_.Exception.Message)"
         Write-PmcDebug -Level 1 -Category 'Query' -Message 'Query evaluation failed' -Data @{ Error=$_.Exception.Message }
         return
     }
@@ -248,13 +250,13 @@ function Invoke-PmcQuery {
     }
 
     # Show custom grid with evaluated rows
-    Write-Host "DEBUG: About to call Show-PmcCustomGrid with $(@($result.Rows).Count) rows" -ForegroundColor Cyan
+    Write-PmcDebug -Level 2 -Category "Query" -Message "About to call Show-PmcCustomGrid with $(@($result.Rows).Count) rows"
     Write-PmcDebug -Level 2 -Category 'Query' -Message 'Calling Show-PmcCustomGrid' -Data @{ Domain=$spec.Domain; RowCount=@($result.Rows).Count; ColumnCount=@($columns.Keys).Count }
     try {
         Show-PmcCustomGrid -Domain $spec.Domain -Columns $columns -Data $result.Rows -Group $spec.Group -View $spec.View -Interactive
-        Write-Host "DEBUG: Show-PmcCustomGrid completed successfully" -ForegroundColor Green
+        Write-PmcDebug -Level 2 -Category "Query" -Message "Show-PmcCustomGrid completed successfully"
     } catch {
-        Write-Host "DEBUG: Show-PmcCustomGrid failed: $($_.Exception.Message)" -ForegroundColor Red
+        Write-PmcDebug -Level 1 -Category "Query" -Message "Show-PmcCustomGrid failed: $($_.Exception.Message)"
         Write-PmcDebug -Level 1 -Category 'Query' -Message 'Show-PmcCustomGrid failed' -Data @{ Error=$_.Exception.Message }
     }
     Write-PmcDebug -Level 2 -Category 'Query' -Message 'Show-PmcCustomGrid completed'
@@ -474,3 +476,5 @@ function Get-PmcQueryHistory { param([int]$Last = 10)
         return $queries
     } catch { return @() }
 }
+
+Export-ModuleMember -Function Invoke-PmcQuery, Register-PmcQueryCompleter, Get-PmcQueryStoreDir, Get-PmcQueryAliasPath, Get-PmcQueryHistoryPath, Get-PmcQueryAlias, Set-PmcQueryAlias, Add-PmcQueryHistory, Get-PmcQueryHistory

@@ -103,7 +103,7 @@ class PmcTaskEditor {
         }
 
         [Console]::SetCursorPosition(0, $startRowPos - 1)
-        Write-Host $modeIndicator -ForegroundColor Yellow
+        Write-PmcStyled -Style 'Warning' -Text $modeIndicator
 
         switch ($this.Mode) {
             'description' { $this.DrawDescriptionEditor($startRowPos) }
@@ -185,7 +185,7 @@ class PmcTaskEditor {
 
         # Metadata editing instructions
         [Console]::SetCursorPosition(0, $row)
-        Write-Host "Press Enter to edit a field, Tab/Shift+Tab to navigate" -ForegroundColor Gray
+        Write-PmcStyled -Style 'Muted' -Text "Press Enter to edit a field, Tab/Shift+Tab to navigate"
     }
 
     [void] DrawPreviewMode([int]$startRow) {
