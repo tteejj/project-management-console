@@ -55,7 +55,7 @@ class PmcTaskEditor {
 
         # Calculate screen regions
         $this.StartRow = 3
-        $this.EndRow = [Console]::WindowHeight - 8
+        $this.EndRow = [PmcTerminalService]::GetHeight() - 8
     }
 
     [void] Show() {
@@ -85,7 +85,7 @@ class PmcTaskEditor {
 
         [Console]::SetCursorPosition(0, 0)
         $title = "PMC Task Editor - Task #$($this.TaskId)"
-        $separator = "═" * [Console]::WindowWidth
+        $separator = "═" * [PmcTerminalService]::GetWidth()
 
         Write-Host "$headerColor$title$resetColor"
         Write-Host "$headerColor$separator$resetColor"
@@ -121,7 +121,7 @@ class PmcTaskEditor {
         # Clear content area
         for ($i = $startRow; $i -le $this.EndRow; $i++) {
             [Console]::SetCursorPosition(0, $i)
-            Write-Host (' ' * [Console]::WindowWidth) -NoNewline
+            Write-Host (' ' * [PmcTerminalService]::GetWidth()) -NoNewline
         }
 
         # Draw description lines
@@ -159,7 +159,7 @@ class PmcTaskEditor {
         # Clear area
         for ($i = $startRow; $i -le $this.EndRow; $i++) {
             [Console]::SetCursorPosition(0, $i)
-            Write-Host (' ' * [Console]::WindowWidth) -NoNewline
+            Write-Host (' ' * [PmcTerminalService]::GetWidth()) -NoNewline
         }
 
         $row = $startRow
@@ -198,7 +198,7 @@ class PmcTaskEditor {
         # Clear area
         for ($i = $startRow; $i -le $this.EndRow; $i++) {
             [Console]::SetCursorPosition(0, $i)
-            Write-Host (' ' * [Console]::WindowWidth) -NoNewline
+            Write-Host (' ' * [PmcTerminalService]::GetWidth()) -NoNewline
         }
 
         $row = $startRow
@@ -235,20 +235,20 @@ class PmcTaskEditor {
     }
 
     [void] DrawFooter() {
-        $footerRow = [Console]::WindowHeight - 4
+        $footerRow = [PmcTerminalService]::GetHeight() - 4
         $palette = Get-PmcColorPalette
         $footerColor = Get-PmcColorSequence $palette.Footer
         $resetColor = [PmcVT]::Reset()
 
         [Console]::SetCursorPosition(0, $footerRow)
-        Write-Host "$footerColor$('─' * [Console]::WindowWidth)$resetColor"
+        Write-Host "$footerColor$('─' * [PmcTerminalService]::GetWidth())$resetColor"
 
         [Console]::SetCursorPosition(0, $footerRow + 1)
         Write-Host "$footerColor F1:Description  F2:Metadata  F3:Preview  Ctrl+S:Save  Esc:Cancel$resetColor"
     }
 
     [void] DrawStatusLine() {
-        $statusRow = [Console]::WindowHeight - 2
+        $statusRow = [PmcTerminalService]::GetHeight() - 2
         $palette = Get-PmcColorPalette
         $statusColor = Get-PmcColorSequence $palette.Status
         $resetColor = [PmcVT]::Reset()
@@ -399,7 +399,7 @@ class PmcTaskEditor {
             return $true
         }
 
-        [Console]::SetCursorPosition(0, [Console]::WindowHeight - 1)
+        [Console]::SetCursorPosition(0, [PmcTerminalService]::GetHeight() - 1)
         Write-PmcStyled -Style 'Warning' -Text "Unsaved changes! Exit anyway? (y/N): " -NoNewline
 
         $response = [Console]::ReadKey($true)
@@ -422,12 +422,12 @@ class PmcTaskEditor {
 
             Invoke-PmcCommand $updateCmd
 
-            [Console]::SetCursorPosition(0, [Console]::WindowHeight - 1)
+            [Console]::SetCursorPosition(0, [PmcTerminalService]::GetHeight() - 1)
             Write-PmcStyled -Style 'Success' -Text "✓ Task saved successfully!"
             Start-Sleep -Seconds 1
 
         } catch {
-            [Console]::SetCursorPosition(0, [Console]::WindowHeight - 1)
+            [Console]::SetCursorPosition(0, [PmcTerminalService]::GetHeight() - 1)
             Write-PmcStyled -Style 'Error' -Text ("✗ Error saving task: {0}" -f $_)
             Start-Sleep -Seconds 2
         }

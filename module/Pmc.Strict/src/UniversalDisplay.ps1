@@ -127,6 +127,72 @@ function Show-PmcAllTasksInteractive {
     } -Title "📋 ALL TASKS" -Interactive -Context $Context
 }
 
+function Show-PmcTomorrowTasksInteractive {
+    param([PmcCommandContext]$Context)
+
+    $tomorrow = (Get-Date).Date.AddDays(1)
+    $title = "📅 TASKS DUE TOMORROW - {0}" -f $tomorrow.ToString('yyyy-MM-dd')
+
+    Show-PmcData -DataType "task" -Filters @{
+        "status" = "pending"
+        "due_range" = "tomorrow"
+    } -Title $title -Interactive -Context $Context
+}
+
+function Show-PmcUpcomingTasksInteractive {
+    param([PmcCommandContext]$Context)
+
+    Show-PmcData -DataType "task" -Filters @{
+        "status" = "pending"
+        "due_range" = "upcoming"
+    } -Title "📆 UPCOMING TASKS (7 days)" -Interactive -Context $Context
+}
+
+function Show-PmcBlockedTasksInteractive {
+    param([PmcCommandContext]$Context)
+
+    Show-PmcData -DataType "task" -Filters @{
+        "status" = "pending"
+        "has_dependencies" = $true
+    } -Title "🚫 BLOCKED TASKS" -Interactive -Context $Context
+}
+
+function Show-PmcTasksWithoutDueDateInteractive {
+    param([PmcCommandContext]$Context)
+
+    Show-PmcData -DataType "task" -Filters @{
+        "status" = "pending"
+        "no_due_date" = $true
+    } -Title "📋 TASKS WITHOUT DUE DATE" -Interactive -Context $Context
+}
+
+function Show-PmcNextTasksInteractive {
+    param([PmcCommandContext]$Context)
+
+    Show-PmcData -DataType "task" -Filters @{
+        "status" = "pending"
+        "next_actions" = $true
+    } -Title "⏭️ NEXT ACTIONS" -Interactive -Context $Context
+}
+
+function Show-PmcWeekTasksInteractive {
+    param([PmcCommandContext]$Context)
+
+    Show-PmcData -DataType "task" -Filters @{
+        "status" = "pending"
+        "due_range" = "week"
+    } -Title "📅 THIS WEEK'S TASKS" -Interactive -Context $Context
+}
+
+function Show-PmcMonthTasksInteractive {
+    param([PmcCommandContext]$Context)
+
+    Show-PmcData -DataType "task" -Filters @{
+        "status" = "pending"
+        "due_range" = "month"
+    } -Title "📅 THIS MONTH'S TASKS" -Interactive -Context $Context
+}
+
 # Command shortcuts that route to unified display system
 function Get-PmcUniversalCommands {
     return @{
@@ -254,4 +320,4 @@ function Get-PmcUniversalTheme {
 }
 
 # Export the universal display functions
-Export-ModuleMember -Function Show-PmcData, Get-PmcDefaultColumns, Register-PmcUniversalCommands, Get-PmcUniversalCommands, Show-PmcTodayTasksInteractive, Show-PmcOverdueTasksInteractive, Show-PmcAgendaInteractive, Show-PmcProjectsInteractive, Show-PmcAllTasksInteractive
+Export-ModuleMember -Function Show-PmcData, Get-PmcDefaultColumns, Register-PmcUniversalCommands, Get-PmcUniversalCommands, Show-PmcTodayTasksInteractive, Show-PmcOverdueTasksInteractive, Show-PmcAgendaInteractive, Show-PmcProjectsInteractive, Show-PmcAllTasksInteractive, Show-PmcTomorrowTasksInteractive, Show-PmcUpcomingTasksInteractive, Show-PmcBlockedTasksInteractive, Show-PmcTasksWithoutDueDateInteractive, Show-PmcNextTasksInteractive, Show-PmcWeekTasksInteractive, Show-PmcMonthTasksInteractive

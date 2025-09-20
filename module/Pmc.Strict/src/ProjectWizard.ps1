@@ -395,13 +395,13 @@ class PmcProjectWizard {
     }
 
     [void] DrawFooter() {
-        $footerRow = [Console]::WindowHeight - 3
+        $footerRow = [PmcTerminalService]::GetHeight() - 3
         $palette = Get-PmcColorPalette
         $footerColor = Get-PmcColorSequence $palette.Footer
         $resetColor = [PmcVT]::Reset()
 
         [Console]::SetCursorPosition(0, $footerRow)
-        Write-Host "$footerColor$('─' * [Console]::WindowWidth)$resetColor"
+        Write-Host "$footerColor$('─' * [PmcTerminalService]::GetWidth())$resetColor"
 
         $footerText = switch ($this.CurrentStep) {
             'welcome' { "Enter:Continue  Esc:Cancel" }

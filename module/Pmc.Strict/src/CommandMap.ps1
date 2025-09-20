@@ -16,8 +16,8 @@ $Script:PmcCommandMap = @{
         search  = 'Find-PmcTask'
         priority= 'Set-PmcTaskPriority'
         agenda  = 'Show-PmcAgenda'
-        week    = 'Show-PmcWeekTasks'
-        month   = 'Show-PmcMonthTasks'
+        week    = 'Show-PmcWeekTasksInteractive'
+        month   = 'Show-PmcMonthTasksInteractive'
     }
     project = @{
         add     = 'Add-PmcProject'
@@ -82,19 +82,28 @@ $Script:PmcCommandMap = @{
     }
     view = @{
         today     = 'Show-PmcTodayTasksInteractive'
-        tomorrow  = 'Show-PmcTomorrowTasks'
+        tomorrow  = 'Show-PmcTomorrowTasksInteractive'
         overdue   = 'Show-PmcOverdueTasksInteractive'
-        upcoming  = 'Show-PmcUpcomingTasks'
-        blocked   = 'Show-PmcBlockedTasks'
-        noduedate = 'Show-PmcTasksWithoutDueDate'
+        upcoming  = 'Show-PmcUpcomingTasksInteractive'
+        blocked   = 'Show-PmcBlockedTasksInteractive'
+        noduedate = 'Show-PmcTasksWithoutDueDateInteractive'
         projects  = 'Show-PmcProjectsInteractive'
-        next      = 'Show-PmcNextTasks'
+        next      = 'Show-PmcNextTasksInteractive'
     }
     excel = @{
         import   = 'Import-PmcExcelData'
         bind     = 'Bind-PmcExcelImports'
         view     = 'Show-PmcExcelPreview'
         latest   = 'Get-PmcLatestExcelFile'
+    }
+    xflow = @{
+        'browse-source' = 'Set-PmcXFlowSourcePathInteractive'
+        'browse-dest'   = 'Set-PmcXFlowDestPathInteractive'
+        'preview'       = 'Show-PmcXFlowPreview'
+        'run'           = 'Invoke-PmcXFlowRun'
+        'export'        = 'Export-PmcXFlowText'
+        'import-mappings' = 'Import-PmcXFlowMappingsFromFile'
+        'set-latest'    = 'Set-PmcXFlowLatestFromFile'
     }
     theme = @{
         reset    = 'Reset-PmcTheme'
@@ -150,17 +159,17 @@ $Script:PmcShortcutMap = @{
     search    = 'Find-PmcTask'
     priority  = 'Set-PmcTaskPriority'
     agenda    = 'Show-PmcAgenda'
-    week      = 'Show-PmcWeekTasks'
-    month     = 'Show-PmcMonthTasks'
+    week      = 'Show-PmcWeekTasksInteractive'
+    month     = 'Show-PmcMonthTasksInteractive'
     log       = 'Add-PmcTimeEntry'
     report    = 'Get-PmcTimeReport'
-    today     = 'Show-PmcTodayTasks'
-    tomorrow  = 'Show-PmcTomorrowTasks'
-    overdue   = 'Show-PmcOverdueTasks'
-    upcoming  = 'Show-PmcUpcomingTasks'
-    blocked   = 'Show-PmcBlockedTasks'
-    noduedate = 'Show-PmcTasksWithoutDueDate'
-    projects  = 'Show-PmcProjectsView'
+    today     = 'Show-PmcTodayTasksInteractive'
+    tomorrow  = 'Show-PmcTomorrowTasksInteractive'
+    overdue   = 'Show-PmcOverdueTasksInteractive'
+    upcoming  = 'Show-PmcUpcomingTasksInteractive'
+    blocked   = 'Show-PmcBlockedTasksInteractive'
+    noduedate = 'Show-PmcTasksWithoutDueDateInteractive'
+    projects  = 'Show-PmcProjectsInteractive'
     # Explicit interactive aliases
     itoday    = 'Show-PmcTodayTasks'
     ioverdue  = 'Show-PmcOverdueTasks'
@@ -174,7 +183,7 @@ $Script:PmcShortcutMap = @{
     focus     = 'Set-PmcFocus'
     unfocus   = 'Clear-PmcFocus'
     context   = 'Get-PmcFocusStatus'
-    next      = 'Show-PmcNextTasks'
+    next      = 'Show-PmcNextTasksInteractive'
     stats     = 'Get-PmcStats'
     burndown  = 'Show-PmcBurndown'
     velocity  = 'Get-PmcVelocity'
@@ -224,6 +233,13 @@ $Script:PmcCommandMeta = @{
     'excel import'  = @{ Desc='Import tasks from Excel/CSV' }
     'excel view'    = @{ Desc='Preview Excel/CSV import' }
     'excel latest'  = @{ Desc='Show latest Excel/CSV file' }
+    'xflow browse-source' = @{ Desc='Choose source Excel file (interactive)' }
+    'xflow browse-dest'   = @{ Desc='Choose destination Excel file (interactive)' }
+    'xflow preview' = @{ Desc='Preview first mapped fields from source' }
+    'xflow run'     = @{ Desc='Run Excel mapping; optional text export' }
+    'xflow export'  = @{ Desc='Export last extract to CSV/JSON' }
+    'xflow import-mappings' = @{ Desc='Import field mappings from settings.json' }
+    'xflow set-latest' = @{ Desc='Set latest extract from JSON file' }
     'theme reset'   = @{ Desc='Reset theme to default' }
     'theme adjust'  = @{ Desc='Adjust theme interactively' }
     'config icons'  = @{ Desc='Set icons: ascii|emoji' }

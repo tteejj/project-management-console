@@ -95,7 +95,7 @@ function Show-PmcHelpCommand { param([PmcCommandContext]$Context)
 function Show-PmcCommandList {
     $rows = Get-PmcHelp | Sort-Object Domain, Action
     # Fit to one screen grouped by Domain
-    $winH = 24; try { $winH = [Console]::WindowHeight } catch {}
+    $winH = [PmcTerminalService]::GetHeight()
     $reserved = 6
     $available = [Math]::Max(1, $winH - $reserved)
     $final = @()
@@ -115,7 +115,7 @@ function Show-PmcCommandList {
     $finalRows = @()
     foreach ($r in $final) { $finalRows += [pscustomobject]@{ Domain=$r.Domain; Action=$r.Action; Description=$r.Description } }
     Show-PmcCustomGrid -Domain "help" -Columns $columns -Data $finalRows -Title "PMC Commands" -Group 'Domain'
-    $winW = 80; try { $winW = [Console]::WindowWidth } catch {}
+    $winW = [PmcTerminalService]::GetWidth()
     Write-PmcStyled -Style 'Border' -Text ("─" * [Math]::Max(20, $winW))
 }
 function Show-PmcHelpAll { Show-PmcHelpUI }

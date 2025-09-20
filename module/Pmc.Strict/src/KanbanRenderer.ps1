@@ -157,12 +157,12 @@ class PmcKanbanRenderer {
     [string] BuildFrame() {
         return [PraxisStringBuilderPool]::Build({ param($sb)
             $termWidth = 100
-            try { $termWidth = [Console]::WindowWidth } catch {}
+            try { $termWidth = [PmcTerminalService]::GetWidth() } catch {}
             $laneCount = if ($this.Lanes.Count -gt 0) { $this.Lanes.Count } else { 1 }
             $gap = 3
             $totalGaps = ($laneCount - 1) * $gap
             $laneWidth = [Math]::Max(24, [Math]::Floor( ([double]$termWidth - $totalGaps - 2) / [Math]::Max(1,$laneCount) ))
-            $termHeight = 25; try { $termHeight = [Console]::WindowHeight } catch {}
+            $termHeight = 25; try { $termHeight = [PmcTerminalService]::GetHeight() } catch {}
             $statusLines = 2
             $maxItemsPerLane = [Math]::Max(1, $termHeight - $statusLines - 2 - 2) # minus header & sep
 
@@ -343,7 +343,7 @@ class PmcKanbanRenderer {
                         $cnt = @($this.Lanes[$this.SelectedLane].Items).Count
                         if ($this.SelectedIndex -lt ($cnt-1)) { $this.SelectedIndex++ }
                         $off = $this.LaneOffsets[$this.SelectedLane]
-                        $termHeight = 25; try { $termHeight = [Console]::WindowHeight } catch {}
+                        $termHeight = 25; try { $termHeight = [PmcTerminalService]::GetHeight() } catch {}
                         $maxItemsPerLane = [Math]::Max(1, $termHeight - 2 - 2 - 2)
                         if ($this.SelectedIndex -ge ($off + $maxItemsPerLane)) { $this.LaneOffsets[$this.SelectedLane] = $off + 1 }
                         if ($this.MoveActive) { $this.MoveTargetLane = $this.SelectedLane; $this.MoveTargetIndex = $this.SelectedIndex }
@@ -351,7 +351,7 @@ class PmcKanbanRenderer {
                     }
                     'PageUp'     {
                         $off = $this.LaneOffsets[$this.SelectedLane]
-                        $termHeight = 25; try { $termHeight = [Console]::WindowHeight } catch {}
+                        $termHeight = 25; try { $termHeight = [PmcTerminalService]::GetHeight() } catch {}
                         $maxItemsPerLane = [Math]::Max(1, $termHeight - 2 - 2 - 2)
                         $this.LaneOffsets[$this.SelectedLane] = [Math]::Max(0, $off - $maxItemsPerLane)
                         $this.SelectedIndex = [Math]::Max(0, $this.SelectedIndex - $maxItemsPerLane)
@@ -360,7 +360,7 @@ class PmcKanbanRenderer {
                     }
                     'PageDown'   {
                         $off = $this.LaneOffsets[$this.SelectedLane]
-                        $termHeight = 25; try { $termHeight = [Console]::WindowHeight } catch {}
+                        $termHeight = 25; try { $termHeight = [PmcTerminalService]::GetHeight() } catch {}
                         $maxItemsPerLane = [Math]::Max(1, $termHeight - 2 - 2 - 2)
                         $this.LaneOffsets[$this.SelectedLane] = $off + $maxItemsPerLane
                         $this.SelectedIndex = $this.SelectedIndex + $maxItemsPerLane

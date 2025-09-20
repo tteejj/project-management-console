@@ -102,7 +102,7 @@ class PmcGridRenderer {
         $this.Filters = $Filters
         $this.ThemeConfig = $this.InitializeTheme(@{})
         $this.TerminalWidth = $this.GetTerminalWidth()
-        try { $this.WindowHeight = [Console]::WindowHeight } catch { $this.WindowHeight = 24 }
+        $this.WindowHeight = $this.GetTerminalHeight()
         $this.ProjectLookup = $this.LoadProjectLookup()
         $this.InitializeKeyBindings()
         $this.LoadSavedViews()
@@ -342,13 +342,23 @@ class PmcGridRenderer {
     }
 
     [int] GetTerminalWidth() {
-        try {
-            $width = [Console]::WindowWidth
-            if ($width -lt 40) { return 80 }  # Fallback for narrow terminals
-            return $width
-        } catch {
-            return 80  # Safe fallback
-        }
+        return [PmcTerminalService]::GetWidth()
+    }
+
+    [int] GetTerminalHeight() {
+        return [PmcTerminalService]::GetHeight()
+    }
+
+    [hashtable] GetTerminalBounds() {
+        return [PmcTerminalService]::GetDimensions()
+    }
+
+    [bool] ValidateScreenBounds([string]$Content, [int]$MaxWidth = 0, [int]$MaxHeight = 0) {
+        return [PmcTerminalService]::ValidateContent($Content, $MaxWidth, $MaxHeight)
+    }
+
+    [string] EnforceScreenBounds([string]$Content, [int]$MaxWidth = 0, [int]$MaxHeight = 0) {
+        return [PmcTerminalService]::EnforceContentBounds($Content, $MaxWidth, $MaxHeight)
     }
 
     [hashtable] LoadProjectLookup() {
@@ -472,7 +482,7 @@ class PmcGridRenderer {
     [void] PageUp() {
         if (@($this.CurrentData).Count -eq 0) { return }
         try {
-            $winHeight = [Console]::WindowHeight
+            $winHeight = [PmcTerminalService]::GetHeight()
             $pageSize = [Math]::Max(1, $winHeight - ($this.HeaderLines + 2))
         } catch {
             $pageSize = 10  # Fallback page size
@@ -485,7 +495,7 @@ class PmcGridRenderer {
     [void] PageDown() {
         if (@($this.CurrentData).Count -eq 0) { return }
         try {
-            $winHeight = [Console]::WindowHeight
+            $winHeight = [PmcTerminalService]::GetHeight()
             $pageSize = [Math]::Max(1, $winHeight - ($this.HeaderLines + 2))
         } catch {
             $pageSize = 10  # Fallback page size
@@ -791,7 +801,7 @@ class PmcGridRenderer {
     }
 
     [void] PromptFilter() {
-        $row = [Console]::WindowHeight - 2
+        $row = [PmcTerminalService]::GetHeight() - 2
         Write-Host ([PmcVT]::MoveTo(0, $row) + [PmcVT]::ClearLine())
         Write-Host -NoNewline "Filter (text or re:/pattern/): "
         $q = Read-Host
@@ -1057,10 +1067,10 @@ class PmcGridRenderer {
     }
 
     [void] ShowStatusLine() {
-        $statusRow = [Console]::WindowHeight - 1
+        $statusRow = [PmcTerminalService]::GetHeight() - 1
         $mode = if ($this.NavigationMode -eq "Cell") { "CELL" } else { "ROW" }
         $shownStart = [Math]::Min(@($this.CurrentData).Count, $this.ScrollOffset + 1)
-        $visible = [Math]::Max(1, [Console]::WindowHeight - ($this.HeaderLines + 1))
+        $visible = [Math]::Max(1, [PmcTerminalService]::GetHeight() - ($this.HeaderLines + 1))
         $shownEnd = [Math]::Min(@($this.CurrentData).Count, $this.ScrollOffset + $visible)
         $position = "[$($this.SelectedRow + 1)/$(@($this.CurrentData).Count) | $shownStart-$shownEnd]"
         $selection = if ($this.MultiSelectMode -and @($this.SelectedRows).Count -gt 1) { " [$(@($this.SelectedRows).Count) selected]" } else { "" }
@@ -1261,7 +1271,7 @@ class PmcGridRenderer {
         # Recalculate terminal metrics and adjust layout
         try {
             $this.TerminalWidth = $this.GetTerminalWidth()
-            $this.WindowHeight = [Console]::WindowHeight
+            $this.WindowHeight = $this.GetTerminalHeight()
         } catch {}
         $widths = $this.GetColumnWidths($this.CurrentData)
         $lines += $this.StyleText('Title', 'PMC Interactive Data Grid')
@@ -1292,7 +1302,7 @@ class PmcGridRenderer {
     }
 
     [void] EnsureInView() {
-        try { $this.WindowHeight = [Console]::WindowHeight } catch {}
+        $this.WindowHeight = $this.GetTerminalHeight()
         $available = [Math]::Max(1, $this.WindowHeight - ($this.HeaderLines + 1))
         if ($this.SelectedRow -lt $this.ScrollOffset) { $this.ScrollOffset = $this.SelectedRow }
         elseif ($this.SelectedRow -ge ($this.ScrollOffset + $available)) { $this.ScrollOffset = $this.SelectedRow - $available + 1 }
@@ -1301,7 +1311,10 @@ class PmcGridRenderer {
 
     [string] StyleText([string]$StyleToken, [string]$Text) {
         $sty = Get-PmcStyle $StyleToken
-        return $this.ConvertPmcStyleToAnsi($Text, $sty, @{})
+        $styledText = $this.ConvertPmcStyleToAnsi($Text, $sty, @{})
+
+        # Apply screen bounds enforcement
+        return $this.EnforceScreenBounds($styledText)
     }
 
     # Main interactive method
@@ -1421,7 +1434,7 @@ class PmcGridRenderer {
     }
 
     [void] PromptSaveView() {
-        $row = [Console]::WindowHeight - 2
+        $row = [PmcTerminalService]::GetHeight() - 2
         Write-Host ([PmcVT]::MoveTo(0, $row) + [PmcVT]::ClearLine())
         Write-Host -NoNewline "Save view as: "
         $name = Read-Host
@@ -1440,7 +1453,7 @@ class PmcGridRenderer {
 
     [void] PromptLoadView() {
         if ($this.SavedViews.Keys.Count -eq 0) { return }
-        $row = [Console]::WindowHeight - 2
+        $row = [PmcTerminalService]::GetHeight() - 2
         Write-Host ([PmcVT]::MoveTo(0, $row) + [PmcVT]::ClearLine())
         Write-Host -NoNewline ("Load view [{0}]: " -f ($this.SavedViews.Keys -join ', '))
         $name = Read-Host
@@ -1456,7 +1469,7 @@ class PmcGridRenderer {
     }
 
     [void] ListSavedViews() {
-        $row = [Console]::WindowHeight - 2
+        $row = [PmcTerminalService]::GetHeight() - 2
         Write-Host ([PmcVT]::MoveTo(0, $row) + [PmcVT]::ClearLine())
         if ($this.SavedViews.Keys.Count -eq 0) { Write-PmcStyled -Style 'Muted' -Text 'No saved views'; return }
         Write-PmcStyled -Style 'Body' -Text ("Saved views: {0}" -f ($this.SavedViews.Keys -join ', '))
@@ -1508,6 +1521,38 @@ class PmcGridRenderer {
         }
         $this.CurrentData = $filtered
         if ($this.SelectedRow -ge @($this.CurrentData).Count) { $this.SelectedRow = [Math]::Max(0, @($this.CurrentData).Count - 1) }
+    }
+
+    [void] RenderStaticGrid([array]$Data) {
+        # Simple non-interactive grid rendering for compatibility
+        if (-not $Data -or @($Data).Count -eq 0) {
+            Write-PmcStyled -Style 'Muted' -Text "No items to display"
+            return
+        }
+
+        $this.AllData = $Data
+        $this.CurrentData = $Data
+        $widths = $this.GetColumnWidths($Data)
+
+        # Display header
+        $headerLine = $this.FormatRow($null, $widths, $true, -1, $false)
+        Write-Host $headerLine
+
+        # Display separator
+        $sepParts = @()
+        foreach ($col in $this.ColumnConfig.Keys) {
+            $sepParts += "─" * $widths[$col]
+        }
+        Write-Host ("  " + ($sepParts -join "  "))
+
+        # Display data rows
+        for ($i = 0; $i -lt @($Data).Count; $i++) {
+            $item = $Data[$i]
+            if ($item -ne $null) {
+                $line = $this.FormatRow($item, $widths, $false, $i, $false)
+                Write-Host $line
+            }
+        }
     }
 
     [void] StartInteractiveMode([hashtable]$Config) {
@@ -1788,121 +1833,43 @@ function Show-PmcCustomGrid {
         [switch]$Interactive
     )
 
-    Write-PmcDebug -Level 2 -Category 'DataDisplay' -Message 'Show-PmcCustomGrid called' -Data @{ Domain=$Domain; DataCount=@($Data).Count; ColumnCount=@($Columns.Keys).Count; Interactive=$Interactive.IsPresent }
+    Write-PmcDebug -Level 2 -Category 'DataDisplay' -Message 'Show-PmcCustomGrid (DEPRECATED) - redirecting to Show-PmcDataGrid' -Data @{ Domain=$Domain; DataCount=@($Data).Count; ColumnCount=@($Columns.Keys).Count; Interactive=$Interactive.IsPresent }
 
-    if ($Title) {
-        Write-PmcStyled -Style 'Title' -Text "`n$Title"
-        Write-PmcStyled -Style 'Border' -Text ("─" * 50)
+    # Legacy compatibility wrapper - redirect to unified Show-PmcDataGrid
+    $params = @{
+        Domains = @($Domain)
+        Columns = $Columns
+        Title = $Title
+        Interactive = $Interactive
     }
 
-    if (-not $Data -or @($Data).Count -eq 0) {
-        Write-PmcDebug -Level 2 -Category 'DataDisplay' -Message 'No data to display'
-        Write-PmcStyled -Style 'Muted' -Text "No items match the specified criteria"
-        return
-    }
-
-    Write-PmcDebug -Level 2 -Category 'DataDisplay' -Message 'Creating PmcGridRenderer'
-    $renderer = [PmcGridRenderer]::new($Columns, @($Domain), @{})
-    Write-PmcDebug -Level 2 -Category 'DataDisplay' -Message 'Renderer created, determining display mode' -Data @{ Interactive=$Interactive.IsPresent; View=$View; Group=$Group }
+    # Handle special kanban mode
     if ($Interactive -and ($View -eq 'kanban') -and -not [string]::IsNullOrEmpty($Group)) {
         try {
             $kb = [PmcKanbanRenderer]::new($Domain, $Group, $Columns)
             $kb.StartInteractive($Data)
             return
         } catch {
-            # Fallback to grouped list below
+            Write-PmcDebug -Level 1 -Category 'DataDisplay' -Message 'Kanban render failed, falling back to grid' -Data @{ Error = $_.Exception.Message }
         }
     }
-    elseif ($Interactive -and ([string]::IsNullOrEmpty($Group)) -and ($View -eq 'list')) {
-        Write-PmcDebug -Level 2 -Category 'DataDisplay' -Message 'Starting interactive grid'
+
+    # Use universal display system with injected data
+    $renderer = [PmcGridRenderer]::new($Columns, @($Domain), @{})
+    $renderer.AllData = $Data
+    $renderer.CurrentData = $Data
+
+    if ($Title) {
+        Write-PmcStyled -Style 'Title' -Text "`n$Title"
+        Write-PmcStyled -Style 'Border' -Text ("─" * 50)
+    }
+
+    if ($Interactive) {
+        Write-PmcDebug -Level 2 -Category 'DataDisplay' -Message 'Starting interactive grid via compatibility wrapper'
         $renderer.StartInteractive($Data)
-        Write-PmcDebug -Level 2 -Category 'DataDisplay' -Message 'Interactive grid completed'
     } else {
-        Write-PmcDebug -Level 2 -Category 'DataDisplay' -Message 'Using non-interactive display'
-        if ([string]::IsNullOrEmpty($Group) -and ($View -eq 'list')) {
-            # Use simple non-interactive display instead of deprecated RenderGrid
-            $widths = $renderer.GetColumnWidths($Data)
-
-            # Display header
-            $headerParts = @()
-            foreach ($col in $Columns.Keys) {
-                $colConfig = $Columns[$col]
-                $headerText = if ($colConfig.PSObject.Properties['Header']) { $colConfig.Header } else { $col }
-                $width = $widths[$col]
-                $alignment = if ($colConfig.PSObject.Properties['Alignment']) { $colConfig.Alignment } else { 'Left' }
-
-                if ($alignment -eq 'Right') {
-                    $headerParts += $headerText.PadLeft($width)
-                } elseif ($alignment -eq 'Center') {
-                    $padding = $width - $headerText.Length
-                    $leftPad = [Math]::Floor($padding / 2)
-                    $rightPad = $padding - $leftPad
-                    $headerParts += (' ' * $leftPad) + $headerText + (' ' * $rightPad)
-                } else {
-                    $headerParts += $headerText.PadRight($width)
-                }
-            }
-            Write-Host ("  " + ($headerParts -join "  "))
-
-            # Display separator
-            $sepParts = @()
-            foreach ($col in $Columns.Keys) { $sepParts += "─" * $widths[$col] }
-            Write-Host ("  " + ($sepParts -join '  '))
-
-            # Display data rows
-            foreach ($item in $Data) {
-                if ($item -ne $null) {
-                    $rowParts = @()
-                    foreach ($col in $Columns.Keys) {
-                        $value = $renderer.GetItemValue($item, $col)
-                        $width = $widths[$col]
-                        $colConfig = $Columns[$col]
-                        $alignment = if ($colConfig.PSObject.Properties['Alignment']) { $colConfig.Alignment } else { 'Left' }
-
-                        # Truncate if needed
-                        if ($value.Length -gt $width) { $value = $value.Substring(0, $width-1) + '…' }
-
-                        if ($alignment -eq 'Right') {
-                            $rowParts += $value.PadLeft($width)
-                        } elseif ($alignment -eq 'Center') {
-                            $padding = $width - $value.Length
-                            $leftPad = [Math]::Floor($padding / 2)
-                            $rightPad = $padding - $leftPad
-                            $rowParts += (' ' * $leftPad) + $value + (' ' * $rightPad)
-                        } else {
-                            $rowParts += $value.PadRight($width)
-                        }
-                    }
-                    Write-Host ("  " + ($rowParts -join "  "))
-                }
-            }
-        } else {
-            # For now, treat view:kanban the same as grouped list. Later: add side-by-side lanes.
-            # Static grouped rendering: one header per group, single column header at top
-            $widths = $renderer.GetColumnWidths($Data)
-            # Print global header
-            $headerLine = $renderer.FormatRow($null, $widths, $true, -1, $false)
-            Write-Host $headerLine
-            $sepParts = @(); foreach ($k in $Columns.Keys) { $sepParts += "─" * $widths[$k] }
-            Write-Host ("  " + ($sepParts -join '  '))
-
-            # Group rows
-            $groups = @{}
-            foreach ($row in $Data) {
-                $key = ''
-                try { if ($row -and $row.PSObject.Properties[$Group]) { $key = [string]$row.$Group } } catch {}
-                if (-not $groups.ContainsKey($key)) { $groups[$key] = @() }
-                $groups[$key] += $row
-            }
-            foreach ($gk in ($groups.Keys | Sort-Object)) {
-                # Group header
-                Write-PmcStyled -Style 'Header' -Text ("`n== {0} ==" -f ($gk ?? '(none)'))
-                foreach ($row in $groups[$gk]) {
-                    $line = $renderer.FormatRow($row, $widths, $false, 0, $false)
-                    Write-Host $line
-                }
-            }
-        }
+        Write-PmcDebug -Level 2 -Category 'DataDisplay' -Message 'Using non-interactive display via compatibility wrapper'
+        $renderer.RenderStaticGrid($Data)
     }
 }
 

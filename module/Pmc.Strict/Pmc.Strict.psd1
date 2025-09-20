@@ -156,6 +156,14 @@
         'Show-PmcPreferences',
         'Invoke-PmcShortcutNumber',
         'Start-PmcReview',
+        # XFLOW (Excel flow lite)
+        'Set-PmcXFlowSourcePathInteractive',
+        'Set-PmcXFlowDestPathInteractive',
+        'Show-PmcXFlowPreview',
+        'Invoke-PmcXFlowRun',
+        'Export-PmcXFlowText',
+        'Import-PmcXFlowMappingsFromFile',
+        'Set-PmcXFlowLatestFromFile',
         # DATA DISPLAY SYSTEM
         'Show-PmcDataGrid',
         # UNIVERSAL DISPLAY SYSTEM

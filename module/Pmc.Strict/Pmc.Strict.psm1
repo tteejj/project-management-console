@@ -228,6 +228,16 @@ try {
     throw
 }
 
+# Excel Flow Lite (interactive path pickers for source/dest)
+try {
+    Write-Host "  Loading ExcelFlowLite.ps1..." -ForegroundColor Gray
+    . $PSScriptRoot/src/ExcelFlowLite.ps1
+    Write-Host "  ✓ ExcelFlowLite.ps1 loaded" -ForegroundColor Green
+} catch {
+    Write-Host "  ✗ ExcelFlowLite.ps1 failed: $_" -ForegroundColor Red
+    throw
+}
+
 try {
     Write-Host "  Loading ImportExport.ps1..." -ForegroundColor Gray
     . $PSScriptRoot/src/ImportExport.ps1

@@ -295,15 +295,7 @@ function Compute-GhostText {
 
 # Get terminal dimensions for TUI layout
 function Get-TerminalSize {
-    try {
-        return @{
-            Width = [Console]::WindowWidth
-            Height = [Console]::WindowHeight
-        }
-    } catch {
-        # Fallback dimensions if console access fails
-        return @{ Width = 80; Height = 24 }
-    }
+    return [PmcTerminalService]::GetDimensions()
 }
 
 # Clear screen and position cursor for command output

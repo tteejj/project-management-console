@@ -135,7 +135,7 @@ class PraxisGridFrameBuilder {
             }
 
             # Status line (move to bottom)
-            $consoleHeight = try { [Console]::WindowHeight } catch { 25 }
+            $consoleHeight = [PmcTerminalService]::GetHeight()
             $currentLine = $data.Count + 5  # Approximate current line
             $bottomLine = $consoleHeight - 1
 
