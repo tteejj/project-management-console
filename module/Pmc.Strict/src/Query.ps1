@@ -14,6 +14,12 @@ function Invoke-PmcQuery {
     }
 
     $tokens = @($Context.FreeText)
+    $interactive = $false
+    # Detect short interactive flag and strip it from tokens
+    if ($tokens -contains '-i') {
+        $interactive = $true
+        $tokens = @($tokens | Where-Object { $_ -ne '-i' })
+    }
 
     # Handle load: alias early
     $loadAlias = $tokens | Where-Object { $_ -match '^(?i)load:(.+)$' } | Select-Object -First 1
@@ -197,7 +203,7 @@ function Invoke-PmcQuery {
             $columns = @{
                 'id' = @{ Header = 'ID'; Width = 4; Alignment = 'Right' }
                 'text' = @{ Header = 'Task'; Width = 0; Alignment = 'Left' }
-                'priority' = @{ Header = 'P'; Width = 3; Alignment = 'Center' }
+                'priority' = @{ Header = 'pri'; Width = 3; Alignment = 'Center' }
                 'due' = @{ Header = 'Due'; Width = 12; Alignment = 'Center' }
                 'status' = @{ Header = 'Status'; Width = 10; Alignment = 'Left' }
             }
@@ -253,7 +259,11 @@ function Invoke-PmcQuery {
     Write-PmcDebug -Level 2 -Category "Query" -Message "About to call Show-PmcCustomGrid with $(@($result.Rows).Count) rows"
     Write-PmcDebug -Level 2 -Category 'Query' -Message 'Calling Show-PmcCustomGrid' -Data @{ Domain=$spec.Domain; RowCount=@($result.Rows).Count; ColumnCount=@($columns.Keys).Count }
     try {
-        Show-PmcCustomGrid -Domain $spec.Domain -Columns $columns -Data $result.Rows -Group $spec.Group -View $spec.View -Interactive
+        if ($interactive) {
+            Show-PmcCustomGrid -Domain $spec.Domain -Columns $columns -Data $result.Rows -Group $spec.Group -View $spec.View -Interactive
+        } else {
+            Show-PmcCustomGrid -Domain $spec.Domain -Columns $columns -Data $result.Rows -Group $spec.Group -View $spec.View
+        }
         Write-PmcDebug -Level 2 -Category "Query" -Message "Show-PmcCustomGrid completed successfully"
     } catch {
         Write-PmcDebug -Level 1 -Category "Query" -Message "Show-PmcCustomGrid failed: $($_.Exception.Message)"

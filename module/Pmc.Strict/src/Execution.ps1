@@ -122,6 +122,7 @@ function Parse-PmcArgsFromTokens {
             if ($res.Name) { $args['project'] = $res.Name; $i += ($res.Consumed - 1); continue }
             if ($t -match '^@(.+)$') { $args['project'] = $matches[1]; continue }
         }
+        if ($t -eq '-i') { $args['interactive'] = $true; continue }
         if ($t -match '^(?i)task:(\d+)$') { $args['taskId'] = [int]$matches[1]; continue }
         if ($t -match '^(p[1-3])$') { $args['priority'] = $matches[1]; continue }
         if ($t -match '^due:(.+)$') { $args['due'] = $matches[1]; continue }
@@ -148,22 +149,67 @@ function ConvertTo-PmcContext {
     param([string[]]$Tokens)
     if ($Tokens.Count -lt 1) { return @{ Success=$false; Error='Empty command' } }
 
-    # Special handling for 'help' so users can type: 'help', 'help <domain>', 'help <domain> <action>'
+    # Special handling for 'help' so users can type: 'help', 'help guide [topic]', 'help examples [topic]', 'help query', 'help domain <d>', 'help command <d> <a>'
     if ($Tokens[0].ToLower() -eq 'help') {
         if ($Tokens.Count -eq 1) {
             $ctx = [PmcCommandContext]::new('help','show')
             $ctx.Raw = 'help show'
             return @{ Success=$true; Context=$ctx; Handler='Show-PmcSmartHelp' }
-        } elseif ($Tokens.Count -eq 2) {
-            $ctx = [PmcCommandContext]::new('help','domain')
-            $ctx.Raw = ($Tokens -join ' ')
-            $ctx.FreeText = @($Tokens[1])
-            return @{ Success=$true; Context=$ctx; Handler='Show-PmcHelpDomain' }
-        } else {
-            $ctx = [PmcCommandContext]::new('help','command')
-            $ctx.Raw = ($Tokens -join ' ')
-            $ctx.FreeText = @($Tokens[1], $Tokens[2])
-            return @{ Success=$true; Context=$ctx; Handler='Show-PmcHelpCommand' }
+        } elseif ($Tokens.Count -ge 2) {
+            $sub = $Tokens[1].ToLower()
+            switch ($sub) {
+                'guide' {
+                    $ctx = [PmcCommandContext]::new('help','guide')
+                    $ctx.Raw = ($Tokens -join ' ')
+                    if ($Tokens.Count -ge 3) { $ctx.FreeText = @($Tokens[2]) }
+                    return @{ Success=$true; Context=$ctx; Handler='Show-PmcHelpGuide' }
+                }
+                'search' {
+                    $ctx = [PmcCommandContext]::new('help','search')
+                    $ctx.Raw = ($Tokens -join ' ')
+                    if ($Tokens.Count -ge 3) { $ctx.FreeText = @(($Tokens[2..($Tokens.Count-1)] -join ' ')) }
+                    else { $ctx.FreeText = @('') }
+                    return @{ Success=$true; Context=$ctx; Handler='Show-PmcHelpSearch' }
+                }
+                'examples' {
+                    $ctx = [PmcCommandContext]::new('help','examples')
+                    $ctx.Raw = ($Tokens -join ' ')
+                    if ($Tokens.Count -ge 3) { $ctx.FreeText = @($Tokens[2]) }
+                    return @{ Success=$true; Context=$ctx; Handler='Show-PmcHelpExamples' }
+                }
+                'query' {
+                    $ctx = [PmcCommandContext]::new('help','query')
+                    $ctx.Raw = ($Tokens -join ' ')
+                    return @{ Success=$true; Context=$ctx; Handler='Show-PmcHelpQuery' }
+                }
+                'domain' {
+                    $ctx = [PmcCommandContext]::new('help','domain')
+                    $ctx.Raw = ($Tokens -join ' ')
+                    if ($Tokens.Count -ge 3) { $ctx.FreeText = @($Tokens[2]) }
+                    return @{ Success=$true; Context=$ctx; Handler='Show-PmcHelpDomain' }
+                }
+                'command' {
+                    $ctx = [PmcCommandContext]::new('help','command')
+                    $ctx.Raw = ($Tokens -join ' ')
+                    if ($Tokens.Count -ge 4) { $ctx.FreeText = @($Tokens[2], $Tokens[3]) }
+                    return @{ Success=$true; Context=$ctx; Handler='Show-PmcHelpCommand' }
+                }
+                default {
+                    if ($Tokens.Count -eq 2) {
+                        # Interpret as: help domain <domain>
+                        $ctx = [PmcCommandContext]::new('help','domain')
+                        $ctx.Raw = ($Tokens -join ' ')
+                        $ctx.FreeText = @($Tokens[1])
+                        return @{ Success=$true; Context=$ctx; Handler='Show-PmcHelpDomain' }
+                    } else {
+                        # Interpret as: help command <domain> <action>
+                        $ctx = [PmcCommandContext]::new('help','command')
+                        $ctx.Raw = ($Tokens -join ' ')
+                        $ctx.FreeText = @($Tokens[1], $Tokens[2])
+                        return @{ Success=$true; Context=$ctx; Handler='Show-PmcHelpCommand' }
+                    }
+                }
+            }
         }
     }
 

@@ -247,10 +247,13 @@ function Start-PmcShell {
             if (-not $ok) { throw "Interactive mode not available" }
 
             # Initialize persistent screen layout
-            if (Get-Command Initialize-PmcScreen -ErrorAction SilentlyContinue) {
-                Initialize-PmcScreen -Title "pmc — enhanced project management console"
-                Write-PmcDebug -Level 2 -Category 'SHELL' -Message "Persistent screen layout initialized"
-            } else {
+                if (Get-Command Initialize-PmcScreen -ErrorAction SilentlyContinue) {
+                    Initialize-PmcScreen -Title "pmc — enhanced project management console"
+                    Write-PmcDebug -Level 2 -Category 'SHELL' -Message "Persistent screen layout initialized"
+                    if (Get-Command Update-PmcHeaderStatus -ErrorAction SilentlyContinue) {
+                        Update-PmcHeaderStatus -Title "pmc — enhanced project management console"
+                    }
+                } else {
                 # Fallback to old banner system
                 if (Get-Command Clear-CommandOutput -ErrorAction SilentlyContinue) {
                     Clear-CommandOutput
@@ -267,6 +270,10 @@ function Start-PmcShell {
 
     while ($true) {
         try {
+            # Refresh header status each loop
+            if ($Interactive -and (Get-Command Update-PmcHeaderStatus -ErrorAction SilentlyContinue)) {
+                Update-PmcHeaderStatus -Title "pmc — enhanced project management console"
+            }
             # Use Console.ReadKey for interactive input (NO fallback)
             if ($Interactive) {
                 if (Get-Command Read-PmcCommand -ErrorAction SilentlyContinue) {
@@ -348,6 +355,15 @@ function Start-PmcShell {
                     if (Get-Command Clear-PmcContentArea -ErrorAction SilentlyContinue) {
                         Clear-PmcContentArea
                         Hide-PmcCursor
+                        # Move cursor to top-left of content area so static renderers print visibly
+                        try {
+                            $cb = Get-PmcContentBounds
+                            if ($cb) {
+                                $row = [int]$cb.Y + 1
+                                $col = [int]$cb.X + 1
+                                Write-Host ("`e[${row};${col}H") -NoNewline
+                            }
+                        } catch {}
                     } elseif (Get-Command Clear-CommandOutput -ErrorAction SilentlyContinue) {
                         Clear-CommandOutput
                     }
@@ -358,6 +374,10 @@ function Start-PmcShell {
                     # Restore input prompt after command execution
                     if (Get-Command Set-PmcInputPrompt -ErrorAction SilentlyContinue) {
                         Set-PmcInputPrompt -Prompt "pmc> "
+                        # Update header after potential context changes (debug, focus, security)
+                        if (Get-Command Update-PmcHeaderStatus -ErrorAction SilentlyContinue) {
+                            Update-PmcHeaderStatus -Title "pmc — enhanced project management console"
+                        }
                     } else {
                         # Fallback spacing
                         Write-Host ""

@@ -135,14 +135,13 @@ $Script:PmcCommandMap = @{
         commands= 'Show-PmcCommands'
     }
     help = @{
-        all     = 'Show-PmcHelpAll'
-        show    = 'Show-PmcSmartHelp'
-        list    = 'Get-PmcHelpData'
-        commands= 'Show-PmcCommandBrowser'
-        examples= 'Show-PmcHelpExamples'
-        guide   = 'Show-PmcHelpGuide'
-        domain  = 'Show-PmcHelpDomain'
-        command = 'Show-PmcHelpCommand'
+        show     = 'Show-PmcSmartHelp'     # Interactive help browser (full takeover)
+        domain   = 'Show-PmcHelpDomain'    # Static print of domain actions
+        command  = 'Show-PmcHelpCommand'   # Static print of specific command (args/usage)
+        query    = 'Show-PmcHelpQuery'     # Static print of query language overview
+        guide    = 'Show-PmcHelpGuide'     # Interactive guides for query/kanban
+        examples = 'Show-PmcHelpExamples'  # Practical examples
+        search   = 'Show-PmcHelpSearch'    # Search across help content and commands
     }
 }
 
@@ -193,6 +192,8 @@ $Script:PmcShortcutMap = @{
     prefs     = 'Show-PmcPreferences'
     '#'       = 'Invoke-PmcShortcutNumber'
     alias     = 'Get-PmcAliasList'
+    time      = 'Get-PmcTimeList'
+    config    = 'Validate-PmcConfig'
     review    = 'Start-PmcReview'
     import    = 'Import-PmcTasks'
     export    = 'Export-PmcTasks'
@@ -254,9 +255,10 @@ $Script:PmcCommandMeta = @{
     'alias remove'  = @{ Desc='Remove user alias' }
     'show aliases'  = @{ Desc='Show user aliases' }
     'show commands' = @{ Desc='List all commands' }
-    'help all'      = @{ Desc='Full command help' }
-    'help guide'    = @{ Desc='Interactive guides for query language and kanban' }
-    'help examples' = @{ Desc='Practical examples for queries and kanban workflows' }
+    'help guide'    = @{ Desc='Guides for query language and kanban' }
+    'help examples' = @{ Desc='Examples for queries and kanban flows' }
+    'help query'    = @{ Desc='Query language overview' }
+    'help search'   = @{ Desc='Search help content and commands' }
     'project stats' = @{ Desc='Project statistics' }
     'project info'  = @{ Desc='Project information' }
     'project recent'= @{ Desc='Recent projects' }

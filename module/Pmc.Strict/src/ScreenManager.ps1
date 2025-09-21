@@ -303,6 +303,44 @@ function Set-PmcHeader {
     $Script:PmcScreenManager.RenderHeader($Title, $Status)
 }
 
+# Update header with dynamic status chips (focus, debug, security)
+function Update-PmcHeaderStatus {
+    param(
+        [string]$Title = "pmc — enhanced project management console"
+    )
+
+    $statusParts = @()
+    try {
+        # Focus context
+        if (Get-Command Get-PmcCurrentContext -ErrorAction SilentlyContinue) {
+            $ctx = [string](Get-PmcCurrentContext)
+            if ($ctx -and $ctx.ToLower() -ne 'inbox') { $statusParts += ("🎯 " + $ctx) }
+        }
+    } catch {}
+
+    try {
+        # Debug level
+        if (Get-Command Get-PmcDebugStatus -ErrorAction SilentlyContinue) {
+            $dbg = Get-PmcDebugStatus
+            if ($dbg -and $dbg.Enabled) { $statusParts += ("DBG:" + ([string]$dbg.Level)) }
+        }
+    } catch {}
+
+    try {
+        # Security mode (simplified)
+        if (Get-Command Get-PmcSecurityStatus -ErrorAction SilentlyContinue) {
+            $sec = Get-PmcSecurityStatus
+            if ($sec) {
+                $secStr = if ($sec.PathWhitelistEnabled) { 'SEC:ON' } else { 'SEC:OFF' }
+                $statusParts += $secStr
+            }
+        }
+    } catch {}
+
+    $statusText = ($statusParts -join '  ')
+    Set-PmcHeader -Title $Title -Status $statusText
+}
+
 function Set-PmcInputPrompt {
     param(
         [string]$Prompt = "pmc> "

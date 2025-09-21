@@ -11,7 +11,7 @@ function Show-PmcData {
         [hashtable]$Columns = @{},      # Column configuration
         [string]$Title = "",            # Display title
         [hashtable]$Theme = @{},        # Theme overrides
-        [switch]$Interactive,           # Start interactive mode
+        [switch]$Interactive,           # Start interactive mode (overridden by -i flag in Context)
         [PmcCommandContext]$Context = $null  # PMC command context
     )
 
@@ -37,7 +37,11 @@ function Show-PmcData {
 
     # Call the enhanced grid system
     Write-PmcDebug -Level 2 -Category 'UniversalDisplay' -Message 'Show-PmcData calling Show-PmcDataGrid' -Data @{ DataType = $DataType; Interactive = $Interactive.IsPresent }
-    Show-PmcDataGrid -Domains @($DataType) -Columns $Columns -Filters $Filters -Title $Title -Theme $Theme -Interactive:$Interactive @additionalParams
+    # Determine interactive based on explicit param or Context -i flag
+    $startInteractive = $Interactive.IsPresent
+    try { if (-not $startInteractive -and $Context -and $Context.Args.ContainsKey('interactive') -and $Context.Args['interactive']) { $startInteractive = $true } } catch {}
+
+    Show-PmcDataGrid -Domains @($DataType) -Columns $Columns -Filters $Filters -Title $Title -Theme $Theme -Interactive:$startInteractive @additionalParams
 }
 
 function Get-PmcDefaultColumns {
@@ -128,12 +132,44 @@ function Show-PmcProjectsInteractive {
     } -Title "📊 PROJECTS DASHBOARD" -Interactive -Context $Context
 }
 
+# Static list of projects (no screen takeover)
+function Get-PmcProjectList {
+    param([PmcCommandContext]$Context)
+    $filters = @{ archived = $false }
+    $title = "Projects"
+    Show-PmcData -DataType "project" -Filters $filters -Title $title -Context $Context
+}
+
 function Show-PmcAllTasksInteractive {
     param([PmcCommandContext]$Context)
 
     Show-PmcData -DataType "task" -Filters @{
         "status" = "pending"
     } -Title "📋 ALL TASKS" -Interactive -Context $Context
+}
+
+# Static list of tasks (pending by default; honors @project when provided)
+function Get-PmcTaskList {
+    param([PmcCommandContext]$Context)
+
+    $filters = @{ status = 'pending' }
+    try {
+        if ($Context -and $Context.Args -and $Context.Args.ContainsKey('project')) {
+            $filters['project'] = [string]$Context.Args['project']
+        }
+        if ($Context -and $Context.Args -and $Context.Args.ContainsKey('due')) {
+            $dv = ([string]$Context.Args['due']).ToLower()
+            switch ($dv) {
+                'today'   { $filters['due_range'] = 'today' }
+                'overdue' { $filters['due_range'] = 'overdue' }
+                'upcoming'{ $filters['due_range'] = 'upcoming' }
+            }
+        }
+    } catch {}
+
+    $title = "Tasks"
+    if ($filters.ContainsKey('project')) { $title = "Tasks — @" + $filters['project'] }
+    Show-PmcData -DataType "task" -Filters $filters -Title $title -Context $Context
 }
 
 function Show-PmcTomorrowTasksInteractive {

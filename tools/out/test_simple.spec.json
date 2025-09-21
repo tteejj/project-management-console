@@ -1,0 +1,13 @@
+{
+  "Language": "EN",
+  "Name": "test_simple",
+  "Steps": [
+    {
+      "Decimals": 0,
+      "DataType": "CHAR",
+      "Equation": "@len(field_1,1)",
+      "Name": "test",
+      "Type": "CreateVirtualField"
+    }
+  ]
+}

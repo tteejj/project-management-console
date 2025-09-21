@@ -194,6 +194,15 @@ try {
 }
 
 try {
+    # Loading Time.ps1...
+    . $PSScriptRoot/src/Time.ps1
+    # ✓ Time.ps1 loaded
+} catch {
+    Write-Host "  ✗ Time.ps1 failed: $_" -ForegroundColor Red
+    throw
+}
+
+try {
     # Loading UndoRedo.ps1...
     . $PSScriptRoot/src/UndoRedo.ps1
     # ✓ UndoRedo.ps1 loaded
@@ -277,92 +286,121 @@ try {
     throw
 }
 
-# Initialize help content data structure
+# Initialize help content data structure - organized from reference doc
 $Script:PmcHelpContent = @{
-    "Query & Search" = @{
-        Description = "Query language, filters, and search"
+    'Query Language' = @{
+        Description = 'Filter, sort, and display tasks, projects, and time logs'
         Items = @(
-            @{ Type = "🎯 PRIORITY"; Command = "q tasks p1"; Description = "High priority only (p1/p2/p3)" }
-            @{ Type = "🎯 PRIORITY"; Command = "q tasks p<=2"; Description = "High/medium priority" }
-            @{ Type = "🎯 PRIORITY"; Command = "q tasks p>=2"; Description = "Medium/low priority" }
-            @{ Type = "📅 DATE"; Command = "q tasks due:today"; Description = "Due today" }
-            @{ Type = "📅 DATE"; Command = "q tasks due>today"; Description = "Due in future" }
-            @{ Type = "📅 DATE"; Command = "q tasks overdue"; Description = "Past due" }
-            @{ Type = "📅 DATE"; Command = "q tasks due<=7d"; Description = "Due within 7 days" }
-            @{ Type = "📅 DATE"; Command = "q tasks due:2024-12-25"; Description = "Due on specific date" }
-            @{ Type = "🏷️ PROJECT"; Command = "q tasks @work"; Description = "Work project tasks" }
-            @{ Type = "🏷️ PROJECT"; Command = "q tasks #urgent"; Description = "Tagged urgent" }
-            @{ Type = "🏷️ PROJECT"; Command = "q tasks @work #urgent"; Description = "Work project, urgent tag" }
-            @{ Type = "🔗 ADVANCED"; Command = "q tasks p<=2 @work due>=today"; Description = "Multiple filters combined" }
-            @{ Type = "🔗 ADVANCED"; Command = "q tasks cols:id,text,due"; Description = "Select specific columns" }
-            @{ Type = "🔗 ADVANCED"; Command = "q tasks sort:due"; Description = "Sort by due date" }
-            @{ Type = "🔗 ADVANCED"; Command = "q tasks view:kanban"; Description = "Force kanban view" }
-            @{ Type = "🔗 ADVANCED"; Command = "q tasks group:status"; Description = "Group by status field" }
+            @{ Type='Basic'; Command='q tasks'; Description='Show all tasks' }
+            @{ Type='Filter'; Command='q tasks p1'; Description='High priority tasks' }
+            @{ Type='Filter'; Command='q tasks due:today'; Description='Tasks due today' }
+            @{ Type='Filter'; Command='q tasks @webapp'; Description='Tasks for webapp project' }
+            @{ Type='Filter'; Command='q tasks #urgent'; Description='Tasks tagged urgent' }
+            @{ Type='Filter'; Command='q tasks overdue'; Description='Overdue tasks' }
+            @{ Type='Filter'; Command='q tasks "database"'; Description='Text search for "database"' }
+            @{ Type='View'; Command='q tasks group:status'; Description='Kanban board by status' }
+            @{ Type='View'; Command='q tasks cols:id,text,due'; Description='Custom columns' }
+            @{ Type='View'; Command='q tasks sort:due+'; Description='Sort by due date ascending' }
+            @{ Type='Combo'; Command='q tasks @webapp p<=2 due:+7'; Description='Multiple filters combined' }
+            @{ Type='Save'; Command='q tasks p1 due:today save:urgent'; Description='Save query as "urgent"' }
+            @{ Type='Load'; Command='q load:urgent'; Description='Load saved query' }
         )
     }
-    "Views & Filters" = @{
-        Description = "Display modes and visual layouts"
+    'Priority Filters' = @{
+        Description = 'Filter tasks by priority level'
         Items = @(
-            @{ Type = "📋 VIEWS"; Command = "agenda"; Description = "Calendar view of tasks" }
-            @{ Type = "📋 VIEWS"; Command = "today"; Description = "Today's tasks" }
-            @{ Type = "📋 VIEWS"; Command = "overdue"; Description = "Past due tasks" }
-            @{ Type = "📋 VIEWS"; Command = "upcoming"; Description = "Future tasks" }
-            @{ Type = "📋 VIEWS"; Command = "tasks"; Description = "All pending tasks" }
-            @{ Type = "📋 VIEWS"; Command = "projects"; Description = "Projects dashboard" }
-            @{ Type = "🎯 KANBAN"; Command = "q tasks group:status"; Description = "Auto-kanban by status" }
-            @{ Type = "🎯 KANBAN"; Command = "q tasks group:priority"; Description = "Kanban by priority" }
-            @{ Type = "🎯 KANBAN"; Command = "q tasks group:project"; Description = "Kanban by project" }
-            @{ Type = "🎯 KANBAN"; Command = "q tasks view:kanban"; Description = "Force kanban view" }
-            @{ Type = "⌨️ NAVIGATION"; Command = "↑ ↓ ← →"; Description = "Navigate kanban lanes and cards" }
-            @{ Type = "⌨️ NAVIGATION"; Command = "Space"; Description = "Move cards between lanes" }
-            @{ Type = "⌨️ NAVIGATION"; Command = "Enter"; Description = "Edit selected task/card" }
-            @{ Type = "⌨️ NAVIGATION"; Command = "Escape"; Description = "Exit kanban mode" }
+            @{ Type='Basic'; Command='q tasks p1'; Description='Priority 1 (highest)' }
+            @{ Type='Basic'; Command='q tasks p2'; Description='Priority 2 (medium)' }
+            @{ Type='Basic'; Command='q tasks p3'; Description='Priority 3 (lowest)' }
+            @{ Type='Range'; Command='q tasks p<=2'; Description='Priority 2 or higher' }
+            @{ Type='Range'; Command='q tasks p1..3'; Description='Priority range 1 to 3' }
         )
     }
-    "Task Management" = @{
-        Description = "Creating, editing, and organizing tasks"
+    'Date Filters' = @{
+        Description = 'Filter tasks by dates and deadlines'
         Items = @(
-            @{ Type = "➕ CREATE"; Command = "task add 'New task'"; Description = "Add basic task" }
-            @{ Type = "➕ CREATE"; Command = "task add 'Meeting' @work p1 due:today"; Description = "Add task with project, priority, due date" }
-            @{ Type = "➕ CREATE"; Command = "task add 'Fix bug #123' #urgent"; Description = "Add task with tags" }
-            @{ Type = "✅ COMPLETE"; Command = "task done 5"; Description = "Mark task #5 complete" }
-            @{ Type = "✅ COMPLETE"; Command = "task done @work"; Description = "Complete all work tasks" }
-            @{ Type = "📝 EDIT"; Command = "task update 5 due:2024-12-25"; Description = "Set due date" }
-            @{ Type = "📝 EDIT"; Command = "task update 5 p2"; Description = "Change priority" }
-            @{ Type = "📝 EDIT"; Command = "task update 5 'Updated text'"; Description = "Change task text" }
-            @{ Type = "🔧 ADVANCED"; Command = "task edit 5"; Description = "Interactive task editor" }
-            @{ Type = "🔧 ADVANCED"; Command = "task move 5 @newproject"; Description = "Move to different project" }
-            @{ Type = "🔧 ADVANCED"; Command = "task delete 5"; Description = "Delete task (careful!)" }
+            @{ Type='Relative'; Command='q tasks due:today'; Description='Due today' }
+            @{ Type='Relative'; Command='q tasks due:tomorrow'; Description='Due tomorrow' }
+            @{ Type='Relative'; Command='q tasks due:+7'; Description='Due in 7 days' }
+            @{ Type='Relative'; Command='q tasks due:eow'; Description='Due end of week (Sunday)' }
+            @{ Type='Relative'; Command='q tasks due:eom'; Description='Due end of month' }
+            @{ Type='Relative'; Command='q tasks due:1m'; Description='Due in 1 month' }
+            @{ Type='Absolute'; Command='q tasks due:20251225'; Description='Due Dec 25, 2025 (yyyymmdd)' }
+            @{ Type='Absolute'; Command='q tasks due:1225'; Description='Due Dec 25 (current year)' }
+            @{ Type='Status'; Command='q tasks overdue'; Description='Overdue tasks' }
         )
     }
-    "Project Management" = @{
-        Description = "Project creation and organization"
+    'Project Filters' = @{
+        Description = 'Filter by project names and assignments'
         Items = @(
-            @{ Type = "🆕 CREATE"; Command = "project add 'New Project'"; Description = "Create new project" }
-            @{ Type = "🆕 CREATE"; Command = "project add 'Work' -description 'Work tasks'"; Description = "Create project with description" }
-            @{ Type = "📋 MANAGE"; Command = "project list"; Description = "Show all projects" }
-            @{ Type = "📋 MANAGE"; Command = "project show @work"; Description = "Show project details" }
-            @{ Type = "📋 MANAGE"; Command = "project stats"; Description = "Project statistics" }
-            @{ Type = "🗂️ ORGANIZE"; Command = "project archive 'Old Project'"; Description = "Archive completed project" }
-            @{ Type = "🗂️ ORGANIZE"; Command = "project rename 'Old' 'New Name'"; Description = "Rename project" }
-            @{ Type = "🗂️ ORGANIZE"; Command = "project delete 'Unwanted'"; Description = "Delete project (careful!)" }
+            @{ Type='Basic'; Command='q tasks @webapp'; Description='Tasks for project "webapp"' }
+            @{ Type='Quoted'; Command='q tasks @"project name"'; Description='Projects with spaces' }
+            @{ Type='Multiple'; Command='q tasks @webapp @api'; Description='Tasks from multiple projects' }
+            @{ Type='Negative'; Command='q tasks -@archived'; Description='Exclude archived project' }
         )
     }
-    "Configuration" = @{
-        Description = "Settings and customization"
+    'Tag Filters' = @{
+        Description = 'Filter by tags and labels'
         Items = @(
-            @{ Type = "⚙️ SETTINGS"; Command = "config show"; Description = "View current settings" }
-            @{ Type = "⚙️ SETTINGS"; Command = "config set key value"; Description = "Set configuration value" }
-            @{ Type = "⚙️ SETTINGS"; Command = "config reset"; Description = "Reset to defaults" }
-            @{ Type = "🎨 THEMES"; Command = "theme set blue"; Description = "Change color theme" }
-            @{ Type = "🎨 THEMES"; Command = "theme list"; Description = "Show available themes" }
-            @{ Type = "🎨 THEMES"; Command = "theme preview"; Description = "Preview themes" }
-            @{ Type = "📊 STATUS"; Command = "status"; Description = "System status" }
-            @{ Type = "📊 STATUS"; Command = "stats"; Description = "Usage statistics" }
-            @{ Type = "📊 STATUS"; Command = "version"; Description = "Version information" }
-            @{ Type = "🔧 MAINTENANCE"; Command = "backup"; Description = "Backup data" }
-            @{ Type = "🔧 MAINTENANCE"; Command = "import tasks.json"; Description = "Import data" }
-            @{ Type = "🔧 MAINTENANCE"; Command = "export backup.json"; Description = "Export data" }
+            @{ Type='Basic'; Command='q tasks #urgent'; Description='Has "urgent" tag' }
+            @{ Type='Multiple'; Command='q tasks #web #api'; Description='Has both "web" and "api" tags' }
+            @{ Type='Negative'; Command='q tasks -#blocked'; Description='Does NOT have "blocked" tag' }
+        )
+    }
+    'Display Options' = @{
+        Description = 'Control how results are displayed'
+        Items = @(
+            @{ Type='Columns'; Command='q tasks cols:id,text,due'; Description='Show only specified columns' }
+            @{ Type='Columns'; Command='q tasks cols:id,text,due,priority'; Description='Include priority column' }
+            @{ Type='Sort'; Command='q tasks sort:due+'; Description='Sort by due date ascending' }
+            @{ Type='Sort'; Command='q tasks sort:priority-'; Description='Sort by priority descending' }
+            @{ Type='Sort'; Command='q tasks sort:due+,priority-'; Description='Multi-column sort' }
+            @{ Type='View'; Command='q tasks view:kanban'; Description='Display as Kanban board' }
+            @{ Type='View'; Command='q tasks view:list'; Description='Display as list (default)' }
+            @{ Type='Group'; Command='q tasks group:status'; Description='Group by status' }
+            @{ Type='Group'; Command='q tasks group:project'; Description='Group by project' }
+        )
+    }
+    'Advanced Features' = @{
+        Description = 'Metrics, relations, and saved queries'
+        Items = @(
+            @{ Type='Metrics'; Command='q tasks metrics:time_week'; Description='Add time logged this week' }
+            @{ Type='Metrics'; Command='q tasks metrics:time_today'; Description='Add time logged today' }
+            @{ Type='Metrics'; Command='q tasks metrics:overdue_days'; Description='Add days overdue' }
+            @{ Type='Relations'; Command='q tasks with:project'; Description='Include related project data' }
+            @{ Type='Relations'; Command='q projects with:tasks'; Description='Include related tasks' }
+            @{ Type='Save'; Command='q tasks p1 due:today save:myquery'; Description='Save query as "myquery"' }
+            @{ Type='Load'; Command='q load:myquery'; Description='Load saved query' }
+        )
+    }
+    'Quick Tasks' = @{
+        Description = 'Common task management commands'
+        Items = @(
+            @{ Type='View'; Command='today'; Description='Tasks due today' }
+            @{ Type='View'; Command='overdue'; Description='Overdue tasks' }
+            @{ Type='View'; Command='agenda'; Description='Agenda view' }
+            @{ Type='Add'; Command='add "Task text" @project p1 due:today'; Description='Add new task' }
+            @{ Type='Edit'; Command='edit 123'; Description='Edit task by ID' }
+            @{ Type='Complete'; Command='done 123'; Description='Mark task complete' }
+        )
+    }
+    'Projects' = @{
+        Description = 'Project management commands'
+        Items = @(
+            @{ Type='View'; Command='projects'; Description='List all projects' }
+            @{ Type='Add'; Command='project add "Project Name"'; Description='Create new project' }
+            @{ Type='View'; Command='project show webapp'; Description='Show project details' }
+            @{ Type='Edit'; Command='project edit webapp'; Description='Edit project settings' }
+        )
+    }
+    'Time Tracking' = @{
+        Description = 'Time logging and reports'
+        Items = @(
+            @{ Type='Start'; Command='timer start @project "Working on feature"'; Description='Start timer' }
+            @{ Type='Stop'; Command='timer stop'; Description='Stop current timer' }
+            @{ Type='Status'; Command='timer status'; Description='Show timer status' }
+            @{ Type='Add'; Command='time add 2h @project "Meeting"'; Description='Log time manually' }
+            @{ Type='Report'; Command='time report week'; Description='Weekly time report' }
         )
     }
 }
@@ -406,7 +444,41 @@ try {
     throw
 }
 
-# ProjectWizard.ps1 removed - functionality replaced by enhanced Add-PmcProject
+try {
+    # Loading ProjectWizard.ps1...
+    . $PSScriptRoot/src/ProjectWizard.ps1
+    # ✓ ProjectWizard.ps1 loaded
+} catch {
+    Write-Host "  ✗ ProjectWizard.ps1 failed: $_" -ForegroundColor Red
+    throw
+}
+
+try {
+    # Loading Projects.ps1...
+    . $PSScriptRoot/src/Projects.ps1
+    # ✓ Projects.ps1 loaded
+} catch {
+    Write-Host "  ✗ Projects.ps1 failed: $_" -ForegroundColor Red
+    throw
+}
+
+try {
+    # Loading Tasks.ps1...
+    . $PSScriptRoot/src/Tasks.ps1
+    # ✓ Tasks.ps1 loaded
+} catch {
+    Write-Host "  ✗ Tasks.ps1 failed: $_" -ForegroundColor Red
+    throw
+}
+
+try {
+    # Loading Views.ps1...
+    . $PSScriptRoot/src/Views.ps1
+    # ✓ Views.ps1 loaded
+} catch {
+    Write-Host "  ✗ Views.ps1 failed: $_" -ForegroundColor Red
+    throw
+}
 
 try {
     # Loading PraxisVT.ps1...
@@ -453,6 +525,26 @@ try {
     throw
 }
 
+# Query engine dependencies (computed fields, evaluator, kanban renderer)
+try {
+    # Loading ComputedFields.ps1...
+    . $PSScriptRoot/src/ComputedFields.ps1
+    # ✓ ComputedFields.ps1 loaded
+} catch {
+    Write-Host "  ✗ ComputedFields.ps1 failed: $_" -ForegroundColor Red
+    throw
+}
+
+try {
+    # Loading QueryEvaluator.ps1...
+    . $PSScriptRoot/src/QueryEvaluator.ps1
+    # ✓ QueryEvaluator.ps1 loaded
+} catch {
+    Write-Host "  ✗ QueryEvaluator.ps1 failed: $_" -ForegroundColor Red
+    throw
+}
+
+
 try {
     # Loading PraxisFrameRenderer.ps1...
     . $PSScriptRoot/src/PraxisFrameRenderer.ps1
@@ -472,6 +564,15 @@ try {
 }
 
 try {
+    # Loading KanbanRenderer.ps1...
+    . $PSScriptRoot/src/KanbanRenderer.ps1
+    # ✓ KanbanRenderer.ps1 loaded
+} catch {
+    Write-Host "  ✗ KanbanRenderer.ps1 failed: $_" -ForegroundColor Red
+    throw
+}
+
+try {
     # Loading UniversalDisplay.ps1...
     . $PSScriptRoot/src/UniversalDisplay.ps1
     # ✓ UniversalDisplay.ps1 loaded
@@ -479,6 +580,8 @@ try {
     Write-Host "  ✗ UniversalDisplay.ps1 failed: $_" -ForegroundColor Red
     throw
 }
+
+ 
 
 
 # Clear screen after module loading completes
@@ -523,6 +626,7 @@ Export-ModuleMember -Function `
     Show-PmcCommandBrowser, `
     Show-PmcHelpExamples, `
     Show-PmcHelpGuide, `
+    Show-PmcHelpSearch, `
     Invoke-PmcTaskEditor, `
     Show-PmcAgenda, `
     Show-PmcTodayTasks, `
@@ -531,6 +635,8 @@ Export-ModuleMember -Function `
     Show-PmcBlockedTasks, `
     Show-PmcTasksWithoutDueDate, `
     Show-PmcProjectsView, `
+    Get-PmcTaskList, `
+    Get-PmcProjectList, `
     Show-PmcDataGrid, Show-PmcCustomGrid, `
     Show-PmcData, `
     Initialize-PmcScreen, `
@@ -556,4 +662,3 @@ try {
 }
 
 # Modules loaded after Export-ModuleMember removed to fix export issues
-# ComputedFields.ps1, QueryEvaluator.ps1, KanbanRenderer.ps1 were loaded earlier

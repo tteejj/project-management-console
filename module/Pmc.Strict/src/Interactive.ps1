@@ -15,7 +15,7 @@ function Pmc-SetEditor($e) { Set-PmcState -Section 'Interactive' -Key 'Editor' -
 function Pmc-GetCache { $c = Get-PmcState -Section 'Interactive' -Key 'CompletionCache'; if ($null -eq $c) { $c=@{}; Set-PmcState -Section 'Interactive' -Key 'CompletionCache' -Value $c }; return $c }
 function Pmc-SetCache($c) { Set-PmcState -Section 'Interactive' -Key 'CompletionCache' -Value $c }
 function Pmc-ClearCache { $c = Pmc-GetCache; $c.Clear() | Out-Null; Pmc-SetCache $c }
-function Pmc-GetGhost { $g = Get-PmcState -Section 'Interactive' -Key 'GhostTextEnabled'; if ($null -eq $g) { $g=$true; Set-PmcState -Section 'Interactive' -Key 'GhostTextEnabled' -Value $g }; return [bool]$g }
+function Pmc-GetGhost { $g = Get-PmcState -Section 'Interactive' -Key 'GhostTextEnabled'; if ($null -eq $g) { $g=$false; Set-PmcState -Section 'Interactive' -Key 'GhostTextEnabled' -Value $g }; return [bool]$g }
 function Pmc-SetGhost([bool]$g) { Set-PmcState -Section 'Interactive' -Key 'GhostTextEnabled' -Value $g }
 function Pmc-GetInfoMap { $m = Get-PmcState -Section 'Interactive' -Key 'CompletionInfoMap'; if ($null -eq $m) { $m=@{}; Set-PmcState -Section 'Interactive' -Key 'CompletionInfoMap' -Value $m }; return $m }
 function Pmc-SetInfoMap($m) { Set-PmcState -Section 'Interactive' -Key 'CompletionInfoMap' -Value $m }
@@ -166,6 +166,7 @@ function Render-Interactive {
     )
 
     $helpText = $null
+    $ghostText = ""
     if (-not $InCompletion) {
         try {
             $ctx = Parse-CompletionContext -Buffer $Buffer -CursorPos $CursorPos
@@ -192,10 +193,14 @@ function Render-Interactive {
                     if ($info) { $helpText = $info.Description }
                 }
             }
+            # Compute ghost text (inline suggestion) - DISABLED
+            $ghostText = ""
+
+            # No numeric suggestion line; keep help minimal and passive
         } catch {}
     }
 
-    Render-Line -Buffer $Buffer -CursorPos $CursorPos -IndicatorIndex $IndicatorIndex -IndicatorCount $IndicatorCount -InCompletion $InCompletion -HelpText $helpText
+    Render-Line -Buffer $Buffer -CursorPos $CursorPos -IndicatorIndex $IndicatorIndex -IndicatorCount $IndicatorCount -InCompletion $InCompletion -HelpText $helpText -GhostText $ghostText
 }
 
 # Build a compact argument summary from schema for inline guidance
@@ -325,7 +330,8 @@ function Render-Line {
         [int] $IndicatorIndex = 0,
         [int] $IndicatorCount = 0,
         [bool] $InCompletion = $false,
-        [string] $HelpText = $null
+        [string] $HelpText = $null,
+        [string] $GhostText = $null
     )
 
     $prompt = "pmc> "
@@ -360,6 +366,8 @@ function Render-Line {
     # Clear the two bottom lines and render
     [Console]::Write("`e[${inputRow};1H`e[2K")
     [Console]::Write($lineCore)
+
+    # Ghost text rendering disabled
     [Console]::Write("`e[${helpRow};1H`e[2K")
     if ($helpOut) { [Console]::Write($helpOut) }
     [Console]::Out.Flush()
@@ -823,11 +831,26 @@ function Get-EditorStateSnapshot {
 function Read-PmcCommand {
     Write-PmcDebug -Level 2 -Category 'INPUT' -Message "Starting Read-PmcCommand session"
 
-    # Initialize editor state
-    Pmc-SetEditor ([PmcEditorState]::new())
+    # Initialize or reset only the current line state (preserve history across prompts)
+    $ed = Pmc-GetEditor
+    if ($null -eq $ed) {
+        $ed = [PmcEditorState]::new()
+        Pmc-SetEditor $ed
+    }
+    $ed.Buffer = ''
+    $ed.CursorPos = 0
+    $ed.InCompletion = $false
+    $ed.OriginalBuffer = ''
+    $ed.Completions = @()
+    $ed.CompletionIndex = -1
+    $ed.Mode = [PmcCompletionMode]::Domain
+    $ed.CurrentToken = ''
+    $ed.TokenStart = 0
+    $ed.TokenEnd = 0
+    Pmc-SetEditor $ed
 
     # Initial prompt render
-    try { Render-Interactive -Buffer '' -CursorPos 0 -InCompletion $false } catch {}
+    try { Render-Interactive -Buffer (Pmc-GetEditor).Buffer -CursorPos (Pmc-GetEditor).CursorPos -InCompletion $false } catch {}
 
     while ($true) {
         try {
@@ -849,6 +872,38 @@ function Read-PmcCommand {
 
         try {
             switch ($key.Key) {
+                'LeftArrow' {
+                    if ((Pmc-GetEditor).CursorPos -gt 0) {
+                        (Pmc-GetEditor).CursorPos--
+                        Render-Interactive -Buffer (Pmc-GetEditor).Buffer -CursorPos (Pmc-GetEditor).CursorPos -InCompletion $false
+                    }
+                    continue
+                }
+                'RightArrow' {
+                    if ((Pmc-GetEditor).CursorPos -lt (Pmc-GetEditor).Buffer.Length) {
+                        (Pmc-GetEditor).CursorPos++
+                    }
+                    Render-Interactive -Buffer (Pmc-GetEditor).Buffer -CursorPos (Pmc-GetEditor).CursorPos -InCompletion $false
+                    continue
+                }
+                'Home' {
+                    (Pmc-GetEditor).CursorPos = 0
+                    Render-Interactive -Buffer (Pmc-GetEditor).Buffer -CursorPos (Pmc-GetEditor).CursorPos -InCompletion $false
+                    continue
+                }
+                'End' {
+                    (Pmc-GetEditor).CursorPos = (Pmc-GetEditor).Buffer.Length
+                    Render-Interactive -Buffer (Pmc-GetEditor).Buffer -CursorPos (Pmc-GetEditor).CursorPos -InCompletion $false
+                    continue
+                }
+                'Delete' {
+                    if ((Pmc-GetEditor).CursorPos -lt (Pmc-GetEditor).Buffer.Length) {
+                        (Pmc-GetEditor).Buffer = (Pmc-GetEditor).Buffer.Remove((Pmc-GetEditor).CursorPos, 1)
+                        Render-Interactive -Buffer (Pmc-GetEditor).Buffer -CursorPos (Pmc-GetEditor).CursorPos -InCompletion $false
+                    }
+                    continue
+                }
+                # Removed Alt+1/2/3 quick-accept bindings to avoid input interference
                 'Tab' {
                     $beforeCtx = Parse-CompletionContext -Buffer (Pmc-GetEditor).Buffer -CursorPos (Pmc-GetEditor).CursorPos
                     $beforeIn = (Pmc-GetEditor).InCompletion
