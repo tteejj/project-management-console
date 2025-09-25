@@ -136,8 +136,14 @@ function Show-PmcProjectsInteractive {
 function Get-PmcProjectList {
     param([PmcCommandContext]$Context)
     $filters = @{ archived = $false }
-    $title = "Projects"
-    Show-PmcData -DataType "project" -Filters $filters -Title $title -Context $Context
+
+    # Use simple template-based display
+    if (Get-Command Show-PmcSimpleData -ErrorAction SilentlyContinue) {
+        Show-PmcSimpleData -DataType "project" -Filters $filters
+    } else {
+        # Fallback to old system
+        Show-PmcData -DataType "project" -Filters $filters -Title "Projects" -Context $Context
+    }
 }
 
 function Show-PmcAllTasksInteractive {
@@ -150,7 +156,7 @@ function Show-PmcAllTasksInteractive {
 
 # Static list of tasks (pending by default; honors @project when provided)
 function Get-PmcTaskList {
-    param([PmcCommandContext]$Context)
+    param($Context)
 
     $filters = @{ status = 'pending' }
     try {
@@ -167,9 +173,15 @@ function Get-PmcTaskList {
         }
     } catch {}
 
-    $title = "Tasks"
-    if ($filters.ContainsKey('project')) { $title = "Tasks — @" + $filters['project'] }
-    Show-PmcData -DataType "task" -Filters $filters -Title $title -Context $Context
+    # Use simple template-based display instead of complex TUI
+    if (Get-Command Show-PmcSimpleData -ErrorAction SilentlyContinue) {
+        Show-PmcSimpleData -DataType "task" -Filters $filters
+    } else {
+        # Fallback to old system if template system not loaded
+        $title = "Tasks"
+        if ($filters.ContainsKey('project')) { $title = "Tasks — @" + $filters['project'] }
+        Show-PmcData -DataType "task" -Filters $filters -Title $title -Context $Context
+    }
 }
 
 function Show-PmcTomorrowTasksInteractive {
@@ -406,4 +418,4 @@ function Show-PmcHelpCategory {
     Show-PmcDataGrid -Data $helpItems -Columns $columns -Title $title -Interactive
 }
 
-# Export-ModuleMember removed - handled by main module to avoid overriding other exports
+Export-ModuleMember -Function Get-PmcTaskList, Get-PmcProjectList, Show-PmcData, Show-PmcTodayTasksInteractive, Show-PmcOverdueTasksInteractive, Show-PmcAgendaInteractive, Show-PmcProjectsInteractive, Show-PmcAllTasksInteractive, Show-PmcTomorrowTasksInteractive, Show-PmcUpcomingTasksInteractive, Show-PmcBlockedTasksInteractive, Show-PmcTasksWithoutDueDateInteractive, Show-PmcNextTasksInteractive, Show-PmcWeekTasksInteractive, Show-PmcMonthTasksInteractive, Register-PmcUniversalCommands, Get-PmcUniversalCommands

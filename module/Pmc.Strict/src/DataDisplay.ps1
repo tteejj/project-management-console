@@ -1712,7 +1712,7 @@ function Get-PmcFilteredData {
                     }
                 }
 
-                if ($Filters.PSObject.Properties['project'] -and $Filters.project) {
+                if ($Filters.ContainsKey('project') -and $Filters.project) {
                     $items = @($items | Where-Object { $_.PSObject.Properties['project'] -and $_.project -eq $Filters.project })
                 }
 
@@ -1962,4 +1962,4 @@ function Show-PmcCustomGrid {
 }
 
 # Export functions for module manifest
-#Export-ModuleMember -Function Show-PmcDataGrid
+Export-ModuleMember -Function Show-PmcDataGrid, Show-PmcCustomGrid

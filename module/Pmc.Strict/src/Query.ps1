@@ -3,17 +3,26 @@
 Set-StrictMode -Version Latest
 
 function Invoke-PmcQuery {
-    param([PmcCommandContext]$Context)
+    param($Context)
 
-    Write-PmcDebug -Level 1 -Category 'Query' -Message 'Invoke-PmcQuery START' -Data @{ FreeTextCount=@($Context.FreeText).Count }
+    # Handle both string and PmcCommandContext parameters for backward compatibility
+    if ($Context -is [string]) {
+        $tokens = ConvertTo-PmcTokens $Context
+        Write-PmcDebug -Level 1 -Category 'Query' -Message 'Invoke-PmcQuery START (string input)' -Data @{ TokenCount=@($tokens).Count }
+    } else {
+        Write-PmcDebug -Level 1 -Category 'Query' -Message 'Invoke-PmcQuery START' -Data @{ FreeTextCount=@($Context.FreeText).Count }
+        if (-not $Context -or $Context.FreeText.Count -lt 1) {
+            Write-PmcStyled -Style 'Warning' -Text "Usage: q <tasks|projects|timelogs> [filters/directives]"
+            return
+        }
+        $tokens = @($Context.FreeText)
+    }
 
     # Usage: pmc q <tasks|projects|timelogs> [tokens ...]
-    if (-not $Context -or $Context.FreeText.Count -lt 1) {
+    if (-not $tokens -or @($tokens).Count -lt 1) {
         Write-PmcStyled -Style 'Warning' -Text "Usage: q <tasks|projects|timelogs> [filters/directives]"
         return
     }
-
-    $tokens = @($Context.FreeText)
     $interactive = $false
     # Detect short interactive flag and strip it from tokens
     if ($tokens -contains '-i') {

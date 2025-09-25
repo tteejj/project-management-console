@@ -1,7 +1,7 @@
 # Time.ps1 - Time tracking and timer functions
 
 function Add-PmcTimeEntry {
-    param([PmcCommandContext]$Context)
+    param($Context)
 
     try {
         $allData = Get-PmcAllData
@@ -10,6 +10,8 @@ function Add-PmcTimeEntry {
         $entry = @{
             id = Get-PmcNextTimeId $allData
             project = $allData.currentContext
+            id1 = $null
+            id2 = $null
             date = (Get-Date).ToString('yyyy-MM-dd')
             minutes = 0
             description = ""
@@ -26,10 +28,37 @@ function Add-PmcTimeEntry {
                 $text = $text -replace '\d+m(?:in)?', ''
             }
 
-            # Parse project from @project syntax
-            if ($text -match '@(\w+)') {
+            # Parse indirect code from #code syntax (2-5 digits)
+            if ($text -match '#(\d{2,5})') {
+                $entry.id1 = $matches[1]
+                $entry.project = $null  # Indirect means no project
+                $text = $text -replace '#\d{2,5}', ''
+            }
+            # Parse project from @project syntax (only if no indirect code)
+            elseif ($text -match '@(\w+)') {
                 $entry.project = $matches[1]
                 $text = $text -replace '@\w+', ''
+            }
+
+            # Parse date from text (YYYYMMDD or MMDD format)
+            if ($text -match '\b(?:(\d{4})(\d{2})(\d{2})|(\d{2})(\d{2}))\b') {
+                if ($matches[1]) {
+                    # YYYYMMDD format
+                    $year = [int]$matches[1]
+                    $month = [int]$matches[2]
+                    $day = [int]$matches[3]
+                } else {
+                    # MMDD format - assume current year
+                    $year = (Get-Date).Year
+                    $month = [int]$matches[4]
+                    $day = [int]$matches[5]
+                }
+                try {
+                    $entry.date = (Get-Date -Year $year -Month $month -Day $day).ToString('yyyy-MM-dd')
+                    $text = $text -replace '\b(?:\d{4}\d{2}\d{2}|\d{2}\d{2})\b', ''
+                } catch {
+                    # Invalid date, keep default
+                }
             }
 
             # Rest is description
@@ -41,7 +70,8 @@ function Add-PmcTimeEntry {
         $allData.timelogs += $entry
 
         Set-PmcAllData $allData
-        Write-PmcStyled -Style 'Success' -Text "✓ Time entry added: $($entry.minutes)m - $($entry.description)"
+        $target = if ($entry.id1) { "#$($entry.id1)" } else { "@$($entry.project)" }
+        Write-PmcStyled -Style 'Success' -Text "✓ Time entry added: $($entry.minutes)m $target - $($entry.description)"
 
     } catch {
         Write-PmcStyled -Style 'Error' -Text "Error adding time entry: $_"
@@ -49,7 +79,7 @@ function Add-PmcTimeEntry {
 }
 
 function Get-PmcTimeReport {
-    param([PmcCommandContext]$Context)
+    param($Context)
 
     try {
         $allData = Get-PmcAllData
@@ -60,15 +90,117 @@ function Get-PmcTimeReport {
             return
         }
 
-        Show-PmcCustomGrid -Domain 'time' -Data $timelogs -Title 'Time Report' -Interactive
+        # Determine week to display (current week default)
+        $weekOffset = 0
+        if ($Context.Args.ContainsKey('week')) {
+            try { $weekOffset = [int]$Context.Args['week'] } catch {}
+        }
+
+        Show-PmcWeeklyTimeReport -TimeLogs $timelogs -WeekOffset $weekOffset
 
     } catch {
         Write-PmcStyled -Style 'Error' -Text "Error generating time report: $_"
     }
 }
 
+function Show-PmcWeeklyTimeReport {
+    param([array]$TimeLogs, [int]$WeekOffset = 0)
+
+    # Calculate week start (Monday)
+    $today = Get-Date
+    $daysFromMonday = ($today.DayOfWeek.value__ + 6) % 7  # Monday = 0
+    $thisMonday = $today.AddDays(-$daysFromMonday).Date
+    $weekStart = $thisMonday.AddDays($WeekOffset * 7)
+    $weekEnd = $weekStart.AddDays(4)  # Friday
+
+    # Week header
+    $weekHeader = "Week of {0} - {1}" -f $weekStart.ToString('MMM dd'), $weekEnd.ToString('MMM dd, yyyy')
+    Write-PmcStyled -Style 'Header' -Text "`n📊 TIME REPORT"
+    Write-PmcStyled -Style 'Subheader' -Text $weekHeader
+    Write-PmcStyled -Style 'Info' -Text "Use '=' next week, '-' previous week`n"
+
+    # Filter logs for the week
+    $weekLogs = @()
+    for ($d = 0; $d -lt 5; $d++) {
+        $dayDate = $weekStart.AddDays($d).ToString('yyyy-MM-dd')
+        $dayLogs = $TimeLogs | Where-Object { $_.date -eq $dayDate }
+        $weekLogs += $dayLogs
+    }
+
+    if ($weekLogs.Count -eq 0) {
+        Write-PmcStyled -Style 'Warning' -Text "No time entries for this week"
+        return
+    }
+
+    # Group by project/indirect code
+    $grouped = @{}
+    foreach ($log in $weekLogs) {
+        $key = if ($log.id1) {
+            "#$($log.id1)"
+        } else {
+            $log.project ?? 'Unknown'
+        }
+
+        if (-not $grouped.ContainsKey($key)) {
+            $grouped[$key] = @{
+                Name = if ($log.id1) { "" } else { $log.project ?? 'Unknown' }
+                ID1 = if ($log.id1) { $log.id1 } else { '' }
+                ID2 = if ($log.id1) { '' } else { '' }
+                Mon = 0; Tue = 0; Wed = 0; Thu = 0; Fri = 0; Total = 0
+            }
+        }
+
+        # Add minutes to appropriate day
+        $logDate = [datetime]$log.date
+        $dayIndex = ($logDate.DayOfWeek.value__ + 6) % 7  # Monday = 0
+        $hours = [Math]::Round($log.minutes / 60.0, 1)
+
+        switch ($dayIndex) {
+            0 { $grouped[$key].Mon += $hours }
+            1 { $grouped[$key].Tue += $hours }
+            2 { $grouped[$key].Wed += $hours }
+            3 { $grouped[$key].Thu += $hours }
+            4 { $grouped[$key].Fri += $hours }
+        }
+        $grouped[$key].Total += $hours
+    }
+
+    # Display table
+    $headerFormat = "{0,-20} {1,-5} {2,-5} {3,6} {4,6} {5,6} {6,6} {7,6} {8,8}"
+    $rowFormat = "{0,-20} {1,-5} {2,-5} {3,6:F1} {4,6:F1} {5,6:F1} {6,6:F1} {7,6:F1} {8,8:F1}"
+
+    Write-Host ($headerFormat -f "Name", "ID1", "ID2", "Mon", "Tue", "Wed", "Thu", "Fri", "Total") -ForegroundColor Cyan
+    Write-Host ("─" * 80) -ForegroundColor DarkGray
+
+    $grandTotal = 0
+    foreach ($entry in ($grouped.GetEnumerator() | Sort-Object Key)) {
+        $data = $entry.Value
+        Write-Host ($rowFormat -f $data.Name, $data.ID1, $data.ID2, $data.Mon, $data.Tue, $data.Wed, $data.Thu, $data.Fri, $data.Total)
+        $grandTotal += $data.Total
+    }
+
+    Write-Host ("─" * 80) -ForegroundColor DarkGray
+    Write-Host ($headerFormat -f "", "", "", "", "", "", "", "Total:", $grandTotal.ToString('F1')) -ForegroundColor Yellow
+
+    # Interactive week navigation
+    Write-PmcStyled -Style 'Info' -Text "`nPress '=' for next week, '-' for previous week, any other key to exit"
+
+    while ($true) {
+        $key = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
+        if ($key.Character -eq '=') {
+            Show-PmcWeeklyTimeReport -TimeLogs $TimeLogs -WeekOffset ($WeekOffset + 1)
+            break
+        } elseif ($key.Character -eq '-') {
+            Show-PmcWeeklyTimeReport -TimeLogs $TimeLogs -WeekOffset ($WeekOffset - 1)
+            break
+        } else {
+            break
+        }
+    }
+}
+
 function Get-PmcTimeList {
-    param([PmcCommandContext]$Context)
+    param($Context)
 
     try {
         $allData = Get-PmcAllData
@@ -84,7 +216,30 @@ function Get-PmcTimeList {
             [datetime]$_.date -ge (Get-Date).AddDays(-30)
         } | Sort-Object date -Descending
 
-        Show-PmcCustomGrid -Domain 'time' -Data $recent -Title 'Recent Time Entries' -Interactive
+        # Use template display
+        $timeTemplate = [PmcTemplate]::new('time-list', @{
+            type = 'grid'
+            header = 'ID     Date       Project/Code  Hours   Description'
+            row = '{id,-6} {date,-10} {target,-12} {hours,6:F1} {description}'
+            settings = @{ separator = '─'; minWidth = 60 }
+        })
+
+        # Format data for display
+        $displayData = @()
+        foreach ($log in $recent) {
+            $target = if ($log.id1) { "#$($log.id1)" } else { $log.project ?? 'Unknown' }
+            $hours = [Math]::Round($log.minutes / 60.0, 1)
+            $displayData += [pscustomobject]@{
+                id = $log.id
+                date = $log.date
+                target = $target
+                hours = $hours
+                description = $log.description ?? ''
+            }
+        }
+
+        Write-PmcStyled -Style 'Header' -Text "`n⏰ RECENT TIME ENTRIES`n"
+        Render-GridTemplate -Data $displayData -Template $timeTemplate
 
     } catch {
         Write-PmcStyled -Style 'Error' -Text "Error listing time entries: $_"
@@ -92,7 +247,7 @@ function Get-PmcTimeList {
 }
 
 function Edit-PmcTimeEntry {
-    param([PmcCommandContext]$Context)
+    param($Context)
 
     if (-not $Context -or $Context.FreeText.Count -eq 0) {
         Write-PmcStyled -Style 'Error' -Text "Usage: time edit <id>"
@@ -118,7 +273,7 @@ function Edit-PmcTimeEntry {
 }
 
 function Remove-PmcTimeEntry {
-    param([PmcCommandContext]$Context)
+    param($Context)
 
     if (-not $Context -or $Context.FreeText.Count -eq 0) {
         Write-PmcStyled -Style 'Error' -Text "Usage: time delete <id>"
@@ -148,7 +303,7 @@ function Remove-PmcTimeEntry {
 }
 
 function Start-PmcTimer {
-    param([PmcCommandContext]$Context)
+    param($Context)
 
     try {
         $project = if ($Context.FreeText.Count -gt 0) {
@@ -170,7 +325,7 @@ function Start-PmcTimer {
 }
 
 function Stop-PmcTimer {
-    param([PmcCommandContext]$Context)
+    param($Context)
 
     try {
         $running = Get-PmcState -Section 'Timer' -Key 'Running'
@@ -210,7 +365,7 @@ function Stop-PmcTimer {
 }
 
 function Get-PmcTimerStatus {
-    param([PmcCommandContext]$Context)
+    param($Context)
 
     try {
         $running = Get-PmcState -Section 'Timer' -Key 'Running'
@@ -250,4 +405,4 @@ function Get-PmcNextTimeId {
     return "T{0:000}" -f ($maxId + 1)
 }
 
-Export-ModuleMember -Function Add-PmcTimeEntry, Get-PmcTimeReport, Get-PmcTimeList, Edit-PmcTimeEntry, Remove-PmcTimeEntry, Start-PmcTimer, Stop-PmcTimer, Get-PmcTimerStatus
+Export-ModuleMember -Function Add-PmcTimeEntry, Get-PmcTimeReport, Get-PmcTimeList, Edit-PmcTimeEntry, Remove-PmcTimeEntry, Start-PmcTimer, Stop-PmcTimer, Get-PmcTimerStatus, Show-PmcWeeklyTimeReport

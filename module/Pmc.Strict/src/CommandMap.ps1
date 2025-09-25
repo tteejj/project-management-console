@@ -57,7 +57,6 @@ $Script:PmcCommandMap = @{
     }
     recurring = @{
         add     = 'Add-PmcRecurringTask'
-        list    = 'Get-PmcRecurringList'
     }
     alias = @{
         add     = 'Add-PmcAlias'
@@ -92,7 +91,6 @@ $Script:PmcCommandMap = @{
     }
     excel = @{
         import   = 'Import-PmcExcelData'
-        bind     = 'Bind-PmcExcelImports'
         view     = 'Show-PmcExcelPreview'
         latest   = 'Get-PmcLatestExcelFile'
     }
@@ -175,7 +173,7 @@ $Script:PmcShortcutMap = @{
     itoday    = 'Show-PmcTodayTasks'
     ioverdue  = 'Show-PmcOverdueTasks'
     iagenda   = 'Show-PmcAgenda'
-    iprojects = 'Show-PmcProjectsView'
+    iprojects = 'Show-PmcProjectList'
     itasks    = 'Show-PmcTodayTasks'
     undo      = 'Invoke-PmcUndo'
     redo      = 'Invoke-PmcRedo'
@@ -282,10 +280,11 @@ function Ensure-PmcUniversalDisplay {
         }
         throw 'Register-PmcUniversalCommands not found after loading UniversalDisplay.ps1'
     } catch {
-        Write-PmcDebug -Level 1 -Category 'UniversalDisplay' -Message "Initialization failed" -Data @{ Error = $_.ToString() }
+        # Write-PmcDebug -Level 1 -Category 'UniversalDisplay' -Message "Initialization failed" -Data @{ Error = $_.ToString() }
+        Write-Warning "UniversalDisplay initialization failed: $($_.ToString())"
         return $false
     }
 }
 
 # Initialize Universal Display system when this module is loaded
-Ensure-PmcUniversalDisplay
+# Ensure-PmcUniversalDisplay  # Commented out to prevent CommandMap loading issues

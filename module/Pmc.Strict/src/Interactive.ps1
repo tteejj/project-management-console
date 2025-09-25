@@ -693,9 +693,27 @@ function Get-CompletionsForState {
         [hashtable] $Context
     )
 
+    # Try AST-based completion first
+    try {
+        if (Get-Command Get-PmcCompletionsFromAst -ErrorAction SilentlyContinue) {
+            $buffer = if ($Context.Buffer) { $Context.Buffer } else { ($Context.Tokens -join ' ') + $Context.CurrentToken }
+            $cursorPos = if ($Context.CursorPos) { $Context.CursorPos } else { $buffer.Length }
+
+            $astCompletions = Get-PmcCompletionsFromAst -Buffer $buffer -CursorPos $cursorPos
+
+            if ($astCompletions.Count -gt 0) {
+                Write-PmcDebug -Level 2 -Category 'COMPLETION' -Message "Using AST completions: found $($astCompletions.Count) items"
+                return $astCompletions
+            }
+        }
+    } catch {
+        Write-PmcDebug -Level 2 -Category 'COMPLETION' -Message "AST completion failed: $_, falling back to legacy"
+    }
+
+    # Fallback to legacy completion system
     $cacheKey = "$($Context.Mode):$($Context.CurrentToken):$($Context.Tokens -join ' ')"
 
-    Write-PmcDebug -Level 2 -Category 'COMPLETION' -Message "Start Tab cycle: state=$($Context.Mode), token='$($Context.CurrentToken)', tokens=$($Context.Tokens.Count)"
+    Write-PmcDebug -Level 2 -Category 'COMPLETION' -Message "Start Tab cycle (legacy): state=$($Context.Mode), token='$($Context.CurrentToken)', tokens=$($Context.Tokens.Count)"
 
     # Check cache first for performance
     $cache = Pmc-GetCache
@@ -1325,4 +1343,4 @@ function Get-PmcInteractiveStatus {
 }
 
 # Export functions
-#Export-ModuleMember -Function Enable-PmcInteractiveMode, Disable-PmcInteractiveMode, Get-PmcInteractiveStatus, Read-PmcCommand
+Export-ModuleMember -Function Enable-PmcInteractiveMode, Disable-PmcInteractiveMode, Get-PmcInteractiveStatus, Read-PmcCommand, Pmc-InsertAtCursor

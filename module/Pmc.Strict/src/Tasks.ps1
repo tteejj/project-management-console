@@ -46,20 +46,37 @@ function Add-PmcTask {
     }
 }
 
-function Get-PmcTaskList {
+function Get-PmcTaskListOld {
     param([PmcCommandContext]$Context)
 
     try {
         $allData = Get-PmcAllData
         $tasks = $allData.tasks | Where-Object { -not $_.completed }
 
+        # Apply project filter if specified
+        Write-Host "DEBUG TASK LIST: Context.Args = $($Context.Args | ConvertTo-Json -Compress)"
+        Write-Host "DEBUG TASK LIST: Context.Args type = $($Context.Args.GetType().Name)"
+        Write-Host "DEBUG TASK LIST: ContainsKey check = $($Context.Args.ContainsKey('project'))"
+
+        if ($Context.Args -and $Context.Args.ContainsKey('project')) {
+            $projectFilter = $Context.Args['project']
+            Write-Host "DEBUG: Filtering tasks by project '$projectFilter'"
+            $originalCount = $tasks.Count
+            $tasks = $tasks | Where-Object { $_.project -eq $projectFilter }
+            Write-Host "DEBUG: Filtered from $originalCount to $($tasks.Count) tasks"
+        } else {
+            Write-Host "DEBUG: No project filter applied"
+        }
+
         if (-not $tasks) {
-            Write-PmcStyled -Style 'Info' -Text "No active tasks found"
+            $filterMsg = if ($Context.Args -and $Context.Args.ContainsKey('project')) { " for project '$($Context.Args['project'])'" } else { "" }
+            Write-PmcStyled -Style 'Info' -Text "No active tasks found$filterMsg"
             return
         }
 
         # Use universal display
-        Show-PmcCustomGrid -Domain 'task' -Data $tasks -Title 'Active Tasks'
+        $title = if ($Context.Args -and $Context.Args.ContainsKey('project')) { "Active Tasks — @$($Context.Args['project'])" } else { "Active Tasks" }
+        Show-PmcCustomGrid -Domain 'task' -Data $tasks -Title $title
 
     } catch {
         Write-PmcStyled -Style 'Error' -Text "Error listing tasks: $_"
@@ -203,4 +220,4 @@ function Set-PmcTask {
 }
 
 # Export all task functions
-Export-ModuleMember -Function Add-PmcTask, Get-PmcTaskList, Complete-PmcTask, Remove-PmcTask, Show-PmcTask, Set-PmcTask
+Export-ModuleMember -Function Add-PmcTask, Complete-PmcTask, Remove-PmcTask, Show-PmcTask, Set-PmcTask

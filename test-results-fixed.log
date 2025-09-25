@@ -1,0 +1,102 @@
+[33;1mWARNING: You are using Legacy parameter set that adapts Pester 5 syntax to Pester 4 syntax. This parameter set is deprecated, and does not work 100%. The -Strict and -PesterOption parameters are ignored, and providing advanced configuration to -Path (-Script), and -CodeCoverage via a hash table does not work. Please refer to https://github.com/pester/Pester/releases/tag/5.0.1#legacy-parameter-set for more information.[0m
+[95mPester v5.7.1[0m
+[95m
+[95mStarting discovery in 1 files.[0m
+[95mDiscovery found 22 tests in 252ms.[0m
+[95mRunning tests.[0m
+[95m
+[95mRunning tests from '/home/teej/pmc/tests/PMC.Complete.Tests.ps1'[0m
+[?25h[2J[H[?25l✓ PMC loaded
+✓ LegacyCompat services loaded
+✓ Universal command shortcuts registered
+[33;1mWARNING: The names of some imported commands from the module 'Pmc.Strict' include unapproved verbs that might make them less discoverable. To find the commands with unapproved verbs, run the Import-Module command again with the Verbose parameter. For a list of approved verbs, type Get-Verb.[0m
+[92mDescribing Complete PMC System Verification[0m
+[96m Context All Domain Commands from CommandMap[0m
+[91m   [-] Should have ALL domain functions available[0m[90m 69ms (30ms|39ms)[0m
+[91m    RuntimeException: PmcCommandMap is not loaded
+[91m    at <ScriptBlock>, /home/teej/pmc/tests/PMC.Complete.Tests.ps1:21[0m
+[96m Context All Display System Functions[0m
+[32m   [+] Should have core display functions[0m[90m 79ms (76ms|3ms)[0m
+Files with bad function references:
+  Pmc-InsertAtCursor:
+    Help.ps1
+    Interactive.ps1
+  PmcGridRenderer:
+    DataDisplay.ps1
+    ExcelFlowLite.ps1
+    KanbanRenderer.ps1
+    ProjectWizard.ps1
+  Show-PmcCustomGrid:
+    Aliases.ps1
+    Analytics.ps1
+    DataDisplay.ps1
+    KanbanRenderer.ps1
+    Query.ps1
+    Tasks.ps1
+    UI.ps1
+    Views.ps1
+[91m   [-] Should NOT reference non-existent display functions[0m[90m 109ms (107ms|2ms)[0m
+[91m    Expected 0, because No files should reference non-existent functions, but got 14.
+[91m    at $badReferences.Count | Should -Be 0 -Because "No files should reference non-existent functions", /home/teej/pmc/tests/PMC.Complete.Tests.ps1:103
+[91m    at <ScriptBlock>, /home/teej/pmc/tests/PMC.Complete.Tests.ps1:103[0m
+[96m Context Task Domain Complete Testing[0m
+[32m   [+] Should have all task functions[0m[90m 12ms (8ms|4ms)[0m
+[91m   [-] Should execute task functions without errors[0m[90m 34ms (32ms|2ms)[0m
+[91m    Expected no exception to be thrown, but an exception "Cannot process argument transformation on parameter 'Context'. Cannot convert the "@{Args=System.Collections.Hashtable; FreeText=System.Object[]}" value of type "System.Management.Automation.PSCustomObject" to type "PmcCommandContext"." was thrown from /home/teej/pmc/tests/PMC.Complete.Tests.ps1:135 char:40
+[91m        +             { Get-PmcTaskList -Context $context } | Should -Not -Thro …
+[91m        +                                        ~~~~~~~~.
+[91m    at { Get-PmcTaskList -Context $context } | Should -Not -Throw, /home/teej/pmc/tests/PMC.Complete.Tests.ps1:135
+[91m    at <ScriptBlock>, /home/teej/pmc/tests/PMC.Complete.Tests.ps1:135[0m
+[96m Context Project Domain Complete Testing[0m
+[32m   [+] Should have all project functions[0m[90m 9ms (7ms|3ms)[0m
+[96m Context Time Domain Complete Testing[0m
+[32m   [+] Should have all time functions[0m[90m 11ms (9ms|2ms)[0m
+[96m Context Timer Domain Complete Testing[0m
+[32m   [+] Should have all timer functions[0m[90m 7ms (5ms|2ms)[0m
+[96m Context View Domain Complete Testing[0m
+Missing view functions:
+  Show-PmcTasksWithoutDueDate
+  Show-PmcKanban
+[91m   [-] Should have all view functions[0m[90m 170ms (167ms|2ms)[0m
+[91m    Expected 0, but got 2.
+[91m    at $missingViewFuncs.Count | Should -Be 0, /home/teej/pmc/tests/PMC.Complete.Tests.ps1:231
+[91m    at <ScriptBlock>, /home/teej/pmc/tests/PMC.Complete.Tests.ps1:231[0m
+[96m Context Help Domain Complete Testing[0m
+[32m   [+] Should have all help functions[0m[90m 13ms (8ms|5ms)[0m
+[96m Context Config Domain Complete Testing[0m
+[32m   [+] Should have all config functions[0m[90m 10ms (7ms|3ms)[0m
+[96m Context Theme Domain Complete Testing[0m
+[32m   [+] Should have all theme functions[0m[90m 10ms (7ms|3ms)[0m
+[96m Context Excel Domain Complete Testing[0m
+[32m   [+] Should have all Excel functions[0m[90m 15ms (8ms|7ms)[0m
+[96m Context Data Storage and JSON Handling[0m
+Missing data functions:
+  Save-PmcData
+  Set-PmcAllData
+[91m   [-] Should have data access functions[0m[90m 123ms (120ms|3ms)[0m
+[91m    Expected 0, but got 2.
+[91m    at $missingDataFuncs.Count | Should -Be 0, /home/teej/pmc/tests/PMC.Complete.Tests.ps1:345
+[91m    at <ScriptBlock>, /home/teej/pmc/tests/PMC.Complete.Tests.ps1:345[0m
+[32m   [+] Should validate JSON files exist and are parseable[0m[90m 6ms (5ms|2ms)[0m
+[96m Context State Management Testing[0m
+[32m   [+] Should have state management functions[0m[90m 10ms (7ms|3ms)[0m
+[96m Context Template System Complete Testing[0m
+[91m   [-] Should have PmcTemplate class available[0m[90m 12ms (9ms|3ms)[0m
+[91m    Expected no exception to be thrown, because PmcTemplate class must exist, but an exception "Unable to find type [PmcTemplate]." was thrown from /home/teej/pmc/tests/PMC.Complete.Tests.ps1:401 char:15
+[91m        +             { [PmcTemplate]::new('test', @{}) } | Should -Not -Throw  …
+[91m        +               ~~~~~~~~~~~~~.
+[91m    at { [PmcTemplate]::new('test', @{}) } | Should -Not -Throw -Because "PmcTemplate class must exist", /home/teej/pmc/tests/PMC.Complete.Tests.ps1:401
+[91m    at <ScriptBlock>, /home/teej/pmc/tests/PMC.Complete.Tests.ps1:401[0m
+[91m   [-] Should have all template types working[0m[90m 9ms (7ms|2ms)[0m
+[91m    RuntimeException: Unable to find type [PmcTemplate].
+[91m    at <ScriptBlock>, /home/teej/pmc/tests/PMC.Complete.Tests.ps1:405[0m
+[96m Context All Other Domains Testing[0m
+[32m   [+] Should have dependency functions[0m[90m 9ms (6ms|3ms)[0m
+[32m   [+] Should have focus management functions[0m[90m 8ms (6ms|2ms)[0m
+[32m   [+] Should have system functions[0m[90m 9ms (7ms|2ms)[0m
+[96m Context Shortcut Map Complete Testing[0m
+[91m   [-] Should have ALL shortcut functions available[0m[90m 7ms (4ms|3ms)[0m
+[91m    RuntimeException: PmcShortcutMap is not loaded
+[91m    at <ScriptBlock>, /home/teej/pmc/tests/PMC.Complete.Tests.ps1:485[0m
+[97mTests completed in 2.28s[0m
+[97mTests Passed: 14, [0m[91mFailed: 8, [0m[90mSkipped: 0, [0m[90mInconclusive: 0, [0m[37m[0m[90mNotRun: 0[0m

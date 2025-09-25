@@ -1,0 +1,60 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<test-results xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="nunit_schema_2.5.xsd" name="Pester" total="9" errors="0" failures="3" not-run="0" inconclusive="0" ignored="0" skipped="0" invalid="0" date="2025-09-24" time="18:18:33">
+  <environment user-domain="" platform="Linux" os-version="6.12.45_1" cwd="/home/teej/pmc" clr-version="9.0.6" machine-name="void" nunit-version="2.5.8.0" user="teej" />
+  <culture-info current-culture="en-US" current-uiculture="en-US" />
+  <test-suite type="TestFixture" name="Pester" executed="True" result="Failure" success="False" time="19.8154" asserts="0" description="Pester">
+    <results>
+      <test-suite type="TestFixture" name="/home/teej/pmc/tests/MissingFunctions.Tests.ps1" executed="True" result="Failure" success="False" time="19.8154" asserts="0" description="/home/teej/pmc/tests/MissingFunctions.Tests.ps1">
+        <results>
+          <test-suite type="TestFixture" name="Missing Functions Verification" executed="True" result="Failure" success="False" time="15.5357" asserts="0" description="Missing Functions Verification">
+            <results>
+              <test-suite type="TestFixture" name="Missing Functions Verification.CommandMap Function References" executed="True" result="Success" success="True" time="1.9465" asserts="0" description="Missing Functions Verification.CommandMap Function References">
+                <results>
+                  <test-case description="Should have all CommandMap functions available" name="Missing Functions Verification.CommandMap Function References.Should have all CommandMap functions available" time="1.5864" asserts="0" success="True" result="Success" executed="True" />
+                </results>
+              </test-suite>
+              <test-suite type="TestFixture" name="Missing Functions Verification.Shortcut Map Function References" executed="True" result="Success" success="True" time="2.1632" asserts="0" description="Missing Functions Verification.Shortcut Map Function References">
+                <results>
+                  <test-case description="Should have all shortcut functions available" name="Missing Functions Verification.Shortcut Map Function References.Should have all shortcut functions available" time="0.1392" asserts="0" success="True" result="Success" executed="True" />
+                </results>
+              </test-suite>
+              <test-suite type="TestFixture" name="Missing Functions Verification.Function Call Analysis" executed="True" result="Failure" success="False" time="5.2585" asserts="0" description="Missing Functions Verification.Function Call Analysis">
+                <results>
+                  <test-case description="Should not have calls to non-existent Show-PmcCustomGrid" name="Missing Functions Verification.Function Call Analysis.Should not have calls to non-existent Show-PmcCustomGrid" time="1.6265" asserts="0" success="False" result="Failure" executed="True">
+                    <failure>
+                      <message>Expected 0, because Show-PmcCustomGrid does not exist, but got 8.</message>
+                      <stack-trace>at $badCalls.Count | Should -Be 0 -Because "Show-PmcCustomGrid does not exist", /home/teej/pmc/tests/MissingFunctions.Tests.ps1:73
+at &lt;ScriptBlock&gt;, /home/teej/pmc/tests/MissingFunctions.Tests.ps1:73</stack-trace>
+                    </failure>
+                  </test-case>
+                  <test-case description="Should not have calls to non-existent PmcGridRenderer" name="Missing Functions Verification.Function Call Analysis.Should not have calls to non-existent PmcGridRenderer" time="0.6946" asserts="0" success="False" result="Failure" executed="True">
+                    <failure>
+                      <message>Expected 0, because PmcGridRenderer class does not exist, but got 4.</message>
+                      <stack-trace>at $badCalls.Count | Should -Be 0 -Because "PmcGridRenderer class does not exist", /home/teej/pmc/tests/MissingFunctions.Tests.ps1:91
+at &lt;ScriptBlock&gt;, /home/teej/pmc/tests/MissingFunctions.Tests.ps1:91</stack-trace>
+                    </failure>
+                  </test-case>
+                  <test-case description="Should not have calls to non-existent Pmc-InsertAtCursor" name="Missing Functions Verification.Function Call Analysis.Should not have calls to non-existent Pmc-InsertAtCursor" time="0.6865" asserts="0" success="False" result="Failure" executed="True">
+                    <failure>
+                      <message>Expected 0, because Pmc-InsertAtCursor function does not exist, but got 2.</message>
+                      <stack-trace>at $badCalls.Count | Should -Be 0 -Because "Pmc-InsertAtCursor function does not exist", /home/teej/pmc/tests/MissingFunctions.Tests.ps1:109
+at &lt;ScriptBlock&gt;, /home/teej/pmc/tests/MissingFunctions.Tests.ps1:109</stack-trace>
+                    </failure>
+                  </test-case>
+                </results>
+              </test-suite>
+              <test-suite type="TestFixture" name="Missing Functions Verification.Recently Fixed Functions" executed="True" result="Success" success="True" time="8.5026" asserts="0" description="Missing Functions Verification.Recently Fixed Functions">
+                <results>
+                  <test-case description="Should have Set-PmcAllData function available" name="Missing Functions Verification.Recently Fixed Functions.Should have Set-PmcAllData function available" time="0.223" asserts="0" success="True" result="Success" executed="True" />
+                  <test-case description="Should have Show-PmcTasksWithoutDueDate function available" name="Missing Functions Verification.Recently Fixed Functions.Should have Show-PmcTasksWithoutDueDate function available" time="0.1178" asserts="0" success="True" result="Success" executed="True" />
+                  <test-case description="Should have Show-PmcKanban function available" name="Missing Functions Verification.Recently Fixed Functions.Should have Show-PmcKanban function available" time="0.0927" asserts="0" success="True" result="Success" executed="True" />
+                  <test-case description="Should NOT have obsolete functions" name="Missing Functions Verification.Recently Fixed Functions.Should NOT have obsolete functions" time="2.7147" asserts="0" success="True" result="Success" executed="True" />
+                </results>
+              </test-suite>
+            </results>
+          </test-suite>
+        </results>
+      </test-suite>
+    </results>
+  </test-suite>
+</test-results>

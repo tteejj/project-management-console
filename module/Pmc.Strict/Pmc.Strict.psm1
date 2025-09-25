@@ -30,6 +30,25 @@ class PmcEditorState {
     [int] $MaxHistoryItems = 100
 }
 
+# Template specification and renderer - moved to module scope for proper class export
+class PmcTemplate {
+    [string]$Name
+    [string]$Type        # 'grid', 'list', 'card', 'summary'
+    [string]$Header      # Header template
+    [string]$Row         # Row/item template
+    [string]$Footer      # Footer template
+    [hashtable]$Settings # Width, alignment, etc.
+
+    PmcTemplate([string]$name, [hashtable]$config) {
+        $this.Name = $name
+        $this.Type = if ($config.ContainsKey('type')) { $config.type } else { 'list' }
+        $this.Header = if ($config.ContainsKey('header')) { $config.header } else { '' }
+        $this.Row = if ($config.ContainsKey('row')) { $config.row } else { '' }
+        $this.Footer = if ($config.ContainsKey('footer')) { $config.footer } else { '' }
+        $this.Settings = if ($config.ContainsKey('settings')) { $config.settings } else { @{} }
+    }
+}
+
 # Dot-source internal components with debug tracing
 # Module loading in progress...
 
@@ -146,6 +165,33 @@ try {
 }
 
 ## moved earlier
+
+try {
+    # Loading AstCommandParser.ps1...
+    . $PSScriptRoot/src/AstCommandParser.ps1
+    # ✓ AstCommandParser.ps1 loaded
+} catch {
+    Write-Host "  ✗ AstCommandParser.ps1 failed: $_" -ForegroundColor Red
+    throw
+}
+
+try {
+    # Loading AstCompletion.ps1...
+    . $PSScriptRoot/src/AstCompletion.ps1
+    # ✓ AstCompletion.ps1 loaded
+} catch {
+    Write-Host "  ✗ AstCompletion.ps1 failed: $_" -ForegroundColor Red
+    throw
+}
+
+try {
+    # Loading TemplateDisplay.ps1...
+    . $PSScriptRoot/src/TemplateDisplay.ps1
+    # ✓ TemplateDisplay.ps1 loaded
+} catch {
+    Write-Host "  ✗ TemplateDisplay.ps1 failed: $_" -ForegroundColor Red
+    throw
+}
 
 try {
     # Loading Execution.ps1...
@@ -648,6 +694,17 @@ Export-ModuleMember -Function `
     Show-PmcCursor, `
     Reset-PmcScreen, `
     Write-PmcAtPosition
+
+# Export variables explicitly
+Export-ModuleMember -Variable PmcCommandMap, PmcShortcutMap, PmcCommandMeta
+
+# Load Services directory for additional functionality
+try {
+    . $PSScriptRoot/Services/LegacyCompat.ps1
+    Write-Host "✓ LegacyCompat services loaded" -ForegroundColor Green
+} catch {
+    Write-Host "✗ LegacyCompat services failed: $_" -ForegroundColor Red
+}
 
 # Register universal command shortcuts after export so functions are available
 try {

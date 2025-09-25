@@ -242,11 +242,32 @@ function ConvertTo-PmcContext {
     }
     $ctx = [PmcCommandContext]::new($domain,$action)
     $ctx.Raw = ($Tokens -join ' ')
-    # Arg-first rule with -- sentinel; supports @Project with spaces via greedy match
-    $rest = @($Tokens | Select-Object -Skip 2)
-    $parsed = Parse-PmcArgsFromTokens -Tokens $rest -StartIndex 0
-    $ctx.Args = $parsed.Args
-    $ctx.FreeText = $parsed.Free
+    # Use AST-based parsing instead of regex-heavy token parsing
+    $commandText = ($Tokens -join ' ')
+
+    # Try AST-based parsing first
+    try {
+        if (Get-Command ConvertTo-PmcCommandAst -ErrorAction SilentlyContinue) {
+            $astResult = ConvertTo-PmcCommandAst -CommandText $commandText
+            $ctx.Args = $astResult.Args
+            $ctx.FreeText = $astResult.FreeText
+            Write-PmcDebug -Level 2 -Category 'Execution' -Message "Using AST-based argument parsing"
+        } else {
+            # Fallback to legacy parsing if AST not available
+            $rest = @($Tokens | Select-Object -Skip 2)
+            $parsed = Parse-PmcArgsFromTokens -Tokens $rest -StartIndex 0
+            $ctx.Args = $parsed.Args
+            $ctx.FreeText = $parsed.Free
+            Write-PmcDebug -Level 2 -Category 'Execution' -Message "Using legacy token parsing"
+        }
+    } catch {
+        Write-PmcDebug -Level 1 -Category 'Execution' -Message "AST parsing failed, using legacy: $_"
+        # Fallback to legacy parsing
+        $rest = @($Tokens | Select-Object -Skip 2)
+        $parsed = Parse-PmcArgsFromTokens -Tokens $rest -StartIndex 0
+        $ctx.Args = $parsed.Args
+        $ctx.FreeText = $parsed.Free
+    }
     # Normalize known field values using Field Schemas
     Normalize-PmcContextFields -Context $ctx
     return @{ Success=$true; Context=$ctx; Handler=$fn }
@@ -452,4 +473,4 @@ function Test-PmcContext {
     return $true
 }
 
-#Export-ModuleMember -Function Set-PmcContextDefaults, Normalize-PmcContextFields, Resolve-PmcHandler, Resolve-PmcProjectFromTokens, Parse-PmcArgsFromTokens, ConvertTo-PmcIdSet, ConvertTo-PmcContext, Invoke-PmcCommand, ConvertTo-PmcContextType, Test-PmcContext
+Export-ModuleMember -Function Set-PmcContextDefaults, Normalize-PmcContextFields, Resolve-PmcHandler, Resolve-PmcProjectFromTokens, Parse-PmcArgsFromTokens, ConvertTo-PmcIdSet, ConvertTo-PmcContext, Invoke-PmcCommand, ConvertTo-PmcContextType, Test-PmcContext

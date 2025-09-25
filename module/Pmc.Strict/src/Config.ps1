@@ -83,7 +83,57 @@ function Validate-PmcConfig { param([PmcCommandContext]$Context)
     }
 }
 
-# Explicitly export the function to ensure it's available
-#Export-ModuleMember -Function Get-PmcConfig
+function Show-PmcConfig {
+    param($Context)
+    $cfg = Get-PmcConfig
 
-# Removed inline config editor per request
+    Write-PmcStyled -Style 'Header' -Text "`n⚙️ PMC CONFIGURATION`n"
+    Write-PmcStyled -Style 'Subheader' -Text "Data Path:"
+    Write-PmcStyled -Style 'Info' -Text "  $($cfg.Storage.DataPath)"
+    Write-PmcStyled -Style 'Subheader' -Text "`nDisplay Settings:"
+    Write-PmcStyled -Style 'Info' -Text "  Icons: $($cfg.Display.Icons.Mode)"
+    Write-PmcStyled -Style 'Subheader' -Text "`nSecurity Level:"
+    Write-PmcStyled -Style 'Info' -Text "  $($cfg.Security.Level)"
+}
+
+function Edit-PmcConfig {
+    param($Context)
+    Write-PmcStyled -Style 'Warning' -Text 'Config editing not yet implemented'
+    Write-PmcStyled -Style 'Info' -Text 'Use: Show-PmcConfig to view current settings'
+}
+
+function Set-PmcConfigValue {
+    param($Context)
+    Write-PmcStyled -Style 'Warning' -Text 'Config value setting not yet implemented'
+    Write-PmcStyled -Style 'Info' -Text 'Manual config editing required'
+}
+
+function Reload-PmcConfig {
+    param($Context)
+    # Force reload config
+    $Script:PmcConfig = $null
+    $cfg = Get-PmcConfig
+    Write-PmcStyled -Style 'Success' -Text '✓ Config reloaded'
+}
+
+function Set-PmcIconMode {
+    param($Context)
+
+    $mode = 'emoji'
+    if ($Context.FreeText.Count -gt 0) {
+        $mode = $Context.FreeText[0].ToLower()
+    }
+
+    if ($mode -notin @('ascii', 'emoji')) {
+        Write-PmcStyled -Style 'Error' -Text 'Icon mode must be: ascii or emoji'
+        return
+    }
+
+    $cfg = Get-PmcConfig
+    $cfg.Display.Icons.Mode = $mode
+    Save-PmcConfig $cfg
+    Write-PmcStyled -Style 'Success' -Text "✓ Icon mode set to: $mode"
+}
+
+# Export config functions
+Export-ModuleMember -Function Get-PmcConfig, Validate-PmcConfig, Show-PmcConfig, Edit-PmcConfig, Set-PmcConfigValue, Reload-PmcConfig, Set-PmcIconMode

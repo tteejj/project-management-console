@@ -1,202 +1,258 @@
 function Show-PmcHelpCategories {
-    param([PmcCommandContext]$Context)
+    param($Context)
 
     Write-PmcDebug -Level 1 -Category 'HELP' -Message 'Show-PmcHelpCategories START'
 
-    # Prefer curated help content if available
+    # Build help categories data
     $rows = @()
     $useCurated = ($Script:PmcHelpContent -and $Script:PmcHelpContent.Count -gt 0)
     if ($useCurated) {
         foreach ($entry in $Script:PmcHelpContent.GetEnumerator()) {
             $rows += [pscustomobject]@{
-                Category = [string]$entry.Key
-                Items    = @($entry.Value.Items).Count
-                Description = [string]$entry.Value.Description
+                category = [string]$entry.Key
+                items = @($entry.Value.Items).Count
+                description = [string]$entry.Value.Description
             }
-        }
-        $cols = @{
-            Category    = @{ Header='Category';   Width=26; Alignment='Left' }
-            Items       = @{ Header='Items';      Width=6;  Alignment='Right' }
-            Description = @{ Header='Description';Width=0;  Alignment='Left' }
         }
     } else {
-        # Fallback to domain listing
+        # Fallback to domain listing from CommandMap
         foreach ($domain in ($Script:PmcCommandMap.Keys | Sort-Object)) {
-            $actions = 0; try { $actions = @($Script:PmcCommandMap[$domain].Keys).Count } catch { $actions = 0 }
-            $rows += [pscustomobject]@{
-                Category = $domain
-                Items    = $actions
-                Description = ''
+            $actions = 0
+            try { $actions = @($Script:PmcCommandMap[$domain].Keys).Count } catch { $actions = 0 }
+            $desc = switch ($domain) {
+                'task' { 'Task management commands' }
+                'project' { 'Project management commands' }
+                'time' { 'Time tracking commands' }
+                'view' { 'Data viewing commands' }
+                'help' { 'Help system commands' }
+                'config' { 'Configuration commands' }
+                default { 'Domain commands' }
             }
-        }
-        $cols = @{
-            Category    = @{ Header='Category';   Width=26; Alignment='Left' }
-            Items       = @{ Header='Items';      Width=6;  Alignment='Right' }
-            Description = @{ Header='Description';Width=0;  Alignment='Left' }
+            $rows += [pscustomobject]@{
+                category = $domain
+                items = $actions
+                description = $desc
+            }
         }
     }
 
-    # Start interactive grid in NavigationMode
-    $renderer = [PmcGridRenderer]::new($cols, @('help-categories'), @{})
-    $renderer.EditMode = $false
-    $renderer.TitleText = '📚 PMC HELP — CATEGORIES'
-    $renderer.OnSelectCallback = {
-        param($item,$row)
-        if ($item -and $item.PSObject.Properties['Category']) {
-            Write-PmcDebug -Level 1 -Category 'HELP' -Message 'Select category' -Data @{ Category = [string]$item.Category }
-            $renderer.Interactive = $false
-            Show-PmcHelpCommands -Context $Context -Domain ([string]$item.Category)
-        }
-    }
-    # Help navigation key overrides
-    # Right/Enter => Select (drill), Left => no-op at root, Tab/Escape/Q => no-op
-    $renderer.KeyBindings['RightArrow'] = { try { $renderer.HandleEnterKey() } catch {} }
-    $renderer.KeyBindings['LeftArrow']  = { }
-    $renderer.KeyBindings['Tab']        = { }
-    $renderer.KeyBindings['Shift+Tab']  = { }
-    $renderer.KeyBindings['Escape']     = { }
-    $renderer.KeyBindings['Q']          = { }
-    Write-PmcDebug -Level 1 -Category 'HELP' -Message 'Help categories ready' -Data @{ Count = @($rows).Count }
-    $renderer.StartInteractive($rows)
+    # Use template display system
+    $helpTemplate = [PmcTemplate]::new('help-categories', @{
+        type = 'grid'
+        header = 'Category          Items  Description'
+        row = '{category,-16} {items,6}  {description}'
+        settings = @{ separator = '─'; minWidth = 60 }
+    })
+
+    Write-PmcStyled -Style 'Header' -Text "`n📚 PMC HELP — CATEGORIES`n"
+    Render-GridTemplate -Data $rows -Template $helpTemplate
+    Write-PmcStyled -Style 'Info' -Text "`nUse: help domain <category> (e.g., 'help domain task')"
 }
 
 function Show-PmcHelpCommands {
-    param([PmcCommandContext]$Context,[string]$Domain)
+    param($Context,[string]$Domain)
 
     Write-PmcDebug -Level 1 -Category 'HELP' -Message 'Show-PmcHelpCommands START' -Data @{ Domain = $Domain }
 
     if ([string]::IsNullOrWhiteSpace($Domain)) { return }
 
-    # Build rows from curated help when available, else domain actions
+    # Build rows from domain actions
     $rows = @()
-    $isCurated = ($Script:PmcHelpContent -and $Script:PmcHelpContent.ContainsKey($Domain))
-    if ($isCurated) {
-        foreach ($it in $Script:PmcHelpContent[$Domain].Items) {
+    $map = $null
+    try { $map = $Script:PmcCommandMap[$Domain] } catch { $map = $null }
+
+    if ($map) {
+        foreach ($action in ($map.Keys | Sort-Object)) {
+            $full = "{0} {1}" -f $Domain, $action
+            $desc = ''
+            try {
+                if ($Script:PmcCommandMeta.ContainsKey($full)) {
+                    $desc = [string]$Script:PmcCommandMeta[$full].Desc
+                }
+            } catch {}
             $rows += [pscustomobject]@{
-                Type        = [string]$it.Type
-                Command     = [string]$it.Command
-                Description = [string]$it.Description
+                command = $action
+                full = $full
+                description = $desc
             }
-        }
-        $cols = @{
-            Type        = @{ Header='Type';        Width=12; Alignment='Left' }
-            Command     = @{ Header='Command';     Width=32; Alignment='Left' }
-            Description = @{ Header='Description'; Width=0;  Alignment='Left' }
         }
     } else {
-        $map = $null; try { $map = $Script:PmcCommandMap[$Domain] } catch { $map = $null }
-        if ($map) {
-            foreach ($action in ($map.Keys | Sort-Object)) {
-                $full = ("{0} {1}" -f $Domain, $action)
-                $desc = ''
-                try { if ($Script:PmcCommandMeta.ContainsKey($full)) { $desc = [string]$Script:PmcCommandMeta[$full].Desc } } catch {}
-                $rows += [pscustomobject]@{ Action=$action; Description=$desc; Command=$full }
-            }
-        }
-        $cols = @{
-            Action      = @{ Header='Command';     Width=18; Alignment='Left' }
-            Description = @{ Header='Description'; Width=0;  Alignment='Left' }
-        }
+        Write-PmcStyled -Style 'Error' -Text "Domain '$Domain' not found."
+        return
     }
 
-    $renderer = [PmcGridRenderer]::new($cols, @('help-commands'), @{})
-    $renderer.EditMode = $false
-    $renderer.TitleText = ("📚 PMC HELP — {0}" -f $Domain.ToUpper())
-    $renderer.OnSelectCallback = {
-        param($item,$row)
-        if ($item -and $item.PSObject.Properties['Command']) {
-            $cmd = [string]$item.Command
-            Write-PmcDebug -Level 1 -Category 'HELP' -Message 'Select command' -Data @{ Command = $cmd }
+    # Use template display system
+    $helpTemplate = [PmcTemplate]::new('help-commands', @{
+        type = 'grid'
+        header = 'Command           Description'
+        row = '{command,-18} {description}'
+        settings = @{ separator = '─'; minWidth = 50 }
+    })
 
-            $renderer.Interactive = $false
-            if ($isCurated -and $cmd -match '^(?i)help\s+') {
-                # Inline help topic (keeps navigator flow)
-                Show-PmcHelpTopic -Context $Context -Topic ($cmd.Substring(5)) -ParentCategory $Domain
-                return
-            }
-
-            # Heuristic: execute known view-like commands; otherwise insert
-            $shouldExecute = $false
-            try {
-                $parts = $cmd.Split(' ',2)
-                $dom = $parts[0].ToLower()
-                $act = if ($parts.Length -gt 1) { $parts[1].ToLower() } else { '' }
-                if ($dom -in @('view','projects','tasks','today','overdue','agenda','tomorrow','upcoming','blocked','noduedate','next')) { $shouldExecute = $true }
-                if ($dom -eq 'project' -and $act -eq 'list') { $shouldExecute = $true }
-                if ($dom -eq 'task' -and $act -eq 'list') { $shouldExecute = $true }
-            } catch { $shouldExecute = $false }
-
-            if ($shouldExecute) {
-                try { Invoke-PmcCommand -Buffer $cmd } catch { Write-PmcDebug -Level 1 -Category 'HELP' -Message 'Execute failed' -Data @{ Error = $_.Exception.Message } }
-            } else {
-                try { Pmc-InsertAtCursor ($cmd + ' ') } catch { Write-PmcDebug -Level 1 -Category 'HELP' -Message 'Insert failed' -Data @{ Error = $_.Exception.Message } }
-            }
-        }
-    }
-    # Help navigation key overrides: Right/Enter select, Left goes back, Tab/Escape/Q do nothing
-    $renderer.KeyBindings['RightArrow'] = { try { $renderer.HandleEnterKey() } catch {} }
-    $renderer.KeyBindings['LeftArrow']  = { Write-PmcDebug -Level 1 -Category 'HELP' -Message 'Back from commands to categories'; $renderer.Interactive = $false; Show-PmcHelpCategories -Context $Context }
-    $renderer.KeyBindings['Tab']        = { }
-    $renderer.KeyBindings['Shift+Tab']  = { }
-    $renderer.KeyBindings['Escape']     = { }
-    $renderer.KeyBindings['Q']          = { }
-    Write-PmcDebug -Level 1 -Category 'HELP' -Message 'Help commands ready' -Data @{ Count = @($rows).Count }
-    $renderer.StartInteractive($rows)
+    Write-PmcStyled -Style 'Header' -Text "`n📚 PMC HELP — $($Domain.ToUpper())`n"
+    Render-GridTemplate -Data $rows -Template $helpTemplate
+    Write-PmcStyled -Style 'Info' -Text "`nUse: help command <domain> <action> (e.g., 'help command task add')"
 }
 
-# Render an inline help topic (scrollable) and allow Back to previous list
+# Show help topic content using template display
 function Show-PmcHelpTopic {
-    param([PmcCommandContext]$Context,[string]$Topic,[string]$ParentCategory)
+    param($Context,[string]$Topic)
     Write-PmcDebug -Level 1 -Category 'HELP' -Message 'Show-PmcHelpTopic START' -Data @{ Topic=$Topic }
 
-    $lines = @()
-    $topicLC = ($Topic + '').ToLower().Trim()
-    try {
-        if ($topicLC -like 'query*') {
-            $root = Split-Path (Split-Path (Split-Path $PSScriptRoot -Parent) -Parent) -Parent
-            $ref = Join-Path $root 'PMC_QUERY_LANGUAGE_REFERENCE.md'
-            if (Test-Path $ref) {
-                $raw = Get-Content $ref -Raw
-                $rawLines = $raw -split "`n"
-                foreach ($ln in $rawLines) {
-                    # Strip code fences and shell prompts; keep prose and examples
-                    if ($ln -match '^```') { continue }
-                    if ($ln -match '^(\$ |pwsh>|bash-\d|PS>)') { continue }
-                    $lines += [pscustomobject]@{ Text = ($ln.TrimEnd()) }
-                }
-            } else { $lines += [pscustomobject]@{ Text = 'Query reference not found.' } }
-        } else {
-            $lines += [pscustomobject]@{ Text = ("No detailed topic renderer for '{0}'" -f $Topic) }
-        }
-    } catch { $lines += [pscustomobject]@{ Text = ("Error loading topic: {0}" -f $_) } }
+    Write-PmcStyled -Style 'Header' -Text "`n📚 HELP — $($Topic.ToUpper())`n"
 
-    $cols = @{ Text = @{ Header=''; Width=0; Alignment='Left' } }
-    $renderer = [PmcGridRenderer]::new($cols, @('help-topic'), @{})
-    $renderer.EditMode = $false
-    $renderer.TitleText = ("📚 HELP — {0}" -f $Topic.ToUpper())
-    $renderer.OnSelectCallback = {
-        param($item,$row)
-        if ($item -and $item.PSObject.Properties['Text']) {
-            $text = [string]$item.Text
-            if ($text -match '^(?i)(pmc|task|project|view|time|timer)\s+') {
-                try { Pmc-InsertAtCursor ($text.Trim() + ' ') } catch {}
-            }
+    $topicLC = ($Topic + '').ToLower().Trim()
+    switch ($topicLC) {
+        'query' {
+            Write-PmcStyled -Style 'Subheader' -Text 'PMC Query Language'
+            Write-PmcStyled -Style 'Info' -Text 'Basic query syntax:'
+            Write-PmcStyled -Style 'Code' -Text '  task list status:pending'
+            Write-PmcStyled -Style 'Code' -Text '  task list due:today'
+            Write-PmcStyled -Style 'Code' -Text '  task list project:work'
+            Write-PmcStyled -Style 'Info' -Text '`nOperators: =, !=, <, >, contains, startswith, endswith'
+            Write-PmcStyled -Style 'Info' -Text 'Logical: and, or, not'
+        }
+        'examples' {
+            Write-PmcStyled -Style 'Subheader' -Text 'Common PMC Examples'
+            Write-PmcStyled -Style 'Info' -Text 'Add a task:'
+            Write-PmcStyled -Style 'Code' -Text '  task add "Fix login bug" project:web due:2024-01-15'
+            Write-PmcStyled -Style 'Info' -Text '`nList overdue tasks:'
+            Write-PmcStyled -Style 'Code' -Text '  view overdue'
+            Write-PmcStyled -Style 'Info' -Text '`nStart time tracking:'
+            Write-PmcStyled -Style 'Code' -Text '  timer start'
+        }
+        default {
+            Write-PmcStyled -Style 'Warning' -Text "No detailed help available for topic: $Topic"
         }
     }
-    # Left = back to previous list of commands in category
-    $renderer.KeyBindings['LeftArrow']  = { $renderer.Interactive = $false; Show-PmcHelpCommands -Context $Context -Domain $ParentCategory }
-    $renderer.KeyBindings['RightArrow'] = { try { $renderer.HandleEnterKey() } catch {} }
-    $renderer.KeyBindings['Tab']        = { }
-    $renderer.KeyBindings['Shift+Tab']  = { }
-    $renderer.KeyBindings['Escape']     = { }
-    $renderer.KeyBindings['Q']          = { }
-    $renderer.StartInteractive($lines)
 }
 
 function Show-PmcSmartHelp {
-    param([PmcCommandContext]$Context)
-    # Use the dedicated help navigator with proper back/forward keys
+    param($Context)
+    # Show main help categories with template display
     Show-PmcHelpCategories -Context $Context
 }
 
-Export-ModuleMember -Function Show-PmcSmartHelp, Show-PmcHelpCategories, Show-PmcHelpCommands
+# Show help for a specific domain (static display)
+function Show-PmcHelpDomain {
+    param($Context, [string]$Domain)
+    if ($Context.Args.ContainsKey('domain')) {
+        $Domain = $Context.Args['domain']
+    }
+    if ([string]::IsNullOrWhiteSpace($Domain)) {
+        Write-PmcStyled -Style 'Warning' -Text 'Usage: help domain <domain_name>'
+        return
+    }
+    Show-PmcHelpCommands -Context $Context -Domain $Domain
+}
+
+# Show help for a specific command (static display)
+function Show-PmcHelpCommand {
+    param($Context, [string]$Command)
+    if ($Context.Args.ContainsKey('command')) {
+        $Command = $Context.Args['command']
+    }
+    if ([string]::IsNullOrWhiteSpace($Command)) {
+        Write-PmcStyled -Style 'Warning' -Text 'Usage: help command <command_name>'
+        return
+    }
+
+    Write-PmcStyled -Style 'Header' -Text "`n📚 COMMAND HELP: $($Command.ToUpper())"
+
+    # Try to find command info
+    $found = $false
+    foreach ($domain in $Script:PmcCommandMap.Keys) {
+        foreach ($action in $Script:PmcCommandMap[$domain].Keys) {
+            $fullCmd = "$domain $action"
+            if ($fullCmd -eq $Command) {
+                $func = $Script:PmcCommandMap[$domain][$action]
+                $desc = if ($Script:PmcCommandMeta.ContainsKey($fullCmd)) { $Script:PmcCommandMeta[$fullCmd].Desc } else { 'No description available' }
+
+                Write-PmcStyled -Style 'Info' -Text "`nCommand: $fullCmd"
+                Write-PmcStyled -Style 'Info' -Text "Function: $func"
+                Write-PmcStyled -Style 'Info' -Text "Description: $desc"
+                $found = $true
+                break
+            }
+        }
+        if ($found) { break }
+    }
+
+    if (-not $found) {
+        Write-PmcStyled -Style 'Warning' -Text "Command '$Command' not found."
+    }
+}
+
+# Show query language help
+function Show-PmcHelpQuery {
+    param($Context)
+    Show-PmcHelpTopic -Context $Context -Topic 'query'
+}
+
+# Show help examples
+function Show-PmcHelpExamples {
+    param($Context)
+    Show-PmcHelpTopic -Context $Context -Topic 'examples'
+}
+
+# Show interactive help guide
+function Show-PmcHelpGuide {
+    param($Context)
+    Write-PmcStyled -Style 'Header' -Text "`n📚 PMC HELP GUIDE`n"
+    Write-PmcStyled -Style 'Subheader' -Text 'Getting Started:'
+    Write-PmcStyled -Style 'Info' -Text '• help show - Browse all help categories'
+    Write-PmcStyled -Style 'Info' -Text '• help domain <name> - Show commands for a domain'
+    Write-PmcStyled -Style 'Info' -Text '• help command <cmd> - Show detailed command help'
+    Write-PmcStyled -Style 'Info' -Text '• help query - Learn the query language'
+    Write-PmcStyled -Style 'Info' -Text '• help examples - See practical examples'
+    Write-PmcStyled -Style 'Subheader' -Text '`nQuick Start:'
+    Write-PmcStyled -Style 'Code' -Text '  task add "My first task"'
+    Write-PmcStyled -Style 'Code' -Text '  task list'
+    Write-PmcStyled -Style 'Code' -Text '  view today'
+}
+
+# Search help content and commands
+function Show-PmcHelpSearch {
+    param($Context, [string]$Query)
+    if ($Context.Args.ContainsKey('query')) {
+        $Query = $Context.Args['query']
+    }
+    if ([string]::IsNullOrWhiteSpace($Query)) {
+        Write-PmcStyled -Style 'Warning' -Text 'Usage: help search <search_term>'
+        return
+    }
+
+    Write-PmcStyled -Style 'Header' -Text "`n🔍 HELP SEARCH: $Query`n"
+
+    $results = @()
+    $queryLower = $Query.ToLower()
+
+    # Search command descriptions
+    foreach ($domain in $Script:PmcCommandMap.Keys) {
+        foreach ($action in $Script:PmcCommandMap[$domain].Keys) {
+            $fullCmd = "$domain $action"
+            $desc = if ($Script:PmcCommandMeta.ContainsKey($fullCmd)) { $Script:PmcCommandMeta[$fullCmd].Desc } else { '' }
+
+            if ($fullCmd.ToLower().Contains($queryLower) -or $desc.ToLower().Contains($queryLower)) {
+                $results += [pscustomobject]@{
+                    command = $fullCmd
+                    description = $desc
+                }
+            }
+        }
+    }
+
+    if ($results.Count -gt 0) {
+        $searchTemplate = [PmcTemplate]::new('help-search', @{
+            type = 'grid'
+            header = 'Command              Description'
+            row = '{command,-20} {description}'
+            settings = @{ separator = '─'; minWidth = 50 }
+        })
+        Render-GridTemplate -Data $results -Template $searchTemplate
+    } else {
+        Write-PmcStyled -Style 'Warning' -Text "No help results found for: $Query"
+    }
+}
+
+Export-ModuleMember -Function Show-PmcSmartHelp, Show-PmcHelpCategories, Show-PmcHelpCommands, Show-PmcHelpDomain, Show-PmcHelpCommand, Show-PmcHelpQuery, Show-PmcHelpExamples, Show-PmcHelpGuide, Show-PmcHelpSearch

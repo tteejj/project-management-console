@@ -1,0 +1,89 @@
+[?25h[2J[H[?25l✓ PMC loaded
+✓ LegacyCompat services loaded
+✓ Universal command shortcuts registered
+[33;1mWARNING: The names of some imported commands from the module 'Pmc.Strict' include unapproved verbs that might make them less discoverable. To find the commands with unapproved verbs, run the Import-Module command again with the Verbose parameter. For a list of approved verbs, type Get-Verb.[0m
+[OK] MODULE - Module imported
+[OK] CONFIG - Test config provider set
+[OK] DEBUG - Debug Level=2 Path=/home/teej/pmc/debug.log
+[OK] SECURITY - AllowedPaths=/home/teej/pmc,/home/teej/pmc/reports,/home/teej/pmc/backups,/home/teej/pmc/exports,/tmp/
+[FAIL] THEME - Check failed: The term 'Get-PmcStyle' is not recognized as a name of a cmdlet, function, script file, or executable program.
+Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+[OK] EXPORTS:compare - Declared=167 Exported=138 Missing=29 Extra=0
+[FAIL] STORAGE:Get - Check failed: The term 'Get-PmcData' is not recognized as a name of a cmdlet, function, script file, or executable program.
+Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+[OK] STORAGE:Provider - Provider ok
+[FAIL] AST:Tokens - Check failed: The term 'ConvertTo-PmcTokens' is not recognized as a name of a cmdlet, function, script file, or executable program.
+Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+[FAIL] AST:Args - Check failed: The term 'ConvertTo-PmcContext' is not recognized as a name of a cmdlet, function, script file, or executable program.
+Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+[FAIL] AST:Completions - Check failed: The term 'Get-PmcCompletionsFromAst' is not recognized as a name of a cmdlet, function, script file, or executable program.
+Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+
+📚 PMC HELP — CATEGORIES
+
+Category          Items  Description
+────────────────────────────────────
+Quick Tasks           6  Common task management commands
+Tag Filters           3  Filter by tags and labels
+Advanced Feature      7  Metrics, relations, and saved queries
+Display Options       9  Control how results are displayed
+Priority Filters      5  Filter tasks by priority level
+Date Filters          9  Filter tasks by dates and deadlines
+Projects              4  Project management commands
+Query Language       13  Filter, sort, and display tasks, projects, and time logs
+Time Tracking         5  Time logging and reports
+Project Filters       4  Filter by project names and assignments
+
+Use: help domain <category> (e.g., 'help domain task')
+[OK] EXEC:help - help command executed
+Command execution failed: The term 'Invoke-PmcEnhancedQuery' is not recognized as a name of a cmdlet, function, script file, or executable program.
+Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+[OK] EXEC:show projects - projects command executed
+[FAIL] QUERY:basic - Check failed: Cannot process argument transformation on parameter 'Context'. Cannot convert the "q tasks" value of type "System.String" to type "PmcCommandContext".
+[FAIL] QUERY:filter - Check failed: Cannot process argument transformation on parameter 'Context'. Cannot convert the "q tasks overdue" value of type "System.String" to type "PmcCommandContext".
+[FAIL] DISPLAY:Simple - Check failed: The term 'Show-PmcSimpleData' is not recognized as a name of a cmdlet, function, script file, or executable program.
+Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+
+Projects
+──────────────────────────────────────────────────
+[36mPMC Interactive Data Grid[0m
+══════════════════════════════════════════════════
+  description                     task_c  comple  name                
+  ──────────────────────────────  ──────  ──────  ────────────────────
+► Default inbox                                   inbox               
+  Web application development                     webapp              
+  Documentation and guides                        docs                
+  Team and project management                     management          
+  Created 2025-09-20                              ''                  
+  Created 2025-09-20                              1234 ab ltd.        
+[OK] DISPLAY:Universal - Universal display rendered
+[OK] SECURITY:PathGood - Path accepted
+[OK] SECURITY:PathBad - Bad path rejected
+[OK] SECURITY:Input - Input accepted
+[OK] DEBUG:Write - Debug write ok
+[OK] DEBUG:Measure - Measure ok
+[FAIL] UNDO:init - Check failed: The term 'Initialize-PmcUndoSystem' is not recognized as a name of a cmdlet, function, script file, or executable program.
+Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+[FAIL] UNDO:record - Check failed: The term 'Get-PmcData' is not recognized as a name of a cmdlet, function, script file, or executable program.
+Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+Undo not available (legacy in-memory undo removed)
+[OK] UNDO:undo - Undo invoked
+[FAIL] ALIASES:add - Check failed: The property 'FreeText' cannot be found on this object. Verify that the property exists.
+
+Aliases
+──────────────────────────────────────────────────
+No items match the specified criteria
+[FAIL] ALIASES:list - Check failed: No aliases
+[FAIL] ANALYTICS:stats - Check failed: The term 'Get-PmcStatistics' is not recognized as a name of a cmdlet, function, script file, or executable program.
+Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+[FAIL] ANALYTICS:velocity - Check failed: The term 'Get-PmcVelocity' is not recognized as a name of a cmdlet, function, script file, or executable program.
+Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+[FAIL] THEME:reset - Check failed: The property 'Display' cannot be found on this object. Verify that the property exists.
+Export is temporarily unavailable in enhanced mode
+[FAIL] EXPORT:tasks - Check failed: Export file missing
+[OK] EXCEL:latest - Excel latest ok
+[FAIL] UD:get - Check failed: The term 'Get-PmcUniversalCommands' is not recognized as a name of a cmdlet, function, script file, or executable program.
+Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+[OK] UD:ensure - UD ensured
+[OK] SRV:legacy - legacy ok
+[INFO] SUMMARY - Full analysis complete: See lines above for failures/warnings

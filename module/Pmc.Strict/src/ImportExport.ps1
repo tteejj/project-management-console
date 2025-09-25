@@ -1,16 +1,31 @@
 # Generic import/export of tasks (CSV/JSON)
 
 function Export-PmcTasks {
-    param([PmcCommandContext]$Context)
-    $data = Get-PmcDataAlias
+    param(
+        $Context,
+        [string]$Path
+    )
+
+    # Handle both Context and direct -Path parameter calls
     $outCsv = $null; $outJson = $null
-    # Parse tokens like out:foo.csv json:bar.json
-    foreach ($t in $Context.FreeText) {
-        if ($t -match '^(?i)out:(.+)$') { $outCsv = $matches[1] }
-        elseif ($t -match '^(?i)csv:(.+)$') { $outCsv = $matches[1] }
-        elseif ($t -match '^(?i)json:(.+)$') { $outJson = $matches[1] }
+
+    if ($Path) {
+        # Direct path parameter provided
+        if ($Path -match '\.json$') { $outJson = $Path }
+        else { $outCsv = $Path }
+    } elseif ($Context) {
+        # Parse tokens from context like out:foo.csv json:bar.json
+        foreach ($t in $Context.FreeText) {
+            if ($t -match '^(?i)out:(.+)$') { $outCsv = $matches[1] }
+            elseif ($t -match '^(?i)csv:(.+)$') { $outCsv = $matches[1] }
+            elseif ($t -match '^(?i)json:(.+)$') { $outJson = $matches[1] }
+        }
+        if (-not $outCsv -and -not $outJson) { $outCsv = 'exports/tasks.csv' }
+    } else {
+        $outCsv = 'exports/tasks.csv'
     }
-    if (-not $outCsv -and -not $outJson) { $outCsv = 'exports/tasks.csv' }
+
+    $data = Get-PmcDataAlias
 
     $tasks = @($data.tasks)
     if ($outCsv) {
@@ -91,4 +106,4 @@ function Import-PmcTasks {
     Show-PmcWarning 'Unsupported file type (use .csv or .json)'
 }
 
-#Export-ModuleMember -Function Export-PmcTasks, Import-PmcTasks
+Export-ModuleMember -Function Export-PmcTasks, Import-PmcTasks

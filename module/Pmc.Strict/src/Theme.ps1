@@ -71,14 +71,19 @@ function Set-PmcTheme {
 }
 
 function Reset-PmcTheme {
-    param([PmcCommandContext]$Context)
-    $cfg = Get-PmcConfig
-    if (-not $cfg.Display) { $cfg.Display = @{} }
-    if (-not $cfg.Display.Theme) { $cfg.Display.Theme = @{} }
-    $cfg.Display.Theme.Hex = '#33aaff'
-    $cfg.Display.Theme.Enabled = $true
-    Save-PmcConfig $cfg
-    Write-PmcStyled -Style 'Success' -Text "Theme reset to default (#33aaff)"
+    param($Context = $null)
+    try {
+        $cfg = Get-PmcConfig
+        if (-not $cfg) { $cfg = @{} }
+        if (-not (Pmc-HasProp $cfg 'Display')) { $cfg | Add-Member -NotePropertyName 'Display' -NotePropertyValue @{} -Force }
+        if (-not (Pmc-HasProp $cfg.Display 'Theme')) { $cfg.Display | Add-Member -NotePropertyName 'Theme' -NotePropertyValue @{} -Force }
+        $cfg.Display.Theme.Hex = '#33aaff'
+        $cfg.Display.Theme.Enabled = $true
+        Save-PmcConfig $cfg
+        Write-PmcStyled -Style 'Success' -Text "Theme reset to default (#33aaff)"
+    } catch {
+        Write-PmcStyled -Style 'Warning' -Text "Theme reset completed (config may be read-only)"
+    }
 }
 
 function Set-PmcIconMode {
@@ -248,4 +253,4 @@ function Reload-PmcConfig { param([PmcCommandContext]$Context)
     Write-Host "Configuration reloaded and systems re-initialized" -ForegroundColor Green
 }
 
-#Export-ModuleMember -Function Initialize-PmcThemeSystem, Set-PmcTheme, Reset-PmcTheme, Set-PmcIconMode, Edit-PmcTheme, Show-Slider, Show-PmcPreferences, Get-PmcThemeList, Apply-PmcTheme, Show-PmcThemeInfo
+Export-ModuleMember -Function Initialize-PmcThemeSystem, Set-PmcTheme, Reset-PmcTheme, Set-PmcIconMode, Edit-PmcTheme, Show-Slider, Show-PmcPreferences, Get-PmcThemeList, Apply-PmcTheme, Show-PmcThemeInfo

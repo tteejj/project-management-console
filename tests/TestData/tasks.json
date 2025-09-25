@@ -1,0 +1,224 @@
+{
+  "preferences": {
+    "autoBackup": true
+  },
+  "tasks": [
+    {
+      "text": "test edit again",
+      "project": "webapp",
+      "due": "2025-09-18",
+      "priority": 1,
+      "status": "pending",
+      "created": "2025-09-15",
+      "id": "2"
+    },
+    {
+      "id": 2,
+      "text": "Update documentation for API endpoints",
+      "project": "docs",
+      "due": "2025-09-20",
+      "priority": 2,
+      "status": "pending",
+      "created": "2025-09-16"
+    },
+    {
+      "id": 3,
+      "text": "Review pull request #145",
+      "project": "webapp",
+      "due": "2025-09-17",
+      "priority": 1,
+      "status": "pending",
+      "created": "2025-09-14"
+    },
+    {
+      "id": 4,
+      "text": "Prepare quarterly team meeting",
+      "project": "management",
+      "due": "2025-09-19",
+      "priority": 3,
+      "status": "pending",
+      "created": "2025-09-16"
+    },
+    {
+      "id": 5,
+      "text": "Deploy hotfix to production",
+      "project": "webapp",
+      "due": "2025-09-18",
+      "priority": 1,
+      "status": "pending",
+      "created": "2025-09-18"
+    },
+    {
+      "due": "2025-09-20",
+      "tags": [],
+      "created": "2025-09-20 08:19:53",
+      "priority": 0,
+      "project": "1234 ab ltd.",
+      "text": "description here",
+      "id": 6,
+      "status": "pending"
+    }
+  ],
+  "schema_version": 1,
+  "currentContext": "inbox",
+  "projects": [
+    {
+      "aliases": [],
+      "name": "inbox",
+      "created": "2025-09-18 21:46:08",
+      "description": "Default inbox"
+    },
+    {
+      "aliases": [],
+      "name": "webapp",
+      "created": "2025-09-15 10:00:00",
+      "description": "Web application development"
+    },
+    {
+      "aliases": [],
+      "name": "docs",
+      "created": "2025-09-16 11:30:00",
+      "description": "Documentation and guides"
+    },
+    {
+      "aliases": [],
+      "name": "management",
+      "created": "2025-09-16 14:00:00",
+      "description": "Team and project management"
+    },
+    {
+      "name": "''",
+      "description": "Created 2025-09-20",
+      "aliases": [],
+      "created": "2025-09-20 07:54:25"
+    },
+    {
+      "name": "1234 ab ltd.",
+      "description": "Created 2025-09-20",
+      "aliases": [],
+      "created": "2025-09-20 08:17:20"
+    }
+  ],
+  "activityLog": [
+    {
+      "action": "edit:text",
+      "user": null,
+      "timestamp": "2025-09-19 07:52:26"
+    },
+    {
+      "user": null,
+      "timestamp": "2025-09-19 08:03:10",
+      "action": "edit:text"
+    },
+    {
+      "user": null,
+      "timestamp": "2025-09-19 08:03:30",
+      "action": "edit:text"
+    },
+    {
+      "timestamp": "2025-09-19 08:13:52",
+      "action": "edit:text",
+      "user": null
+    },
+    {
+      "timestamp": "2025-09-19 08:13:53",
+      "action": "edit:text",
+      "user": null
+    },
+    {
+      "action": "edit:text",
+      "timestamp": "2025-09-19 08:19:22",
+      "user": null
+    },
+    {
+      "action": "edit:text",
+      "timestamp": "2025-09-19 08:19:34",
+      "user": null
+    },
+    {
+      "action": "edit:text",
+      "timestamp": "2025-09-19 08:19:44",
+      "user": null
+    },
+    {
+      "action": "edit:id",
+      "timestamp": "2025-09-19 08:19:51",
+      "user": null
+    },
+    {
+      "action": "edit:text",
+      "timestamp": "2025-09-19 08:19:51",
+      "user": null
+    },
+    {
+      "action": "edit:text",
+      "user": null,
+      "timestamp": "2025-09-19 08:29:37"
+    },
+    {
+      "user": null,
+      "timestamp": "2025-09-19 18:40:26",
+      "action": "time log"
+    },
+    {
+      "user": null,
+      "timestamp": "2025-09-19 18:40:31",
+      "action": "time report"
+    },
+    {
+      "timestamp": "2025-09-19 18:49:05",
+      "action": "time report",
+      "user": null
+    },
+    {
+      "user": null,
+      "timestamp": "2025-09-19 19:00:21",
+      "action": "time report"
+    },
+    {
+      "timestamp": "2025-09-19 19:20:09",
+      "action": "time report",
+      "user": null
+    },
+    {
+      "timestamp": "2025-09-19 19:41:23",
+      "action": "time report",
+      "user": null
+    },
+    {
+      "user": null,
+      "action": "time report",
+      "timestamp": "2025-09-19 19:48:11"
+    },
+    {
+      "timestamp": "2025-09-20 07:54:25",
+      "action": "project add",
+      "user": null
+    },
+    {
+      "timestamp": "2025-09-20 08:17:20",
+      "action": "project add",
+      "user": null
+    },
+    {
+      "timestamp": "2025-09-20 08:19:53",
+      "action": "task add",
+      "user": null
+    }
+  ],
+  "aliases": {},
+  "timelogs": [
+    {
+      "project": "webapp",
+      "time": "18:40",
+      "date": "2025-09-19",
+      "notes": "",
+      "minutes": 60,
+      "id": 1
+    }
+  ],
+  "deleted": [],
+  "completed": [],
+  "templates": [],
+  "recurringTemplates": []
+}

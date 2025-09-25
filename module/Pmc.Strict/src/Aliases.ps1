@@ -65,10 +65,34 @@ function Get-PmcAliasList {
 }
 
 function Add-PmcAlias {
-    param([PmcCommandContext]$Context)
-    $text = ($Context.FreeText -join ' ').Trim()
-    if (-not $text -or -not ($text -match '^(\S+)\s+(.+)$')) { Write-PmcStyled -Style 'Warning' -Text "Usage: alias add <name> <expansion...>"; return }
-    $name = $matches[1]; $expansion = $matches[2]
+    param(
+        $Context,
+        [string]$Name,
+        [string]$Value
+    )
+
+    # Handle both PmcCommandContext and direct parameter calls
+    if ($Context -and -not $Name -and -not $Value) {
+        # Called with Context parameter
+        if ($Context.PSObject.Properties['FreeText']) {
+            $text = ($Context.FreeText -join ' ').Trim()
+            if (-not $text -or -not ($text -match '^(\S+)\s+(.+)$')) {
+                Write-PmcStyled -Style 'Warning' -Text "Usage: alias add <name> <expansion...>"
+                return
+            }
+            $name = $matches[1]; $expansion = $matches[2]
+        } else {
+            Write-PmcStyled -Style 'Error' -Text "Invalid context parameter"
+            return
+        }
+    } elseif ($Name -and $Value) {
+        # Called with direct parameters
+        $name = $Name; $expansion = $Value
+    } else {
+        Write-PmcStyled -Style 'Warning' -Text "Usage: Add-PmcAlias -Name <name> -Value <expansion> or alias add <name> <expansion>"
+        return
+    }
+
     $aliases = Get-PmcAliasTable
     $aliases[$name] = $expansion
     Save-PmcAliases $aliases
@@ -117,4 +141,4 @@ function Expand-PmcUserAliases {
     return $Buffer
 }
 
-#Export-ModuleMember -Function Get-PmcAliasTable, Save-PmcAliases, Get-PmcAliasList, Add-PmcAlias, Remove-PmcAlias, Expand-PmcUserAliases
+Export-ModuleMember -Function Get-PmcAliasTable, Save-PmcAliases, Get-PmcAliasList, Add-PmcAlias, Remove-PmcAlias, Expand-PmcUserAliases

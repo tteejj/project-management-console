@@ -127,5 +127,5 @@ function Get-PmcVelocity {
     Write-PmcDebug -Level 2 -Category "Analytics" -Message "Velocity completed"
 }
 
-#Export-ModuleMember -Function Get-PmcStatistics, Show-PmcBurndownChart, Get-PmcVelocity
+Export-ModuleMember -Function Get-PmcStatistics, Show-PmcBurndownChart, Get-PmcVelocity
 

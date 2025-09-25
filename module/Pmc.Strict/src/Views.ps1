@@ -1,7 +1,7 @@
 # Views.ps1 - Task view functions updated for current PMC system
 
 function Show-PmcTodayTasks {
-    param([PmcCommandContext]$Context)
+    param($Context)
 
     try {
         $allData = Get-PmcAllData
@@ -21,7 +21,7 @@ function Show-PmcTodayTasks {
 }
 
 function Show-PmcTomorrowTasks {
-    param([PmcCommandContext]$Context)
+    param($Context)
 
     try {
         $allData = Get-PmcAllData
@@ -41,7 +41,7 @@ function Show-PmcTomorrowTasks {
 }
 
 function Show-PmcOverdueTasks {
-    param([PmcCommandContext]$Context)
+    param($Context)
 
     try {
         $allData = Get-PmcAllData
@@ -61,7 +61,7 @@ function Show-PmcOverdueTasks {
 }
 
 function Show-PmcUpcomingTasks {
-    param([PmcCommandContext]$Context)
+    param($Context)
 
     try {
         $allData = Get-PmcAllData
@@ -84,7 +84,7 @@ function Show-PmcUpcomingTasks {
 }
 
 function Show-PmcBlockedTasks {
-    param([PmcCommandContext]$Context)
+    param($Context)
 
     try {
         $allData = Get-PmcAllData
@@ -102,7 +102,7 @@ function Show-PmcBlockedTasks {
 }
 
 function Show-PmcNoDueDateTasks {
-    param([PmcCommandContext]$Context)
+    param($Context)
 
     try {
         $allData = Get-PmcAllData
@@ -120,7 +120,7 @@ function Show-PmcNoDueDateTasks {
 }
 
 function Show-PmcWeekTasksInteractive {
-    param([PmcCommandContext]$Context)
+    param($Context)
 
     try {
         $allData = Get-PmcAllData
@@ -143,7 +143,7 @@ function Show-PmcWeekTasksInteractive {
 }
 
 function Show-PmcMonthTasksInteractive {
-    param([PmcCommandContext]$Context)
+    param($Context)
 
     try {
         $allData = Get-PmcAllData
@@ -166,7 +166,7 @@ function Show-PmcMonthTasksInteractive {
 }
 
 function Show-PmcProjectList {
-    param([PmcCommandContext]$Context)
+    param($Context)
 
     try {
         $allData = Get-PmcAllData
@@ -180,7 +180,7 @@ function Show-PmcProjectList {
 }
 
 function Show-PmcNextActions {
-    param([PmcCommandContext]$Context)
+    param($Context)
 
     try {
         $allData = Get-PmcAllData
@@ -198,14 +198,57 @@ function Show-PmcNextActions {
 }
 
 # Add Interactive aliases for CommandMap compatibility
-function Show-PmcTodayTasksInteractive { param([PmcCommandContext]$Context); Show-PmcTodayTasks -Context $Context }
-function Show-PmcTomorrowTasksInteractive { param([PmcCommandContext]$Context); Show-PmcTomorrowTasks -Context $Context }
-function Show-PmcOverdueTasksInteractive { param([PmcCommandContext]$Context); Show-PmcOverdueTasks -Context $Context }
-function Show-PmcUpcomingTasksInteractive { param([PmcCommandContext]$Context); Show-PmcUpcomingTasks -Context $Context }
-function Show-PmcBlockedTasksInteractive { param([PmcCommandContext]$Context); Show-PmcBlockedTasks -Context $Context }
-function Show-PmcTasksWithoutDueDateInteractive { param([PmcCommandContext]$Context); Show-PmcNoDueDateTasks -Context $Context }
-function Show-PmcProjectsInteractive { param([PmcCommandContext]$Context); Show-PmcProjectList -Context $Context }
-function Show-PmcNextTasksInteractive { param([PmcCommandContext]$Context); Show-PmcNextActions -Context $Context }
+function Show-PmcTodayTasksInteractive { param($Context); Show-PmcTodayTasks -Context $Context }
+function Show-PmcTomorrowTasksInteractive { param($Context); Show-PmcTomorrowTasks -Context $Context }
+function Show-PmcOverdueTasksInteractive { param($Context); Show-PmcOverdueTasks -Context $Context }
+function Show-PmcUpcomingTasksInteractive { param($Context); Show-PmcUpcomingTasks -Context $Context }
+function Show-PmcBlockedTasksInteractive { param($Context); Show-PmcBlockedTasks -Context $Context }
+function Show-PmcTasksWithoutDueDateInteractive { param($Context); Show-PmcNoDueDateTasks -Context $Context }
+function Show-PmcProjectsInteractive { param($Context); Show-PmcProjectList -Context $Context }
+function Show-PmcNextTasksInteractive { param($Context); Show-PmcNextActions -Context $Context }
+
+# Direct aliases for CommandMap compatibility
+function Show-PmcTasksWithoutDueDate { param($Context); Show-PmcNoDueDateTasks -Context $Context }
+
+function Show-PmcKanban {
+    param($Context)
+
+    try {
+        $allData = Get-PmcAllData
+
+        # Group tasks by status into columns
+        $todoTasks = @($allData.tasks | Where-Object { $_.status -eq 'pending' -and (-not $_.due -or (Get-Date $_.due) -gt (Get-Date)) })
+        $doingTasks = @($allData.tasks | Where-Object { $_.status -eq 'active' })
+        $doneTasks = @($allData.tasks | Where-Object { $_.status -eq 'completed' } | Select-Object -First 10)
+
+        Write-PmcStyled -Style 'Header' -Text "`n🗂️  PMC Kanban Board`n"
+
+        # Display columns side by side
+        Write-PmcStyled -Style 'Subheader' -Text "📝 TODO ($($todoTasks.Count))"
+        Write-PmcStyled -Style 'Info' -Text "────────────────────"
+        foreach ($task in $todoTasks) {
+            $priority = if ($task.priority -gt 0) { "⭐" } else { "  " }
+            $due = if ($task.due) { " 📅$($task.due)" } else { "" }
+            Write-PmcStyled -Style 'Task' -Text "$priority $($task.title)$due"
+        }
+
+        Write-PmcStyled -Style 'Subheader' -Text "`n🔄 DOING ($($doingTasks.Count))"
+        Write-PmcStyled -Style 'Info' -Text "────────────────────"
+        foreach ($task in $doingTasks) {
+            $priority = if ($task.priority -gt 0) { "⭐" } else { "  " }
+            Write-PmcStyled -Style 'ActiveTask' -Text "$priority $($task.title)"
+        }
+
+        Write-PmcStyled -Style 'Subheader' -Text "`n✅ DONE ($($doneTasks.Count))"
+        Write-PmcStyled -Style 'Info' -Text "────────────────────"
+        foreach ($task in $doneTasks) {
+            Write-PmcStyled -Style 'CompletedTask' -Text "   $($task.title)"
+        }
+
+    } catch {
+        Write-PmcStyled -Style 'Error' -Text "Error showing Kanban board: $_"
+    }
+}
 
 # Export view functions
-Export-ModuleMember -Function Show-PmcTodayTasks, Show-PmcTomorrowTasks, Show-PmcOverdueTasks, Show-PmcUpcomingTasks, Show-PmcBlockedTasks, Show-PmcNoDueDateTasks, Show-PmcWeekTasksInteractive, Show-PmcMonthTasksInteractive, Show-PmcProjectList, Show-PmcNextActions, Show-PmcTodayTasksInteractive, Show-PmcTomorrowTasksInteractive, Show-PmcOverdueTasksInteractive, Show-PmcUpcomingTasksInteractive, Show-PmcBlockedTasksInteractive, Show-PmcTasksWithoutDueDateInteractive, Show-PmcProjectsInteractive, Show-PmcNextTasksInteractive
+Export-ModuleMember -Function Show-PmcTodayTasks, Show-PmcTomorrowTasks, Show-PmcOverdueTasks, Show-PmcUpcomingTasks, Show-PmcBlockedTasks, Show-PmcNoDueDateTasks, Show-PmcWeekTasksInteractive, Show-PmcMonthTasksInteractive, Show-PmcProjectList, Show-PmcNextActions, Show-PmcTodayTasksInteractive, Show-PmcTomorrowTasksInteractive, Show-PmcOverdueTasksInteractive, Show-PmcUpcomingTasksInteractive, Show-PmcBlockedTasksInteractive, Show-PmcTasksWithoutDueDateInteractive, Show-PmcProjectsInteractive, Show-PmcNextTasksInteractive, Show-PmcTasksWithoutDueDate, Show-PmcKanban

@@ -14,8 +14,30 @@ function Get-PmcHelp {
 # Static domain help (non-interactive)
 function Show-PmcHelpDomain {
     param([PmcCommandContext]$Context)
-    if (-not $Context -or $Context.FreeText.Count -lt 1) { Write-PmcStyled -Style 'Warning' -Text "Usage: help domain <domain>"; return }
-    $domain = $Context.FreeText[0].ToLower()
+
+    # Use AST parsing to better understand domain query
+    $domain = $null
+
+    if ($Context -and $Context.FreeText.Count -ge 1) {
+        # Try AST parsing first
+        try {
+            $helpQuery = $Context.FreeText -join ' '
+            if (Get-Command ConvertTo-PmcCommandAst -ErrorAction SilentlyContinue) {
+                $ast = ConvertTo-PmcCommandAst -CommandText $helpQuery
+                if ($ast.Domain) { $domain = $ast.Domain.ToLower() }
+            }
+        } catch {
+            Write-PmcDebug -Level 2 -Category 'Help' -Message "AST parsing failed for domain help query"
+        }
+
+        # Fallback to simple token parsing
+        if (-not $domain) { $domain = $Context.FreeText[0].ToLower() }
+    }
+
+    if (-not $domain) {
+        Write-PmcStyled -Style 'Warning' -Text "Usage: help domain <domain> (e.g., help domain task)"
+        return
+    }
     if (-not $Script:PmcCommandMap.ContainsKey($domain)) { Write-PmcStyled -Style 'Error' -Text ("Unknown domain '{0}'" -f $domain); return }
 
     Write-PmcStyled -Style 'Title' -Text ("\nHELP — {0}" -f $domain.ToUpper())
@@ -38,9 +60,33 @@ function Show-PmcHelpDomain {
 # Static command help (arguments, usage)
 function Show-PmcHelpCommand {
     param([PmcCommandContext]$Context)
-    if (-not $Context -or $Context.FreeText.Count -lt 2) { Write-PmcStyled -Style 'Warning' -Text "Usage: help command <domain> <action>"; return }
-    $domain = $Context.FreeText[0].ToLower()
-    $action = $Context.FreeText[1].ToLower()
+
+    # Use AST parsing to better understand help command structure
+    $domain = $null
+    $action = $null
+
+    if ($Context -and $Context.FreeText.Count -ge 1) {
+        # Try AST parsing first for better command understanding
+        try {
+            $helpQuery = $Context.FreeText -join ' '
+            if (Get-Command ConvertTo-PmcCommandAst -ErrorAction SilentlyContinue) {
+                $ast = ConvertTo-PmcCommandAst -CommandText $helpQuery
+                if ($ast.Domain) { $domain = $ast.Domain.ToLower() }
+                if ($ast.Action) { $action = $ast.Action.ToLower() }
+            }
+        } catch {
+            Write-PmcDebug -Level 2 -Category 'Help' -Message "AST parsing failed for help query, using fallback"
+        }
+
+        # Fallback to simple token parsing
+        if (-not $domain -and $Context.FreeText.Count -ge 1) { $domain = $Context.FreeText[0].ToLower() }
+        if (-not $action -and $Context.FreeText.Count -ge 2) { $action = $Context.FreeText[1].ToLower() }
+    }
+
+    if (-not $domain -or -not $action) {
+        Write-PmcStyled -Style 'Warning' -Text "Usage: help command <domain> <action> (e.g., help command task add)"
+        return
+    }
     if (-not $Script:PmcCommandMap.ContainsKey($domain)) { Write-PmcStyled -Style 'Error' -Text ("Unknown domain '{0}'" -f $domain); return }
     if (-not $Script:PmcCommandMap[$domain].ContainsKey($action)) { Write-PmcStyled -Style 'Error' -Text ("Unknown action '{0}' for domain '{1}'" -f $action,$domain); return }
 
@@ -119,11 +165,28 @@ function Show-PmcHelpQuery {
 # Search across commands and help content
 function Show-PmcHelpSearch {
     param([PmcCommandContext]$Context)
+
+    # Use AST parsing to better understand search query
     $q = ''
-    if ($Context -and $Context.FreeText -and $Context.FreeText.Count -gt 0) { $q = ($Context.FreeText[0] + '') }
+    if ($Context -and $Context.FreeText -and $Context.FreeText.Count -gt 0) {
+        # Try AST parsing first for complex queries
+        try {
+            $searchQuery = $Context.FreeText -join ' '
+            if (Get-Command ConvertTo-PmcCommandAst -ErrorAction SilentlyContinue) {
+                $ast = ConvertTo-PmcCommandAst -CommandText $searchQuery
+                # For search, we want the full free text, not just structured parts
+                $q = $searchQuery
+            } else {
+                $q = $searchQuery
+            }
+        } catch {
+            $q = ($Context.FreeText[0] + '')
+        }
+    }
+
     $q = $q.Trim()
     if (-not $q) {
-        Write-PmcStyled -Style 'Warning' -Text "Usage: help search <text>"
+        Write-PmcStyled -Style 'Warning' -Text "Usage: help search <text> (e.g., help search 'task add')"
         return
     }
 

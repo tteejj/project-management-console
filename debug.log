@@ -2271,3 +2271,1061 @@
 [2025-09-20 21:53:03.028] [cc38f0c3] [DBG1] [COMMAND] NO_HANDLER: report | Data: {"Action":"report","Handler":"Get-PmcTimeReport","Domain":"shortcut"}
 [2025-09-20 21:53:03.189] [cc38f0c3] [DBG2] [INPUT] Starting Read-PmcCommand session
 [2025-09-20 21:53:03.195] [cc38f0c3] [DBG2] [RENDER] Bottom HUD render: bufferLen=0, cursorPos=0, width=159
+[2025-09-22 17:43:41.467] [01ccdd1c] [DBG1] [SYSTEM] Debug system initialized (Level=2, Session=01ccdd1c)
+[2025-09-22 17:43:41.617] [01ccdd1c] [DBG1] [SECURITY] Security level changed to: balanced | Data: {"MaxMemoryUsage":524288000,"PathWhitelistEnabled":true,"InputValidationEnabled":true,"AuditLoggingEnabled":true,"TemplateExecutionEnabled":false,"MaxFileSize":104857600,"SensitiveDataScanEnabled":true,"ResourceLimitsEnabled":true,"AllowedWritePaths":["/home/****/pmc","/home/****/pmc/reports","/home/****/pmc/backups","/home/****/pmc/exports","/tmp/"],"MaxExecutionTime":300000}
+[2025-09-22 17:43:41.736] [01ccdd1c] [DBG1] [INTERACTIVE] Enabling PMC interactive mode with full t2.ps1 feature set
+[2025-09-22 17:43:41.892] [01ccdd1c] [DBG2] [ScreenManager] Screen manager initialized | Data: {"Title":"pmc — enhanced project management console","Regions":{"Header":{"X":0,"Y":0,"Width":80,"Height":3},"Content":{"X":0,"Y":3,"Width":80,"Height":19},"Status":{"X":50,"Y":1,"Width":30,"Height":1},"Input":{"X":0,"Y":22,"Width":80,"Height":2},"Full":{"X":0,"Y":0,"Width":80,"Height":24}}}
+[2025-09-22 17:43:41.900] [01ccdd1c] [DBG1] [ScreenManager] PMC screen initialized | Data: {"Title":"pmc — enhanced project management console"}
+[2025-09-22 17:43:41.903] [01ccdd1c] [DBG2] [SHELL] Persistent screen layout initialized
+[2025-09-22 17:43:42.164] [01ccdd1c] [DBG2] [INPUT] Starting Read-PmcCommand session
+[2025-09-22 17:43:42.314] [01ccdd1c] [DBG2] [RENDER] Bottom HUD render: bufferLen=0, cursorPos=0, width=80
+[2025-09-22 17:43:42.335] [01ccdd1c] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"blocked"}
+[2025-09-22 17:43:42.338] [01ccdd1c] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"ioverdue"}
+[2025-09-22 17:43:42.342] [01ccdd1c] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"week"}
+[2025-09-22 17:43:42.345] [01ccdd1c] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"tomorrow"}
+[2025-09-22 17:43:42.349] [01ccdd1c] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"projects"}
+[2025-09-22 17:43:42.353] [01ccdd1c] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"overdue"}
+[2025-09-22 17:43:42.358] [01ccdd1c] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"iagenda"}
+[2025-09-22 17:43:42.367] [01ccdd1c] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"today"}
+[2025-09-22 17:43:42.371] [01ccdd1c] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"iprojects"}
+[2025-09-22 17:43:42.374] [01ccdd1c] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"upcoming"}
+[2025-09-22 17:43:42.377] [01ccdd1c] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"agenda"}
+[2025-09-22 17:43:42.380] [01ccdd1c] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"itoday"}
+[2025-09-22 17:43:42.383] [01ccdd1c] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"next"}
+[2025-09-22 17:43:42.387] [01ccdd1c] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"month"}
+[2025-09-22 17:43:42.390] [01ccdd1c] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"tasks"}
+[2025-09-22 17:43:42.394] [01ccdd1c] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"noduedate"}
+[2025-09-22 17:43:42.397] [01ccdd1c] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"itasks"}
+[2025-09-22 21:48:19.591] [ff556c0a] [DBG1] [SYSTEM] Debug system initialized (Level=2, Session=ff556c0a)
+[2025-09-22 21:48:19.727] [ff556c0a] [DBG1] [SECURITY] Security level changed to: balanced | Data: {"PathWhitelistEnabled":true,"InputValidationEnabled":true,"AuditLoggingEnabled":true,"AllowedWritePaths":["/home/****/pmc","/home/****/pmc/reports","/home/****/pmc/backups","/home/****/pmc/exports","/tmp/"],"MaxExecutionTime":300000,"MaxFileSize":104857600,"ResourceLimitsEnabled":true,"TemplateExecutionEnabled":false,"SensitiveDataScanEnabled":true,"MaxMemoryUsage":524288000}
+[2025-09-22 21:48:19.832] [ff556c0a] [DBG1] [INTERACTIVE] Enabling PMC interactive mode with full t2.ps1 feature set
+[2025-09-22 21:48:19.971] [ff556c0a] [DBG2] [ScreenManager] Screen manager initialized | Data: {"Title":"pmc — enhanced project management console","Regions":{"Header":{"X":0,"Y":0,"Width":159,"Height":3},"Content":{"X":0,"Y":3,"Width":159,"Height":32},"Status":{"X":129,"Y":1,"Width":30,"Height":1},"Input":{"X":0,"Y":35,"Width":159,"Height":2},"Full":{"X":0,"Y":0,"Width":159,"Height":37}}}
+[2025-09-22 21:48:19.978] [ff556c0a] [DBG1] [ScreenManager] PMC screen initialized | Data: {"Title":"pmc — enhanced project management console"}
+[2025-09-22 21:48:19.982] [ff556c0a] [DBG2] [SHELL] Persistent screen layout initialized
+[2025-09-22 21:48:20.247] [ff556c0a] [DBG2] [INPUT] Starting Read-PmcCommand session
+[2025-09-22 21:48:20.443] [ff556c0a] [DBG2] [RENDER] Bottom HUD render: bufferLen=0, cursorPos=0, width=159
+[2025-09-22 21:48:23.344] [ff556c0a] [DBG2] [RENDER] Bottom HUD render: bufferLen=1, cursorPos=1, width=159
+[2025-09-22 21:48:23.366] [ff556c0a] [DBG2] [STATE] Key=**** InCompletion: False->False Mode: Domain->Domain BufferLen=1 Cursor=1
+[2025-09-22 21:48:23.754] [ff556c0a] [DBG2] [INPUT] Tab key pressed (Shift=False): buffer='h', cursor=1, inCompletion=False
+[2025-09-22 21:48:23.757] [ff556c0a] [DBG2] [COMPLETION] Tab cycle start: buffer='h', cursor=1, mode=initial, direction=forward
+[2025-09-22 21:48:23.790] [ff556c0a] [DBG2] [COMPLETION] AST completion failed: The property 'Buffer' cannot be found on this object. Verify that the property exists., falling back to legacy
+[2025-09-22 21:48:23.795] [ff556c0a] [DBG2] [COMPLETION] Start Tab cycle (legacy): state=Domain, token=**** tokens=1
+[2025-09-22 21:48:23.808] [ff556c0a] [DBG2] [COMPLETION] Getting domain completions for filter='h'
+[2025-09-22 21:48:23.881] [ff556c0a] [DBG2] [COMPLETION] Domain completions: found 6 items
+[2025-09-22 21:48:23.888] [ff556c0a] [DBG2] [COMPLETION] Provider outputs: type=string[], length=6, first3=help, show, month
+[2025-09-22 21:48:23.895] [ff556c0a] [DBG2] [COMPLETION] Provider outputs: type=string[], length=6, first3=help, show, month
+[2025-09-22 21:48:23.921] [ff556c0a] [DBG2] [RENDER] Bottom HUD render: bufferLen=4, cursorPos=4, width=159
+[2025-09-22 21:48:23.929] [ff556c0a] [DBG2] [COMPLETION] Before Tab accept: index=0, selected item type=String, text='help'
+[2025-09-22 21:48:23.931] [ff556c0a] [DBG2] [COMPLETION] After Tab accept: new buffer='help', phase=cycling (1/6)
+[2025-09-22 21:48:23.935] [ff556c0a] [DBG2] [STATE] Key=**** InCompletion: False->True Mode: Domain->Domain BufferLen=4 Cursor=4
+[2025-09-22 21:48:28.274] [ff556c0a] [DBG2] [INPUT] Tab key pressed (Shift=False): buffer='help', cursor=4, inCompletion=True
+[2025-09-22 21:48:28.278] [ff556c0a] [DBG2] [COMPLETION] Tab cycle start: buffer='help', cursor=4, mode=initial, direction=forward
+[2025-09-22 21:48:28.285] [ff556c0a] [DBG2] [RENDER] Bottom HUD render: bufferLen=4, cursorPos=4, width=159
+[2025-09-22 21:48:28.287] [ff556c0a] [DBG2] [COMPLETION] Before Tab cycle (forward): index=1, selected item type=String, text='show'
+[2025-09-22 21:48:28.289] [ff556c0a] [DBG2] [COMPLETION] After Tab cycle (forward): new buffer='show', phase=cycling (2/6)
+[2025-09-22 21:48:28.292] [ff556c0a] [DBG2] [STATE] Key=**** InCompletion: True->True Mode: Domain->Domain BufferLen=4 Cursor=4
+[2025-09-22 21:48:32.213] [ff556c0a] [DBG2] [INPUT] Tab key pressed (Shift=False): buffer='show', cursor=4, inCompletion=True
+[2025-09-22 21:48:32.218] [ff556c0a] [DBG2] [COMPLETION] Tab cycle start: buffer='show', cursor=4, mode=initial, direction=forward
+[2025-09-22 21:48:32.224] [ff556c0a] [DBG2] [RENDER] Bottom HUD render: bufferLen=5, cursorPos=5, width=159
+[2025-09-22 21:48:32.226] [ff556c0a] [DBG2] [COMPLETION] Before Tab cycle (forward): index=2, selected item type=String, text='month'
+[2025-09-22 21:48:32.228] [ff556c0a] [DBG2] [COMPLETION] After Tab cycle (forward): new buffer='month', phase=cycling (3/6)
+[2025-09-22 21:48:32.236] [ff556c0a] [DBG2] [STATE] Key=**** InCompletion: True->True Mode: Domain->Domain BufferLen=5 Cursor=5
+[2025-09-22 21:48:34.506] [ff556c0a] [DBG2] [INPUT] Tab key pressed (Shift=False): buffer='month', cursor=5, inCompletion=True
+[2025-09-22 21:48:34.508] [ff556c0a] [DBG2] [COMPLETION] Tab cycle start: buffer='month', cursor=5, mode=initial, direction=forward
+[2025-09-22 21:48:34.514] [ff556c0a] [DBG2] [RENDER] Bottom HUD render: bufferLen=5, cursorPos=5, width=159
+[2025-09-22 21:48:34.516] [ff556c0a] [DBG2] [COMPLETION] Before Tab cycle (forward): index=3, selected item type=String, text='theme'
+[2025-09-22 21:48:34.518] [ff556c0a] [DBG2] [COMPLETION] After Tab cycle (forward): new buffer='theme', phase=cycling (4/6)
+[2025-09-22 21:48:34.520] [ff556c0a] [DBG2] [STATE] Key=**** InCompletion: True->True Mode: Domain->Domain BufferLen=5 Cursor=5
+[2025-09-22 21:48:38.754] [ff556c0a] [DBG2] [INPUT] Enter key pressed: buffer='theme', cursor=5, inCompletion=True
+[2025-09-22 21:48:38.756] [ff556c0a] [DBG2] [COMPLETION] Before Enter accept: index=3, selected item type=String, text='theme'
+[2025-09-22 21:48:38.759] [ff556c0a] [DBG2] [COMPLETION] After Enter accept: final buffer='theme', phase=submit
+[2025-09-22 21:48:38.772] [ff556c0a] [DBG2] [STATE] Key=**** InCompletion: True->True Mode: Domain->Domain BufferLen=5 Cursor=5
+[2025-09-22 21:48:38.815] [ff556c0a] [DBG2] [ScreenManager] PMC content area cleared
+[2025-09-22 21:48:38.836] [ff556c0a] [DBG1] [COMMAND] START: theme
+[2025-09-22 21:48:38.955] [ff556c0a] [DBG2] [PARSER] Tokenized command | Data: {"Tokens":["theme"],"TokenCount":1}
+[2025-09-22 21:48:39.000] [ff556c0a] [DBG2] [PARSER] Context parsed | Data: {"Handler":"Set-PmcTheme","Domain":"shortcut","ArgCount":0,"Action":"theme"}
+[2025-09-22 21:48:39.021] [ff556c0a] [DBG2] [Execution] About to execute function: Set-PmcTheme
+[2025-09-22 21:48:39.029] [ff556c0a] [DBG2] [EXECUTION] Invoking handler: Set-PmcTheme | Data: {"Source":"/home/****/pmc/module/Pmc.Strict/src/Theme.ps1"}
+[2025-09-22 21:48:39.035] [ff556c0a] [DBG1] [Theme] Starting theme set | Data: {"FreeText":[]}
+[2025-09-22 21:48:39.043] [ff556c0a] [DBG1] [COMMAND] SUCCESS: theme | Data: {"Domain":"shortcut","Handler":"Set-PmcTheme","Action":"theme"}
+[2025-09-22 21:48:39.211] [ff556c0a] [DBG2] [INPUT] Starting Read-PmcCommand session
+[2025-09-22 21:48:39.213] [ff556c0a] [DBG2] [RENDER] Bottom HUD render: bufferLen=0, cursorPos=0, width=159
+[2025-09-22 21:48:50.305] [ff556c0a] [DBG2] [RENDER] Bottom HUD render: bufferLen=1, cursorPos=1, width=159
+[2025-09-22 21:48:50.308] [ff556c0a] [DBG2] [STATE] Key=**** InCompletion: False->False Mode: Domain->Domain BufferLen=1 Cursor=1
+[2025-09-22 21:48:50.922] [ff556c0a] [DBG2] [INPUT] Tab key pressed (Shift=False): buffer='h', cursor=1, inCompletion=False
+[2025-09-22 21:48:50.924] [ff556c0a] [DBG2] [COMPLETION] Tab cycle start: buffer='h', cursor=1, mode=initial, direction=forward
+[2025-09-22 21:48:50.928] [ff556c0a] [DBG2] [COMPLETION] AST completion failed: The property 'Buffer' cannot be found on this object. Verify that the property exists., falling back to legacy
+[2025-09-22 21:48:50.929] [ff556c0a] [DBG2] [COMPLETION] Start Tab cycle (legacy): state=Domain, token=**** tokens=1
+[2025-09-22 21:48:50.932] [ff556c0a] [DBG2] [COMPLETION] Provider outputs: type=string[], length=6, first3=help, show, month
+[2025-09-22 21:48:50.939] [ff556c0a] [DBG2] [RENDER] Bottom HUD render: bufferLen=4, cursorPos=4, width=159
+[2025-09-22 21:48:50.942] [ff556c0a] [DBG2] [COMPLETION] Before Tab accept: index=0, selected item type=String, text='help'
+[2025-09-22 21:48:50.945] [ff556c0a] [DBG2] [COMPLETION] After Tab accept: new buffer='help', phase=cycling (1/6)
+[2025-09-22 21:48:50.949] [ff556c0a] [DBG2] [STATE] Key=**** InCompletion: False->True Mode: Domain->Domain BufferLen=4 Cursor=4
+[2025-09-22 21:48:52.935] [ff556c0a] [DBG2] [INPUT] Enter key pressed: buffer='help', cursor=4, inCompletion=True
+[2025-09-22 21:48:52.939] [ff556c0a] [DBG2] [COMPLETION] Before Enter accept: index=0, selected item type=String, text='help'
+[2025-09-22 21:48:52.943] [ff556c0a] [DBG2] [COMPLETION] After Enter accept: final buffer='help', phase=submit
+[2025-09-22 21:48:52.947] [ff556c0a] [DBG2] [STATE] Key=**** InCompletion: True->True Mode: Domain->Domain BufferLen=4 Cursor=4
+[2025-09-22 21:48:52.964] [ff556c0a] [DBG2] [ScreenManager] PMC content area cleared
+[2025-09-22 21:48:52.967] [ff556c0a] [DBG1] [COMMAND] START: help
+[2025-09-22 21:48:53.000] [ff556c0a] [DBG2] [PARSER] Tokenized command | Data: {"Tokens":["help"],"TokenCount":1}
+[2025-09-22 21:48:53.005] [ff556c0a] [DBG2] [PARSER] Context parsed | Data: {"Handler":"Show-PmcSmartHelp","Domain":"help","ArgCount":0,"Action":"show"}
+[2025-09-22 21:48:53.008] [ff556c0a] [DBG2] [Execution] About to execute function: Show-PmcSmartHelp
+[2025-09-22 21:48:53.009] [ff556c0a] [DBG2] [EXECUTION] Invoking handler: Show-PmcSmartHelp | Data: {"Source":"/home/****/pmc/module/Pmc.Strict/src/HelpUI.ps1"}
+[2025-09-22 21:48:53.021] [ff556c0a] [DBG1] [HELP] Show-PmcHelpCategories START
+[2025-09-22 21:48:53.105] [ff556c0a] [DBG2] [DataDisplay] Failed to load project lookup | Data: {"Error":"The term 'Get-PmcDataProvider' is not recognized as a name of a cmdlet, function, script file, or executable program.\nCheck the spelling of the name, or if a path was included, verify that the path is correct and try again."}
+[2025-09-22 21:48:53.131] [ff556c0a] [DBG1] [HELP] Help categories ready | Data: {"Count":10}
+[2025-09-22 21:48:53.141] [ff556c0a] [DBG1] [Grid] StartInteractive called | Data: {"DataCount":10}
+[2025-09-22 21:48:53.159] [ff556c0a] [DBG1] [Grid] Starting interactive loop
+[2025-09-22 21:48:56.134] [ff556c0a] [DBG2] [Grid] Key pressed | Data: {"Key":81,"KeyChar":"q"}
+[2025-09-22 21:48:58.130] [ff556c0a] [DBG2] [Grid] Key pressed | Data: {"Key":13,"KeyChar":"\r"}
+[2025-09-22 21:48:58.142] [ff556c0a] [DBG2] [DataDisplay] Executing OnSelectCallback
+[2025-09-22 21:48:58.151] [ff556c0a] [DBG1] [HELP] Select category | Data: {"Category":"Projects"}
+[2025-09-22 21:48:58.164] [ff556c0a] [DBG1] [HELP] Show-PmcHelpCommands START | Data: {"Domain":"Projects"}
+[2025-09-22 21:48:58.213] [ff556c0a] [DBG2] [DataDisplay] Failed to load project lookup | Data: {"Error":"The term 'Get-PmcDataProvider' is not recognized as a name of a cmdlet, function, script file, or executable program.\nCheck the spelling of the name, or if a path was included, verify that the path is correct and try again."}
+[2025-09-22 21:48:58.218] [ff556c0a] [DBG1] [HELP] Help commands ready | Data: {"Count":4}
+[2025-09-22 21:48:58.219] [ff556c0a] [DBG1] [Grid] StartInteractive called | Data: {"DataCount":4}
+[2025-09-22 21:48:58.221] [ff556c0a] [DBG1] [Grid] Starting interactive loop
+[2025-09-22 21:48:59.787] [ff556c0a] [DBG2] [Grid] Key pressed | Data: {"Key":81,"KeyChar":"q"}
+[2025-09-22 21:49:01.155] [ff556c0a] [DBG2] [Grid] Key pressed | Data: {"Key":0,"KeyChar":"`"}
+[2025-09-22 21:49:02.344] [ff556c0a] [DBG2] [Grid] Key pressed | Data: {"Key":27,"KeyChar":"\u001b"}
+[2025-09-22 21:49:02.904] [ff556c0a] [DBG2] [Grid] Key pressed | Data: {"Key":27,"KeyChar":"\u001b"}
+[2025-09-22 21:49:03.111] [ff556c0a] [DBG2] [Grid] Key pressed | Data: {"Key":27,"KeyChar":"\u001b"}
+[2025-09-22 21:49:11.532] [857eaf0a] [DBG1] [SYSTEM] Debug system initialized (Level=2, Session=857eaf0a)
+[2025-09-22 21:49:11.680] [857eaf0a] [DBG1] [SECURITY] Security level changed to: balanced | Data: {"AllowedWritePaths":["/home/****/pmc","/home/****/pmc/reports","/home/****/pmc/backups","/home/****/pmc/exports","/tmp/"],"AuditLoggingEnabled":true,"PathWhitelistEnabled":true,"ResourceLimitsEnabled":true,"MaxMemoryUsage":524288000,"MaxExecutionTime":300000,"SensitiveDataScanEnabled":true,"MaxFileSize":104857600,"InputValidationEnabled":true,"TemplateExecutionEnabled":false}
+[2025-09-22 21:49:11.802] [857eaf0a] [DBG1] [INTERACTIVE] Enabling PMC interactive mode with full t2.ps1 feature set
+[2025-09-22 21:49:11.966] [857eaf0a] [DBG2] [ScreenManager] Screen manager initialized | Data: {"Regions":{"Header":{"X":0,"Y":0,"Width":159,"Height":3},"Content":{"X":0,"Y":3,"Width":159,"Height":32},"Status":{"X":129,"Y":1,"Width":30,"Height":1},"Input":{"X":0,"Y":35,"Width":159,"Height":2},"Full":{"X":0,"Y":0,"Width":159,"Height":37}},"Title":"pmc — enhanced project management console"}
+[2025-09-22 21:49:11.974] [857eaf0a] [DBG1] [ScreenManager] PMC screen initialized | Data: {"Title":"pmc — enhanced project management console"}
+[2025-09-22 21:49:11.978] [857eaf0a] [DBG2] [SHELL] Persistent screen layout initialized
+[2025-09-22 21:49:12.212] [857eaf0a] [DBG2] [INPUT] Starting Read-PmcCommand session
+[2025-09-22 21:49:12.394] [857eaf0a] [DBG2] [RENDER] Bottom HUD render: bufferLen=0, cursorPos=0, width=159
+[2025-09-22 21:49:13.797] [857eaf0a] [DBG2] [RENDER] Bottom HUD render: bufferLen=1, cursorPos=1, width=159
+[2025-09-22 21:49:13.818] [857eaf0a] [DBG2] [STATE] Key=**** InCompletion: False->False Mode: Domain->Domain BufferLen=1 Cursor=1
+[2025-09-22 21:49:15.977] [857eaf0a] [DBG2] [INPUT] Tab key pressed (Shift=False): buffer='t', cursor=1, inCompletion=False
+[2025-09-22 21:49:15.994] [857eaf0a] [DBG2] [COMPLETION] Tab cycle start: buffer='t', cursor=1, mode=initial, direction=forward
+[2025-09-22 21:49:16.026] [857eaf0a] [DBG2] [COMPLETION] AST completion failed: The property 'Buffer' cannot be found on this object. Verify that the property exists., falling back to legacy
+[2025-09-22 21:49:16.031] [857eaf0a] [DBG2] [COMPLETION] Start Tab cycle (legacy): state=Domain, token=**** tokens=1
+[2025-09-22 21:49:16.043] [857eaf0a] [DBG2] [COMPLETION] Getting domain completions for filter='t'
+[2025-09-22 21:49:16.099] [857eaf0a] [DBG2] [COMPLETION] Domain completions: found 37 items
+[2025-09-22 21:49:16.105] [857eaf0a] [DBG2] [COMPLETION] Provider outputs: type=string[], length=37, first3=task, time, time
+[2025-09-22 21:49:16.112] [857eaf0a] [DBG2] [COMPLETION] Provider outputs: type=string[], length=37, first3=task, time, time
+[2025-09-22 21:49:16.134] [857eaf0a] [DBG2] [RENDER] Bottom HUD render: bufferLen=4, cursorPos=4, width=159
+[2025-09-22 21:49:16.141] [857eaf0a] [DBG2] [COMPLETION] Before Tab accept: index=0, selected item type=String, text='task'
+[2025-09-22 21:49:16.143] [857eaf0a] [DBG2] [COMPLETION] After Tab accept: new buffer='task', phase=cycling (1/37)
+[2025-09-22 21:49:16.146] [857eaf0a] [DBG2] [STATE] Key=**** InCompletion: False->True Mode: Domain->Domain BufferLen=4 Cursor=4
+[2025-09-22 21:49:17.386] [857eaf0a] [DBG2] [INPUT] Space key pressed: buffer='task', cursor=4, inCompletion=True
+[2025-09-22 21:49:17.399] [857eaf0a] [DBG2] [RENDER] Bottom HUD render: bufferLen=5, cursorPos=5, width=159
+[2025-09-22 21:49:17.401] [857eaf0a] [DBG2] [COMPLETION] Before Space accept: index=-1, selected item type=String, text='task'
+[2025-09-22 21:49:17.403] [857eaf0a] [DBG2] [COMPLETION] After Space accept: new buffer='task ', phase=domain/action/prefix, nextState=Action
+[2025-09-22 21:49:17.405] [857eaf0a] [DBG2] [STATE] Key=**** InCompletion: True->False Mode: Domain->Action BufferLen=5 Cursor=5
+[2025-09-22 21:49:17.803] [857eaf0a] [DBG2] [INPUT] Tab key pressed (Shift=False): buffer='task ', cursor=5, inCompletion=False
+[2025-09-22 21:49:17.805] [857eaf0a] [DBG2] [COMPLETION] Tab cycle start: buffer='task ', cursor=5, mode=initial, direction=forward
+[2025-09-22 21:49:17.809] [857eaf0a] [DBG2] [COMPLETION] AST completion failed: The property 'Buffer' cannot be found on this object. Verify that the property exists., falling back to legacy
+[2025-09-22 21:49:17.811] [857eaf0a] [DBG2] [COMPLETION] Start Tab cycle (legacy): state=Action, token=**** tokens=1
+[2025-09-22 21:49:17.820] [857eaf0a] [DBG2] [COMPLETION] Getting action completions for domain='task', filter=''
+[2025-09-22 21:49:17.823] [857eaf0a] [DBG2] [COMPLETION] Action completions: found 7 items
+[2025-09-22 21:49:17.826] [857eaf0a] [DBG2] [COMPLETION] Provider outputs: type=string[], length=7, first3=add, list, done
+[2025-09-22 21:49:17.828] [857eaf0a] [DBG2] [COMPLETION] Provider outputs: type=string[], length=7, first3=add, list, done
+[2025-09-22 21:49:17.838] [857eaf0a] [DBG2] [RENDER] Bottom HUD render: bufferLen=8, cursorPos=8, width=159
+[2025-09-22 21:49:17.840] [857eaf0a] [DBG2] [COMPLETION] Before Tab accept: index=0, selected item type=String, text='add'
+[2025-09-22 21:49:17.842] [857eaf0a] [DBG2] [COMPLETION] After Tab accept: new buffer='task add', phase=cycling (1/7)
+[2025-09-22 21:49:17.845] [857eaf0a] [DBG2] [STATE] Key=**** InCompletion: False->True Mode: Action->Action BufferLen=8 Cursor=8
+[2025-09-22 21:49:19.986] [857eaf0a] [DBG2] [INPUT] Tab key pressed (Shift=False): buffer='task add', cursor=8, inCompletion=True
+[2025-09-22 21:49:19.988] [857eaf0a] [DBG2] [COMPLETION] Tab cycle start: buffer='task add', cursor=8, mode=initial, direction=forward
+[2025-09-22 21:49:19.995] [857eaf0a] [DBG2] [RENDER] Bottom HUD render: bufferLen=9, cursorPos=9, width=159
+[2025-09-22 21:49:19.997] [857eaf0a] [DBG2] [COMPLETION] Before Tab cycle (forward): index=1, selected item type=String, text='list'
+[2025-09-22 21:49:19.998] [857eaf0a] [DBG2] [COMPLETION] After Tab cycle (forward): new buffer='task list', phase=cycling (2/7)
+[2025-09-22 21:49:20.000] [857eaf0a] [DBG2] [STATE] Key=**** InCompletion: True->True Mode: Action->Action BufferLen=9 Cursor=9
+[2025-09-22 21:49:23.168] [857eaf0a] [DBG2] [INPUT] Tab key pressed (Shift=False): buffer='task list', cursor=9, inCompletion=True
+[2025-09-22 21:49:23.170] [857eaf0a] [DBG2] [COMPLETION] Tab cycle start: buffer='task list', cursor=9, mode=initial, direction=forward
+[2025-09-22 21:49:23.178] [857eaf0a] [DBG2] [RENDER] Bottom HUD render: bufferLen=9, cursorPos=9, width=159
+[2025-09-22 21:49:23.180] [857eaf0a] [DBG2] [COMPLETION] Before Tab cycle (forward): index=2, selected item type=String, text='done'
+[2025-09-22 21:49:23.182] [857eaf0a] [DBG2] [COMPLETION] After Tab cycle (forward): new buffer='task done', phase=cycling (3/7)
+[2025-09-22 21:49:23.184] [857eaf0a] [DBG2] [STATE] Key=**** InCompletion: True->True Mode: Action->Action BufferLen=9 Cursor=9
+[2025-09-22 21:49:27.674] [857eaf0a] [DBG2] [INPUT] Tab key pressed (Shift=False): buffer='task done', cursor=9, inCompletion=True
+[2025-09-22 21:49:27.676] [857eaf0a] [DBG2] [COMPLETION] Tab cycle start: buffer='task done', cursor=9, mode=initial, direction=forward
+[2025-09-22 21:49:27.685] [857eaf0a] [DBG2] [RENDER] Bottom HUD render: bufferLen=9, cursorPos=9, width=159
+[2025-09-22 21:49:27.687] [857eaf0a] [DBG2] [COMPLETION] Before Tab cycle (forward): index=3, selected item type=String, text='edit'
+[2025-09-22 21:49:27.689] [857eaf0a] [DBG2] [COMPLETION] After Tab cycle (forward): new buffer='task edit', phase=cycling (4/7)
+[2025-09-22 21:49:27.691] [857eaf0a] [DBG2] [STATE] Key=**** InCompletion: True->True Mode: Action->Action BufferLen=9 Cursor=9
+[2025-09-22 21:49:28.527] [857eaf0a] [DBG2] [INPUT] Tab key pressed (Shift=False): buffer='task edit', cursor=9, inCompletion=True
+[2025-09-22 21:49:28.529] [857eaf0a] [DBG2] [COMPLETION] Tab cycle start: buffer='task edit', cursor=9, mode=initial, direction=forward
+[2025-09-22 21:49:28.535] [857eaf0a] [DBG2] [RENDER] Bottom HUD render: bufferLen=11, cursorPos=11, width=159
+[2025-09-22 21:49:28.539] [857eaf0a] [DBG2] [COMPLETION] Before Tab cycle (forward): index=4, selected item type=String, text='delete'
+[2025-09-22 21:49:28.541] [857eaf0a] [DBG2] [COMPLETION] After Tab cycle (forward): new buffer='task delete', phase=cycling (5/7)
+[2025-09-22 21:49:28.543] [857eaf0a] [DBG2] [STATE] Key=**** InCompletion: True->True Mode: Action->Action BufferLen=11 Cursor=11
+[2025-09-22 21:49:30.118] [857eaf0a] [DBG2] [INPUT] Tab key pressed (Shift=False): buffer='task delete', cursor=11, inCompletion=True
+[2025-09-22 21:49:30.123] [857eaf0a] [DBG2] [COMPLETION] Tab cycle start: buffer='task delete', cursor=11, mode=initial, direction=forward
+[2025-09-22 21:49:30.128] [857eaf0a] [DBG2] [RENDER] Bottom HUD render: bufferLen=9, cursorPos=9, width=159
+[2025-09-22 21:49:30.130] [857eaf0a] [DBG2] [COMPLETION] Before Tab cycle (forward): index=5, selected item type=String, text='view'
+[2025-09-22 21:49:30.135] [857eaf0a] [DBG2] [COMPLETION] After Tab cycle (forward): new buffer='task view', phase=cycling (6/7)
+[2025-09-22 21:49:30.137] [857eaf0a] [DBG2] [STATE] Key=**** InCompletion: True->True Mode: Action->Action BufferLen=9 Cursor=9
+[2025-09-22 21:49:31.838] [857eaf0a] [DBG2] [INPUT] Tab key pressed (Shift=False): buffer='task view', cursor=9, inCompletion=True
+[2025-09-22 21:49:31.841] [857eaf0a] [DBG2] [COMPLETION] Tab cycle start: buffer='task view', cursor=9, mode=initial, direction=forward
+[2025-09-22 21:49:31.849] [857eaf0a] [DBG2] [RENDER] Bottom HUD render: bufferLen=11, cursorPos=11, width=159
+[2025-09-22 21:49:31.851] [857eaf0a] [DBG2] [COMPLETION] Before Tab cycle (forward): index=6, selected item type=String, text='search'
+[2025-09-22 21:49:31.853] [857eaf0a] [DBG2] [COMPLETION] After Tab cycle (forward): new buffer='task search', phase=cycling (7/7)
+[2025-09-22 21:49:31.857] [857eaf0a] [DBG2] [STATE] Key=**** InCompletion: True->True Mode: Action->Action BufferLen=11 Cursor=11
+[2025-09-22 21:49:32.925] [857eaf0a] [DBG2] [INPUT] Tab key pressed (Shift=False): buffer='task search', cursor=11, inCompletion=True
+[2025-09-22 21:49:32.927] [857eaf0a] [DBG2] [COMPLETION] Tab cycle start: buffer='task search', cursor=11, mode=initial, direction=forward
+[2025-09-22 21:49:32.938] [857eaf0a] [DBG2] [RENDER] Bottom HUD render: bufferLen=8, cursorPos=8, width=159
+[2025-09-22 21:49:32.940] [857eaf0a] [DBG2] [COMPLETION] Before Tab cycle (forward): index=0, selected item type=String, text='add'
+[2025-09-22 21:49:32.942] [857eaf0a] [DBG2] [COMPLETION] After Tab cycle (forward): new buffer='task add', phase=cycling (1/7)
+[2025-09-22 21:49:32.945] [857eaf0a] [DBG2] [STATE] Key=**** InCompletion: True->True Mode: Action->Action BufferLen=8 Cursor=8
+[2025-09-22 21:49:34.274] [857eaf0a] [DBG2] [INPUT] Tab key pressed (Shift=False): buffer='task add', cursor=8, inCompletion=True
+[2025-09-22 21:49:34.276] [857eaf0a] [DBG2] [COMPLETION] Tab cycle start: buffer='task add', cursor=8, mode=initial, direction=forward
+[2025-09-22 21:49:34.284] [857eaf0a] [DBG2] [RENDER] Bottom HUD render: bufferLen=9, cursorPos=9, width=159
+[2025-09-22 21:49:34.286] [857eaf0a] [DBG2] [COMPLETION] Before Tab cycle (forward): index=1, selected item type=String, text='list'
+[2025-09-22 21:49:34.289] [857eaf0a] [DBG2] [COMPLETION] After Tab cycle (forward): new buffer='task list', phase=cycling (2/7)
+[2025-09-22 21:49:34.291] [857eaf0a] [DBG2] [STATE] Key=**** InCompletion: True->True Mode: Action->Action BufferLen=9 Cursor=9
+[2025-09-22 21:49:35.081] [857eaf0a] [DBG2] [INPUT] Enter key pressed: buffer='task list', cursor=9, inCompletion=True
+[2025-09-22 21:49:35.083] [857eaf0a] [DBG2] [COMPLETION] Before Enter accept: index=1, selected item type=String, text='list'
+[2025-09-22 21:49:35.085] [857eaf0a] [DBG2] [COMPLETION] After Enter accept: final buffer='task list', phase=submit
+[2025-09-22 21:49:35.102] [857eaf0a] [DBG2] [STATE] Key=**** InCompletion: True->True Mode: Action->Action BufferLen=9 Cursor=9
+[2025-09-22 21:49:35.144] [857eaf0a] [DBG2] [ScreenManager] PMC content area cleared
+[2025-09-22 21:49:35.165] [857eaf0a] [DBG1] [COMMAND] START: task list
+[2025-09-22 21:49:35.280] [857eaf0a] [DBG2] [PARSER] Tokenized command | Data: {"TokenCount":2,"Tokens":["task","list"]}
+[2025-09-22 21:49:35.357] [857eaf0a] [DBG2] [Execution] Using AST-based argument parsing
+[2025-09-22 21:49:35.374] [857eaf0a] [DBG2] [PARSER] Context parsed | Data: {"Domain":"task","Action":"list","ArgCount":0,"Handler":"Get-PmcTaskList"}
+[2025-09-22 21:49:35.392] [857eaf0a] [DBG2] [Execution] About to execute function: Get-PmcTaskList
+[2025-09-22 21:49:35.399] [857eaf0a] [DBG2] [EXECUTION] Invoking handler: Get-PmcTaskList | Data: {"Source":"/home/****/pmc/module/Pmc.Strict/src/UniversalDisplay.ps1"}
+[2025-09-22 21:49:35.418] [857eaf0a] [DBG2] [UniversalDisplay] Universal data display | Data: {"FilterCount":1,"Interactive":false,"DataType":"task"}
+[2025-09-22 21:49:35.424] [857eaf0a] [DBG2] [UniversalDisplay] Show-PmcData calling Show-PmcDataGrid | Data: {"Interactive":false,"DataType":"task"}
+[2025-09-22 21:49:35.456] [857eaf0a] [DBG2] [DataDisplay] Rendering data grid | Data: {"FilterCount":1,"Domains":"task","ColumnCount":5}
+[2025-09-22 21:49:35.575] [857eaf0a] [DBG2] [DataDisplay] Failed to load project lookup | Data: {"Error":"The term 'Get-PmcDataProvider' is not recognized as a name of a cmdlet, function, script file, or executable program.\nCheck the spelling of the name, or if a path was included, verify that the path is correct and try again."}
+[2025-09-22 21:49:35.942] [857eaf0a] [DBG2] [DataDisplay] Grid rendering completed | Data: {"Interactive":false,"ItemCount":6}
+[2025-09-22 21:49:35.950] [857eaf0a] [DBG1] [COMMAND] SUCCESS: task list | Data: {"Domain":"task","Action":"list","Handler":"Get-PmcTaskList"}
+[2025-09-22 21:49:36.142] [857eaf0a] [DBG2] [INPUT] Starting Read-PmcCommand session
+[2025-09-22 21:49:36.144] [857eaf0a] [DBG2] [RENDER] Bottom HUD render: bufferLen=0, cursorPos=0, width=159
+[2025-09-22 21:49:39.714] [857eaf0a] [DBG2] [INPUT] DownArrow key pressed: buffer='', historyIndex=1, historySize=1
+[2025-09-22 21:49:39.724] [857eaf0a] [DBG2] [RENDER] Bottom HUD render: bufferLen=0, cursorPos=0, width=159
+[2025-09-22 21:49:39.726] [857eaf0a] [DBG2] [STATE] Key=**** InCompletion: False->False Mode: Domain->Domain BufferLen=0 Cursor=0
+[2025-09-22 21:49:41.228] [857eaf0a] [DBG2] [INPUT] DownArrow key pressed: buffer='', historyIndex=1, historySize=1
+[2025-09-22 21:49:41.231] [857eaf0a] [DBG2] [RENDER] Bottom HUD render: bufferLen=0, cursorPos=0, width=159
+[2025-09-22 21:49:41.233] [857eaf0a] [DBG2] [STATE] Key=**** InCompletion: False->False Mode: Domain->Domain BufferLen=0 Cursor=0
+[2025-09-22 21:49:41.470] [857eaf0a] [DBG2] [INPUT] DownArrow key pressed: buffer='', historyIndex=1, historySize=1
+[2025-09-22 21:49:41.475] [857eaf0a] [DBG2] [RENDER] Bottom HUD render: bufferLen=0, cursorPos=0, width=159
+[2025-09-22 21:49:41.478] [857eaf0a] [DBG2] [STATE] Key=**** InCompletion: False->False Mode: Domain->Domain BufferLen=0 Cursor=0
+[2025-09-22 21:54:33.669] [6ba85c40] [DBG1] [SYSTEM] Debug system initialized (Level=2, Session=6ba85c40)
+[2025-09-22 21:54:33.817] [6ba85c40] [DBG1] [SECURITY] Security level changed to: balanced | Data: {"AuditLoggingEnabled":true,"InputValidationEnabled":true,"PathWhitelistEnabled":true,"MaxMemoryUsage":524288000,"ResourceLimitsEnabled":true,"SensitiveDataScanEnabled":true,"MaxExecutionTime":300000,"MaxFileSize":104857600,"AllowedWritePaths":["/home/****/pmc","/home/****/pmc/reports","/home/****/pmc/backups","/home/****/pmc/exports","/tmp/"],"TemplateExecutionEnabled":false}
+[2025-09-22 21:54:33.940] [6ba85c40] [DBG1] [INTERACTIVE] Enabling PMC interactive mode with full t2.ps1 feature set
+[2025-09-22 21:54:34.110] [6ba85c40] [DBG2] [ScreenManager] Screen manager initialized | Data: {"Regions":{"Header":{"X":0,"Y":0,"Width":159,"Height":3},"Content":{"X":0,"Y":3,"Width":159,"Height":32},"Status":{"X":129,"Y":1,"Width":30,"Height":1},"Input":{"X":0,"Y":35,"Width":159,"Height":2},"Full":{"X":0,"Y":0,"Width":159,"Height":37}},"Title":"pmc — enhanced project management console"}
+[2025-09-22 21:54:34.119] [6ba85c40] [DBG1] [ScreenManager] PMC screen initialized | Data: {"Title":"pmc — enhanced project management console"}
+[2025-09-22 21:54:34.124] [6ba85c40] [DBG2] [SHELL] Persistent screen layout initialized
+[2025-09-22 21:54:34.367] [6ba85c40] [DBG2] [INPUT] Starting Read-PmcCommand session
+[2025-09-22 21:54:34.550] [6ba85c40] [DBG2] [RENDER] Bottom HUD render: bufferLen=0, cursorPos=0, width=159
+[2025-09-22 21:54:36.441] [6ba85c40] [DBG2] [RENDER] Bottom HUD render: bufferLen=1, cursorPos=1, width=159
+[2025-09-22 21:54:36.462] [6ba85c40] [DBG2] [STATE] Key=**** InCompletion: False->False Mode: Domain->Domain BufferLen=1 Cursor=1
+[2025-09-22 21:54:37.684] [6ba85c40] [DBG2] [INPUT] Tab key pressed (Shift=False): buffer='t', cursor=1, inCompletion=False
+[2025-09-22 21:54:37.701] [6ba85c40] [DBG2] [COMPLETION] Tab cycle start: buffer='t', cursor=1, mode=initial, direction=forward
+[2025-09-22 21:54:37.732] [6ba85c40] [DBG2] [COMPLETION] AST completion failed: The property 'Buffer' cannot be found on this object. Verify that the property exists., falling back to legacy
+[2025-09-22 21:54:37.737] [6ba85c40] [DBG2] [COMPLETION] Start Tab cycle (legacy): state=Domain, token=**** tokens=1
+[2025-09-22 21:54:37.749] [6ba85c40] [DBG2] [COMPLETION] Getting domain completions for filter='t'
+[2025-09-22 21:54:37.804] [6ba85c40] [DBG2] [COMPLETION] Domain completions: found 37 items
+[2025-09-22 21:54:37.810] [6ba85c40] [DBG2] [COMPLETION] Provider outputs: type=string[], length=37, first3=task, time, time
+[2025-09-22 21:54:37.816] [6ba85c40] [DBG2] [COMPLETION] Provider outputs: type=string[], length=37, first3=task, time, time
+[2025-09-22 21:54:37.839] [6ba85c40] [DBG2] [RENDER] Bottom HUD render: bufferLen=4, cursorPos=4, width=159
+[2025-09-22 21:54:37.846] [6ba85c40] [DBG2] [COMPLETION] Before Tab accept: index=0, selected item type=String, text='task'
+[2025-09-22 21:54:37.849] [6ba85c40] [DBG2] [COMPLETION] After Tab accept: new buffer='task', phase=cycling (1/37)
+[2025-09-22 21:54:37.851] [6ba85c40] [DBG2] [STATE] Key=**** InCompletion: False->True Mode: Domain->Domain BufferLen=4 Cursor=4
+[2025-09-22 21:54:41.554] [6ba85c40] [DBG2] [INPUT] Space key pressed: buffer='task', cursor=4, inCompletion=True
+[2025-09-22 21:54:41.568] [6ba85c40] [DBG2] [RENDER] Bottom HUD render: bufferLen=5, cursorPos=5, width=159
+[2025-09-22 21:54:41.570] [6ba85c40] [DBG2] [COMPLETION] Before Space accept: index=-1, selected item type=String, text='task'
+[2025-09-22 21:54:41.572] [6ba85c40] [DBG2] [COMPLETION] After Space accept: new buffer='task ', phase=domain/action/prefix, nextState=Action
+[2025-09-22 21:54:41.574] [6ba85c40] [DBG2] [STATE] Key=**** InCompletion: True->False Mode: Domain->Action BufferLen=5 Cursor=5
+[2025-09-22 21:54:43.126] [6ba85c40] [DBG2] [INPUT] Tab key pressed (Shift=False): buffer='task ', cursor=5, inCompletion=False
+[2025-09-22 21:54:43.128] [6ba85c40] [DBG2] [COMPLETION] Tab cycle start: buffer='task ', cursor=5, mode=initial, direction=forward
+[2025-09-22 21:54:43.133] [6ba85c40] [DBG2] [COMPLETION] AST completion failed: The property 'Buffer' cannot be found on this object. Verify that the property exists., falling back to legacy
+[2025-09-22 21:54:43.137] [6ba85c40] [DBG2] [COMPLETION] Start Tab cycle (legacy): state=Action, token=**** tokens=1
+[2025-09-22 21:54:43.144] [6ba85c40] [DBG2] [COMPLETION] Getting action completions for domain='task', filter=''
+[2025-09-22 21:54:43.147] [6ba85c40] [DBG2] [COMPLETION] Action completions: found 7 items
+[2025-09-22 21:54:43.149] [6ba85c40] [DBG2] [COMPLETION] Provider outputs: type=string[], length=7, first3=add, list, done
+[2025-09-22 21:54:43.158] [6ba85c40] [DBG2] [COMPLETION] Provider outputs: type=string[], length=7, first3=add, list, done
+[2025-09-22 21:54:43.162] [6ba85c40] [DBG2] [RENDER] Bottom HUD render: bufferLen=8, cursorPos=8, width=159
+[2025-09-22 21:54:43.163] [6ba85c40] [DBG2] [COMPLETION] Before Tab accept: index=0, selected item type=String, text='add'
+[2025-09-22 21:54:43.166] [6ba85c40] [DBG2] [COMPLETION] After Tab accept: new buffer='task add', phase=cycling (1/7)
+[2025-09-22 21:54:43.169] [6ba85c40] [DBG2] [STATE] Key=**** InCompletion: False->True Mode: Action->Action BufferLen=8 Cursor=8
+[2025-09-22 21:54:45.758] [6ba85c40] [DBG2] [INPUT] Tab key pressed (Shift=False): buffer='task add', cursor=8, inCompletion=True
+[2025-09-22 21:54:45.761] [6ba85c40] [DBG2] [COMPLETION] Tab cycle start: buffer='task add', cursor=8, mode=initial, direction=forward
+[2025-09-22 21:54:45.770] [6ba85c40] [DBG2] [RENDER] Bottom HUD render: bufferLen=9, cursorPos=9, width=159
+[2025-09-22 21:54:45.771] [6ba85c40] [DBG2] [COMPLETION] Before Tab cycle (forward): index=1, selected item type=String, text='list'
+[2025-09-22 21:54:45.773] [6ba85c40] [DBG2] [COMPLETION] After Tab cycle (forward): new buffer='task list', phase=cycling (2/7)
+[2025-09-22 21:54:45.778] [6ba85c40] [DBG2] [STATE] Key=**** InCompletion: True->True Mode: Action->Action BufferLen=9 Cursor=9
+[2025-09-22 21:54:49.843] [6ba85c40] [DBG2] [INPUT] Space key pressed: buffer='task list', cursor=9, inCompletion=True
+[2025-09-22 21:54:49.859] [6ba85c40] [DBG2] [RENDER] Bottom HUD render: bufferLen=10, cursorPos=10, width=159
+[2025-09-22 21:54:49.860] [6ba85c40] [DBG2] [COMPLETION] Before Space accept: index=-1, selected item type=String, text='list'
+[2025-09-22 21:54:49.862] [6ba85c40] [DBG2] [COMPLETION] After Space accept: new buffer='task list ', phase=domain/action/prefix, nextState=Arguments
+[2025-09-22 21:54:49.867] [6ba85c40] [DBG2] [STATE] Key=**** InCompletion: True->False Mode: Action->Arguments BufferLen=10 Cursor=10
+[2025-09-22 21:54:50.387] [6ba85c40] [DBG2] [INPUT] Tab key pressed (Shift=False): buffer='task list ', cursor=10, inCompletion=False
+[2025-09-22 21:54:50.389] [6ba85c40] [DBG2] [COMPLETION] Tab cycle start: buffer='task list ', cursor=10, mode=initial, direction=forward
+[2025-09-22 21:54:50.393] [6ba85c40] [DBG2] [COMPLETION] AST completion failed: The property 'Buffer' cannot be found on this object. Verify that the property exists., falling back to legacy
+[2025-09-22 21:54:50.395] [6ba85c40] [DBG2] [COMPLETION] Start Tab cycle (legacy): state=Arguments, token=**** tokens=2
+[2025-09-22 21:54:50.411] [6ba85c40] [DBG2] [COMPLETION] Getting argument completions for domain='task' action='list' filter=''
+[2025-09-22 21:54:50.559] [6ba85c40] [DBG2] [COMPLETION] Argument completions: found 33 items
+[2025-09-22 21:54:50.560] [6ba85c40] [DBG2] [COMPLETION] Provider outputs: type=string[], length=33, first3=@'', @docs, @inbox
+[2025-09-22 21:54:50.562] [6ba85c40] [DBG2] [COMPLETION] Provider outputs: type=string[], length=33, first3=@'', @docs, @inbox
+[2025-09-22 21:54:50.565] [6ba85c40] [DBG2] [RENDER] Bottom HUD render: bufferLen=13, cursorPos=13, width=159
+[2025-09-22 21:54:50.573] [6ba85c40] [DBG2] [COMPLETION] Before Tab accept: index=0, selected item type=String, text='@'''
+[2025-09-22 21:54:50.574] [6ba85c40] [DBG2] [COMPLETION] After Tab accept: new buffer='task list @''', phase=cycling (1/33)
+[2025-09-22 21:54:50.576] [6ba85c40] [DBG2] [STATE] Key=**** InCompletion: False->True Mode: Arguments->Arguments BufferLen=13 Cursor=13
+[2025-09-22 21:54:51.855] [6ba85c40] [DBG2] [INPUT] Tab key pressed (Shift=False): buffer='task list @''', cursor=13, inCompletion=True
+[2025-09-22 21:54:51.860] [6ba85c40] [DBG2] [COMPLETION] Tab cycle start: buffer='task list @''', cursor=13, mode=initial, direction=forward
+[2025-09-22 21:54:51.864] [6ba85c40] [DBG2] [RENDER] Bottom HUD render: bufferLen=15, cursorPos=15, width=159
+[2025-09-22 21:54:51.865] [6ba85c40] [DBG2] [COMPLETION] Before Tab cycle (forward): index=1, selected item type=String, text='@docs'
+[2025-09-22 21:54:51.866] [6ba85c40] [DBG2] [COMPLETION] After Tab cycle (forward): new buffer='task list @docs', phase=cycling (2/33)
+[2025-09-22 21:54:51.869] [6ba85c40] [DBG2] [STATE] Key=**** InCompletion: True->True Mode: Arguments->Arguments BufferLen=15 Cursor=15
+[2025-09-22 21:54:55.682] [6ba85c40] [DBG2] [INPUT] Tab key pressed (Shift=False): buffer='task list @docs', cursor=15, inCompletion=True
+[2025-09-22 21:54:55.685] [6ba85c40] [DBG2] [COMPLETION] Tab cycle start: buffer='task list @docs', cursor=15, mode=initial, direction=forward
+[2025-09-22 21:54:55.699] [6ba85c40] [DBG2] [RENDER] Bottom HUD render: bufferLen=16, cursorPos=16, width=159
+[2025-09-22 21:54:55.701] [6ba85c40] [DBG2] [COMPLETION] Before Tab cycle (forward): index=2, selected item type=String, text='@inbox'
+[2025-09-22 21:54:55.704] [6ba85c40] [DBG2] [COMPLETION] After Tab cycle (forward): new buffer='task list @inbox', phase=cycling (3/33)
+[2025-09-22 21:54:55.709] [6ba85c40] [DBG2] [STATE] Key=**** InCompletion: True->True Mode: Arguments->Arguments BufferLen=16 Cursor=16
+[2025-09-22 21:54:57.066] [6ba85c40] [DBG2] [INPUT] Tab key pressed (Shift=False): buffer='task list @inbox', cursor=16, inCompletion=True
+[2025-09-22 21:54:57.068] [6ba85c40] [DBG2] [COMPLETION] Tab cycle start: buffer='task list @inbox', cursor=16, mode=initial, direction=forward
+[2025-09-22 21:54:57.076] [6ba85c40] [DBG2] [RENDER] Bottom HUD render: bufferLen=17, cursorPos=17, width=159
+[2025-09-22 21:54:57.078] [6ba85c40] [DBG2] [COMPLETION] Before Tab cycle (forward): index=3, selected item type=String, text='@webapp'
+[2025-09-22 21:54:57.080] [6ba85c40] [DBG2] [COMPLETION] After Tab cycle (forward): new buffer='task list @webapp', phase=cycling (4/33)
+[2025-09-22 21:54:57.087] [6ba85c40] [DBG2] [STATE] Key=**** InCompletion: True->True Mode: Arguments->Arguments BufferLen=17 Cursor=17
+[2025-09-22 21:55:00.447] [6ba85c40] [DBG2] [INPUT] Enter key pressed: buffer='task list @webapp', cursor=17, inCompletion=True
+[2025-09-22 21:55:00.452] [6ba85c40] [DBG2] [COMPLETION] Before Enter accept: index=3, selected item type=String, text='@webapp'
+[2025-09-22 21:55:00.456] [6ba85c40] [DBG2] [COMPLETION] After Enter accept: final buffer='task list @webapp', phase=submit
+[2025-09-22 21:55:00.470] [6ba85c40] [DBG2] [STATE] Key=**** InCompletion: True->True Mode: Arguments->Arguments BufferLen=17 Cursor=17
+[2025-09-22 21:55:00.511] [6ba85c40] [DBG2] [ScreenManager] PMC content area cleared
+[2025-09-22 21:55:00.530] [6ba85c40] [DBG1] [COMMAND] START: task list @webapp
+[2025-09-22 21:55:00.573] [6ba85c40] [DBG2] [PARSER] Tokenized command | Data: {"TokenCount":3,"Tokens":["task","list","@webapp"]}
+[2025-09-22 21:55:00.710] [6ba85c40] [DBG2] [Execution] Using AST-based argument parsing
+[2025-09-22 21:55:00.730] [6ba85c40] [DBG2] [PARSER] Context parsed | Data: {"Handler":"Get-PmcTaskList","Action":"list","ArgCount":1,"Domain":"task"}
+[2025-09-22 21:55:00.757] [6ba85c40] [DBG2] [Execution] About to execute function: Get-PmcTaskList
+[2025-09-22 21:55:00.765] [6ba85c40] [DBG2] [EXECUTION] Invoking handler: Get-PmcTaskList | Data: {"Source":"/home/****/pmc/module/Pmc.Strict/src/UniversalDisplay.ps1"}
+[2025-09-22 21:55:00.784] [6ba85c40] [DBG2] [UniversalDisplay] Universal data display | Data: {"Interactive":false,"FilterCount":2,"DataType":"task"}
+[2025-09-22 21:55:00.790] [6ba85c40] [DBG2] [UniversalDisplay] Show-PmcData calling Show-PmcDataGrid | Data: {"DataType":"task","Interactive":false}
+[2025-09-22 21:55:00.812] [6ba85c40] [DBG2] [DataDisplay] Rendering data grid | Data: {"ColumnCount":5,"FilterCount":2,"Domains":"task"}
+[2025-09-22 21:55:00.926] [6ba85c40] [DBG2] [DataDisplay] Failed to load project lookup | Data: {"Error":"The term 'Get-PmcDataProvider' is not recognized as a name of a cmdlet, function, script file, or executable program.\nCheck the spelling of the name, or if a path was included, verify that the path is correct and try again."}
+[2025-09-22 21:55:01.297] [6ba85c40] [DBG2] [DataDisplay] Grid rendering completed | Data: {"ItemCount":6,"Interactive":false}
+[2025-09-22 21:55:01.308] [6ba85c40] [DBG1] [COMMAND] SUCCESS: task list @webapp | Data: {"Action":"list","Handler":"Get-PmcTaskList","Domain":"task"}
+[2025-09-22 21:55:01.486] [6ba85c40] [DBG2] [INPUT] Starting Read-PmcCommand session
+[2025-09-22 21:55:01.489] [6ba85c40] [DBG2] [RENDER] Bottom HUD render: bufferLen=0, cursorPos=0, width=159
+[2025-09-23 05:49:14.745] [129f844c] [DBG1] [SYSTEM] Debug system initialized (Level=2, Session=129f844c)
+[2025-09-23 05:49:14.828] [129f844c] [DBG1] [SECURITY] Security level changed to: balanced | Data: {"ResourceLimitsEnabled":true,"InputValidationEnabled":true,"MaxMemoryUsage":524288000,"SensitiveDataScanEnabled":true,"MaxExecutionTime":300000,"AllowedWritePaths":["/home/****/pmc","/home/****/pmc/reports","/home/****/pmc/backups","/home/****/pmc/exports","/tmp/"],"TemplateExecutionEnabled":false,"AuditLoggingEnabled":true,"PathWhitelistEnabled":true,"MaxFileSize":104857600}
+[2025-09-23 05:49:14.898] [129f844c] [DBG1] [INTERACTIVE] Enabling PMC interactive mode with full t2.ps1 feature set
+[2025-09-23 05:49:15.002] [129f844c] [DBG2] [ScreenManager] Screen manager initialized | Data: {"Title":"pmc — enhanced project management console","Regions":{"Header":{"X":0,"Y":0,"Width":159,"Height":3},"Content":{"X":0,"Y":3,"Width":159,"Height":32},"Status":{"X":129,"Y":1,"Width":30,"Height":1},"Input":{"X":0,"Y":35,"Width":159,"Height":2},"Full":{"X":0,"Y":0,"Width":159,"Height":37}}}
+[2025-09-23 05:49:15.006] [129f844c] [DBG1] [ScreenManager] PMC screen initialized | Data: {"Title":"pmc — enhanced project management console"}
+[2025-09-23 05:49:15.008] [129f844c] [DBG2] [SHELL] Persistent screen layout initialized
+[2025-09-23 05:49:15.144] [129f844c] [DBG2] [INPUT] Starting Read-PmcCommand session
+[2025-09-23 05:49:15.212] [129f844c] [DBG2] [RENDER] Bottom HUD render: bufferLen=0, cursorPos=0, width=159
+[2025-09-23 05:49:19.205] [129f844c] [DBG2] [RENDER] Bottom HUD render: bufferLen=1, cursorPos=1, width=159
+[2025-09-23 05:49:19.219] [129f844c] [DBG2] [STATE] Key=**** InCompletion: False->False Mode: Domain->Domain BufferLen=1 Cursor=1
+[2025-09-23 05:49:20.609] [129f844c] [DBG2] [INPUT] Tab key pressed (Shift=False): buffer='h', cursor=1, inCompletion=False
+[2025-09-23 05:49:20.613] [129f844c] [DBG2] [COMPLETION] Tab cycle start: buffer='h', cursor=1, mode=initial, direction=forward
+[2025-09-23 05:49:20.659] [129f844c] [DBG2] [COMPLETION] AST completion failed: The property 'Buffer' cannot be found on this object. Verify that the property exists., falling back to legacy
+[2025-09-23 05:49:20.664] [129f844c] [DBG2] [COMPLETION] Start Tab cycle (legacy): state=Domain, token=**** tokens=1
+[2025-09-23 05:49:20.673] [129f844c] [DBG2] [COMPLETION] Getting domain completions for filter='h'
+[2025-09-23 05:49:20.715] [129f844c] [DBG2] [COMPLETION] Domain completions: found 6 items
+[2025-09-23 05:49:20.720] [129f844c] [DBG2] [COMPLETION] Provider outputs: type=string[], length=6, first3=help, show, month
+[2025-09-23 05:49:20.730] [129f844c] [DBG2] [COMPLETION] Provider outputs: type=string[], length=6, first3=help, show, month
+[2025-09-23 05:49:20.749] [129f844c] [DBG2] [RENDER] Bottom HUD render: bufferLen=4, cursorPos=4, width=159
+[2025-09-23 05:49:20.754] [129f844c] [DBG2] [COMPLETION] Before Tab accept: index=0, selected item type=String, text='help'
+[2025-09-23 05:49:20.756] [129f844c] [DBG2] [COMPLETION] After Tab accept: new buffer='help', phase=cycling (1/6)
+[2025-09-23 05:49:20.760] [129f844c] [DBG2] [STATE] Key=**** InCompletion: False->True Mode: Domain->Domain BufferLen=4 Cursor=4
+[2025-09-23 05:49:23.727] [129f844c] [DBG2] [INPUT] Space key pressed: buffer='help', cursor=4, inCompletion=True
+[2025-09-23 05:49:23.736] [129f844c] [DBG2] [RENDER] Bottom HUD render: bufferLen=5, cursorPos=5, width=159
+[2025-09-23 05:49:23.738] [129f844c] [DBG2] [COMPLETION] Before Space accept: index=-1, selected item type=String, text='help'
+[2025-09-23 05:49:23.739] [129f844c] [DBG2] [COMPLETION] After Space accept: new buffer='help ', phase=domain/action/prefix, nextState=Action
+[2025-09-23 05:49:23.741] [129f844c] [DBG2] [STATE] Key=**** InCompletion: True->False Mode: Domain->Action BufferLen=5 Cursor=5
+[2025-09-23 05:49:27.657] [129f844c] [DBG2] [INPUT] Enter key pressed: buffer='help ', cursor=5, inCompletion=False
+[2025-09-23 05:49:27.671] [129f844c] [DBG2] [STATE] Key=**** InCompletion: False->False Mode: Action->Action BufferLen=5 Cursor=5
+[2025-09-23 05:49:27.701] [129f844c] [DBG2] [ScreenManager] PMC content area cleared
+[2025-09-23 05:49:27.715] [129f844c] [DBG1] [COMMAND] START: help
+[2025-09-23 05:49:27.789] [129f844c] [DBG2] [PARSER] Tokenized command | Data: {"Tokens":["help"],"TokenCount":1}
+[2025-09-23 05:49:27.813] [129f844c] [DBG2] [PARSER] Context parsed | Data: {"Handler":"Show-PmcSmartHelp","ArgCount":0,"Action":"show","Domain":"help"}
+[2025-09-23 05:49:27.826] [129f844c] [DBG2] [Execution] About to execute function: Show-PmcSmartHelp
+[2025-09-23 05:49:27.831] [129f844c] [DBG2] [EXECUTION] Invoking handler: Show-PmcSmartHelp | Data: {"Source":"/home/****/pmc/module/Pmc.Strict/src/HelpUI.ps1"}
+[2025-09-23 05:49:27.837] [129f844c] [DBG1] [HELP] Show-PmcHelpCategories START
+[2025-09-23 05:49:27.887] [129f844c] [DBG2] [DataDisplay] Failed to load project lookup | Data: {"Error":"The term 'Get-PmcDataProvider' is not recognized as a name of a cmdlet, function, script file, or executable program.\nCheck the spelling of the name, or if a path was included, verify that the path is correct and try again."}
+[2025-09-23 05:49:27.909] [129f844c] [DBG1] [HELP] Help categories ready | Data: {"Count":10}
+[2025-09-23 05:49:27.914] [129f844c] [DBG1] [Grid] StartInteractive called | Data: {"DataCount":10}
+[2025-09-23 05:49:27.927] [129f844c] [DBG1] [Grid] Starting interactive loop
+[2025-09-23 05:49:31.309] [129f844c] [DBG2] [Grid] Key pressed | Data: {"Key":81,"KeyChar":"q"}
+[2025-09-23 05:49:32.859] [129f844c] [DBG2] [Grid] Key pressed | Data: {"Key":27,"KeyChar":"\u001b"}
+[2025-09-23 05:49:38.697] [4cd2c436] [DBG1] [SYSTEM] Debug system initialized (Level=2, Session=4cd2c436)
+[2025-09-23 05:49:38.781] [4cd2c436] [DBG1] [SECURITY] Security level changed to: balanced | Data: {"MaxExecutionTime":300000,"SensitiveDataScanEnabled":true,"MaxFileSize":104857600,"AllowedWritePaths":["/home/****/pmc","/home/****/pmc/reports","/home/****/pmc/backups","/home/****/pmc/exports","/tmp/"],"PathWhitelistEnabled":true,"TemplateExecutionEnabled":false,"InputValidationEnabled":true,"MaxMemoryUsage":524288000,"AuditLoggingEnabled":true,"ResourceLimitsEnabled":true}
+[2025-09-23 05:49:38.852] [4cd2c436] [DBG1] [INTERACTIVE] Enabling PMC interactive mode with full t2.ps1 feature set
+[2025-09-23 05:49:38.941] [4cd2c436] [DBG2] [ScreenManager] Screen manager initialized | Data: {"Title":"pmc — enhanced project management console","Regions":{"Header":{"X":0,"Y":0,"Width":159,"Height":3},"Content":{"X":0,"Y":3,"Width":159,"Height":32},"Status":{"X":129,"Y":1,"Width":30,"Height":1},"Input":{"X":0,"Y":35,"Width":159,"Height":2},"Full":{"X":0,"Y":0,"Width":159,"Height":37}}}
+[2025-09-23 05:49:38.944] [4cd2c436] [DBG1] [ScreenManager] PMC screen initialized | Data: {"Title":"pmc — enhanced project management console"}
+[2025-09-23 05:49:38.946] [4cd2c436] [DBG2] [SHELL] Persistent screen layout initialized
+[2025-09-23 05:49:39.108] [4cd2c436] [DBG2] [INPUT] Starting Read-PmcCommand session
+[2025-09-23 05:49:39.177] [4cd2c436] [DBG2] [RENDER] Bottom HUD render: bufferLen=0, cursorPos=0, width=159
+[2025-09-23 05:49:41.643] [4cd2c436] [DBG2] [RENDER] Bottom HUD render: bufferLen=1, cursorPos=1, width=159
+[2025-09-23 05:49:41.657] [4cd2c436] [DBG2] [STATE] Key=**** InCompletion: False->False Mode: Domain->Domain BufferLen=1 Cursor=1
+[2025-09-23 05:49:42.459] [4cd2c436] [DBG2] [INPUT] Tab key pressed (Shift=False): buffer='t', cursor=1, inCompletion=False
+[2025-09-23 05:49:42.464] [4cd2c436] [DBG2] [COMPLETION] Tab cycle start: buffer='t', cursor=1, mode=initial, direction=forward
+[2025-09-23 05:49:42.497] [4cd2c436] [DBG2] [COMPLETION] AST completion failed: The property 'Buffer' cannot be found on this object. Verify that the property exists., falling back to legacy
+[2025-09-23 05:49:42.502] [4cd2c436] [DBG2] [COMPLETION] Start Tab cycle (legacy): state=Domain, token=**** tokens=1
+[2025-09-23 05:49:42.524] [4cd2c436] [DBG2] [COMPLETION] Getting domain completions for filter='t'
+[2025-09-23 05:49:42.565] [4cd2c436] [DBG2] [COMPLETION] Domain completions: found 37 items
+[2025-09-23 05:49:42.570] [4cd2c436] [DBG2] [COMPLETION] Provider outputs: type=string[], length=37, first3=task, time, time
+[2025-09-23 05:49:42.575] [4cd2c436] [DBG2] [COMPLETION] Provider outputs: type=string[], length=37, first3=task, time, time
+[2025-09-23 05:49:42.595] [4cd2c436] [DBG2] [RENDER] Bottom HUD render: bufferLen=4, cursorPos=4, width=159
+[2025-09-23 05:49:42.600] [4cd2c436] [DBG2] [COMPLETION] Before Tab accept: index=0, selected item type=String, text='task'
+[2025-09-23 05:49:42.603] [4cd2c436] [DBG2] [COMPLETION] After Tab accept: new buffer='task', phase=cycling (1/37)
+[2025-09-23 05:49:42.609] [4cd2c436] [DBG2] [STATE] Key=**** InCompletion: False->True Mode: Domain->Domain BufferLen=4 Cursor=4
+[2025-09-23 05:49:43.391] [4cd2c436] [DBG2] [INPUT] Space key pressed: buffer='task', cursor=4, inCompletion=True
+[2025-09-23 05:49:43.399] [4cd2c436] [DBG2] [RENDER] Bottom HUD render: bufferLen=5, cursorPos=5, width=159
+[2025-09-23 05:49:43.401] [4cd2c436] [DBG2] [COMPLETION] Before Space accept: index=-1, selected item type=String, text='task'
+[2025-09-23 05:49:43.403] [4cd2c436] [DBG2] [COMPLETION] After Space accept: new buffer='task ', phase=domain/action/prefix, nextState=Action
+[2025-09-23 05:49:43.405] [4cd2c436] [DBG2] [STATE] Key=**** InCompletion: True->False Mode: Domain->Action BufferLen=5 Cursor=5
+[2025-09-23 05:49:44.531] [4cd2c436] [DBG2] [RENDER] Bottom HUD render: bufferLen=6, cursorPos=6, width=159
+[2025-09-23 05:49:44.536] [4cd2c436] [DBG2] [STATE] Key=**** InCompletion: False->False Mode: Action->Action BufferLen=6 Cursor=6
+[2025-09-23 05:49:45.910] [4cd2c436] [DBG2] [INPUT] Tab key pressed (Shift=False): buffer='task l', cursor=6, inCompletion=False
+[2025-09-23 05:49:45.913] [4cd2c436] [DBG2] [COMPLETION] Tab cycle start: buffer='task l', cursor=6, mode=initial, direction=forward
+[2025-09-23 05:49:45.927] [4cd2c436] [DBG2] [COMPLETION] AST completion failed: The property 'Buffer' cannot be found on this object. Verify that the property exists., falling back to legacy
+[2025-09-23 05:49:45.929] [4cd2c436] [DBG2] [COMPLETION] Start Tab cycle (legacy): state=Action, token=**** tokens=2
+[2025-09-23 05:49:45.939] [4cd2c436] [DBG2] [COMPLETION] Getting action completions for domain='task', filter='l'
+[2025-09-23 05:49:45.942] [4cd2c436] [DBG2] [COMPLETION] Action completions: found 2 items
+[2025-09-23 05:49:45.947] [4cd2c436] [DBG2] [COMPLETION] Provider outputs: type=string[], length=2, first3=list, delete
+[2025-09-23 05:49:45.949] [4cd2c436] [DBG2] [COMPLETION] Provider outputs: type=string[], length=2, first3=list, delete
+[2025-09-23 05:49:45.953] [4cd2c436] [DBG2] [RENDER] Bottom HUD render: bufferLen=9, cursorPos=9, width=159
+[2025-09-23 05:49:45.955] [4cd2c436] [DBG2] [COMPLETION] Before Tab accept: index=0, selected item type=String, text='list'
+[2025-09-23 05:49:45.957] [4cd2c436] [DBG2] [COMPLETION] After Tab accept: new buffer='task list', phase=cycling (1/2)
+[2025-09-23 05:49:45.960] [4cd2c436] [DBG2] [STATE] Key=**** InCompletion: False->True Mode: Action->Action BufferLen=9 Cursor=9
+[2025-09-23 05:49:46.542] [4cd2c436] [DBG2] [INPUT] Space key pressed: buffer='task list', cursor=9, inCompletion=True
+[2025-09-23 05:49:46.546] [4cd2c436] [DBG2] [RENDER] Bottom HUD render: bufferLen=10, cursorPos=10, width=159
+[2025-09-23 05:49:46.547] [4cd2c436] [DBG2] [COMPLETION] Before Space accept: index=-1, selected item type=String, text='list'
+[2025-09-23 05:49:46.549] [4cd2c436] [DBG2] [COMPLETION] After Space accept: new buffer='task list ', phase=domain/action/prefix, nextState=Arguments
+[2025-09-23 05:49:46.551] [4cd2c436] [DBG2] [STATE] Key=**** InCompletion: True->False Mode: Action->Arguments BufferLen=10 Cursor=10
+[2025-09-23 05:49:47.794] [4cd2c436] [DBG2] [INPUT] Enter key pressed: buffer='task list ', cursor=10, inCompletion=False
+[2025-09-23 05:49:47.812] [4cd2c436] [DBG2] [STATE] Key=**** InCompletion: False->False Mode: Arguments->Arguments BufferLen=10 Cursor=10
+[2025-09-23 05:49:47.854] [4cd2c436] [DBG2] [ScreenManager] PMC content area cleared
+[2025-09-23 05:49:47.867] [4cd2c436] [DBG1] [COMMAND] START: task list
+[2025-09-23 05:49:47.935] [4cd2c436] [DBG2] [PARSER] Tokenized command | Data: {"Tokens":["task","list"],"TokenCount":2}
+[2025-09-23 05:49:47.981] [4cd2c436] [DBG2] [Execution] Using AST-based argument parsing
+[2025-09-23 05:49:47.991] [4cd2c436] [DBG2] [PARSER] Context parsed | Data: {"Action":"list","Handler":"Get-PmcTaskList","ArgCount":0,"Domain":"task"}
+[2025-09-23 05:49:48.002] [4cd2c436] [DBG2] [Execution] About to execute function: Get-PmcTaskList
+[2025-09-23 05:49:48.006] [4cd2c436] [DBG2] [EXECUTION] Invoking handler: Get-PmcTaskList | Data: {"Source":"/home/****/pmc/module/Pmc.Strict/src/UniversalDisplay.ps1"}
+[2025-09-23 05:49:48.012] [4cd2c436] [DBG2] [TemplateDisplay] Simple data display | Data: {"Template":"","FilterCount":1,"DataType":"task"}
+[2025-09-23 05:49:48.076] [4cd2c436] [DBG1] [COMMAND] SUCCESS: task list | Data: {"Action":"list","Handler":"Get-PmcTaskList","Domain":"task"}
+[2025-09-23 05:49:48.179] [4cd2c436] [DBG2] [INPUT] Starting Read-PmcCommand session
+[2025-09-23 05:49:48.180] [4cd2c436] [DBG2] [RENDER] Bottom HUD render: bufferLen=0, cursorPos=0, width=159
+[2025-09-23 05:49:53.968] [4cd2c436] [DBG2] [RENDER] Bottom HUD render: bufferLen=1, cursorPos=1, width=159
+[2025-09-23 05:49:53.970] [4cd2c436] [DBG2] [STATE] Key=**** InCompletion: False->False Mode: Domain->Domain BufferLen=1 Cursor=1
+[2025-09-23 05:49:54.079] [4cd2c436] [DBG2] [RENDER] Bottom HUD render: bufferLen=2, cursorPos=2, width=159
+[2025-09-23 05:49:54.217] [4cd2c436] [DBG2] [RENDER] Bottom HUD render: bufferLen=3, cursorPos=3, width=159
+[2025-09-23 05:49:54.221] [4cd2c436] [DBG2] [STATE] Key=**** InCompletion: False->False Mode: Domain->Domain BufferLen=3 Cursor=3
+[2025-09-23 05:49:54.650] [4cd2c436] [DBG2] [RENDER] Bottom HUD render: bufferLen=4, cursorPos=4, width=159
+[2025-09-23 05:49:54.654] [4cd2c436] [DBG2] [STATE] Key=**** InCompletion: False->False Mode: Domain->Domain BufferLen=4 Cursor=4
+[2025-09-23 05:49:54.737] [4cd2c436] [DBG2] [RENDER] Bottom HUD render: bufferLen=5, cursorPos=5, width=159
+[2025-09-23 05:49:54.739] [4cd2c436] [DBG2] [STATE] Key=**** InCompletion: False->False Mode: Domain->Domain BufferLen=5 Cursor=5
+[2025-09-23 05:49:54.908] [4cd2c436] [DBG2] [RENDER] Bottom HUD render: bufferLen=6, cursorPos=6, width=159
+[2025-09-23 05:49:54.911] [4cd2c436] [DBG2] [STATE] Key=**** InCompletion: False->False Mode: Domain->Domain BufferLen=6 Cursor=6
+[2025-09-23 05:49:55.222] [4cd2c436] [DBG2] [RENDER] Bottom HUD render: bufferLen=7, cursorPos=7, width=159
+[2025-09-23 05:49:55.226] [4cd2c436] [DBG2] [STATE] Key=**** InCompletion: False->False Mode: Domain->Domain BufferLen=7 Cursor=7
+[2025-09-23 05:49:55.353] [4cd2c436] [DBG2] [INPUT] Space key pressed: buffer='project', cursor=7, inCompletion=False
+[2025-09-23 05:49:55.359] [4cd2c436] [DBG2] [RENDER] Bottom HUD render: bufferLen=8, cursorPos=8, width=159
+[2025-09-23 05:49:55.363] [4cd2c436] [DBG2] [STATE] Key=**** InCompletion: False->False Mode: Domain->Action BufferLen=8 Cursor=8
+[2025-09-23 05:49:55.591] [4cd2c436] [DBG2] [RENDER] Bottom HUD render: bufferLen=9, cursorPos=9, width=159
+[2025-09-23 05:49:55.594] [4cd2c436] [DBG2] [STATE] Key=**** InCompletion: False->False Mode: Action->Action BufferLen=9 Cursor=9
+[2025-09-23 05:49:55.860] [4cd2c436] [DBG2] [RENDER] Bottom HUD render: bufferLen=10, cursorPos=10, width=159
+[2025-09-23 05:49:55.866] [4cd2c436] [DBG2] [STATE] Key=**** InCompletion: False->False Mode: Action->Action BufferLen=10 Cursor=10
+[2025-09-23 05:49:55.977] [4cd2c436] [DBG2] [RENDER] Bottom HUD render: bufferLen=11, cursorPos=11, width=159
+[2025-09-23 05:49:55.982] [4cd2c436] [DBG2] [STATE] Key=**** InCompletion: False->False Mode: Action->Action BufferLen=11 Cursor=11
+[2025-09-23 05:49:56.682] [4cd2c436] [DBG2] [RENDER] Bottom HUD render: bufferLen=12, cursorPos=12, width=159
+[2025-09-23 05:49:56.685] [4cd2c436] [DBG2] [STATE] Key=**** InCompletion: False->False Mode: Action->Action BufferLen=12 Cursor=12
+[2025-09-23 05:49:59.100] [4cd2c436] [DBG2] [INPUT] Enter key pressed: buffer='project list', cursor=12, inCompletion=False
+[2025-09-23 05:49:59.105] [4cd2c436] [DBG2] [STATE] Key=**** InCompletion: False->False Mode: Action->Action BufferLen=12 Cursor=12
+[2025-09-23 05:49:59.121] [4cd2c436] [DBG2] [ScreenManager] PMC content area cleared
+[2025-09-23 05:49:59.126] [4cd2c436] [DBG1] [COMMAND] START: project list
+[2025-09-23 05:49:59.157] [4cd2c436] [DBG2] [PARSER] Tokenized command | Data: {"Tokens":["project","list"],"TokenCount":2}
+[2025-09-23 05:49:59.160] [4cd2c436] [DBG2] [Execution] Using AST-based argument parsing
+[2025-09-23 05:49:59.161] [4cd2c436] [DBG2] [PARSER] Context parsed | Data: {"Action":"list","Handler":"Get-PmcProjectList","ArgCount":0,"Domain":"project"}
+[2025-09-23 05:49:59.162] [4cd2c436] [DBG2] [Execution] About to execute function: Get-PmcProjectList
+[2025-09-23 05:49:59.163] [4cd2c436] [DBG2] [EXECUTION] Invoking handler: Get-PmcProjectList | Data: {"Source":"/home/****/pmc/module/Pmc.Strict/src/UniversalDisplay.ps1"}
+[2025-09-23 05:49:59.176] [4cd2c436] [DBG2] [UniversalDisplay] Universal data display | Data: {"FilterCount":1,"Interactive":false,"DataType":"project"}
+[2025-09-23 05:49:59.181] [4cd2c436] [DBG2] [UniversalDisplay] Show-PmcData calling Show-PmcDataGrid | Data: {"Interactive":false,"DataType":"project"}
+[2025-09-23 05:49:59.199] [4cd2c436] [DBG2] [DataDisplay] Rendering data grid | Data: {"FilterCount":1,"Domains":"project","ColumnCount":4}
+[2025-09-23 05:49:59.280] [4cd2c436] [DBG2] [DataDisplay] Failed to load project lookup | Data: {"Error":"The term 'Get-PmcDataProvider' is not recognized as a name of a cmdlet, function, script file, or executable program.\nCheck the spelling of the name, or if a path was included, verify that the path is correct and try again."}
+[2025-09-23 05:49:59.433] [4cd2c436] [DBG2] [DataDisplay] Grid rendering completed | Data: {"ItemCount":6,"Interactive":false}
+[2025-09-23 05:49:59.435] [4cd2c436] [DBG1] [COMMAND] SUCCESS: project list | Data: {"Action":"list","Handler":"Get-PmcProjectList","Domain":"project"}
+[2025-09-23 05:49:59.547] [4cd2c436] [DBG2] [INPUT] Starting Read-PmcCommand session
+[2025-09-23 05:49:59.549] [4cd2c436] [DBG2] [RENDER] Bottom HUD render: bufferLen=0, cursorPos=0, width=159
+[2025-09-23 16:46:45.789] [4cd2c436] [DBG2] [INPUT] UpArrow key pressed: buffer='', historyIndex=2, historySize=2
+[2025-09-23 16:46:45.793] [4cd2c436] [DBG2] [RENDER] Bottom HUD render: bufferLen=12, cursorPos=12, width=159
+[2025-09-23 16:46:45.795] [4cd2c436] [DBG2] [STATE] Key=**** InCompletion: False->False Mode: Domain->Action BufferLen=12 Cursor=12
+[2025-09-23 16:46:53.290] [ea09b261] [DBG1] [SYSTEM] Debug system initialized (Level=2, Session=ea09b261)
+[2025-09-23 16:46:53.445] [ea09b261] [DBG1] [SECURITY] Security level changed to: balanced | Data: {"InputValidationEnabled":true,"MaxMemoryUsage":524288000,"MaxExecutionTime":300000,"ResourceLimitsEnabled":true,"AllowedWritePaths":["/home/****/pmc","/home/****/pmc/reports","/home/****/pmc/backups","/home/****/pmc/exports","/tmp/"],"TemplateExecutionEnabled":false,"MaxFileSize":104857600,"SensitiveDataScanEnabled":true,"AuditLoggingEnabled":true,"PathWhitelistEnabled":true}
+[2025-09-23 16:46:53.587] [ea09b261] [DBG1] [INTERACTIVE] Enabling PMC interactive mode with full t2.ps1 feature set
+[2025-09-23 16:46:53.762] [ea09b261] [DBG2] [ScreenManager] Screen manager initialized | Data: {"Title":"pmc — enhanced project management console","Regions":{"Header":{"X":0,"Y":0,"Width":159,"Height":3},"Content":{"X":0,"Y":3,"Width":159,"Height":32},"Status":{"X":129,"Y":1,"Width":30,"Height":1},"Input":{"X":0,"Y":35,"Width":159,"Height":2},"Full":{"X":0,"Y":0,"Width":159,"Height":37}}}
+[2025-09-23 16:46:53.770] [ea09b261] [DBG1] [ScreenManager] PMC screen initialized | Data: {"Title":"pmc — enhanced project management console"}
+[2025-09-23 16:46:53.774] [ea09b261] [DBG2] [SHELL] Persistent screen layout initialized
+[2025-09-23 16:46:54.076] [ea09b261] [DBG2] [INPUT] Starting Read-PmcCommand session
+[2025-09-23 16:46:54.226] [ea09b261] [DBG2] [RENDER] Bottom HUD render: bufferLen=0, cursorPos=0, width=159
+[2025-09-23 16:46:55.192] [ea09b261] [DBG2] [RENDER] Bottom HUD render: bufferLen=1, cursorPos=1, width=159
+[2025-09-23 16:46:55.226] [ea09b261] [DBG2] [STATE] Key=**** InCompletion: False->False Mode: Domain->Domain BufferLen=1 Cursor=1
+[2025-09-23 16:46:55.779] [ea09b261] [DBG2] [RENDER] Bottom HUD render: bufferLen=2, cursorPos=2, width=159
+[2025-09-23 16:46:55.784] [ea09b261] [DBG2] [STATE] Key=**** InCompletion: False->False Mode: Domain->Domain BufferLen=2 Cursor=2
+[2025-09-23 16:46:55.890] [ea09b261] [DBG2] [RENDER] Bottom HUD render: bufferLen=3, cursorPos=3, width=159
+[2025-09-23 16:46:55.897] [ea09b261] [DBG2] [STATE] Key=**** InCompletion: False->False Mode: Domain->Domain BufferLen=3 Cursor=3
+[2025-09-23 16:46:55.929] [ea09b261] [DBG2] [RENDER] Bottom HUD render: bufferLen=4, cursorPos=4, width=159
+[2025-09-23 16:46:55.935] [ea09b261] [DBG2] [STATE] Key=**** InCompletion: False->False Mode: Domain->Domain BufferLen=4 Cursor=4
+[2025-09-23 16:46:56.366] [ea09b261] [DBG2] [INPUT] Enter key pressed: buffer='help', cursor=4, inCompletion=False
+[2025-09-23 16:46:56.390] [ea09b261] [DBG2] [STATE] Key=**** InCompletion: False->False Mode: Domain->Domain BufferLen=4 Cursor=4
+[2025-09-23 16:46:56.449] [ea09b261] [DBG2] [ScreenManager] PMC content area cleared
+[2025-09-23 16:46:56.480] [ea09b261] [DBG1] [COMMAND] START: help
+[2025-09-23 16:46:56.663] [ea09b261] [DBG2] [PARSER] Tokenized command | Data: {"Tokens":["help"],"TokenCount":1}
+[2025-09-23 16:46:56.703] [ea09b261] [DBG2] [PARSER] Context parsed | Data: {"Action":"show","Handler":"Show-PmcSmartHelp","ArgCount":0,"Domain":"help"}
+[2025-09-23 16:46:56.747] [ea09b261] [DBG2] [Execution] About to execute function: Show-PmcSmartHelp
+[2025-09-23 16:46:56.761] [ea09b261] [DBG2] [EXECUTION] Invoking handler: Show-PmcSmartHelp | Data: {"Source":"/home/****/pmc/module/Pmc.Strict/src/HelpUI.ps1"}
+[2025-09-23 16:46:56.777] [ea09b261] [DBG1] [HELP] Show-PmcHelpCategories START
+[2025-09-23 16:46:56.885] [ea09b261] [DBG2] [DataDisplay] Failed to load project lookup | Data: {"Error":"The term 'Get-PmcDataProvider' is not recognized as a name of a cmdlet, function, script file, or executable program.\nCheck the spelling of the name, or if a path was included, verify that the path is correct and try again."}
+[2025-09-23 16:46:56.924] [ea09b261] [DBG1] [HELP] Help categories ready | Data: {"Count":10}
+[2025-09-23 16:46:56.939] [ea09b261] [DBG1] [Grid] StartInteractive called | Data: {"DataCount":10}
+[2025-09-23 16:46:56.981] [ea09b261] [DBG1] [Grid] Starting interactive loop
+[2025-09-23 16:46:59.318] [ea09b261] [DBG2] [Grid] Key pressed | Data: {"Key":40,"KeyChar":"\u0000"}
+[2025-09-23 16:47:00.071] [ea09b261] [DBG2] [Grid] Key pressed | Data: {"Key":40,"KeyChar":"\u0000"}
+[2025-09-23 16:47:00.278] [ea09b261] [DBG2] [Grid] Key pressed | Data: {"Key":40,"KeyChar":"\u0000"}
+[2025-09-23 16:47:00.459] [ea09b261] [DBG2] [Grid] Key pressed | Data: {"Key":40,"KeyChar":"\u0000"}
+[2025-09-23 16:47:00.600] [ea09b261] [DBG2] [Grid] Key pressed | Data: {"Key":40,"KeyChar":"\u0000"}
+[2025-09-23 16:47:00.784] [ea09b261] [DBG2] [Grid] Key pressed | Data: {"Key":40,"KeyChar":"\u0000"}
+[2025-09-23 16:47:01.411] [ea09b261] [DBG2] [Grid] Key pressed | Data: {"Key":40,"KeyChar":"\u0000"}
+[2025-09-23 16:47:02.795] [ea09b261] [DBG2] [Grid] Key pressed | Data: {"Key":13,"KeyChar":"\r"}
+[2025-09-23 16:47:02.810] [ea09b261] [DBG2] [DataDisplay] Executing OnSelectCallback
+[2025-09-23 16:47:02.817] [ea09b261] [DBG1] [HELP] Select category | Data: {"Category":"Tag Filters"}
+[2025-09-23 16:47:02.829] [ea09b261] [DBG1] [HELP] Show-PmcHelpCommands START | Data: {"Domain":"Tag Filters"}
+[2025-09-23 16:47:02.876] [ea09b261] [DBG2] [DataDisplay] Failed to load project lookup | Data: {"Error":"The term 'Get-PmcDataProvider' is not recognized as a name of a cmdlet, function, script file, or executable program.\nCheck the spelling of the name, or if a path was included, verify that the path is correct and try again."}
+[2025-09-23 16:47:02.882] [ea09b261] [DBG1] [HELP] Help commands ready | Data: {"Count":3}
+[2025-09-23 16:47:02.884] [ea09b261] [DBG1] [Grid] StartInteractive called | Data: {"DataCount":3}
+[2025-09-23 16:47:02.885] [ea09b261] [DBG1] [Grid] Starting interactive loop
+[2025-09-23 16:47:04.112] [ea09b261] [DBG2] [Grid] Key pressed | Data: {"Key":13,"KeyChar":"\r"}
+[2025-09-23 16:47:04.116] [ea09b261] [DBG2] [DataDisplay] Executing OnSelectCallback
+[2025-09-23 16:47:04.130] [ea09b261] [DBG1] [HELP] Select command | Data: {"Command":"q tasks #urgent"}
+[2025-09-23 16:47:04.155] [ea09b261] [DBG2] [RENDER] Bottom HUD render: bufferLen=20, cursorPos=20, width=159
+[2025-09-23 16:47:04.164] [ea09b261] [DBG1] [COMMAND] SUCCESS: help | Data: {"Action":"show","Handler":"Show-PmcSmartHelp","Domain":"help"}
+[2025-09-23 16:47:04.318] [ea09b261] [DBG2] [INPUT] Starting Read-PmcCommand session
+[2025-09-23 16:47:04.321] [ea09b261] [DBG2] [RENDER] Bottom HUD render: bufferLen=0, cursorPos=0, width=159
+[2025-09-23 16:56:10.938] [b2ff1dc6] [DBG1] [SYSTEM] Debug system initialized (Level=2, Session=b2ff1dc6)
+[2025-09-23 16:56:11.081] [b2ff1dc6] [DBG1] [SECURITY] Security level changed to: balanced | Data: {"AuditLoggingEnabled":true,"MaxExecutionTime":300000,"ResourceLimitsEnabled":true,"MaxFileSize":104857600,"MaxMemoryUsage":524288000,"InputValidationEnabled":true,"TemplateExecutionEnabled":false,"AllowedWritePaths":["/home/****/pmc","/home/****/pmc/reports","/home/****/pmc/backups","/home/****/pmc/exports","/tmp/"],"PathWhitelistEnabled":true,"SensitiveDataScanEnabled":true}
+[2025-09-23 16:56:11.209] [b2ff1dc6] [DBG1] [INTERACTIVE] Enabling PMC interactive mode with full t2.ps1 feature set
+[2025-09-23 16:56:11.371] [b2ff1dc6] [DBG2] [ScreenManager] Screen manager initialized | Data: {"Regions":{"Header":{"X":0,"Y":0,"Width":159,"Height":3},"Content":{"X":0,"Y":3,"Width":159,"Height":32},"Status":{"X":129,"Y":1,"Width":30,"Height":1},"Input":{"X":0,"Y":35,"Width":159,"Height":2},"Full":{"X":0,"Y":0,"Width":159,"Height":37}},"Title":"pmc — enhanced project management console"}
+[2025-09-23 16:56:11.379] [b2ff1dc6] [DBG1] [ScreenManager] PMC screen initialized | Data: {"Title":"pmc — enhanced project management console"}
+[2025-09-23 16:56:11.383] [b2ff1dc6] [DBG2] [SHELL] Persistent screen layout initialized
+[2025-09-23 16:56:11.665] [b2ff1dc6] [DBG2] [INPUT] Starting Read-PmcCommand session
+[2025-09-23 16:56:11.796] [b2ff1dc6] [DBG2] [RENDER] Bottom HUD render: bufferLen=0, cursorPos=0, width=159
+[2025-09-23 16:56:12.066] [b2ff1dc6] [DBG2] [RENDER] Bottom HUD render: bufferLen=1, cursorPos=1, width=159
+[2025-09-23 16:56:12.099] [b2ff1dc6] [DBG2] [STATE] Key=**** InCompletion: False->False Mode: Domain->Domain BufferLen=1 Cursor=1
+[2025-09-23 16:56:12.294] [b2ff1dc6] [DBG2] [RENDER] Bottom HUD render: bufferLen=2, cursorPos=2, width=159
+[2025-09-23 16:56:12.300] [b2ff1dc6] [DBG2] [STATE] Key=**** InCompletion: False->False Mode: Domain->Domain BufferLen=2 Cursor=2
+[2025-09-23 16:56:12.722] [b2ff1dc6] [DBG2] [INPUT] Tab key pressed (Shift=False): buffer='ti', cursor=2, inCompletion=False
+[2025-09-23 16:56:12.727] [b2ff1dc6] [DBG2] [COMPLETION] Tab cycle start: buffer='ti', cursor=2, mode=initial, direction=forward
+[2025-09-23 16:56:12.768] [b2ff1dc6] [DBG2] [COMPLETION] AST completion failed: The property 'Buffer' cannot be found on this object. Verify that the property exists., falling back to legacy
+[2025-09-23 16:56:12.775] [b2ff1dc6] [DBG2] [COMPLETION] Start Tab cycle (legacy): state=Domain, token=**** tokens=1
+[2025-09-23 16:56:12.808] [b2ff1dc6] [DBG2] [COMPLETION] Getting domain completions for filter='ti'
+[2025-09-23 16:56:12.873] [b2ff1dc6] [DBG2] [COMPLETION] Domain completions: found 5 items
+[2025-09-23 16:56:12.881] [b2ff1dc6] [DBG2] [COMPLETION] Provider outputs: type=string[], length=5, first3=time, time, timer
+[2025-09-23 16:56:12.890] [b2ff1dc6] [DBG2] [COMPLETION] Provider outputs: type=string[], length=5, first3=time, time, timer
+[2025-09-23 16:56:12.922] [b2ff1dc6] [DBG2] [RENDER] Bottom HUD render: bufferLen=4, cursorPos=4, width=159
+[2025-09-23 16:56:12.931] [b2ff1dc6] [DBG2] [COMPLETION] Before Tab accept: index=0, selected item type=String, text='time'
+[2025-09-23 16:56:12.941] [b2ff1dc6] [DBG2] [COMPLETION] After Tab accept: new buffer='time', phase=cycling (1/5)
+[2025-09-23 16:56:12.946] [b2ff1dc6] [DBG2] [STATE] Key=**** InCompletion: False->True Mode: Domain->Domain BufferLen=4 Cursor=4
+[2025-09-23 16:56:13.690] [b2ff1dc6] [DBG2] [INPUT] Space key pressed: buffer='time', cursor=4, inCompletion=True
+[2025-09-23 16:56:13.709] [b2ff1dc6] [DBG2] [RENDER] Bottom HUD render: bufferLen=5, cursorPos=5, width=159
+[2025-09-23 16:56:13.713] [b2ff1dc6] [DBG2] [COMPLETION] Before Space accept: index=-1, selected item type=String, text='time'
+[2025-09-23 16:56:13.717] [b2ff1dc6] [DBG2] [COMPLETION] After Space accept: new buffer='time ', phase=domain/action/prefix, nextState=Action
+[2025-09-23 16:56:13.722] [b2ff1dc6] [DBG2] [STATE] Key=**** InCompletion: True->False Mode: Domain->Action BufferLen=5 Cursor=5
+[2025-09-23 16:56:14.427] [b2ff1dc6] [DBG2] [INPUT] Tab key pressed (Shift=False): buffer='time ', cursor=5, inCompletion=False
+[2025-09-23 16:56:14.431] [b2ff1dc6] [DBG2] [COMPLETION] Tab cycle start: buffer='time ', cursor=5, mode=initial, direction=forward
+[2025-09-23 16:56:14.442] [b2ff1dc6] [DBG2] [COMPLETION] AST completion failed: The property 'Buffer' cannot be found on this object. Verify that the property exists., falling back to legacy
+[2025-09-23 16:56:14.446] [b2ff1dc6] [DBG2] [COMPLETION] Start Tab cycle (legacy): state=Action, token=**** tokens=1
+[2025-09-23 16:56:14.459] [b2ff1dc6] [DBG2] [COMPLETION] Getting action completions for domain='time', filter=''
+[2025-09-23 16:56:14.467] [b2ff1dc6] [DBG2] [COMPLETION] Action completions: found 4 items
+[2025-09-23 16:56:14.471] [b2ff1dc6] [DBG2] [COMPLETION] Provider outputs: type=string[], length=4, first3=log, list, report
+[2025-09-23 16:56:14.475] [b2ff1dc6] [DBG2] [COMPLETION] Provider outputs: type=string[], length=4, first3=log, list, report
+[2025-09-23 16:56:14.482] [b2ff1dc6] [DBG2] [RENDER] Bottom HUD render: bufferLen=8, cursorPos=8, width=159
+[2025-09-23 16:56:14.485] [b2ff1dc6] [DBG2] [COMPLETION] Before Tab accept: index=0, selected item type=String, text='log'
+[2025-09-23 16:56:14.489] [b2ff1dc6] [DBG2] [COMPLETION] After Tab accept: new buffer='time log', phase=cycling (1/4)
+[2025-09-23 16:56:14.494] [b2ff1dc6] [DBG2] [STATE] Key=**** InCompletion: False->True Mode: Action->Action BufferLen=8 Cursor=8
+[2025-09-23 16:56:15.706] [b2ff1dc6] [DBG2] [INPUT] Tab key pressed (Shift=False): buffer='time log', cursor=8, inCompletion=True
+[2025-09-23 16:56:15.712] [b2ff1dc6] [DBG2] [COMPLETION] Tab cycle start: buffer='time log', cursor=8, mode=initial, direction=forward
+[2025-09-23 16:56:15.722] [b2ff1dc6] [DBG2] [RENDER] Bottom HUD render: bufferLen=9, cursorPos=9, width=159
+[2025-09-23 16:56:15.726] [b2ff1dc6] [DBG2] [COMPLETION] Before Tab cycle (forward): index=1, selected item type=String, text='list'
+[2025-09-23 16:56:15.729] [b2ff1dc6] [DBG2] [COMPLETION] After Tab cycle (forward): new buffer='time list', phase=cycling (2/4)
+[2025-09-23 16:56:15.739] [b2ff1dc6] [DBG2] [STATE] Key=**** InCompletion: True->True Mode: Action->Action BufferLen=9 Cursor=9
+[2025-09-23 16:56:17.295] [b2ff1dc6] [DBG2] [INPUT] Tab key pressed (Shift=False): buffer='time list', cursor=9, inCompletion=True
+[2025-09-23 16:56:17.297] [b2ff1dc6] [DBG2] [COMPLETION] Tab cycle start: buffer='time list', cursor=9, mode=initial, direction=forward
+[2025-09-23 16:56:17.303] [b2ff1dc6] [DBG2] [RENDER] Bottom HUD render: bufferLen=11, cursorPos=11, width=159
+[2025-09-23 16:56:17.306] [b2ff1dc6] [DBG2] [COMPLETION] Before Tab cycle (forward): index=2, selected item type=String, text='report'
+[2025-09-23 16:56:17.308] [b2ff1dc6] [DBG2] [COMPLETION] After Tab cycle (forward): new buffer='time report', phase=cycling (3/4)
+[2025-09-23 16:56:17.310] [b2ff1dc6] [DBG2] [STATE] Key=**** InCompletion: True->True Mode: Action->Action BufferLen=11 Cursor=11
+[2025-09-23 16:56:19.010] [b2ff1dc6] [DBG2] [INPUT] Enter key pressed: buffer='time report', cursor=11, inCompletion=True
+[2025-09-23 16:56:19.013] [b2ff1dc6] [DBG2] [COMPLETION] Before Enter accept: index=2, selected item type=String, text='report'
+[2025-09-23 16:56:19.015] [b2ff1dc6] [DBG2] [COMPLETION] After Enter accept: final buffer='time report', phase=submit
+[2025-09-23 16:56:19.035] [b2ff1dc6] [DBG2] [STATE] Key=**** InCompletion: True->True Mode: Action->Action BufferLen=11 Cursor=11
+[2025-09-23 16:56:19.081] [b2ff1dc6] [DBG2] [ScreenManager] PMC content area cleared
+[2025-09-23 16:56:19.103] [b2ff1dc6] [DBG1] [COMMAND] START: time report
+[2025-09-23 16:56:19.228] [b2ff1dc6] [DBG2] [PARSER] Tokenized command | Data: {"TokenCount":2,"Tokens":["time","report"]}
+[2025-09-23 16:56:19.278] [b2ff1dc6] [DBG2] [PARSER] Context parsed | Data: {"ArgCount":0,"Action":"time","Domain":"shortcut","Handler":"Get-PmcTimeList"}
+[2025-09-23 16:56:19.299] [b2ff1dc6] [DBG2] [Execution] About to execute function: Get-PmcTimeList
+[2025-09-23 16:56:19.307] [b2ff1dc6] [DBG2] [EXECUTION] Invoking handler: Get-PmcTimeList | Data: {"Source":"/home/****/pmc/module/Pmc.Strict/src/Time.ps1"}
+[2025-09-23 16:56:19.349] [b2ff1dc6] [DBG1] [COMMAND] SUCCESS: time report | Data: {"Action":"time","Domain":"shortcut","Handler":"Get-PmcTimeList"}
+[2025-09-23 16:56:19.525] [b2ff1dc6] [DBG2] [INPUT] Starting Read-PmcCommand session
+[2025-09-23 16:56:19.534] [b2ff1dc6] [DBG2] [RENDER] Bottom HUD render: bufferLen=0, cursorPos=0, width=159
+[2025-09-23 20:20:09.252] [24d8c46f] [DBG1] [SYSTEM] Debug system initialized (Level=2, Session=24d8c46f)
+[2025-09-23 20:20:09.395] [24d8c46f] [DBG1] [SECURITY] Security level changed to: balanced | Data: {"SensitiveDataScanEnabled":true,"InputValidationEnabled":true,"MaxMemoryUsage":524288000,"AllowedWritePaths":["/home/****/pmc","/home/****/pmc/reports","/home/****/pmc/backups","/home/****/pmc/exports","/tmp/"],"PathWhitelistEnabled":true,"MaxExecutionTime":300000,"TemplateExecutionEnabled":false,"ResourceLimitsEnabled":true,"MaxFileSize":104857600,"AuditLoggingEnabled":true}
+[2025-09-23 20:20:09.521] [24d8c46f] [DBG1] [INTERACTIVE] Enabling PMC interactive mode with full t2.ps1 feature set
+[2025-09-23 20:20:09.709] [24d8c46f] [DBG2] [ScreenManager] Screen manager initialized | Data: {"Regions":{"Header":{"X":0,"Y":0,"Width":159,"Height":3},"Content":{"X":0,"Y":3,"Width":159,"Height":32},"Status":{"X":129,"Y":1,"Width":30,"Height":1},"Input":{"X":0,"Y":35,"Width":159,"Height":2},"Full":{"X":0,"Y":0,"Width":159,"Height":37}},"Title":"pmc — enhanced project management console"}
+[2025-09-23 20:20:09.715] [24d8c46f] [DBG1] [ScreenManager] PMC screen initialized | Data: {"Title":"pmc — enhanced project management console"}
+[2025-09-23 20:20:09.720] [24d8c46f] [DBG2] [SHELL] Persistent screen layout initialized
+[2025-09-23 20:20:09.952] [24d8c46f] [DBG2] [INPUT] Starting Read-PmcCommand session
+[2025-09-23 20:20:10.085] [24d8c46f] [DBG2] [RENDER] Bottom HUD render: bufferLen=0, cursorPos=0, width=159
+[2025-09-23 20:20:12.394] [24d8c46f] [DBG2] [RENDER] Bottom HUD render: bufferLen=1, cursorPos=1, width=159
+[2025-09-23 20:20:12.415] [24d8c46f] [DBG2] [STATE] Key=**** InCompletion: False->False Mode: Domain->Domain BufferLen=1 Cursor=1
+[2025-09-23 20:20:12.465] [24d8c46f] [DBG2] [RENDER] Bottom HUD render: bufferLen=2, cursorPos=2, width=159
+[2025-09-23 20:20:12.472] [24d8c46f] [DBG2] [STATE] Key=**** InCompletion: False->False Mode: Domain->Domain BufferLen=2 Cursor=2
+[2025-09-23 20:20:13.782] [24d8c46f] [DBG2] [INPUT] Tab key pressed (Shift=False): buffer='ti', cursor=2, inCompletion=False
+[2025-09-23 20:20:13.786] [24d8c46f] [DBG2] [COMPLETION] Tab cycle start: buffer='ti', cursor=2, mode=initial, direction=forward
+[2025-09-23 20:20:13.824] [24d8c46f] [DBG2] [COMPLETION] AST completion failed: The property 'Buffer' cannot be found on this object. Verify that the property exists., falling back to legacy
+[2025-09-23 20:20:13.829] [24d8c46f] [DBG2] [COMPLETION] Start Tab cycle (legacy): state=Domain, token=**** tokens=1
+[2025-09-23 20:20:13.842] [24d8c46f] [DBG2] [COMPLETION] Getting domain completions for filter='ti'
+[2025-09-23 20:20:13.891] [24d8c46f] [DBG2] [COMPLETION] Domain completions: found 5 items
+[2025-09-23 20:20:13.896] [24d8c46f] [DBG2] [COMPLETION] Provider outputs: type=string[], length=5, first3=time, time, timer
+[2025-09-23 20:20:13.903] [24d8c46f] [DBG2] [COMPLETION] Provider outputs: type=string[], length=5, first3=time, time, timer
+[2025-09-23 20:20:13.954] [24d8c46f] [DBG2] [RENDER] Bottom HUD render: bufferLen=4, cursorPos=4, width=159
+[2025-09-23 20:20:13.961] [24d8c46f] [DBG2] [COMPLETION] Before Tab accept: index=0, selected item type=String, text='time'
+[2025-09-23 20:20:13.963] [24d8c46f] [DBG2] [COMPLETION] After Tab accept: new buffer='time', phase=cycling (1/5)
+[2025-09-23 20:20:13.966] [24d8c46f] [DBG2] [STATE] Key=**** InCompletion: False->True Mode: Domain->Domain BufferLen=4 Cursor=4
+[2025-09-23 20:20:14.602] [24d8c46f] [DBG2] [INPUT] Space key pressed: buffer='time', cursor=4, inCompletion=True
+[2025-09-23 20:20:14.612] [24d8c46f] [DBG2] [RENDER] Bottom HUD render: bufferLen=5, cursorPos=5, width=159
+[2025-09-23 20:20:14.614] [24d8c46f] [DBG2] [COMPLETION] Before Space accept: index=-1, selected item type=String, text='time'
+[2025-09-23 20:20:14.617] [24d8c46f] [DBG2] [COMPLETION] After Space accept: new buffer='time ', phase=domain/action/prefix, nextState=Action
+[2025-09-23 20:20:14.620] [24d8c46f] [DBG2] [STATE] Key=**** InCompletion: True->False Mode: Domain->Action BufferLen=5 Cursor=5
+[2025-09-23 20:20:14.749] [24d8c46f] [DBG2] [INPUT] Tab key pressed (Shift=False): buffer='time ', cursor=5, inCompletion=False
+[2025-09-23 20:20:14.752] [24d8c46f] [DBG2] [COMPLETION] Tab cycle start: buffer='time ', cursor=5, mode=initial, direction=forward
+[2025-09-23 20:20:14.756] [24d8c46f] [DBG2] [COMPLETION] AST completion failed: The property 'Buffer' cannot be found on this object. Verify that the property exists., falling back to legacy
+[2025-09-23 20:20:14.758] [24d8c46f] [DBG2] [COMPLETION] Start Tab cycle (legacy): state=Action, token=**** tokens=1
+[2025-09-23 20:20:14.768] [24d8c46f] [DBG2] [COMPLETION] Getting action completions for domain='time', filter=''
+[2025-09-23 20:20:14.772] [24d8c46f] [DBG2] [COMPLETION] Action completions: found 4 items
+[2025-09-23 20:20:14.774] [24d8c46f] [DBG2] [COMPLETION] Provider outputs: type=string[], length=4, first3=log, list, report
+[2025-09-23 20:20:14.776] [24d8c46f] [DBG2] [COMPLETION] Provider outputs: type=string[], length=4, first3=log, list, report
+[2025-09-23 20:20:14.785] [24d8c46f] [DBG2] [RENDER] Bottom HUD render: bufferLen=8, cursorPos=8, width=159
+[2025-09-23 20:20:14.787] [24d8c46f] [DBG2] [COMPLETION] Before Tab accept: index=0, selected item type=String, text='log'
+[2025-09-23 20:20:14.789] [24d8c46f] [DBG2] [COMPLETION] After Tab accept: new buffer='time log', phase=cycling (1/4)
+[2025-09-23 20:20:14.793] [24d8c46f] [DBG2] [STATE] Key=**** InCompletion: False->True Mode: Action->Action BufferLen=8 Cursor=8
+[2025-09-23 20:20:16.218] [24d8c46f] [DBG2] [INPUT] Space key pressed: buffer='time log', cursor=8, inCompletion=True
+[2025-09-23 20:20:16.238] [24d8c46f] [DBG2] [RENDER] Bottom HUD render: bufferLen=9, cursorPos=9, width=159
+[2025-09-23 20:20:16.240] [24d8c46f] [DBG2] [COMPLETION] Before Space accept: index=-1, selected item type=String, text='log'
+[2025-09-23 20:20:16.245] [24d8c46f] [DBG2] [COMPLETION] After Space accept: new buffer='time log ', phase=domain/action/prefix, nextState=Arguments
+[2025-09-23 20:20:16.247] [24d8c46f] [DBG2] [STATE] Key=**** InCompletion: True->False Mode: Action->Arguments BufferLen=9 Cursor=9
+[2025-09-23 20:20:21.329] [24d8c46f] [DBG2] [RENDER] Bottom HUD render: bufferLen=10, cursorPos=10, width=159
+[2025-09-23 20:20:21.335] [24d8c46f] [DBG2] [STATE] Key=**** InCompletion: False->False Mode: Arguments->Arguments BufferLen=10 Cursor=10
+[2025-09-23 20:20:23.973] [24d8c46f] [DBG2] [RENDER] Bottom HUD render: bufferLen=11, cursorPos=11, width=159
+[2025-09-23 20:20:23.979] [24d8c46f] [DBG2] [STATE] Key=**** InCompletion: False->False Mode: Arguments->Arguments BufferLen=11 Cursor=11
+[2025-09-23 20:20:24.109] [24d8c46f] [DBG2] [RENDER] Bottom HUD render: bufferLen=12, cursorPos=12, width=159
+[2025-09-23 20:20:24.112] [24d8c46f] [DBG2] [STATE] Key=**** InCompletion: False->False Mode: Arguments->Arguments BufferLen=12 Cursor=12
+[2025-09-23 20:20:24.188] [24d8c46f] [DBG2] [RENDER] Bottom HUD render: bufferLen=13, cursorPos=13, width=159
+[2025-09-23 20:20:24.192] [24d8c46f] [DBG2] [STATE] Key=**** InCompletion: False->False Mode: Arguments->Arguments BufferLen=13 Cursor=13
+[2025-09-23 20:20:26.375] [24d8c46f] [DBG2] [INPUT] Space key pressed: buffer='time log #050', cursor=13, inCompletion=False
+[2025-09-23 20:20:26.381] [24d8c46f] [DBG2] [RENDER] Bottom HUD render: bufferLen=14, cursorPos=14, width=159
+[2025-09-23 20:20:26.383] [24d8c46f] [DBG2] [STATE] Key=**** InCompletion: False->False Mode: Arguments->Arguments BufferLen=14 Cursor=14
+[2025-09-23 20:20:28.911] [24d8c46f] [DBG2] [RENDER] Bottom HUD render: bufferLen=15, cursorPos=15, width=159
+[2025-09-23 20:20:28.915] [24d8c46f] [DBG2] [STATE] Key=**** InCompletion: False->False Mode: Arguments->Arguments BufferLen=15 Cursor=15
+[2025-09-23 20:20:28.990] [24d8c46f] [DBG2] [RENDER] Bottom HUD render: bufferLen=16, cursorPos=16, width=159
+[2025-09-23 20:20:28.999] [24d8c46f] [DBG2] [STATE] Key=**** InCompletion: False->False Mode: Arguments->Arguments BufferLen=16 Cursor=16
+[2025-09-23 20:20:29.700] [24d8c46f] [DBG2] [RENDER] Bottom HUD render: bufferLen=17, cursorPos=17, width=159
+[2025-09-23 20:20:29.702] [24d8c46f] [DBG2] [STATE] Key=**** InCompletion: False->False Mode: Arguments->Arguments BufferLen=17 Cursor=17
+[2025-09-23 20:20:30.194] [24d8c46f] [DBG2] [RENDER] Bottom HUD render: bufferLen=18, cursorPos=18, width=159
+[2025-09-23 20:20:30.197] [24d8c46f] [DBG2] [STATE] Key=**** InCompletion: False->False Mode: Arguments->Arguments BufferLen=18 Cursor=18
+[2025-09-23 20:20:30.309] [24d8c46f] [DBG2] [RENDER] Bottom HUD render: bufferLen=19, cursorPos=19, width=159
+[2025-09-23 20:20:31.118] [24d8c46f] [DBG2] [INPUT] Space key pressed: buffer='time log #050 today', cursor=19, inCompletion=False
+[2025-09-23 20:20:31.124] [24d8c46f] [DBG2] [RENDER] Bottom HUD render: bufferLen=20, cursorPos=20, width=159
+[2025-09-23 20:20:31.127] [24d8c46f] [DBG2] [STATE] Key=**** InCompletion: False->False Mode: Arguments->Arguments BufferLen=20 Cursor=20
+[2025-09-23 20:20:31.216] [24d8c46f] [DBG2] [RENDER] Bottom HUD render: bufferLen=21, cursorPos=21, width=159
+[2025-09-23 20:20:31.221] [24d8c46f] [DBG2] [STATE] Key=**** InCompletion: False->False Mode: Arguments->Arguments BufferLen=21 Cursor=21
+[2025-09-23 20:20:33.770] [24d8c46f] [DBG2] [INPUT] Enter key pressed: buffer='time log #050 today 1', cursor=21, inCompletion=False
+[2025-09-23 20:20:33.787] [24d8c46f] [DBG2] [STATE] Key=**** InCompletion: False->False Mode: Arguments->Arguments BufferLen=21 Cursor=21
+[2025-09-23 20:20:33.832] [24d8c46f] [DBG2] [ScreenManager] PMC content area cleared
+[2025-09-23 20:20:33.852] [24d8c46f] [DBG1] [COMMAND] START: time log #050 today 1
+[2025-09-23 20:20:33.975] [24d8c46f] [DBG2] [PARSER] Tokenized command | Data: {"TokenCount":5,"Tokens":["time","log","#050","today","1"]}
+[2025-09-23 20:20:34.013] [24d8c46f] [DBG2] [PARSER] Context parsed | Data: {"Action":"time","Domain":"shortcut","Handler":"Get-PmcTimeList","ArgCount":0}
+[2025-09-23 20:20:34.040] [24d8c46f] [DBG2] [Execution] About to execute function: Get-PmcTimeList
+[2025-09-23 20:20:34.048] [24d8c46f] [DBG2] [EXECUTION] Invoking handler: Get-PmcTimeList | Data: {"Source":"/home/****/pmc/module/Pmc.Strict/src/Time.ps1"}
+[2025-09-23 20:20:34.134] [24d8c46f] [DBG2] [DataDisplay] Rendering data grid | Data: {"FilterCount":0,"ColumnCount":0,"Domains":"time"}
+[2025-09-23 20:20:34.191] [24d8c46f] [DBG2] [DataDisplay] Failed to load project lookup | Data: {"Error":"Method invocation failed because [System.Management.Automation.PSCustomObject] does not contain a method named 'GetData'."}
+[2025-09-23 20:20:34.247] [24d8c46f] [DBG1] [Grid] StartInteractive called | Data: {"DataCount":1}
+[2025-09-23 20:20:34.267] [24d8c46f] [DBG1] [Grid] Starting interactive loop
+[2025-09-23 20:20:42.360] [24d8c46f] [DBG2] [Grid] Key pressed | Data: {"Key":27,"KeyChar":"\u001b"}
+[2025-09-23 20:20:42.385] [24d8c46f] [DBG2] [DataDisplay] Grid rendering completed | Data: {"Interactive":true,"ItemCount":1}
+[2025-09-23 20:20:42.392] [24d8c46f] [DBG1] [COMMAND] SUCCESS: time log #050 today 1 | Data: {"Action":"time","Domain":"shortcut","Handler":"Get-PmcTimeList"}
+[2025-09-23 20:20:42.552] [24d8c46f] [DBG2] [INPUT] Starting Read-PmcCommand session
+[2025-09-23 20:20:42.554] [24d8c46f] [DBG2] [RENDER] Bottom HUD render: bufferLen=0, cursorPos=0, width=159
+[2025-09-23 20:20:45.407] [24d8c46f] [DBG2] [RENDER] Bottom HUD render: bufferLen=1, cursorPos=1, width=159
+[2025-09-23 20:20:45.409] [24d8c46f] [DBG2] [STATE] Key=**** InCompletion: False->False Mode: Domain->Domain BufferLen=1 Cursor=1
+[2025-09-23 20:20:45.504] [24d8c46f] [DBG2] [RENDER] Bottom HUD render: bufferLen=2, cursorPos=2, width=159
+[2025-09-23 20:20:45.507] [24d8c46f] [DBG2] [STATE] Key=**** InCompletion: False->False Mode: Domain->Domain BufferLen=2 Cursor=2
+[2025-09-23 20:20:45.888] [24d8c46f] [DBG2] [RENDER] Bottom HUD render: bufferLen=3, cursorPos=3, width=159
+[2025-09-23 20:20:45.891] [24d8c46f] [DBG2] [STATE] Key=**** InCompletion: False->False Mode: Domain->Domain BufferLen=3 Cursor=3
+[2025-09-23 20:20:46.358] [24d8c46f] [DBG2] [RENDER] Bottom HUD render: bufferLen=4, cursorPos=4, width=159
+[2025-09-23 20:20:46.363] [24d8c46f] [DBG2] [STATE] Key=**** InCompletion: False->False Mode: Domain->Domain BufferLen=4 Cursor=4
+[2025-09-23 20:20:46.540] [24d8c46f] [DBG2] [INPUT] Space key pressed: buffer='time', cursor=4, inCompletion=False
+[2025-09-23 20:20:46.557] [24d8c46f] [DBG2] [RENDER] Bottom HUD render: bufferLen=5, cursorPos=5, width=159
+[2025-09-23 20:20:46.560] [24d8c46f] [DBG2] [STATE] Key=**** InCompletion: False->False Mode: Domain->Action BufferLen=5 Cursor=5
+[2025-09-23 20:20:46.690] [24d8c46f] [DBG2] [RENDER] Bottom HUD render: bufferLen=6, cursorPos=6, width=159
+[2025-09-23 20:20:46.769] [24d8c46f] [DBG2] [RENDER] Bottom HUD render: bufferLen=7, cursorPos=7, width=159
+[2025-09-23 20:20:46.771] [24d8c46f] [DBG2] [STATE] Key=**** InCompletion: False->False Mode: Action->Action BufferLen=7 Cursor=7
+[2025-09-23 20:20:47.454] [24d8c46f] [DBG2] [RENDER] Bottom HUD render: bufferLen=8, cursorPos=8, width=159
+[2025-09-23 20:20:47.456] [24d8c46f] [DBG2] [STATE] Key=**** InCompletion: False->False Mode: Action->Action BufferLen=8 Cursor=8
+[2025-09-23 20:20:47.540] [24d8c46f] [DBG2] [RENDER] Bottom HUD render: bufferLen=9, cursorPos=9, width=159
+[2025-09-23 20:20:47.544] [24d8c46f] [DBG2] [STATE] Key=**** InCompletion: False->False Mode: Action->Action BufferLen=9 Cursor=9
+[2025-09-23 20:20:47.667] [24d8c46f] [DBG2] [RENDER] Bottom HUD render: bufferLen=10, cursorPos=10, width=159
+[2025-09-23 20:20:47.865] [24d8c46f] [DBG2] [RENDER] Bottom HUD render: bufferLen=11, cursorPos=11, width=159
+[2025-09-23 20:20:47.867] [24d8c46f] [DBG2] [STATE] Key=**** InCompletion: False->False Mode: Action->Action BufferLen=11 Cursor=11
+[2025-09-23 20:20:48.114] [24d8c46f] [DBG2] [INPUT] Space key pressed: buffer='time report', cursor=11, inCompletion=False
+[2025-09-23 20:20:48.120] [24d8c46f] [DBG2] [RENDER] Bottom HUD render: bufferLen=12, cursorPos=12, width=159
+[2025-09-23 20:20:48.122] [24d8c46f] [DBG2] [STATE] Key=**** InCompletion: False->False Mode: Action->Arguments BufferLen=12 Cursor=12
+[2025-09-23 20:20:50.593] [24d8c46f] [DBG2] [INPUT] Enter key pressed: buffer='time report ', cursor=12, inCompletion=False
+[2025-09-23 20:20:50.596] [24d8c46f] [DBG2] [STATE] Key=**** InCompletion: False->False Mode: Arguments->Arguments BufferLen=12 Cursor=12
+[2025-09-23 20:20:50.608] [24d8c46f] [DBG2] [ScreenManager] PMC content area cleared
+[2025-09-23 20:20:50.610] [24d8c46f] [DBG1] [COMMAND] START: time report
+[2025-09-23 20:20:50.639] [24d8c46f] [DBG2] [PARSER] Tokenized command | Data: {"TokenCount":2,"Tokens":["time","report"]}
+[2025-09-23 20:20:50.641] [24d8c46f] [DBG2] [PARSER] Context parsed | Data: {"Action":"time","Domain":"shortcut","Handler":"Get-PmcTimeList","ArgCount":0}
+[2025-09-23 20:20:50.645] [24d8c46f] [DBG2] [Execution] About to execute function: Get-PmcTimeList
+[2025-09-23 20:20:50.648] [24d8c46f] [DBG2] [EXECUTION] Invoking handler: Get-PmcTimeList | Data: {"Source":"/home/****/pmc/module/Pmc.Strict/src/Time.ps1"}
+[2025-09-23 20:20:50.680] [24d8c46f] [DBG2] [DataDisplay] Rendering data grid | Data: {"FilterCount":0,"ColumnCount":0,"Domains":"time"}
+[2025-09-23 20:20:50.683] [24d8c46f] [DBG2] [DataDisplay] Failed to load project lookup | Data: {"Error":"Method invocation failed because [System.Management.Automation.PSCustomObject] does not contain a method named 'GetData'."}
+[2025-09-23 20:20:50.688] [24d8c46f] [DBG1] [Grid] StartInteractive called | Data: {"DataCount":1}
+[2025-09-23 20:20:50.691] [24d8c46f] [DBG1] [Grid] Starting interactive loop
+[2025-09-23 20:57:15.928] [4c7d2fe4] [DBG1] [SYSTEM] Debug system initialized (Level=2, Session=4c7d2fe4)
+[2025-09-23 20:57:16.068] [4c7d2fe4] [DBG1] [SECURITY] Security level changed to: balanced | Data: {"MaxExecutionTime":300000,"ResourceLimitsEnabled":true,"SensitiveDataScanEnabled":true,"AllowedWritePaths":["/home/****/pmc","/home/****/pmc/reports","/home/****/pmc/backups","/home/****/pmc/exports","/tmp/"],"PathWhitelistEnabled":true,"TemplateExecutionEnabled":false,"AuditLoggingEnabled":true,"MaxMemoryUsage":524288000,"MaxFileSize":104857600,"InputValidationEnabled":true}
+[2025-09-23 20:57:16.188] [4c7d2fe4] [DBG1] [INTERACTIVE] Enabling PMC interactive mode with full t2.ps1 feature set
+[2025-09-23 20:57:16.376] [4c7d2fe4] [DBG2] [ScreenManager] Screen manager initialized | Data: {"Title":"pmc — enhanced project management console","Regions":{"Header":{"X":0,"Y":0,"Width":159,"Height":3},"Content":{"X":0,"Y":3,"Width":159,"Height":32},"Status":{"X":129,"Y":1,"Width":30,"Height":1},"Input":{"X":0,"Y":35,"Width":159,"Height":2},"Full":{"X":0,"Y":0,"Width":159,"Height":37}}}
+[2025-09-23 20:57:16.382] [4c7d2fe4] [DBG1] [ScreenManager] PMC screen initialized | Data: {"Title":"pmc — enhanced project management console"}
+[2025-09-23 20:57:16.386] [4c7d2fe4] [DBG2] [SHELL] Persistent screen layout initialized
+[2025-09-23 20:57:16.604] [4c7d2fe4] [DBG2] [INPUT] Starting Read-PmcCommand session
+[2025-09-23 20:57:16.733] [4c7d2fe4] [DBG2] [RENDER] Bottom HUD render: bufferLen=0, cursorPos=0, width=159
+[2025-09-23 20:57:18.859] [4c7d2fe4] [DBG2] [RENDER] Bottom HUD render: bufferLen=1, cursorPos=1, width=159
+[2025-09-23 20:57:18.883] [4c7d2fe4] [DBG2] [STATE] Key=**** InCompletion: False->False Mode: Domain->Domain BufferLen=1 Cursor=1
+[2025-09-23 20:57:18.911] [4c7d2fe4] [DBG2] [RENDER] Bottom HUD render: bufferLen=2, cursorPos=2, width=159
+[2025-09-23 20:57:18.920] [4c7d2fe4] [DBG2] [STATE] Key=**** InCompletion: False->False Mode: Domain->Domain BufferLen=2 Cursor=2
+[2025-09-23 20:57:19.152] [4c7d2fe4] [DBG2] [RENDER] Bottom HUD render: bufferLen=3, cursorPos=3, width=159
+[2025-09-23 20:57:19.161] [4c7d2fe4] [DBG2] [STATE] Key=**** InCompletion: False->False Mode: Domain->Domain BufferLen=3 Cursor=3
+[2025-09-23 20:57:20.831] [4c7d2fe4] [DBG2] [RENDER] Bottom HUD render: bufferLen=4, cursorPos=4, width=159
+[2025-09-23 20:57:20.839] [4c7d2fe4] [DBG2] [STATE] Key=**** InCompletion: False->False Mode: Domain->Domain BufferLen=4 Cursor=4
+[2025-09-23 20:57:21.347] [4c7d2fe4] [DBG2] [INPUT] Space key pressed: buffer='time', cursor=4, inCompletion=False
+[2025-09-23 20:57:21.357] [4c7d2fe4] [DBG2] [RENDER] Bottom HUD render: bufferLen=5, cursorPos=5, width=159
+[2025-09-23 20:57:21.363] [4c7d2fe4] [DBG2] [STATE] Key=**** InCompletion: False->False Mode: Domain->Action BufferLen=5 Cursor=5
+[2025-09-23 20:57:21.759] [4c7d2fe4] [DBG2] [RENDER] Bottom HUD render: bufferLen=6, cursorPos=6, width=159
+[2025-09-23 20:57:21.865] [4c7d2fe4] [DBG2] [RENDER] Bottom HUD render: bufferLen=7, cursorPos=7, width=159
+[2025-09-23 20:57:21.870] [4c7d2fe4] [DBG2] [STATE] Key=**** InCompletion: False->False Mode: Action->Action BufferLen=7 Cursor=7
+[2025-09-23 20:57:22.449] [4c7d2fe4] [DBG2] [RENDER] Bottom HUD render: bufferLen=8, cursorPos=8, width=159
+[2025-09-23 20:57:22.452] [4c7d2fe4] [DBG2] [STATE] Key=**** InCompletion: False->False Mode: Action->Action BufferLen=8 Cursor=8
+[2025-09-23 20:57:22.537] [4c7d2fe4] [DBG2] [RENDER] Bottom HUD render: bufferLen=9, cursorPos=9, width=159
+[2025-09-23 20:57:22.542] [4c7d2fe4] [DBG2] [STATE] Key=**** InCompletion: False->False Mode: Action->Action BufferLen=9 Cursor=9
+[2025-09-23 20:57:22.793] [4c7d2fe4] [DBG2] [RENDER] Bottom HUD render: bufferLen=10, cursorPos=10, width=159
+[2025-09-23 20:57:23.007] [4c7d2fe4] [DBG2] [RENDER] Bottom HUD render: bufferLen=11, cursorPos=11, width=159
+[2025-09-23 20:57:23.011] [4c7d2fe4] [DBG2] [STATE] Key=**** InCompletion: False->False Mode: Action->Action BufferLen=11 Cursor=11
+[2025-09-23 20:57:23.793] [4c7d2fe4] [DBG2] [INPUT] Enter key pressed: buffer='time report', cursor=11, inCompletion=False
+[2025-09-23 20:57:23.813] [4c7d2fe4] [DBG2] [STATE] Key=**** InCompletion: False->False Mode: Action->Action BufferLen=11 Cursor=11
+[2025-09-23 20:57:23.864] [4c7d2fe4] [DBG2] [ScreenManager] PMC content area cleared
+[2025-09-23 20:57:23.894] [4c7d2fe4] [DBG1] [COMMAND] START: time report
+[2025-09-23 20:57:24.039] [4c7d2fe4] [DBG2] [PARSER] Tokenized command | Data: {"TokenCount":2,"Tokens":["time","report"]}
+[2025-09-23 20:57:24.085] [4c7d2fe4] [DBG2] [PARSER] Context parsed | Data: {"Action":"time","ArgCount":0,"Domain":"shortcut","Handler":"Get-PmcTimeList"}
+[2025-09-23 20:57:24.106] [4c7d2fe4] [DBG2] [Execution] About to execute function: Get-PmcTimeList
+[2025-09-23 20:57:24.115] [4c7d2fe4] [DBG2] [EXECUTION] Invoking handler: Get-PmcTimeList | Data: {"Source":"/home/****/pmc/module/Pmc.Strict/src/Time.ps1"}
+[2025-09-23 20:57:24.191] [4c7d2fe4] [DBG1] [COMMAND] SUCCESS: time report | Data: {"Action":"time","Domain":"shortcut","Handler":"Get-PmcTimeList"}
+[2025-09-23 20:57:24.361] [4c7d2fe4] [DBG2] [INPUT] Starting Read-PmcCommand session
+[2025-09-23 20:57:24.365] [4c7d2fe4] [DBG2] [RENDER] Bottom HUD render: bufferLen=0, cursorPos=0, width=159
+[2025-09-23 21:18:07.912] [b38ea750] [DBG1] [SYSTEM] Debug system initialized (Level=2, Session=b38ea750)
+[2025-09-23 21:18:08.155] [b38ea750] [DBG1] [COMMAND] START: help
+[2025-09-23 21:18:08.311] [b38ea750] [DBG2] [PARSER] Tokenized command | Data: {"TokenCount":1,"Tokens":["help"]}
+[2025-09-23 21:18:08.344] [b38ea750] [DBG2] [PARSER] Context parsed | Data: {"ArgCount":0,"Handler":"Show-PmcSmartHelp","Domain":"help","Action":"show"}
+[2025-09-23 21:18:08.367] [b38ea750] [DBG2] [Execution] About to execute function: Show-PmcSmartHelp
+[2025-09-23 21:18:08.376] [b38ea750] [DBG2] [EXECUTION] Invoking handler: Show-PmcSmartHelp | Data: {"Source":"/home/****/pmc/module/Pmc.Strict/src/HelpUI.ps1"}
+[2025-09-23 21:18:08.384] [b38ea750] [DBG1] [HELP] Show-PmcHelpCategories START
+[2025-09-23 21:18:08.489] [b38ea750] [DBG1] [COMMAND] SUCCESS: help | Data: {"Handler":"Show-PmcSmartHelp","Domain":"help","Action":"show"}
+[2025-09-23 21:18:08.495] [b38ea750] [DBG1] [COMMAND] START: projects
+[2025-09-23 21:18:08.550] [b38ea750] [DBG2] [PARSER] Tokenized command | Data: {"TokenCount":2,"Tokens":["view","projects"]}
+[2025-09-23 21:18:08.600] [b38ea750] [DBG2] [Execution] Using AST-based argument parsing
+[2025-09-23 21:18:08.609] [b38ea750] [DBG2] [PARSER] Context parsed | Data: {"ArgCount":0,"Handler":"Show-PmcProjectsInteractive","Domain":"view","Action":"projects"}
+[2025-09-23 21:18:08.613] [b38ea750] [DBG2] [Execution] About to execute function: Show-PmcProjectsInteractive
+[2025-09-23 21:18:08.615] [b38ea750] [DBG2] [EXECUTION] Invoking handler: Show-PmcProjectsInteractive | Data: {"Source":"/home/****/pmc/module/Pmc.Strict/Services/LegacyCompat.ps1"}
+[2025-09-23 21:18:08.642] [b38ea750] [DBG1] [COMMAND] ERROR: view projects | Data: {"Exception":"CommandNotFoundException","Error":"The term 'Invoke-PmcEnhancedQuery' is not recognized as a name of a cmdlet, function, script file, or executable program.\nCheck the spelling of the name, or if a path was included, verify that the path is correct and try again."}
+[2025-09-23 21:18:08.715] [b38ea750] [DBG2] [UniversalDisplay] Universal data display | Data: {"FilterCount":1,"DataType":"project","Interactive":false}
+[2025-09-23 21:18:08.722] [b38ea750] [DBG2] [UniversalDisplay] Show-PmcData calling Show-PmcDataGrid | Data: {"DataType":"project","Interactive":false}
+[2025-09-23 21:18:08.755] [b38ea750] [DBG2] [DataDisplay] Rendering data grid | Data: {"FilterCount":1,"Domains":"project","ColumnCount":4}
+[2025-09-23 21:18:08.876] [b38ea750] [DBG2] [DataDisplay] Failed to load project lookup | Data: {"Error":"Method invocation failed because [System.Management.Automation.PSCustomObject] does not contain a method named 'GetData'."}
+[2025-09-23 21:18:09.197] [b38ea750] [DBG2] [DataDisplay] Grid rendering completed | Data: {"Interactive":false,"ItemCount":6}
+[2025-09-23 21:18:09.224] [b38ea750] [DBG2] [AUDIT] File operation approved | Data: {"Path":"/home/****/pmc/tests/tmp/ok.txt","Operation":"write","User":null}
+[2025-09-23 21:18:09.231] [b38ea750] [DBG1] [SECURITY] Path not in whitelist | Data: {"Path":"/home/****/etc/passwd","AllowedPaths":["/home/****/pmc","/home/****/pmc/reports","/home/****/pmc/backups","/home/****/pmc/exports","/tmp/"],"Operation":"write"}
+[2025-09-23 21:18:09.249] [b38ea750] [DBG1] [TEST] debug message
+[2025-09-23 21:18:09.268] [b38ea750] [DBG2] [PERF] noop completed
+[2025-09-23 21:18:09.350] [b38ea750] [DBG2] [DataDisplay] Rendering data grid | Data: {"FilterCount":0,"Domains":"aliases","ColumnCount":2}
+[2025-09-23 21:18:09.358] [b38ea750] [DBG2] [DataDisplay] No data found for display | Data: {"DataIsNull":[],"Domains":"aliases","DataCount":"null"}
+[2025-09-23 21:18:09.439] [b38ea750] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"itoday"}
+[2025-09-23 21:18:09.442] [b38ea750] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"month"}
+[2025-09-23 21:18:09.444] [b38ea750] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"blocked"}
+[2025-09-23 21:18:09.446] [b38ea750] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"ioverdue"}
+[2025-09-23 21:18:09.449] [b38ea750] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"noduedate"}
+[2025-09-23 21:18:09.451] [b38ea750] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"next"}
+[2025-09-23 21:18:09.453] [b38ea750] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"overdue"}
+[2025-09-23 21:18:09.455] [b38ea750] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"itasks"}
+[2025-09-23 21:18:09.461] [b38ea750] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"today"}
+[2025-09-23 21:18:09.464] [b38ea750] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"projects"}
+[2025-09-23 21:18:09.467] [b38ea750] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"iagenda"}
+[2025-09-23 21:18:09.469] [b38ea750] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"agenda"}
+[2025-09-23 21:18:09.471] [b38ea750] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"iprojects"}
+[2025-09-23 21:18:09.473] [b38ea750] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"tomorrow"}
+[2025-09-23 21:18:09.479] [b38ea750] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"upcoming"}
+[2025-09-23 21:18:09.481] [b38ea750] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"tasks"}
+[2025-09-23 21:18:09.483] [b38ea750] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"week"}
+[2025-09-23 21:18:36.738] [2782b83e] [DBG1] [SYSTEM] Debug system initialized (Level=2, Session=2782b83e)
+[2025-09-23 21:18:36.969] [2782b83e] [DBG1] [COMMAND] START: help
+[2025-09-23 21:18:37.103] [2782b83e] [DBG2] [PARSER] Tokenized command | Data: {"Tokens":["help"],"TokenCount":1}
+[2025-09-23 21:18:37.138] [2782b83e] [DBG2] [PARSER] Context parsed | Data: {"Action":"show","Domain":"help","ArgCount":0,"Handler":"Show-PmcSmartHelp"}
+[2025-09-23 21:18:37.162] [2782b83e] [DBG2] [Execution] About to execute function: Show-PmcSmartHelp
+[2025-09-23 21:18:37.171] [2782b83e] [DBG2] [EXECUTION] Invoking handler: Show-PmcSmartHelp | Data: {"Source":"/home/****/pmc/module/Pmc.Strict/src/HelpUI.ps1"}
+[2025-09-23 21:18:37.209] [2782b83e] [DBG1] [HELP] Show-PmcHelpCategories START
+[2025-09-23 21:18:37.290] [2782b83e] [DBG1] [COMMAND] SUCCESS: help | Data: {"Action":"show","Domain":"help","Handler":"Show-PmcSmartHelp"}
+[2025-09-23 21:18:37.294] [2782b83e] [DBG1] [COMMAND] START: projects
+[2025-09-23 21:18:37.329] [2782b83e] [DBG2] [PARSER] Tokenized command | Data: {"Tokens":["view","projects"],"TokenCount":2}
+[2025-09-23 21:18:37.372] [2782b83e] [DBG2] [Execution] Using AST-based argument parsing
+[2025-09-23 21:18:37.381] [2782b83e] [DBG2] [PARSER] Context parsed | Data: {"Action":"projects","Domain":"view","ArgCount":0,"Handler":"Show-PmcProjectsInteractive"}
+[2025-09-23 21:18:37.385] [2782b83e] [DBG2] [Execution] About to execute function: Show-PmcProjectsInteractive
+[2025-09-23 21:18:37.391] [2782b83e] [DBG2] [EXECUTION] Invoking handler: Show-PmcProjectsInteractive | Data: {"Source":"/home/****/pmc/module/Pmc.Strict/Services/LegacyCompat.ps1"}
+[2025-09-23 21:18:37.418] [2782b83e] [DBG1] [COMMAND] ERROR: view projects | Data: {"Exception":"CommandNotFoundException","Error":"The term 'Invoke-PmcEnhancedQuery' is not recognized as a name of a cmdlet, function, script file, or executable program.\nCheck the spelling of the name, or if a path was included, verify that the path is correct and try again."}
+[2025-09-23 21:18:37.485] [2782b83e] [DBG2] [UniversalDisplay] Universal data display | Data: {"Interactive":false,"FilterCount":1,"DataType":"project"}
+[2025-09-23 21:18:37.497] [2782b83e] [DBG2] [UniversalDisplay] Show-PmcData calling Show-PmcDataGrid | Data: {"DataType":"project","Interactive":false}
+[2025-09-23 21:18:37.523] [2782b83e] [DBG2] [DataDisplay] Rendering data grid | Data: {"Domains":"project","FilterCount":1,"ColumnCount":4}
+[2025-09-23 21:18:37.642] [2782b83e] [DBG2] [DataDisplay] Failed to load project lookup | Data: {"Error":"Method invocation failed because [System.Management.Automation.PSCustomObject] does not contain a method named 'GetData'."}
+[2025-09-23 21:18:37.922] [2782b83e] [DBG2] [DataDisplay] Grid rendering completed | Data: {"ItemCount":6,"Interactive":false}
+[2025-09-23 21:18:37.946] [2782b83e] [DBG2] [AUDIT] File operation approved | Data: {"Operation":"write","User":null,"Path":"/home/****/pmc/tests/tmp/ok.txt"}
+[2025-09-23 21:18:37.952] [2782b83e] [DBG1] [SECURITY] Path not in whitelist | Data: {"Operation":"write","AllowedPaths":["/home/****/pmc","/home/****/pmc/reports","/home/****/pmc/backups","/home/****/pmc/exports","/tmp/"],"Path":"/home/****/etc/passwd"}
+[2025-09-23 21:18:37.970] [2782b83e] [DBG1] [TEST] debug message
+[2025-09-23 21:18:37.989] [2782b83e] [DBG2] [PERF] noop completed
+[2025-09-23 21:18:38.077] [2782b83e] [DBG2] [DataDisplay] Rendering data grid | Data: {"Domains":"aliases","FilterCount":0,"ColumnCount":2}
+[2025-09-23 21:18:38.086] [2782b83e] [DBG2] [DataDisplay] No data found for display | Data: {"DataCount":"null","DataIsNull":[],"Domains":"aliases"}
+[2025-09-23 21:18:38.168] [2782b83e] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"noduedate"}
+[2025-09-23 21:18:38.170] [2782b83e] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"today"}
+[2025-09-23 21:18:38.172] [2782b83e] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"iagenda"}
+[2025-09-23 21:18:38.175] [2782b83e] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"tomorrow"}
+[2025-09-23 21:18:38.177] [2782b83e] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"tasks"}
+[2025-09-23 21:18:38.183] [2782b83e] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"itasks"}
+[2025-09-23 21:18:38.186] [2782b83e] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"month"}
+[2025-09-23 21:18:38.188] [2782b83e] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"week"}
+[2025-09-23 21:18:38.191] [2782b83e] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"projects"}
+[2025-09-23 21:18:38.193] [2782b83e] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"itoday"}
+[2025-09-23 21:18:38.196] [2782b83e] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"agenda"}
+[2025-09-23 21:18:38.198] [2782b83e] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"ioverdue"}
+[2025-09-23 21:18:38.200] [2782b83e] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"overdue"}
+[2025-09-23 21:18:38.202] [2782b83e] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"iprojects"}
+[2025-09-23 21:18:38.205] [2782b83e] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"blocked"}
+[2025-09-23 21:18:38.207] [2782b83e] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"next"}
+[2025-09-23 21:18:38.213] [2782b83e] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"upcoming"}
+[2025-09-23 21:19:27.182] [bdb0eeb6] [DBG1] [SYSTEM] Debug system initialized (Level=2, Session=bdb0eeb6)
+[2025-09-23 21:19:27.417] [bdb0eeb6] [DBG1] [COMMAND] START: help
+[2025-09-23 21:19:27.537] [bdb0eeb6] [DBG2] [PARSER] Tokenized command | Data: {"Tokens":["help"],"TokenCount":1}
+[2025-09-23 21:19:27.571] [bdb0eeb6] [DBG2] [PARSER] Context parsed | Data: {"Domain":"help","Handler":"Show-PmcSmartHelp","Action":"show","ArgCount":0}
+[2025-09-23 21:19:27.593] [bdb0eeb6] [DBG2] [Execution] About to execute function: Show-PmcSmartHelp
+[2025-09-23 21:19:27.600] [bdb0eeb6] [DBG2] [EXECUTION] Invoking handler: Show-PmcSmartHelp | Data: {"Source":"/home/****/pmc/module/Pmc.Strict/src/HelpUI.ps1"}
+[2025-09-23 21:19:27.607] [bdb0eeb6] [DBG1] [HELP] Show-PmcHelpCategories START
+[2025-09-23 21:19:27.704] [bdb0eeb6] [DBG1] [COMMAND] SUCCESS: help | Data: {"Domain":"help","Action":"show","Handler":"Show-PmcSmartHelp"}
+[2025-09-23 21:19:27.708] [bdb0eeb6] [DBG1] [COMMAND] START: projects
+[2025-09-23 21:19:27.734] [bdb0eeb6] [DBG2] [PARSER] Tokenized command | Data: {"Tokens":["view","projects"],"TokenCount":2}
+[2025-09-23 21:19:27.778] [bdb0eeb6] [DBG2] [Execution] Using AST-based argument parsing
+[2025-09-23 21:19:27.787] [bdb0eeb6] [DBG2] [PARSER] Context parsed | Data: {"Domain":"view","Handler":"Show-PmcProjectsInteractive","Action":"projects","ArgCount":0}
+[2025-09-23 21:19:27.790] [bdb0eeb6] [DBG2] [Execution] About to execute function: Show-PmcProjectsInteractive
+[2025-09-23 21:19:27.793] [bdb0eeb6] [DBG2] [EXECUTION] Invoking handler: Show-PmcProjectsInteractive | Data: {"Source":"/home/****/pmc/module/Pmc.Strict/Services/LegacyCompat.ps1"}
+[2025-09-23 21:19:27.817] [bdb0eeb6] [DBG1] [COMMAND] ERROR: view projects | Data: {"Error":"The term 'Invoke-PmcEnhancedQuery' is not recognized as a name of a cmdlet, function, script file, or executable program.\nCheck the spelling of the name, or if a path was included, verify that the path is correct and try again.","Exception":"CommandNotFoundException"}
+[2025-09-23 21:19:27.884] [bdb0eeb6] [DBG2] [UniversalDisplay] Universal data display | Data: {"DataType":"project","Interactive":false,"FilterCount":1}
+[2025-09-23 21:19:27.890] [bdb0eeb6] [DBG2] [UniversalDisplay] Show-PmcData calling Show-PmcDataGrid | Data: {"DataType":"project","Interactive":false}
+[2025-09-23 21:19:27.915] [bdb0eeb6] [DBG2] [DataDisplay] Rendering data grid | Data: {"ColumnCount":4,"FilterCount":1,"Domains":"project"}
+[2025-09-23 21:19:28.027] [bdb0eeb6] [DBG2] [DataDisplay] Failed to load project lookup | Data: {"Error":"Method invocation failed because [System.Management.Automation.PSCustomObject] does not contain a method named 'GetData'."}
+[2025-09-23 21:19:28.288] [bdb0eeb6] [DBG2] [DataDisplay] Grid rendering completed | Data: {"ItemCount":6,"Interactive":false}
+[2025-09-23 21:19:28.310] [bdb0eeb6] [DBG2] [AUDIT] File operation approved | Data: {"Operation":"write","User":null,"Path":"/home/****/pmc/tests/tmp/ok.txt"}
+[2025-09-23 21:19:28.316] [bdb0eeb6] [DBG1] [SECURITY] Path not in whitelist | Data: {"AllowedPaths":["/home/****/pmc","/home/****/pmc/reports","/home/****/pmc/backups","/home/****/pmc/exports","/tmp/"],"Operation":"write","Path":"/home/****/etc/passwd"}
+[2025-09-23 21:19:28.337] [bdb0eeb6] [DBG1] [TEST] debug message
+[2025-09-23 21:19:28.356] [bdb0eeb6] [DBG2] [PERF] noop completed
+[2025-09-23 21:19:28.439] [bdb0eeb6] [DBG2] [DataDisplay] Rendering data grid | Data: {"ColumnCount":2,"FilterCount":0,"Domains":"aliases"}
+[2025-09-23 21:19:28.446] [bdb0eeb6] [DBG2] [DataDisplay] No data found for display | Data: {"DataIsNull":[],"DataCount":"null","Domains":"aliases"}
+[2025-09-23 21:19:28.521] [bdb0eeb6] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"itoday"}
+[2025-09-23 21:19:28.524] [bdb0eeb6] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"agenda"}
+[2025-09-23 21:19:28.526] [bdb0eeb6] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"iprojects"}
+[2025-09-23 21:19:28.530] [bdb0eeb6] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"iagenda"}
+[2025-09-23 21:19:28.533] [bdb0eeb6] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"today"}
+[2025-09-23 21:19:28.535] [bdb0eeb6] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"upcoming"}
+[2025-09-23 21:19:28.537] [bdb0eeb6] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"week"}
+[2025-09-23 21:19:28.539] [bdb0eeb6] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"itasks"}
+[2025-09-23 21:19:28.542] [bdb0eeb6] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"ioverdue"}
+[2025-09-23 21:19:28.544] [bdb0eeb6] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"tomorrow"}
+[2025-09-23 21:19:28.548] [bdb0eeb6] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"noduedate"}
+[2025-09-23 21:19:28.550] [bdb0eeb6] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"tasks"}
+[2025-09-23 21:19:28.553] [bdb0eeb6] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"blocked"}
+[2025-09-23 21:19:28.555] [bdb0eeb6] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"month"}
+[2025-09-23 21:19:28.558] [bdb0eeb6] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"overdue"}
+[2025-09-23 21:19:28.560] [bdb0eeb6] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"projects"}
+[2025-09-23 21:19:28.582] [bdb0eeb6] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"next"}
+[2025-09-24 05:18:55.718] [a1fa5c77] [DBG1] [SYSTEM] Debug system initialized (Level=2, Session=a1fa5c77)
+[2025-09-24 05:18:55.960] [a1fa5c77] [DBG1] [COMMAND] START: help
+[2025-09-24 05:18:56.087] [a1fa5c77] [DBG2] [PARSER] Tokenized command | Data: {"Tokens":["help"],"TokenCount":1}
+[2025-09-24 05:18:56.143] [a1fa5c77] [DBG2] [PARSER] Context parsed | Data: {"Action":"show","Handler":"Show-PmcSmartHelp","Domain":"help","ArgCount":0}
+[2025-09-24 05:18:56.163] [a1fa5c77] [DBG2] [Execution] About to execute function: Show-PmcSmartHelp
+[2025-09-24 05:18:56.170] [a1fa5c77] [DBG2] [EXECUTION] Invoking handler: Show-PmcSmartHelp | Data: {"Source":"/home/****/pmc/module/Pmc.Strict/src/HelpUI.ps1"}
+[2025-09-24 05:18:56.179] [a1fa5c77] [DBG1] [HELP] Show-PmcHelpCategories START
+[2025-09-24 05:18:56.270] [a1fa5c77] [DBG1] [COMMAND] SUCCESS: help | Data: {"Action":"show","Domain":"help","Handler":"Show-PmcSmartHelp"}
+[2025-09-24 05:18:56.274] [a1fa5c77] [DBG1] [COMMAND] START: projects
+[2025-09-24 05:18:56.298] [a1fa5c77] [DBG2] [PARSER] Tokenized command | Data: {"Tokens":["view","projects"],"TokenCount":2}
+[2025-09-24 05:18:56.342] [a1fa5c77] [DBG2] [Execution] Using AST-based argument parsing
+[2025-09-24 05:18:56.350] [a1fa5c77] [DBG2] [PARSER] Context parsed | Data: {"Action":"projects","Handler":"Show-PmcProjectsInteractive","Domain":"view","ArgCount":0}
+[2025-09-24 05:18:56.353] [a1fa5c77] [DBG2] [Execution] About to execute function: Show-PmcProjectsInteractive
+[2025-09-24 05:18:56.355] [a1fa5c77] [DBG2] [EXECUTION] Invoking handler: Show-PmcProjectsInteractive | Data: {"Source":"/home/****/pmc/module/Pmc.Strict/Services/LegacyCompat.ps1"}
+[2025-09-24 05:18:56.380] [a1fa5c77] [DBG1] [COMMAND] ERROR: view projects | Data: {"Error":"The term 'Invoke-PmcEnhancedQuery' is not recognized as a name of a cmdlet, function, script file, or executable program.\nCheck the spelling of the name, or if a path was included, verify that the path is correct and try again.","Exception":"CommandNotFoundException"}
+[2025-09-24 05:18:56.453] [a1fa5c77] [DBG2] [UniversalDisplay] Universal data display | Data: {"DataType":"project","FilterCount":1,"Interactive":false}
+[2025-09-24 05:18:56.460] [a1fa5c77] [DBG2] [UniversalDisplay] Show-PmcData calling Show-PmcDataGrid | Data: {"Interactive":false,"DataType":"project"}
+[2025-09-24 05:18:56.482] [a1fa5c77] [DBG2] [DataDisplay] Rendering data grid | Data: {"ColumnCount":4,"Domains":"project","FilterCount":1}
+[2025-09-24 05:18:56.586] [a1fa5c77] [DBG2] [DataDisplay] Failed to load project lookup | Data: {"Error":"Method invocation failed because [System.Management.Automation.PSCustomObject] does not contain a method named 'GetData'."}
+[2025-09-24 05:18:56.833] [a1fa5c77] [DBG2] [DataDisplay] Grid rendering completed | Data: {"Interactive":false,"ItemCount":6}
+[2025-09-24 05:18:56.855] [a1fa5c77] [DBG2] [AUDIT] File operation approved | Data: {"Operation":"write","User":null,"Path":"/home/****/pmc/tests/tmp/ok.txt"}
+[2025-09-24 05:18:56.861] [a1fa5c77] [DBG1] [SECURITY] Path not in whitelist | Data: {"Operation":"write","AllowedPaths":["/home/****/pmc","/home/****/pmc/reports","/home/****/pmc/backups","/home/****/pmc/exports","/tmp/"],"Path":"/home/****/etc/passwd"}
+[2025-09-24 05:18:56.885] [a1fa5c77] [DBG1] [TEST] debug message
+[2025-09-24 05:18:56.905] [a1fa5c77] [DBG2] [PERF] noop completed
+[2025-09-24 05:18:56.988] [a1fa5c77] [DBG2] [DataDisplay] Rendering data grid | Data: {"ColumnCount":2,"Domains":"aliases","FilterCount":0}
+[2025-09-24 05:18:56.995] [a1fa5c77] [DBG2] [DataDisplay] No data found for display | Data: {"DataCount":"null","DataIsNull":[],"Domains":"aliases"}
+[2025-09-24 05:18:57.053] [a1fa5c77] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"blocked"}
+[2025-09-24 05:18:57.056] [a1fa5c77] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"noduedate"}
+[2025-09-24 05:18:57.061] [a1fa5c77] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"ioverdue"}
+[2025-09-24 05:18:57.063] [a1fa5c77] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"projects"}
+[2025-09-24 05:18:57.065] [a1fa5c77] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"week"}
+[2025-09-24 05:18:57.067] [a1fa5c77] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"tomorrow"}
+[2025-09-24 05:18:57.069] [a1fa5c77] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"agenda"}
+[2025-09-24 05:18:57.072] [a1fa5c77] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"next"}
+[2025-09-24 05:18:57.074] [a1fa5c77] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"itoday"}
+[2025-09-24 05:18:57.077] [a1fa5c77] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"today"}
+[2025-09-24 05:18:57.079] [a1fa5c77] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"iagenda"}
+[2025-09-24 05:18:57.081] [a1fa5c77] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"upcoming"}
+[2025-09-24 05:18:57.085] [a1fa5c77] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"iprojects"}
+[2025-09-24 05:18:57.087] [a1fa5c77] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"overdue"}
+[2025-09-24 05:18:57.089] [a1fa5c77] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"tasks"}
+[2025-09-24 05:18:57.091] [a1fa5c77] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"itasks"}
+[2025-09-24 05:18:57.096] [a1fa5c77] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"month"}
+[2025-09-24 05:19:33.606] [0831524b] [DBG1] [SYSTEM] Debug system initialized (Level=2, Session=0831524b)
+[2025-09-24 05:19:33.847] [0831524b] [DBG1] [COMMAND] START: help
+[2025-09-24 05:19:33.996] [0831524b] [DBG2] [PARSER] Tokenized command | Data: {"Tokens":["help"],"TokenCount":1}
+[2025-09-24 05:19:34.022] [0831524b] [DBG2] [PARSER] Context parsed | Data: {"ArgCount":0,"Action":"show","Domain":"help","Handler":"Show-PmcSmartHelp"}
+[2025-09-24 05:19:34.044] [0831524b] [DBG2] [Execution] About to execute function: Show-PmcSmartHelp
+[2025-09-24 05:19:34.051] [0831524b] [DBG2] [EXECUTION] Invoking handler: Show-PmcSmartHelp | Data: {"Source":"/home/****/pmc/module/Pmc.Strict/src/HelpUI.ps1"}
+[2025-09-24 05:19:34.059] [0831524b] [DBG1] [HELP] Show-PmcHelpCategories START
+[2025-09-24 05:19:34.145] [0831524b] [DBG1] [COMMAND] SUCCESS: help | Data: {"Handler":"Show-PmcSmartHelp","Action":"show","Domain":"help"}
+[2025-09-24 05:19:34.150] [0831524b] [DBG1] [COMMAND] START: projects
+[2025-09-24 05:19:34.180] [0831524b] [DBG2] [PARSER] Tokenized command | Data: {"Tokens":["view","projects"],"TokenCount":2}
+[2025-09-24 05:19:34.218] [0831524b] [DBG2] [Execution] Using AST-based argument parsing
+[2025-09-24 05:19:34.227] [0831524b] [DBG2] [PARSER] Context parsed | Data: {"ArgCount":0,"Action":"projects","Domain":"view","Handler":"Show-PmcProjectsInteractive"}
+[2025-09-24 05:19:34.231] [0831524b] [DBG2] [Execution] About to execute function: Show-PmcProjectsInteractive
+[2025-09-24 05:19:34.233] [0831524b] [DBG2] [EXECUTION] Invoking handler: Show-PmcProjectsInteractive | Data: {"Source":"/home/****/pmc/module/Pmc.Strict/Services/LegacyCompat.ps1"}
+[2025-09-24 05:19:34.263] [0831524b] [DBG1] [COMMAND] ERROR: view projects | Data: {"Exception":"CommandNotFoundException","Error":"The term 'Invoke-PmcEnhancedQuery' is not recognized as a name of a cmdlet, function, script file, or executable program.\nCheck the spelling of the name, or if a path was included, verify that the path is correct and try again."}
+[2025-09-24 05:19:34.324] [0831524b] [DBG2] [UniversalDisplay] Universal data display | Data: {"DataType":"project","FilterCount":1,"Interactive":false}
+[2025-09-24 05:19:34.329] [0831524b] [DBG2] [UniversalDisplay] Show-PmcData calling Show-PmcDataGrid | Data: {"DataType":"project","Interactive":false}
+[2025-09-24 05:19:34.378] [0831524b] [DBG2] [DataDisplay] Rendering data grid | Data: {"Domains":"project","FilterCount":1,"ColumnCount":4}
+[2025-09-24 05:19:34.476] [0831524b] [DBG2] [DataDisplay] Failed to load project lookup | Data: {"Error":"Method invocation failed because [System.Management.Automation.PSCustomObject] does not contain a method named 'GetData'."}
+[2025-09-24 05:19:34.737] [0831524b] [DBG2] [DataDisplay] Grid rendering completed | Data: {"Interactive":false,"ItemCount":6}
+[2025-09-24 05:19:34.759] [0831524b] [DBG2] [AUDIT] File operation approved | Data: {"Operation":"write","User":null,"Path":"/home/****/pmc/tests/tmp/ok.txt"}
+[2025-09-24 05:19:34.764] [0831524b] [DBG1] [SECURITY] Path not in whitelist | Data: {"Operation":"write","AllowedPaths":["/home/****/pmc","/home/****/pmc/reports","/home/****/pmc/backups","/home/****/pmc/exports","/tmp/"],"Path":"/home/****/etc/passwd"}
+[2025-09-24 05:19:34.780] [0831524b] [DBG1] [TEST] debug message
+[2025-09-24 05:19:34.800] [0831524b] [DBG2] [PERF] noop completed
+[2025-09-24 05:19:34.876] [0831524b] [DBG2] [DataDisplay] Rendering data grid | Data: {"Domains":"aliases","FilterCount":0,"ColumnCount":2}
+[2025-09-24 05:19:34.885] [0831524b] [DBG2] [DataDisplay] No data found for display | Data: {"DataCount":"null","DataIsNull":[],"Domains":"aliases"}
+[2025-09-24 05:19:34.944] [0831524b] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"noduedate"}
+[2025-09-24 05:19:34.946] [0831524b] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"tomorrow"}
+[2025-09-24 05:19:34.948] [0831524b] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"next"}
+[2025-09-24 05:19:34.950] [0831524b] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"itasks"}
+[2025-09-24 05:19:34.953] [0831524b] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"agenda"}
+[2025-09-24 05:19:34.955] [0831524b] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"ioverdue"}
+[2025-09-24 05:19:34.959] [0831524b] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"iprojects"}
+[2025-09-24 05:19:34.962] [0831524b] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"overdue"}
+[2025-09-24 05:19:34.964] [0831524b] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"week"}
+[2025-09-24 05:19:34.966] [0831524b] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"blocked"}
+[2025-09-24 05:19:34.968] [0831524b] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"itoday"}
+[2025-09-24 05:19:34.971] [0831524b] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"projects"}
+[2025-09-24 05:19:34.973] [0831524b] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"upcoming"}
+[2025-09-24 05:19:34.978] [0831524b] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"tasks"}
+[2025-09-24 05:19:34.981] [0831524b] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"iagenda"}
+[2025-09-24 05:19:34.983] [0831524b] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"today"}
+[2025-09-24 05:19:34.985] [0831524b] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"month"}
+[2025-09-24 16:32:17.529] [afe7e8f1] [DBG1] [SYSTEM] Debug system initialized (Level=2, Session=afe7e8f1)
+[2025-09-24 16:32:17.962] [afe7e8f1] [DBG1] [COMMAND] START: help
+[2025-09-24 16:32:18.225] [afe7e8f1] [DBG2] [PARSER] Tokenized command | Data: {"Tokens":["help"],"TokenCount":1}
+[2025-09-24 16:32:18.283] [afe7e8f1] [DBG2] [PARSER] Context parsed | Data: {"Action":"show","Handler":"Show-PmcSmartHelp","Domain":"help","ArgCount":0}
+[2025-09-24 16:32:18.331] [afe7e8f1] [DBG2] [Execution] About to execute function: Show-PmcSmartHelp
+[2025-09-24 16:32:18.346] [afe7e8f1] [DBG2] [EXECUTION] Invoking handler: Show-PmcSmartHelp | Data: {"Source":"/home/****/pmc/module/Pmc.Strict/src/HelpUI.ps1"}
+[2025-09-24 16:32:18.371] [afe7e8f1] [DBG1] [HELP] Show-PmcHelpCategories START
+[2025-09-24 16:32:18.543] [afe7e8f1] [DBG1] [COMMAND] SUCCESS: help | Data: {"Action":"show","Handler":"Show-PmcSmartHelp","Domain":"help"}
+[2025-09-24 16:32:18.552] [afe7e8f1] [DBG1] [COMMAND] START: projects
+[2025-09-24 16:32:18.619] [afe7e8f1] [DBG2] [PARSER] Tokenized command | Data: {"Tokens":["view","projects"],"TokenCount":2}
+[2025-09-24 16:32:18.716] [afe7e8f1] [DBG2] [Execution] Using AST-based argument parsing
+[2025-09-24 16:32:18.733] [afe7e8f1] [DBG2] [PARSER] Context parsed | Data: {"Action":"projects","Handler":"Show-PmcProjectsInteractive","Domain":"view","ArgCount":0}
+[2025-09-24 16:32:18.742] [afe7e8f1] [DBG2] [Execution] About to execute function: Show-PmcProjectsInteractive
+[2025-09-24 16:32:18.747] [afe7e8f1] [DBG2] [EXECUTION] Invoking handler: Show-PmcProjectsInteractive | Data: {"Source":"/home/****/pmc/module/Pmc.Strict/Services/LegacyCompat.ps1"}
+[2025-09-24 16:32:18.796] [afe7e8f1] [DBG1] [COMMAND] ERROR: view projects | Data: {"Exception":"CommandNotFoundException","Error":"The term 'Invoke-PmcEnhancedQuery' is not recognized as a name of a cmdlet, function, script file, or executable program.\nCheck the spelling of the name, or if a path was included, verify that the path is correct and try again."}
+[2025-09-24 16:32:18.856] [afe7e8f1] [DBG1] [Query] Invoke-PmcQuery START (string input) | Data: {"TokenCount":2}
+[2025-09-24 16:32:18.872] [afe7e8f1] [DBG1] [Query] Invoke-PmcQuery START (string input) | Data: {"TokenCount":3}
+[2025-09-24 16:32:18.965] [afe7e8f1] [DBG2] [UniversalDisplay] Universal data display | Data: {"FilterCount":1,"Interactive":false,"DataType":"project"}
+[2025-09-24 16:32:18.979] [afe7e8f1] [DBG2] [UniversalDisplay] Show-PmcData calling Show-PmcDataGrid | Data: {"DataType":"project","Interactive":false}
+[2025-09-24 16:32:19.033] [afe7e8f1] [DBG2] [DataDisplay] Rendering data grid | Data: {"ColumnCount":4,"FilterCount":1,"Domains":"project"}
+[2025-09-24 16:32:19.257] [afe7e8f1] [DBG2] [DataDisplay] Failed to load project lookup | Data: {"Error":"Method invocation failed because [System.Management.Automation.PSCustomObject] does not contain a method named 'GetData'."}
+[2025-09-24 16:32:19.776] [afe7e8f1] [DBG2] [DataDisplay] Grid rendering completed | Data: {"ItemCount":6,"Interactive":false}
+[2025-09-24 16:32:19.822] [afe7e8f1] [DBG2] [AUDIT] File operation approved | Data: {"User":null,"Path":"/home/****/pmc/tests/tmp/ok.txt","Operation":"write"}
+[2025-09-24 16:32:19.834] [afe7e8f1] [DBG1] [SECURITY] Path not in whitelist | Data: {"AllowedPaths":["/home/****/pmc","/home/****/pmc/reports","/home/****/pmc/backups","/home/****/pmc/exports","/tmp/"],"Path":"/home/****/etc/passwd","Operation":"write"}
+[2025-09-24 16:32:19.869] [afe7e8f1] [DBG1] [TEST] debug message
+[2025-09-24 16:32:19.919] [afe7e8f1] [DBG2] [PERF] noop completed
+[2025-09-24 16:32:20.048] [afe7e8f1] [DBG2] [DataDisplay] Rendering data grid | Data: {"ColumnCount":2,"FilterCount":0,"Domains":"aliases"}
+[2025-09-24 16:32:20.063] [afe7e8f1] [DBG2] [DataDisplay] No data found for display | Data: {"DataCount":"null","DataIsNull":[],"Domains":"aliases"}
+[2025-09-24 16:32:20.165] [afe7e8f1] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"iagenda"}
+[2025-09-24 16:32:20.170] [afe7e8f1] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"tomorrow"}
+[2025-09-24 16:32:20.175] [afe7e8f1] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"ioverdue"}
+[2025-09-24 16:32:20.180] [afe7e8f1] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"overdue"}
+[2025-09-24 16:32:20.185] [afe7e8f1] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"agenda"}
+[2025-09-24 16:32:20.195] [afe7e8f1] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"week"}
+[2025-09-24 16:32:20.213] [afe7e8f1] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"itoday"}
+[2025-09-24 16:32:20.218] [afe7e8f1] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"upcoming"}
+[2025-09-24 16:32:20.222] [afe7e8f1] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"today"}
+[2025-09-24 16:32:20.226] [afe7e8f1] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"month"}
+[2025-09-24 16:32:20.230] [afe7e8f1] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"noduedate"}
+[2025-09-24 16:32:20.234] [afe7e8f1] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"itasks"}
+[2025-09-24 16:32:20.238] [afe7e8f1] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"projects"}
+[2025-09-24 16:32:20.244] [afe7e8f1] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"iprojects"}
+[2025-09-24 16:32:20.248] [afe7e8f1] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"blocked"}
+[2025-09-24 16:32:20.253] [afe7e8f1] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"next"}
+[2025-09-24 16:32:20.257] [afe7e8f1] [DBG1] [UniversalDisplay] Overriding existing shortcut | Data: {"Command":"tasks"}
+[2025-09-24 16:38:29.709] [01d7304b] [DBG1] [SYSTEM] Debug system initialized (Level=2, Session=01d7304b)
+[2025-09-24 16:38:30.069] [01d7304b] [DBG1] [COMMAND] START: help
+[2025-09-24 17:28:19.188] [a821c924] [DBG1] [SYSTEM] Debug system initialized (Level=2, Session=a821c924)
+[2025-09-24 17:28:19.574] [a821c924] [DBG1] [COMMAND] START: help
+[2025-09-24 17:47:31.231] [01d7304b] [DBG2] [PARSER] Tokenized command | Data: {"Tokens":["help"],"TokenCount":1}
+[2025-09-24 17:47:31.292] [01d7304b] [DBG2] [PARSER] Context parsed | Data: {"Handler":"Show-PmcSmartHelp","ArgCount":0,"Domain":"help","Action":"show"}
+[2025-09-24 17:47:31.332] [01d7304b] [DBG2] [Execution] About to execute function: Show-PmcSmartHelp
+[2025-09-24 17:47:31.344] [01d7304b] [DBG2] [EXECUTION] Invoking handler: Show-PmcSmartHelp | Data: {"Source":"/home/****/pmc/module/Pmc.Strict/src/HelpUI.ps1"}
+[2025-09-24 17:47:31.360] [01d7304b] [DBG1] [HELP] Show-PmcHelpCategories START
+[2025-09-24 17:47:31.552] [01d7304b] [DBG1] [COMMAND] SUCCESS: help | Data: {"Handler":"Show-PmcSmartHelp","Domain":"help","Action":"show"}
+[2025-09-24 17:47:31.560] [01d7304b] [DBG1] [COMMAND] START: projects
+[2025-09-24 18:10:43.423] [82896656] [DBG1] [SYSTEM] Debug system initialized (Level=2, Session=82896656)
+[2025-09-24 18:10:43.818] [82896656] [DBG1] [COMMAND] START: help
+[2025-09-24 18:22:01.326] [7b7e5476] [DBG1] [SYSTEM] Debug system initialized (Level=2, Session=7b7e5476)
+[2025-09-24 18:22:01.559] [7b7e5476] [DBG1] [COMMAND] START: help
+[2025-09-24 18:40:47.823] [a821c924] [DBG2] [PARSER] Tokenized command | Data: {"Tokens":["help"],"TokenCount":1}
+[2025-09-24 18:40:47.866] [a821c924] [DBG2] [PARSER] Context parsed | Data: {"ArgCount":0,"Action":"show","Handler":"Show-PmcSmartHelp","Domain":"help"}
+[2025-09-24 18:40:47.900] [a821c924] [DBG2] [Execution] About to execute function: Show-PmcSmartHelp
+[2025-09-24 18:40:47.907] [a821c924] [DBG2] [EXECUTION] Invoking handler: Show-PmcSmartHelp | Data: {"Source":"/home/****/pmc/module/Pmc.Strict/src/HelpUI.ps1"}
+[2025-09-24 18:40:47.916] [a821c924] [DBG1] [HELP] Show-PmcHelpCategories START
+[2025-09-24 18:40:48.027] [a821c924] [DBG1] [COMMAND] SUCCESS: help | Data: {"Action":"show","Handler":"Show-PmcSmartHelp","Domain":"help"}
+[2025-09-24 18:40:48.033] [a821c924] [DBG1] [COMMAND] START: projects
+[2025-09-24 19:09:17.301] [01d7304b] [DBG2] [PARSER] Tokenized command | Data: {"Tokens":["projects"],"TokenCount":1}
+[2025-09-24 19:09:17.320] [01d7304b] [DBG2] [PARSER] Context parsed | Data: {"Handler":"Show-PmcProjectsInteractive","ArgCount":0,"Domain":"shortcut","Action":"projects"}
+[2025-09-24 19:09:17.326] [01d7304b] [DBG2] [Execution] About to execute function: Show-PmcProjectsInteractive
+[2025-09-24 19:09:17.329] [01d7304b] [DBG2] [EXECUTION] Invoking handler: Show-PmcProjectsInteractive | Data: {"Source":"/home/****/pmc/module/Pmc.Strict/Services/LegacyCompat.ps1"}
+[2025-09-24 19:09:17.363] [01d7304b] [DBG1] [COMMAND] ERROR: projects | Data: {"Error":"The term 'Invoke-PmcEnhancedQuery' is not recognized as a name of a cmdlet, function, script file, or executable program.\nCheck the spelling of the name, or if a path was included, verify that the path is correct and try again.","Exception":"CommandNotFoundException"}
+[2025-09-24 19:09:17.406] [01d7304b] [DBG1] [Query] Invoke-PmcQuery START (string input) | Data: {"TokenCount":2}
+[2025-09-24 19:09:17.416] [01d7304b] [DBG1] [Query] Invoke-PmcQuery START (string input) | Data: {"TokenCount":3}
+[2025-09-24 19:09:17.470] [01d7304b] [DBG2] [UniversalDisplay] Universal data display | Data: {"FilterCount":1,"Interactive":false,"DataType":"project"}
+[2025-09-24 19:09:17.477] [01d7304b] [DBG2] [UniversalDisplay] Show-PmcData calling Show-PmcDataGrid | Data: {"DataType":"project","Interactive":false}
+[2025-09-24 19:09:17.505] [01d7304b] [DBG2] [DataDisplay] Rendering data grid | Data: {"FilterCount":1,"Domains":"project","ColumnCount":4}
+[2025-09-24 19:20:44.868] [82896656] [DBG2] [PARSER] Tokenized command | Data: {"Tokens":["help"],"TokenCount":1}
+[2025-09-24 19:20:44.918] [82896656] [DBG2] [PARSER] Context parsed | Data: {"Domain":"help","Action":"show","Handler":"Show-PmcSmartHelp","ArgCount":0}
+[2025-09-24 19:20:44.948] [82896656] [DBG2] [Execution] About to execute function: Show-PmcSmartHelp
+[2025-09-24 19:20:44.957] [82896656] [DBG2] [EXECUTION] Invoking handler: Show-PmcSmartHelp | Data: {"Source":"/home/****/pmc/module/Pmc.Strict/src/HelpUI.ps1"}
+[2025-09-24 19:20:44.968] [82896656] [DBG1] [HELP] Show-PmcHelpCategories START
+[2025-09-24 19:20:45.087] [82896656] [DBG1] [COMMAND] SUCCESS: help | Data: {"Domain":"help","Action":"show","Handler":"Show-PmcSmartHelp"}
+[2025-09-24 19:20:45.092] [82896656] [DBG1] [COMMAND] START: projects

@@ -1,0 +1,36 @@
+[?25h[2J[H[?25l✓ PMC loaded
+✓ LegacyCompat services loaded
+✓ Universal command shortcuts registered
+[33;1mWARNING: The names of some imported commands from the module 'Pmc.Strict' include unapproved verbs that might make them less discoverable. To find the commands with unapproved verbs, run the Import-Module command again with the Verbose parameter. For a list of approved verbs, type Get-Verb.[0m
+[OK] MODULE - Module imported
+[OK] CONFIG - Test config provider set
+[OK] DEBUG - Debug Level=2 Path=/home/teej/pmc/debug.log
+[OK] SECURITY - AllowedPaths=/home/teej/pmc,/home/teej/pmc/reports,/home/teej/pmc/backups,/home/teej/pmc/exports,/tmp/
+[OK] THEME - Theme initialized
+[OK] EXPORTS:compare - Declared=167 Exported=156 Missing=11 Extra=0
+[FAIL] STORAGE:Get - Check failed: The term 'Get-PmcData' is not recognized as a name of a cmdlet, function, script file, or executable program.
+Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+[OK] STORAGE:Provider - Provider ok
+[OK] AST:Tokens - Tokens=5
+[FAIL] AST:Args - Check failed: The term 'ConvertTo-PmcContext' is not recognized as a name of a cmdlet, function, script file, or executable program.
+Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+[FAIL] AST:Completions - Check failed: The term 'Get-PmcCompletionsFromAst' is not recognized as a name of a cmdlet, function, script file, or executable program.
+Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+
+📚 PMC HELP — CATEGORIES
+
+Category          Items  Description
+────────────────────────────────────
+Display Options       9  Control how results are displayed
+Projects              4  Project management commands
+Priority Filters      5  Filter tasks by priority level
+Quick Tasks           6  Common task management commands
+Query Language       13  Filter, sort, and display tasks, projects, and time logs
+Time Tracking         5  Time logging and reports
+Date Filters          9  Filter tasks by dates and deadlines
+Advanced Feature      7  Metrics, relations, and saved queries
+Tag Filters           3  Filter by tags and labels
+Project Filters       4  Filter by project names and assignments
+
+Use: help domain <category> (e.g., 'help domain task')
+[OK] EXEC:help - help command executed

@@ -97,7 +97,6 @@
         'Remove-PmcTemplate',
         # RECURRING DOMAIN
         'Add-PmcRecurringTask',
-        'Get-PmcRecurringList',
         # ALIAS DOMAIN
         'Add-PmcAlias',
         'Remove-PmcAlias',
@@ -198,9 +197,12 @@
         'Hide-PmcCursor',
         'Show-PmcCursor',
         'Reset-PmcScreen',
-        'Write-PmcAtPosition'
+        'Write-PmcAtPosition',
+        # DATA ACCESS
+        'Get-PmcAllData',
+        'Get-PmcDataProvider'
     )
     AliasesToExport   = @()
     CmdletsToExport   = @()
-    VariablesToExport = @()
+    VariablesToExport = @('PmcCommandMap', 'PmcShortcutMap', 'PmcCommandMeta')
 }

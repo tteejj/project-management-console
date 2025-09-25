@@ -372,4 +372,12 @@ function Write-PmcAtPosition {
     $Script:PmcScreenManager.WriteAtPosition($contentBounds, $X, $Y, $Text)
 }
 
-# Note: Export-ModuleMember removed as it should only be called from module context
+function Clear-CommandOutput {
+    Clear-PmcContentArea
+    if (Get-Command Write-PmcDebug -ErrorAction SilentlyContinue) {
+        Write-PmcDebug -Level 2 -Category 'ScreenManager' -Message "Command output area cleared"
+    }
+}
+
+# Export screen management functions
+Export-ModuleMember -Function Initialize-PmcScreen, Clear-PmcContentArea, Get-PmcContentBounds, Set-PmcHeader, Update-PmcHeaderStatus, Set-PmcInputPrompt, Hide-PmcCursor, Show-PmcCursor, Reset-PmcScreen, Write-PmcAtPosition, Clear-CommandOutput

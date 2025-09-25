@@ -179,6 +179,27 @@ function Normalize-PmcData {
     return $data
 }
 
+# Alias for backward compatibility
+function Get-PmcAllData {
+    return Get-PmcData
+}
+
+# Data provider for display system
+function Get-PmcDataProvider {
+    param([string]$ProviderType = 'Storage')
+
+    # Return an object with GetData method
+    return [PSCustomObject]@{
+        GetData = { Get-PmcData }
+    }
+}
+
+# Alias for backward compatibility - critical for Tasks/Time/Projects
+function Set-PmcAllData {
+    param($Data)
+    Save-PmcData -Data $Data
+}
+
 function Get-PmcData {
     $file = Get-PmcTaskFilePath
     if (-not (Test-Path $file)) {
@@ -417,4 +438,4 @@ function Get-PmcNextTimeLogId {
     try { $ids = @($data.timelogs | ForEach-Object { try { [int]$_.id } catch { 0 } }); $max = ($ids | Measure-Object -Maximum).Maximum; return ([int]$max + 1) } catch { return 1 }
 }
 
-#Export-ModuleMember -Function Add-PmcUndoEntry, Get-PmcTaskFilePath, Initialize-PmcDataSchema, Normalize-PmcData, Get-PmcData, Get-PmcSafePath, Lock-PmcFile, Unlock-PmcFile, Invoke-PmcBackupRotation, Add-PmcUndoState
+Export-ModuleMember -Function Add-PmcUndoEntry, Get-PmcTaskFilePath, Initialize-PmcDataSchema, Normalize-PmcData, Get-PmcData, Get-PmcAllData, Get-PmcDataProvider, Get-PmcDataAlias, Get-PmcSafePath, Lock-PmcFile, Unlock-PmcFile, Invoke-PmcBackupRotation, Add-PmcUndoState, Save-PmcData, Set-PmcAllData

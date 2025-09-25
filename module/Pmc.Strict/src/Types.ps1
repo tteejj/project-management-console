@@ -131,4 +131,4 @@ function Ensure-PmcProjectProperties {
     }
 }
 
-#Export-ModuleMember -Function ConvertTo-PmcTokens, Pmc-HasProp, Pmc-GetProp, Ensure-PmcTaskProperties, Ensure-PmcProjectProperties
+Export-ModuleMember -Function ConvertTo-PmcTokens, Pmc-HasProp, Pmc-GetProp, Ensure-PmcTaskProperties, Ensure-PmcProjectProperties

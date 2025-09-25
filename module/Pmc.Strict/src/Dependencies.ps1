@@ -199,7 +199,14 @@ function Show-PmcDependencies {
         $dataObjects += $obj
     }
 
-    Show-PmcCustomGrid -Domain "task" -Columns $columns -Data $dataObjects -Title "Dependencies for Task #$taskId"
+    # Use template display
+    $depTemplate = [PmcTemplate]::new('dependencies', @{
+        type = 'grid'
+        header = 'Task ID   Title                          Type        Status'
+        row = '{id,-9} {title,-30} {type,-10} {status}'
+    })
+    Write-PmcStyled -Style 'Header' -Text "Dependencies for Task #$taskId"
+    Render-GridTemplate -Data $dataObjects -Template $depTemplate
 
     # Show if this task is blocked
     if ($task.blocked) {
@@ -255,7 +262,14 @@ function Show-PmcDependencyGraph {
         $dataObjects += $obj
     }
 
-    Show-PmcCustomGrid -Domain "task" -Columns $columns -Data $dataObjects -Title 'DEPENDENCY GRAPH'
+    # Use template display
+    $depTemplate = [PmcTemplate]::new('dep-graph', @{
+        type = 'grid'
+        header = 'Task ID   Title                          Type        Status'
+        row = '{id,-9} {title,-30} {type,-10} {status}'
+    })
+    Write-PmcStyled -Style 'Header' -Text 'DEPENDENCY GRAPH'
+    Render-GridTemplate -Data $dataObjects -Template $depTemplate
 
     # Summary statistics
     $blockedCount = @($data.tasks | Where-Object { $_.blocked }).Count
@@ -268,4 +282,4 @@ function Show-PmcDependencyGraph {
     Write-PmcDebug -Level 2 -Category "Dependencies" -Message "Dependency graph shown successfully" -Data @{ DependentTasks = $dependentCount; BlockedTasks = $blockedCount }
 }
 
-#Export-ModuleMember -Function Update-PmcBlockedStatus, Add-PmcDependency, Remove-PmcDependency, Show-PmcDependencies, Show-PmcDependencyGraph
+Export-ModuleMember -Function Update-PmcBlockedStatus, Add-PmcDependency, Remove-PmcDependency, Show-PmcDependencies, Show-PmcDependencyGraph
