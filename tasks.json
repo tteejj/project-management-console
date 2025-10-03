@@ -57,6 +57,15 @@
       "text": "description here",
       "id": 6,
       "status": "pending"
+    },
+    {
+      "id": 7.0,
+      "text": "new task",
+      "status": "in-progress",
+      "priority": "high",
+      "project": "inbox",
+      "due": "2025-10-04",
+      "created": "2025-10-03 13:25:38"
     }
   ],
   "schema_version": 1,
@@ -204,6 +213,21 @@
       "timestamp": "2025-09-20 08:19:53",
       "action": "task add",
       "user": null
+    },
+    {
+      "timestamp": "2025-10-03 13:25:38",
+      "user": null,
+      "action": "Added task 7"
+    },
+    {
+      "timestamp": "2025-10-03 13:26:26",
+      "user": null,
+      "action": "Moved task 7 to IN PROGRESS"
+    },
+    {
+      "action": "Added time entry: 1 hours for ",
+      "user": null,
+      "timestamp": "2025-10-03 14:36:17"
     }
   ],
   "aliases": {},
@@ -215,6 +239,16 @@
       "notes": "",
       "minutes": 60,
       "id": 1
+    },
+    {
+      "id": 2.0,
+      "project": null,
+      "id1": "050",
+      "id2": null,
+      "date": "today",
+      "minutes": 60,
+      "description": "",
+      "created": "2025-10-03 14:36:17"
     }
   ],
   "deleted": [],

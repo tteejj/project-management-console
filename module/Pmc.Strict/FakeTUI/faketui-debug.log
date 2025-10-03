@@ -1,0 +1,9 @@
+[2025-10-03 14:35:51.874] [SYSTEM] Debug log initialized
+[2025-10-03 14:35:51.877] [LOADER] Loading FakeTUI modular system
+[2025-10-03 14:35:52.217] [LOADER] FakeTUI.ps1 loaded
+[2025-10-03 14:35:52.231] [LOADER] TaskHandlers.ps1 loaded
+[2025-10-03 14:35:52.237] [LOADER] ProjectHandlers.ps1 loaded
+[2025-10-03 14:35:54.219] [MENU] Alt+I activated menu Time
+[2025-10-03 14:35:55.456] [ACTION] ProcessMenuAction: time:list
+[2025-10-03 14:36:22.676] [MENU] Alt+I activated menu Time
+[2025-10-03 14:36:25.938] [ACTION] ProcessMenuAction: tools:weeklyreport

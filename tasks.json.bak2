@@ -47,6 +47,25 @@
       "priority": 1,
       "status": "pending",
       "created": "2025-09-18"
+    },
+    {
+      "due": "2025-09-20",
+      "tags": [],
+      "created": "2025-09-20 08:19:53",
+      "priority": 0,
+      "project": "1234 ab ltd.",
+      "text": "description here",
+      "id": 6,
+      "status": "pending"
+    },
+    {
+      "id": 7.0,
+      "text": "new task",
+      "status": "active",
+      "priority": "high",
+      "project": "inbox",
+      "due": "2025-10-04",
+      "created": "2025-10-03 13:25:38"
     }
   ],
   "schema_version": 1,
@@ -81,6 +100,12 @@
       "description": "Created 2025-09-20",
       "aliases": [],
       "created": "2025-09-20 07:54:25"
+    },
+    {
+      "name": "1234 ab ltd.",
+      "description": "Created 2025-09-20",
+      "aliases": [],
+      "created": "2025-09-20 08:17:20"
     }
   ],
   "activityLog": [
@@ -178,6 +203,21 @@
       "timestamp": "2025-09-20 07:54:25",
       "action": "project add",
       "user": null
+    },
+    {
+      "timestamp": "2025-09-20 08:17:20",
+      "action": "project add",
+      "user": null
+    },
+    {
+      "timestamp": "2025-09-20 08:19:53",
+      "action": "task add",
+      "user": null
+    },
+    {
+      "timestamp": "2025-10-03 13:25:38",
+      "user": null,
+      "action": "Added task 7"
     }
   ],
   "aliases": {},

@@ -1,6 +1,6 @@
 # Command line argument parsing must appear before any executable statements
 param(
-    [switch]$NoInteractive,
+    [switch]$CLI,
     [switch]$Debug1,
     [switch]$Debug2,
     [switch]$Debug3,
@@ -9,8 +9,8 @@ param(
     [switch]$Help
 )
 
-# Interactive mode is enabled by default, use -NoInteractive to disable
-$Interactive = -not $NoInteractive.IsPresent
+# Default to FakeTUI mode, use -CLI to force command line
+$UseFakeTUI = -not $CLI.IsPresent
 
 Set-StrictMode -Version Latest
 
@@ -23,7 +23,7 @@ PMC - Project Management Console
 Usage: pmc.ps1 [options]
 
 Options:
-  -NoInteractive     Disable enhanced interactive mode (enabled by default)
+  -CLI               Force command line interface (FakeTUI is default)
   -Debug1            Enable basic debug logging (commands, errors)
   -Debug2            Enable detailed debug logging (parsing, validation, storage)
   -Debug3            Enable verbose debug logging (UI rendering, completion details)
@@ -241,6 +241,31 @@ function Show-PmcBanner {
 
 
 function Start-PmcShell {
+    # Launch FakeTUI if not in CLI mode
+    if ($UseFakeTUI) {
+        try {
+            Write-Host "Starting PMC FakeTUI..." -ForegroundColor Green
+
+            # Load FakeTUI modular version (includes all extensions)
+            . "./module/Pmc.Strict/FakeTUI/FakeTUI-Modular.ps1"
+
+            $app = [PmcFakeTUIApp]::new()
+            $app.Initialize()
+            $app.Run()
+            $app.Shutdown()
+
+            Write-Host "FakeTUI exited" -ForegroundColor Green
+            return
+        } catch {
+            Write-Host "Failed to start FakeTUI: $($_.Exception.Message)" -ForegroundColor Red
+            Write-Host "Falling back to CLI mode..." -ForegroundColor Yellow
+            $script:UseFakeTUI = $false
+        }
+    }
+
+    # CLI mode - need interactive shell
+    $Interactive = $true
+
     if ($Interactive) {
         try {
             $ok = Enable-PmcInteractiveMode

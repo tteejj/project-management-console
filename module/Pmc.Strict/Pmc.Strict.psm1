@@ -257,6 +257,15 @@ try {
     throw
 }
 
+try {
+    # Loading FakeTUICommand.ps1...
+    . $PSScriptRoot/src/FakeTUICommand.ps1
+    # ✓ FakeTUICommand.ps1 loaded
+} catch {
+    Write-Host "  ✗ FakeTUICommand.ps1 failed: $_" -ForegroundColor Red
+    throw
+}
+
 # Views.ps1 functionality migrated to UniversalDisplay.ps1 during technical debt cleanup
 
 try {
@@ -627,6 +636,25 @@ try {
     throw
 }
 
+# Load Core enhanced systems for improved performance and security
+try {
+    # Loading Core/EnhancedQueryEngine.ps1...
+    . $PSScriptRoot/Core/EnhancedQueryEngine.ps1
+    # ✓ Core/EnhancedQueryEngine.ps1 loaded
+} catch {
+    Write-Host "  ✗ Core/EnhancedQueryEngine.ps1 failed: $_" -ForegroundColor Red
+    throw
+}
+
+try {
+    # Loading Core/EnhancedCommandProcessor.ps1...
+    . $PSScriptRoot/Core/EnhancedCommandProcessor.ps1
+    # ✓ Core/EnhancedCommandProcessor.ps1 loaded
+} catch {
+    Write-Host "  ✗ Core/EnhancedCommandProcessor.ps1 failed: $_" -ForegroundColor Red
+    throw
+}
+
  
 
 
@@ -635,14 +663,50 @@ if (Get-Command Reset-PmcScreen -ErrorAction SilentlyContinue) {
     Reset-PmcScreen
 }
 
+# Define Get-PmcData wrapper - MUST be before Export-ModuleMember
+function Get-PmcData {
+    # Forward to Storage.ps1's implementation if it exists, otherwise load directly
+    $file = Get-PmcTaskFilePath
+    if (-not (Test-Path $file)) {
+        $root = Split-Path $file -Parent
+        try { if (-not (Test-Path $root)) { New-Item -ItemType Directory -Path $root -Force | Out-Null } } catch {}
+        $init = @{
+            tasks=@(); deleted=@(); completed=@(); timelogs=@(); activityLog=@(); projects=@(@{ name='inbox'; description='Default inbox'; aliases=@(); created=(Get-Date).ToString('yyyy-MM-dd HH:mm:ss') });
+            currentContext='inbox'; schema_version=1; preferences=@{ autoBackup=$true }
+        } | ConvertTo-Json -Depth 10
+        $init | Set-Content -Path $file -Encoding UTF8
+    }
+    $cfg = Get-PmcConfig; $strict = $true; try { if ($cfg.Behavior -and $cfg.Behavior.StrictDataMode -ne $null) { $strict = [bool]$cfg.Behavior.StrictDataMode } } catch {}
+    try {
+        $raw = Get-Content $file -Raw
+        $data = $raw | ConvertFrom-Json
+        $data = Normalize-PmcData $data
+        $data = Initialize-PmcDataSchema $data
+        return $data
+    } catch {
+        if ($strict) { throw }
+        return @{
+            schema_version = 1; tasks=@(); projects=@(); timelogs=@(); deleted=@(); completed=@(); activityLog=@(); templates=@(); recurringTemplates=@(); aliases=@{}; currentContext='inbox'; preferences=@{ autoBackup=$true }
+        }
+    }
+}
+
+# FakeTUI function loaded from src/FakeTUICommand.ps1
+
 Write-Host "✓ PMC loaded" -ForegroundColor Green
 
 # Ensure required public functions are exported (override narrow exports in sub-files)
 Export-ModuleMember -Function `
     Invoke-PmcCommand, `
+    Initialize-PmcEnhancedCommandProcessor, `
+    Get-PmcEnhancedCommandProcessor, `
+    Invoke-PmcEnhancedCommand, `
     Get-PmcSchema, `
     Get-PmcFieldSchema, Get-PmcFieldSchemasForDomain, `
     Invoke-PmcQuery, `
+    Invoke-PmcEnhancedQuery, `
+    Get-PmcQueryPerformanceStats, `
+    Initialize-PmcEnhancedQueryEngine, `
     Get-PmcHelp, `
     Get-PmcHelpData, `
     Set-PmcConfigProvider, `
@@ -693,18 +757,31 @@ Export-ModuleMember -Function `
     Hide-PmcCursor, `
     Show-PmcCursor, `
     Reset-PmcScreen, `
-    Write-PmcAtPosition
+    Write-PmcAtPosition, `
+    Get-PmcAllData, `
+    Get-PmcData, `
+    Get-PmcDataProvider, `
+    Get-PmcTasksData, `
+    Get-PmcProjectsData, `
+    Get-PmcTimeLogsData, `
+    Save-PmcData, `
+    Start-PmcFakeTUI
+
+# FakeTUI function moved earlier in file for proper export
 
 # Export variables explicitly
 Export-ModuleMember -Variable PmcCommandMap, PmcShortcutMap, PmcCommandMeta
 
-# Load Services directory for additional functionality
-try {
-    . $PSScriptRoot/Services/LegacyCompat.ps1
-    Write-Host "✓ LegacyCompat services loaded" -ForegroundColor Green
-} catch {
-    Write-Host "✗ LegacyCompat services failed: $_" -ForegroundColor Red
-}
+# Services directory - REFERENCE ONLY (disabled to avoid conflicts)
+# Future service-oriented architecture available in Services/ directory
+# To re-enable: Uncomment the block below (after resolving display system conflicts)
+#
+# try {
+#     . $PSScriptRoot/Services/LegacyCompat.ps1
+#     Write-Host "✓ LegacyCompat services loaded" -ForegroundColor Green
+# } catch {
+#     Write-Host "✗ LegacyCompat services failed: $_" -ForegroundColor Red
+# }
 
 # Register universal command shortcuts after export so functions are available
 try {

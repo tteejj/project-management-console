@@ -10,6 +10,9 @@
     TypesToProcess    = @()
     FunctionsToExport = @(
         'Invoke-PmcCommand',
+        'Initialize-PmcEnhancedCommandProcessor',
+        'Get-PmcEnhancedCommandProcessor',
+        'Invoke-PmcEnhancedCommand',
         'Get-PmcSchema',
         'Get-PmcHelp',
         'Get-PmcHelpData',
@@ -183,6 +186,9 @@
         'Show-PmcAllTasksInteractive',
         # QUERY DOMAIN
         'Invoke-PmcQuery',
+        'Invoke-PmcEnhancedQuery',
+        'Get-PmcQueryPerformanceStats',
+        'Initialize-PmcEnhancedQueryEngine',
         'Evaluate-PmcQuery',
         'Get-PmcComputedRegistry',
         'Get-PmcQueryAlias',
