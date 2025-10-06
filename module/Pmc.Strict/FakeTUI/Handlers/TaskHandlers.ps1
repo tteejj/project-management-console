@@ -25,7 +25,7 @@ function Invoke-TaskCopyHandler {
             Show-InfoMessage -Message "Task #$id not found!" -Title "Error" -Color "Red"
         } else {
             # Get available projects for selection
-            $projectList = @('inbox') + @($data.projects | ForEach-Object { $_.name } | Where-Object { $_ -and $_ -ne 'inbox' } | Sort-Object)
+            $projectList = @('(none)', 'inbox') + @($data.projects | ForEach-Object { $_.name } | Where-Object { $_ -and $_ -ne 'inbox' } | Sort-Object)
 
             # Ask if user wants to change project
             $changeProject = Show-ConfirmDialog -Message "Change project for the copy?" -Title "Copy Task"
@@ -34,7 +34,7 @@ function Invoke-TaskCopyHandler {
             if ($changeProject) {
                 $selected = Show-SelectList -Title "Select New Project" -Options $projectList -DefaultValue $task.project
                 if ($selected) {
-                    $newProject = $selected
+                    $newProject = if ($selected -eq '(none)') { $null } else { $selected }
                 }
             }
 
@@ -86,14 +86,14 @@ function Invoke-TaskMoveHandler {
             Show-InfoMessage -Message "Task #$id not found!" -Title "Error" -Color "Red"
         } else {
             # Get available projects for selection
-            $projectList = @('inbox') + @($data.projects | ForEach-Object { $_.name } | Where-Object { $_ -and $_ -ne 'inbox' } | Sort-Object)
+            $projectList = @('(none)', 'inbox') + @($data.projects | ForEach-Object { $_.name } | Where-Object { $_ -and $_ -ne 'inbox' } | Sort-Object)
 
             # Show project selection
             $selected = Show-SelectList -Title "Select New Project" -Options $projectList -DefaultValue $task.project
 
             if ($selected) {
                 $oldProject = $task.project
-                $task.project = $selected
+                $task.project = if ($selected -eq '(none)') { $null } else { $selected }
 
                 Save-PmcData -Data $data -Action "Moved task #$id from '$oldProject' to '$selected'"
 
@@ -218,42 +218,26 @@ function Invoke-TaskPriorityHandler {
 function Invoke-TaskPostponeHandler {
     param($app)
 
-    $app.terminal.Clear()
-    $app.menuSystem.DrawMenuBar()
-    $title = " Postpone Task "
-    $titleX = ($app.terminal.Width - $title.Length) / 2
-    $app.terminal.WriteAtColor([int]$titleX, 3, $title, [PmcVT100]::BgBlue(), [PmcVT100]::White())
+    $input = Show-InputForm -Title "Postpone Task" -Fields @(
+        @{Name='id'; Label='Task ID'; Required=$true; Type='text'}
+        @{Name='days'; Label='Postpone by days'; Required=$true; Type='text'}
+    )
 
-    $app.terminal.WriteAtColor(4, 6, "Task ID:", [PmcVT100]::Yellow(), "")
-    $app.terminal.WriteAtColor(4, 8, "Postpone by days:", [PmcVT100]::Yellow(), "")
-
-    $app.terminal.FillArea(0, $app.terminal.Height - 1, $app.terminal.Width, 1, ' ')
-    $app.terminal.WriteAt(2, $app.terminal.Height - 1, "Enter values | Esc=Cancel")
-
-    $app.terminal.WriteAt(14, 6, "")
-    [Console]::SetCursorPosition(14, 6)
-    $idStr = [Console]::ReadLine()
-
-    if ([string]::IsNullOrWhiteSpace($idStr)) {
+    if (-not $input) {
         $app.currentView = 'main'
         $app.DrawLayout()
         return
     }
 
-    $app.terminal.WriteAt(23, 8, "")
-    [Console]::SetCursorPosition(23, 8)
-    $daysStr = [Console]::ReadLine()
-
-    $id = try { [int]$idStr } catch { 0 }
-    $days = try { [int]$daysStr } catch { 1 }
+    $id = try { [int]$input['id'] } catch { 0 }
+    $days = try { [int]$input['days'] } catch { 1 }
 
     try {
         $data = Get-PmcAllData
         $task = $data.tasks | Where-Object { $_.id -eq $id }
 
         if (-not $task) {
-            $app.terminal.WriteAtColor(4, 11, "Task #$id not found!", [PmcVT100]::Red(), "")
-            Start-Sleep -Milliseconds 2000
+            Show-InfoMessage -Message "Task #$id not found!" -Title "Error" -Color "Red"
         } else {
             if ($task.PSObject.Properties['dueDate'] -and $task.dueDate) {
                 $currentDue = [datetime]$task.dueDate
@@ -265,13 +249,10 @@ function Invoke-TaskPostponeHandler {
             }
 
             Save-PmcData -Data $data -Action "Postponed task #$id by $days days"
-
-            $app.terminal.WriteAtColor(4, 11, "Task postponed! New due: $($task.dueDate)", [PmcVT100]::Green(), "")
-            Start-Sleep -Milliseconds 1500
+            Show-InfoMessage -Message "Task postponed! New due: $($task.dueDate)" -Title "Success" -Color "Green"
         }
     } catch {
-        $app.terminal.WriteAtColor(4, 11, "Error: $_", [PmcVT100]::Red(), "")
-        Start-Sleep -Milliseconds 2000
+        Show-InfoMessage -Message "Error: $_" -Title "Error" -Color "Red"
     }
 
     $app.currentView = 'main'
@@ -281,47 +262,26 @@ function Invoke-TaskPostponeHandler {
 function Invoke-TaskNoteHandler {
     param($app)
 
-    $app.terminal.Clear()
-    $app.menuSystem.DrawMenuBar()
-    $title = " Add Task Note "
-    $titleX = ($app.terminal.Width - $title.Length) / 2
-    $app.terminal.WriteAtColor([int]$titleX, 3, $title, [PmcVT100]::BgBlue(), [PmcVT100]::White())
+    $input = Show-InputForm -Title "Add Task Note" -Fields @(
+        @{Name='id'; Label='Task ID'; Required=$true; Type='text'}
+        @{Name='note'; Label='Note'; Required=$true; Type='text'}
+    )
 
-    $app.terminal.WriteAtColor(4, 6, "Task ID:", [PmcVT100]::Yellow(), "")
-    $app.terminal.WriteAtColor(4, 8, "Note:", [PmcVT100]::Yellow(), "")
-
-    $app.terminal.FillArea(0, $app.terminal.Height - 1, $app.terminal.Width, 1, ' ')
-    $app.terminal.WriteAt(2, $app.terminal.Height - 1, "Enter note | Esc=Cancel")
-
-    $app.terminal.WriteAt(14, 6, "")
-    [Console]::SetCursorPosition(14, 6)
-    $idStr = [Console]::ReadLine()
-
-    if ([string]::IsNullOrWhiteSpace($idStr)) {
+    if (-not $input) {
         $app.currentView = 'main'
         $app.DrawLayout()
         return
     }
 
-    $app.terminal.WriteAt(11, 8, "")
-    [Console]::SetCursorPosition(11, 8)
-    $note = [Console]::ReadLine()
-
-    if ([string]::IsNullOrWhiteSpace($note)) {
-        $app.currentView = 'main'
-        $app.DrawLayout()
-        return
-    }
-
-    $id = try { [int]$idStr } catch { 0 }
+    $id = try { [int]$input['id'] } catch { 0 }
+    $note = $input['note']
 
     try {
         $data = Get-PmcAllData
         $task = $data.tasks | Where-Object { $_.id -eq $id }
 
         if (-not $task) {
-            $app.terminal.WriteAtColor(4, 11, "Task #$id not found!", [PmcVT100]::Red(), "")
-            Start-Sleep -Milliseconds 2000
+            Show-InfoMessage -Message "Task #$id not found!" -Title "Error" -Color "Red"
         } else {
             # Add to activities array
             if (-not $task.PSObject.Properties['activities']) {
@@ -335,17 +295,14 @@ function Invoke-TaskNoteHandler {
             }
 
             $task.activities += $activity
-
             Save-PmcData -Data $data -Action "Added note to task #$id"
-
-            $app.terminal.WriteAtColor(4, 11, "Note added!", [PmcVT100]::Green(), "")
-            Start-Sleep -Milliseconds 1000
+            Show-InfoMessage -Message "Note added!" -Title "Success" -Color "Green"
         }
     } catch {
-        $app.terminal.WriteAtColor(4, 11, "Error: $_", [PmcVT100]::Red(), "")
-        Start-Sleep -Milliseconds 2000
+        Show-InfoMessage -Message "Error: $_" -Title "Error" -Color "Red"
     }
 
     $app.currentView = 'main'
     $app.DrawLayout()
 }
+

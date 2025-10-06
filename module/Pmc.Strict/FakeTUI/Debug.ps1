@@ -43,3 +43,4 @@ function Get-FakeTUIDebugLog {
 
 # Initialize log on load
 Clear-FakeTUIDebugLog
+

@@ -40,8 +40,32 @@ function Add-PmcTimeEntry {
                 $text = $text -replace '@\w+', ''
             }
 
-            # Parse date from text (YYYYMMDD or MMDD format)
-            if ($text -match '\b(?:(\d{4})(\d{2})(\d{2})|(\d{2})(\d{2}))\b') {
+            # Parse date - enhanced with +/- relative dates
+            $dateSet = $false
+
+            # Check for relative dates: today, tomorrow, +N, -N
+            if ($text -match '\b(today)\b') {
+                $entry.date = (Get-Date).ToString('yyyy-MM-dd')
+                $text = $text -replace '\btoday\b', ''
+                $dateSet = $true
+            } elseif ($text -match '\b(tomorrow)\b') {
+                $entry.date = (Get-Date).AddDays(1).ToString('yyyy-MM-dd')
+                $text = $text -replace '\btomorrow\b', ''
+                $dateSet = $true
+            } elseif ($text -match '\+(\d+)\b') {
+                $daysAhead = [int]$matches[1]
+                $entry.date = (Get-Date).AddDays($daysAhead).ToString('yyyy-MM-dd')
+                $text = $text -replace '\+\d+\b', ''
+                $dateSet = $true
+            } elseif ($text -match '\-(\d+)\b') {
+                $daysAgo = [int]$matches[1]
+                $entry.date = (Get-Date).AddDays(-$daysAgo).ToString('yyyy-MM-dd')
+                $text = $text -replace '\-\d+\b', ''
+                $dateSet = $true
+            }
+
+            # If no relative date, check for YYYYMMDD or MMDD format
+            if (-not $dateSet -and $text -match '\b(?:(\d{4})(\d{2})(\d{2})|(\d{2})(\d{2}))\b') {
                 if ($matches[1]) {
                     # YYYYMMDD format
                     $year = [int]$matches[1]
@@ -115,9 +139,12 @@ function Show-PmcWeeklyTimeReport {
 
     # Week header
     $weekHeader = "Week of {0} - {1}" -f $weekStart.ToString('MMM dd'), $weekEnd.ToString('MMM dd, yyyy')
-    Write-PmcStyled -Style 'Header' -Text "`n📊 TIME REPORT"
-    Write-PmcStyled -Style 'Subheader' -Text $weekHeader
-    Write-PmcStyled -Style 'Info' -Text "Use '=' next week, '-' previous week`n"
+
+    Write-Host ""
+    Write-PmcStyled -Style 'Header' -Text "📊 TIME REPORT"
+    Write-PmcStyled -Style 'Header' -Text $weekHeader
+    Write-PmcStyled -Style 'Muted' -Text "Use '=' next week, '-' previous week"
+    Write-Host ""
 
     # Filter logs for the week
     $weekLogs = @()
@@ -165,36 +192,55 @@ function Show-PmcWeeklyTimeReport {
         $grouped[$key].Total += $hours
     }
 
+    # Get theme styles and build color codes
+    $headerStyle = Get-PmcStyle 'Header'
+    $bodyStyle = Get-PmcStyle 'Body'
+    $borderStyle = Get-PmcStyle 'Border'
+    $highlightStyle = Get-PmcStyle 'Highlight'
+    $mutedStyle = Get-PmcStyle 'Muted'
+
+    # Convert hex colors to VT sequences
+    $headerColor = if ($headerStyle.Fg -match '^#') { $rgb = ConvertFrom-PmcHex $headerStyle.Fg; [PmcVT]::FgRGB($rgb.R, $rgb.G, $rgb.B) } else { "" }
+    $bodyColor = if ($bodyStyle.Fg -match '^#') { $rgb = ConvertFrom-PmcHex $bodyStyle.Fg; [PmcVT]::FgRGB($rgb.R, $rgb.G, $rgb.B) } else { "" }
+    $borderColor = if ($borderStyle.Fg -match '^#') { $rgb = ConvertFrom-PmcHex $borderStyle.Fg; [PmcVT]::FgRGB($rgb.R, $rgb.G, $rgb.B) } else { "" }
+    $highlightColor = if ($highlightStyle.Fg -match '^#') { $rgb = ConvertFrom-PmcHex $highlightStyle.Fg; [PmcVT]::FgRGB($rgb.R, $rgb.G, $rgb.B) } else { "" }
+    $mutedColor = if ($mutedStyle.Fg -match '^#') { $rgb = ConvertFrom-PmcHex $mutedStyle.Fg; [PmcVT]::FgRGB($rgb.R, $rgb.G, $rgb.B) } else { "" }
+    $reset = [PmcVT]::Reset()
+
     # Display table
     $headerFormat = "{0,-20} {1,-5} {2,-5} {3,6} {4,6} {5,6} {6,6} {7,6} {8,8}"
     $rowFormat = "{0,-20} {1,-5} {2,-5} {3,6:F1} {4,6:F1} {5,6:F1} {6,6:F1} {7,6:F1} {8,8:F1}"
 
-    Write-Host ($headerFormat -f "Name", "ID1", "ID2", "Mon", "Tue", "Wed", "Thu", "Fri", "Total") -ForegroundColor Cyan
-    Write-Host ("─" * 80) -ForegroundColor DarkGray
+    Write-Host "$headerColor" + ($headerFormat -f "Name", "ID1", "ID2", "Mon", "Tue", "Wed", "Thu", "Fri", "Total") + "$reset"
+    Write-Host "$borderColor" + ("─" * 80) + "$reset"
 
     $grandTotal = 0
     foreach ($entry in ($grouped.GetEnumerator() | Sort-Object Key)) {
         $data = $entry.Value
-        Write-Host ($rowFormat -f $data.Name, $data.ID1, $data.ID2, $data.Mon, $data.Tue, $data.Wed, $data.Thu, $data.Fri, $data.Total)
+        Write-Host "$bodyColor" + ($rowFormat -f $data.Name, $data.ID1, $data.ID2, $data.Mon, $data.Tue, $data.Wed, $data.Thu, $data.Fri, $data.Total) + "$reset"
         $grandTotal += $data.Total
     }
 
-    Write-Host ("─" * 80) -ForegroundColor DarkGray
-    Write-Host ($headerFormat -f "", "", "", "", "", "", "", "Total:", $grandTotal.ToString('F1')) -ForegroundColor Yellow
+    Write-Host "$borderColor" + ("─" * 80) + "$reset"
+    Write-Host "$highlightColor" + ($headerFormat -f "", "", "", "", "", "", "", "Total:", $grandTotal.ToString('F1')) + "$reset"
 
     # Interactive week navigation
-    Write-PmcStyled -Style 'Info' -Text "`nPress '=' for next week, '-' for previous week, any other key to exit"
+    Write-Host "`n$mutedColor" + "Press '=' for next week, '-' for previous week, any other key to exit" + "$reset"
 
     while ($true) {
+        if (-not $Host.UI.RawUI.KeyAvailable) {
+            Start-Sleep -Milliseconds 50
+            continue
+        }
         $key = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
         if ($key.Character -eq '=') {
             Show-PmcWeeklyTimeReport -TimeLogs $TimeLogs -WeekOffset ($WeekOffset + 1)
-            break
+            return
         } elseif ($key.Character -eq '-') {
             Show-PmcWeeklyTimeReport -TimeLogs $TimeLogs -WeekOffset ($WeekOffset - 1)
-            break
+            return
         } else {
-            break
+            return
         }
     }
 }

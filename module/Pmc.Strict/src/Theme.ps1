@@ -19,23 +19,31 @@ function Initialize-PmcThemeSystem {
     } catch { }
     Set-PmcState -Section 'Display' -Key 'Theme' -Value $theme
 
-    # Compute simple style tokens (expand later)
+    # Compute style tokens from theme hex
+    $palette = Get-PmcColorPalette
     $styles = @{
-        Title    = @{ Fg='Cyan'   }
-        Header   = @{ Fg='Yellow' }
-        Body     = @{ Fg='White'  }
-        Muted    = @{ Fg='Gray'   }
-        Success  = @{ Fg='Green'  }
-        Warning  = @{ Fg='Yellow' }
-        Error    = @{ Fg='Red'    }
-        Info     = @{ Fg='Cyan'   }
-        Prompt   = @{ Fg='DarkGray' }
-        Border   = @{ Fg='DarkCyan' }
-        Highlight= @{ Fg='Magenta' }
-        Editing  = @{ Bg='BrightBlue'; Fg='White'; Bold=$true }
-        Selected = @{ Bg='#0078d4'; Fg='White' }
+        Title    = @{ Fg=$theme.Hex }
+        Header   = @{ Fg=$theme.Hex }
+        Body     = @{ Fg=(Format-Hex-RGB $palette.Text) }
+        Muted    = @{ Fg=(Format-Hex-RGB $palette.Muted) }
+        Success  = @{ Fg=(Format-Hex-RGB $palette.Success) }
+        Warning  = @{ Fg=(Format-Hex-RGB $palette.Warning) }
+        Error    = @{ Fg=(Format-Hex-RGB $palette.Error) }
+        Info     = @{ Fg=$theme.Hex }
+        Prompt   = @{ Fg=(Format-Hex-RGB $palette.Muted) }
+        Border   = @{ Fg=(Format-Hex-RGB $palette.Border) }
+        Highlight= @{ Fg=(Format-Hex-RGB $palette.Bright) }
+        Editing  = @{ Bg=$theme.Hex; Fg='White'; Bold=$true }
+        Selected = @{ Bg=$theme.Hex; Fg='White' }
+        Subheader= @{ Fg=(Format-Hex-RGB $palette.Muted) }
     }
     Set-PmcState -Section 'Display' -Key 'Styles' -Value $styles
+}
+
+function Format-Hex-RGB {
+    param($rgb)
+    if (-not $rgb -or -not $rgb.R) { return '#FFFFFF' }
+    return "#{0:X2}{1:X2}{2:X2}" -f $rgb.R,$rgb.G,$rgb.B
 }
 
 function Set-PmcTheme {

@@ -198,3 +198,4 @@ Add-Member -InputObject ([PmcFakeTUIApp]) -MemberType ScriptMethod -Name 'Proces
 } -Force
 
 Write-Host "FakeTUI modular extensions loaded successfully" -ForegroundColor Green
+

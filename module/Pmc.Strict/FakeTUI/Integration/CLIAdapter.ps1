@@ -1,14 +1,6 @@
 # PMC FakeTUI CLI Integration - Bridge between FakeTUI and PMC commands
 # Maps menu actions to CLI commands and handles form input
 
-<#
-.SYNOPSIS
-Adapter class to bridge FakeTUI actions to PMC CLI commands
-.DESCRIPTION
-This class maps the action strings from the menu system to actual
-PMC CLI commands, handles form input for complex commands, and
-manages the integration between the GUI and CLI systems.
-#>
 class PmcCLIAdapter {
     [object]$pmcCore  # Reference to PMC core functionality
 
@@ -43,9 +35,11 @@ class PmcCLIAdapter {
                 }
             }
         } catch {
-            Write-PmcDebug -Level 1 -Category 'FakeTUI' -Message "Error executing action $action: $_"
-            return $this.CreateResult('error', "Error executing action: $($_.Exception.Message)")
+            $errorMsg = $_.Exception.Message
+            Write-PmcDebug -Level 1 -Category 'FakeTUI' -Message "Error executing action ${action}: $errorMsg"
+            return $this.CreateResult('error', "Error executing action: $errorMsg")
         }
+        return $this.CreateResult('error', "Unreachable")  # Satisfies strict mode
     }
 
     # Application-level actions
@@ -58,6 +52,7 @@ class PmcCLIAdapter {
                 return $this.CreateResult('error', "Unknown app command: $command")
             }
         }
+        return $this.CreateResult('error', "Unreachable")  # Satisfies strict mode
     }
 
     # Task management actions
@@ -108,7 +103,8 @@ class PmcCLIAdapter {
             }
             'delete' {
                 $taskId = $this.PromptForText('Delete Task', 'Enter task ID:')
-                if ($taskId -and $this.ConfirmAction("Delete task #$taskId?")) {
+                $confirmMsg = "Delete task #${taskId}?"
+                if ($taskId -and $this.ConfirmAction($confirmMsg)) {
                     $cliCommand = "task delete $taskId"
                     return $this.ExecuteCLICommand($cliCommand)
                 }
@@ -118,6 +114,7 @@ class PmcCLIAdapter {
                 return $this.CreateResult('error', "Unknown task command: $command")
             }
         }
+        return $this.CreateResult('error', "Unreachable")  # Satisfies strict mode
     }
 
     # Project management actions
@@ -126,7 +123,7 @@ class PmcCLIAdapter {
             'create' {
                 $projectName = $this.PromptForText('Create Project', 'Enter project name:')
                 if ($projectName) {
-                    $cliCommand = "project add name:'$projectName'"
+                    $cliCommand = "project add '$projectName'"
                     return $this.ExecuteCLICommand($cliCommand)
                 }
                 return $this.CreateResult('cancelled', 'Project creation cancelled')
@@ -161,6 +158,7 @@ class PmcCLIAdapter {
                 return $this.CreateResult('error', "Unknown project command: $command")
             }
         }
+        return $this.CreateResult('error', "Unreachable")  # Satisfies strict mode
     }
 
     # View actions
@@ -190,6 +188,7 @@ class PmcCLIAdapter {
                 return $this.CreateResult('error', "Unknown view command: $command")
             }
         }
+        return $this.CreateResult('error', "Unreachable")  # Satisfies strict mode
     }
 
     # File actions
@@ -203,6 +202,7 @@ class PmcCLIAdapter {
                 return $this.CreateResult('error', "Unknown file command: $command")
             }
         }
+        return $this.CreateResult('error', "Unreachable")  # Satisfies strict mode
     }
 
     # Tools actions
@@ -236,6 +236,7 @@ class PmcCLIAdapter {
                 return $this.CreateResult('error', "Unknown tools command: $command")
             }
         }
+        return $this.CreateResult('error', "Unreachable")  # Satisfies strict mode
     }
 
     # Help actions
@@ -259,6 +260,7 @@ class PmcCLIAdapter {
                 return $this.CreateResult('error', "Unknown help command: $command")
             }
         }
+        return $this.CreateResult('error', "Unreachable")  # Satisfies strict mode
     }
 
     # Execute PMC CLI command and return structured result
@@ -451,3 +453,4 @@ Built on PMC's existing CLI architecture with SpeedTUI performance optimizations
 "@
     }
 }
+

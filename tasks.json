@@ -10,7 +10,14 @@
       "priority": 1,
       "status": "pending",
       "created": "2025-09-15",
-      "id": "2"
+      "id": "2",
+      "subtasks": [
+        {
+          "text": "subtask2",
+          "completed": false,
+          "created": "2025-10-04 14:26:09"
+        }
+      ]
     },
     {
       "id": 2,
@@ -18,7 +25,7 @@
       "project": "docs",
       "due": "2025-09-20",
       "priority": 2,
-      "status": "pending",
+      "status": "in-progress",
       "created": "2025-09-16"
     },
     {
@@ -27,7 +34,7 @@
       "project": "webapp",
       "due": "2025-09-17",
       "priority": 1,
-      "status": "pending",
+      "status": "completed",
       "created": "2025-09-14"
     },
     {
@@ -45,7 +52,7 @@
       "project": "webapp",
       "due": "2025-09-18",
       "priority": 1,
-      "status": "pending",
+      "status": "active",
       "created": "2025-09-18"
     },
     {
@@ -61,11 +68,29 @@
     {
       "id": 7.0,
       "text": "new task",
-      "status": "in-progress",
+      "status": "blocked",
       "priority": "high",
       "project": "inbox",
       "due": "2025-10-04",
       "created": "2025-10-03 13:25:38"
+    },
+    {
+      "id": 8.0,
+      "text": "addding a test task",
+      "status": "active",
+      "priority": "high",
+      "project": null,
+      "due": null,
+      "created": "2025-10-03 20:33:37"
+    },
+    {
+      "id": 9.0,
+      "text": "test task addition",
+      "status": "active",
+      "priority": "high",
+      "project": "1234 ab ltd.",
+      "due": null,
+      "created": "2025-10-06 12:19:17"
     }
   ],
   "schema_version": 1,
@@ -228,6 +253,126 @@
       "action": "Added time entry: 1 hours for ",
       "user": null,
       "timestamp": "2025-10-03 14:36:17"
+    },
+    {
+      "timestamp": "2025-10-03 16:31:10",
+      "user": null,
+      "action": "Added time entry: 1 hours for "
+    },
+    {
+      "action": "Moved task 7 to TODO",
+      "timestamp": "2025-10-03 17:10:26",
+      "user": null
+    },
+    {
+      "action": "Moved task 7 to BLOCKED",
+      "timestamp": "2025-10-03 17:10:59",
+      "user": null
+    },
+    {
+      "action": "Moved task 7 to IN PROGRESS",
+      "timestamp": "2025-10-03 17:11:03",
+      "user": null
+    },
+    {
+      "action": "Added task 8",
+      "user": null,
+      "timestamp": "2025-10-03 20:33:37"
+    },
+    {
+      "action": "Moved task 8 to REVIEW",
+      "user": null,
+      "timestamp": "2025-10-03 20:34:00"
+    },
+    {
+      "action": "Moved task 7 to TODO",
+      "user": null,
+      "timestamp": "2025-10-03 20:34:06"
+    },
+    {
+      "action": "Moved task 7 to BLOCKED",
+      "user": null,
+      "timestamp": "2025-10-03 20:34:08"
+    },
+    {
+      "action": "Added subtask to task #2",
+      "timestamp": "2025-10-04 10:30:46",
+      "user": null
+    },
+    {
+      "action": "Moved task 5 to IN PROGRESS",
+      "user": null,
+      "timestamp": "2025-10-04 11:11:56"
+    },
+    {
+      "action": "Moved task 8 to TODO",
+      "user": null,
+      "timestamp": "2025-10-04 11:11:58"
+    },
+    {
+      "action": "Moved task 3 to DONE",
+      "user": null,
+      "timestamp": "2025-10-04 11:11:59"
+    },
+    {
+      "timestamp": "2025-10-04 11:40:34",
+      "action": "Moved task 8 to IN PROGRESS",
+      "user": null
+    },
+    {
+      "timestamp": "2025-10-04 11:40:37",
+      "action": "Moved task 8 to TODO",
+      "user": null
+    },
+    {
+      "timestamp": "2025-10-04 11:41:02",
+      "action": "Added subtask to task #2",
+      "user": null
+    },
+    {
+      "timestamp": "2025-10-04 11:41:14",
+      "action": "Toggled task 2",
+      "user": null
+    },
+    {
+      "timestamp": "2025-10-04 11:41:16",
+      "action": "Toggled task 2",
+      "user": null
+    },
+    {
+      "user": null,
+      "action": "Added subtask to task #2",
+      "timestamp": "2025-10-04 14:26:09"
+    },
+    {
+      "timestamp": "2025-10-06 07:25:41",
+      "action": "Added time entry: 1 hours for ",
+      "user": null
+    },
+    {
+      "action": "Restored from backup: .bak1",
+      "timestamp": "2025-10-06 12:13:09",
+      "user": null
+    },
+    {
+      "action": "Moved task 2 to IN PROGRESS",
+      "timestamp": "2025-10-06 12:15:07",
+      "user": null
+    },
+    {
+      "action": "Moved task 5 to DONE",
+      "timestamp": "2025-10-06 12:15:11",
+      "user": null
+    },
+    {
+      "action": "Moved task 5 to TODO",
+      "timestamp": "2025-10-06 12:15:14",
+      "user": null
+    },
+    {
+      "action": "Added task 9",
+      "timestamp": "2025-10-06 12:19:17",
+      "user": null
     }
   ],
   "aliases": {},
@@ -249,6 +394,56 @@
       "minutes": 60,
       "description": "",
       "created": "2025-10-03 14:36:17"
+    },
+    {
+      "id": 3.0,
+      "project": null,
+      "id1": "050",
+      "id2": null,
+      "date": "2025-10-03",
+      "minutes": 60,
+      "description": "",
+      "created": "2025-10-03 16:31:10"
+    },
+    {
+      "id": 4.0,
+      "project": null,
+      "id1": "050",
+      "id2": null,
+      "date": "2025-10-06",
+      "minutes": 60,
+      "description": "",
+      "created": "2025-10-06 07:25:41"
+    },
+    {
+      "id2": null,
+      "project": null,
+      "id": "T001",
+      "description": "",
+      "created": "2025-10-06 11:28:00",
+      "id1": "999",
+      "minutes": 60,
+      "date": "2025-10-06"
+    },
+    {
+      "minutes": 120,
+      "date": "2025-10-05",
+      "id1": "999",
+      "project": null,
+      "id": "T002",
+      "created": "2025-10-06 11:57:10",
+      "id2": null,
+      "description": ""
+    },
+    {
+      "date": "2025-10-06",
+      "created": "2025-10-06 12:02:13",
+      "project": null,
+      "id1": "72",
+      "id": "T003",
+      "description": "",
+      "id2": null,
+      "minutes": 60
     }
   ],
   "deleted": [],

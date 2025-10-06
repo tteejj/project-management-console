@@ -25,6 +25,7 @@ function Add-PmcTask {
             tags = @()
             depends = @()
             notes = @()
+            subtasks = @()
             recur = $null
             estimatedMinutes = $null
             due = $null
@@ -43,6 +44,42 @@ function Add-PmcTask {
 
     } catch {
         Write-PmcStyled -Style 'Error' -Text "Error adding task: $_"
+    }
+}
+
+function Add-PmcSubtask {
+    param([PmcCommandContext]$Context)
+
+    if (-not $Context -or $Context.FreeText.Count -lt 2) {
+        Write-PmcStyled -Style 'Error' -Text "Usage: subtask add <taskid> <description>"
+        return
+    }
+
+    $taskId = $Context.FreeText[0]
+    $subtaskText = ($Context.FreeText | Select-Object -Skip 1) -join ' '
+
+    try {
+        $allData = Get-PmcAllData
+        $task = $allData.tasks | Where-Object { $_.id -eq $taskId }
+
+        if (-not $task) {
+            Write-PmcStyled -Style 'Error' -Text "Task #$taskId not found"
+            return
+        }
+
+        # Ensure subtasks array exists
+        if (-not $task.subtasks) {
+            $task.subtasks = @()
+        }
+
+        # Add subtask as simple string
+        $task.subtasks += $subtaskText
+
+        Set-PmcAllData $allData
+        Write-PmcStyled -Style 'Success' -Text "✓ Subtask added to task #${taskId}: $subtaskText"
+
+    } catch {
+        Write-PmcStyled -Style 'Error' -Text "Error adding subtask: $_"
     }
 }
 

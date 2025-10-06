@@ -190,14 +190,7 @@ class PmcVT100 {
 [PmcStringCache]::Initialize()
 
 # Helper functions for easy access
-function Get-PmcSpaces([int]$count) {
-    return [PmcStringCache]::GetSpaces($count)
-}
+function Get-PmcSpaces([int]$count) { return [PmcStringCache]::GetSpaces($count) }
+function Get-PmcStringBuilder([int]$capacity = 256) { return [PmcStringBuilderPool]::Get($capacity) }
+function Return-PmcStringBuilder([StringBuilder]$sb) { [PmcStringBuilderPool]::Return($sb) }
 
-function Get-PmcStringBuilder([int]$capacity = 256) {
-    return [PmcStringBuilderPool]::Get($capacity)
-}
-
-function Return-PmcStringBuilder([StringBuilder]$sb) {
-    [PmcStringBuilderPool]::Return($sb)
-}

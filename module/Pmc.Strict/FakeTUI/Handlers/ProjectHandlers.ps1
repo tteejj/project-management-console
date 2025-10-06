@@ -199,3 +199,4 @@ function Invoke-RecentProjectsHandler {
     $app.currentView = 'main'
     $app.DrawLayout()
 }
+

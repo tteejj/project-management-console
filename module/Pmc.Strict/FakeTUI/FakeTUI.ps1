@@ -843,7 +843,7 @@ class PmcMenuSystem {
                 if ($i -eq $selectedItem) {
                     $this.terminal.WriteAtColor($dropdownX + 1, $itemY, $itemText.PadRight($maxWidth - 2), [PmcVT100]::BgBlue(), [PmcVT100]::White())
                 } else {
-                    $this.terminal.WriteAt($dropdownX + 1, $itemY, $itemText.PadRight($maxWidth - 2))
+                    $this.terminal.WriteAtColor($dropdownX + 1, $itemY, $itemText.PadRight($maxWidth - 2), [PmcVT100]::White(), "")
                 }
             }
             $key = [Console]::ReadKey($true)
@@ -956,6 +956,7 @@ class PmcFakeTUIApp {
     [bool]$running = $true
     [string]$statusMessage = ""
     [string]$currentView = 'main'  # main, tasklist, taskdetail
+    [string]$previousView = ''  # Track where we came from
     [array]$tasks = @()
     [int]$selectedTaskIndex = 0
     [int]$scrollOffset = 0
@@ -1071,7 +1072,8 @@ class PmcFakeTUIApp {
 
     [void] Initialize() {
         $this.terminal.Initialize()
-        $this.DrawLayout()
+        # Skip landing screen - go straight to task list
+        $this.currentView = 'tasklist'
         $this.statusMessage = "PMC Ready - F10 for menus, Esc to exit"
     }
 
@@ -1486,8 +1488,8 @@ class PmcFakeTUIApp {
         $headerY = 5
         $this.terminal.WriteAtColor(2, $headerY, "ID", [PmcVT100]::Cyan(), "")
         $this.terminal.WriteAtColor(8, $headerY, "Status", [PmcVT100]::Cyan(), "")
-        $this.terminal.WriteAtColor(18, $headerY, "Pri", [PmcVT100]::Cyan(), "")
-        $this.terminal.WriteAtColor(24, $headerY, "Task", [PmcVT100]::Cyan(), "")
+        $this.terminal.WriteAtColor(18, $headerY, "Task", [PmcVT100]::Cyan(), "")
+        $this.terminal.WriteAtColor(65, $headerY, "Due", [PmcVT100]::Cyan(), "")
         $this.terminal.WriteAtColor(76, $headerY, "Project", [PmcVT100]::Cyan(), "")
         $this.terminal.DrawHorizontalLine(0, $headerY + 1, $this.terminal.Width)
 
@@ -1504,10 +1506,17 @@ class PmcFakeTUIApp {
             $this.terminal.WriteAt(4, $emptyY++, "Press 'C' to clear filters")
         }
 
-        for ($i = 0; $i -lt $maxRows -and ($i + $this.scrollOffset) -lt $this.tasks.Count; $i++) {
-            $taskIdx = $i + $this.scrollOffset
+        $displayedRows = 0
+        $taskIdx = 0
+        while ($displayedRows -lt $maxRows -and $taskIdx -lt $this.tasks.Count) {
+            # Skip tasks before scroll offset
+            if ($taskIdx -lt $this.scrollOffset) {
+                $taskIdx++
+                continue
+            }
+
             $task = $this.tasks[$taskIdx]
-            $y = $startY + $i
+            $y = $startY + $displayedRows
             $isSelected = ($taskIdx -eq $this.selectedTaskIndex)
 
             if ($isSelected) {
@@ -1518,45 +1527,24 @@ class PmcFakeTUIApp {
             $statusIcon = if ($task.status -eq 'completed') { '✓' } else { '○' }
             $statusColor = if ($task.status -eq 'completed') { [PmcVT100]::Green() } else { [PmcVT100]::Cyan() }
 
-            $priSymbol = switch ($task.priority) {
-                'high' { '!!!' }
-                'medium' { '!!' }
-                'low' { '!' }
-                default { '-' }
-            }
-            $priColor = switch ($task.priority) {
-                'high' { [PmcVT100]::Red() }
-                'medium' { [PmcVT100]::Yellow() }
-                'low' { [PmcVT100]::Green() }
-                default { "" }
-            }
-
-            $this.terminal.WriteAt(2, $y, $task.id.ToString())
+            $this.terminal.WriteAtColor(2, $y, $task.id.ToString(), [PmcVT100]::Cyan(), "")
             $this.terminal.WriteAtColor(8, $y, $statusIcon, $statusColor, "")
-            if ($priColor) {
-                $this.terminal.WriteAtColor(18, $y, $priSymbol, $priColor, "")
-            } else {
-                $this.terminal.WriteAt(18, $y, $priSymbol)
-            }
 
             $text = $task.text ?? ""
             $truncated = $false
-            if ($text.Length -gt 50) {
-                $text = $text.Substring(0, 47) + "..."
+            if ($text.Length -gt 44) {
+                $text = $text.Substring(0, 41) + "..."
                 $truncated = $true
             }
-            $this.terminal.WriteAtColor(24, $y, $text, [PmcVT100]::White(), "")
+            $this.terminal.WriteAtColor(18, $y, $text, [PmcVT100]::Yellow(), "")
 
-            # Show full title in status bar if this task is selected and truncated
-            if ($isSelected -and $truncated -and $task.text) {
-                $this.terminal.FillArea(0, $this.terminal.Height - 2, $this.terminal.Width, 1, ' ')
-                $fullText = "Full: $($task.text)"
-                if ($fullText.Length -gt $this.terminal.Width - 4) {
-                    $fullText = $fullText.Substring(0, $this.terminal.Width - 7) + "..."
-                }
-                $this.terminal.WriteAtColor(2, $this.terminal.Height - 2, $fullText, [PmcVT100]::Cyan(), "")
+            # Show due date
+            if ($task.due) {
+                $dueStr = $task.due.ToString().Substring(0, [Math]::Min(10, $task.due.ToString().Length))
+                $this.terminal.WriteAtColor(65, $y, $dueStr, [PmcVT100]::Cyan(), "")
             }
 
+            # Show project and overdue indicator for main task
             $project = $task.project ?? "none"
             if ($project.Length -gt 15) { $project = $project.Substring(0, 12) + "..." }
             $this.terminal.WriteAtColor(76, $y, $project, [PmcVT100]::Gray(), "")
@@ -1571,11 +1559,50 @@ class PmcFakeTUIApp {
                     }
                 } catch {}
             }
+
+            # Show full title in status bar if this task is selected and truncated
+            if ($isSelected -and $truncated -and $task.text) {
+                $this.terminal.FillArea(0, $this.terminal.Height - 2, $this.terminal.Width, 1, ' ')
+                $fullText = "Full: $($task.text)"
+                if ($fullText.Length -gt $this.terminal.Width - 4) {
+                    $fullText = $fullText.Substring(0, $this.terminal.Width - 7) + "..."
+                }
+                $this.terminal.WriteAtColor(2, $this.terminal.Height - 2, $fullText, [PmcVT100]::Cyan(), "")
+            }
+
+            $displayedRows++
+
+            # Display subtasks as indented lines
+            if ($task.PSObject.Properties['subtasks'] -and $task.subtasks -and $task.subtasks.Count -gt 0) {
+                foreach ($subtask in $task.subtasks) {
+                    if ($displayedRows -ge $maxRows) { break }
+                    $y = $startY + $displayedRows
+                    # Indent subtask with special character
+                    $this.terminal.WriteAtColor(26, $y, "└─ ", [PmcVT100]::Blue(), "")
+
+                    # Handle both string and object subtasks
+                    $subtaskText = if ($subtask -is [string]) {
+                        $subtask
+                    } elseif ($subtask.text) {
+                        $subtask.text
+                    } else {
+                        $subtask.ToString()
+                    }
+
+                    if ($subtaskText.Length -gt 45) {
+                        $subtaskText = $subtaskText.Substring(0, 42) + "..."
+                    }
+                    $this.terminal.WriteAtColor(29, $y, $subtaskText, [PmcVT100]::Blue(), "")
+                    $displayedRows++
+                }
+            }
+
+            $taskIdx++
         }
 
         $this.terminal.FillArea(0, $this.terminal.Height - 1, $this.terminal.Width, 1, ' ')
         $statusBar = "↑↓:Nav | Enter:Detail | A:Add | E:Edit | Del:Delete | M:Multi | D:Done | S:Sort | F:Filter | C:Clear"
-        $this.terminal.WriteAt(2, $this.terminal.Height - 1, $statusBar)
+        $this.terminal.WriteAtColor(2, $this.terminal.Height - 1, $statusBar, [PmcVT100]::Cyan(), "")
     }
 
     [void] HandleTaskListView() {
@@ -1708,6 +1735,15 @@ class PmcFakeTUIApp {
                     } catch {}
                 }
             }
+            'Escape' {
+                if ($this.previousView) {
+                    $this.currentView = $this.previousView
+                    $this.previousView = ''
+                    $this.filterProject = ''
+                } else {
+                    $this.currentView = 'main'
+                }
+            }
             'H' {
                 $this.currentView = 'help'
                 $this.DrawHelpView()
@@ -1723,8 +1759,16 @@ class PmcFakeTUIApp {
                 $this.HandleMultiSelectMode()
             }
             'Escape' {
-                $this.currentView = 'main'
-                $this.DrawLayout()
+                if ($this.previousView -eq 'projectlist') {
+                    $this.filterProject = ''
+                    $this.currentView = 'projectlist'
+                    $this.previousView = ''
+                } elseif ($this.previousView) {
+                    $this.currentView = $this.previousView
+                    $this.previousView = ''
+                } else {
+                    $this.currentView = 'main'
+                }
             }
             'F10' {
                 $this.currentView = 'main'
@@ -1734,20 +1778,27 @@ class PmcFakeTUIApp {
     }
 
     [void] DrawTaskDetail() {
-        $this.terminal.Clear()
-        $task = $this.selectedTask
+        try {
+            $this.terminal.Clear()
+            $task = $this.selectedTask
 
-        $title = " Task #$($task.id) "
-        $titleX = ($this.terminal.Width - $title.Length) / 2
-        $this.terminal.WriteAtColor([int]$titleX, 2, $title, [PmcVT100]::BgBlue(), [PmcVT100]::White())
+            if (-not $task) {
+                $this.terminal.WriteAtColor(4, 6, "Error: No task selected", [PmcVT100]::Red(), "")
+                $this.terminal.DrawFooter("Press Esc to return")
+                return
+            }
+
+            $title = " Task #$($task.id) "
+            $titleX = ($this.terminal.Width - $title.Length) / 2
+            $this.terminal.WriteAtColor([int]$titleX, 2, $title, [PmcVT100]::BgBlue(), [PmcVT100]::White())
 
         $y = 4
-        $this.terminal.WriteAt(4, $y++, "Text: $($task.text)")
-        $this.terminal.WriteAt(4, $y++, "Status: $($task.status ?? 'none')")
-        $this.terminal.WriteAt(4, $y++, "Priority: $($task.priority ?? 'none')")
-        $this.terminal.WriteAt(4, $y++, "Project: $($task.project ?? 'none')")
+        $this.terminal.WriteAtColor(4, $y++, "Text: $($task.text)", [PmcVT100]::Yellow(), "")
+        $this.terminal.WriteAtColor(4, $y++, "Status: $($task.status ?? 'none')", [PmcVT100]::Yellow(), "")
+        $this.terminal.WriteAtColor(4, $y++, "Priority: $($task.priority ?? 'none')", [PmcVT100]::Yellow(), "")
+        $this.terminal.WriteAtColor(4, $y++, "Project: $($task.project ?? 'none')", [PmcVT100]::Yellow(), "")
 
-        if ($task.due) {
+        if ($task.PSObject.Properties['due'] -and $task.due) {
             $dueDisplay = $task.due
             try {
                 $dueDate = [DateTime]::Parse($task.due)
@@ -1756,31 +1807,31 @@ class PmcFakeTUIApp {
 
                 if ($task.status -ne 'completed') {
                     if ($daysUntil -lt 0) {
-                        $this.terminal.WriteAt(4, $y, "Due: ")
+                        $this.terminal.WriteAtColor(4, $y, "Due: ", [PmcVT100]::Yellow(), "")
                         $this.terminal.WriteAtColor(9, $y, "$dueDisplay (OVERDUE by $([Math]::Abs($daysUntil)) days)", [PmcVT100]::Red(), "")
                         $y++
                     } elseif ($daysUntil -eq 0) {
-                        $this.terminal.WriteAt(4, $y, "Due: ")
+                        $this.terminal.WriteAtColor(4, $y, "Due: ", [PmcVT100]::Yellow(), "")
                         $this.terminal.WriteAtColor(9, $y, "$dueDisplay (TODAY)", [PmcVT100]::Yellow(), "")
                         $y++
                     } elseif ($daysUntil -eq 1) {
-                        $this.terminal.WriteAt(4, $y, "Due: ")
+                        $this.terminal.WriteAtColor(4, $y, "Due: ", [PmcVT100]::Yellow(), "")
                         $this.terminal.WriteAtColor(9, $y, "$dueDisplay (tomorrow)", [PmcVT100]::Cyan(), "")
                         $y++
                     } else {
-                        $this.terminal.WriteAt(4, $y++, "Due: $dueDisplay (in $daysUntil days)")
+                        $this.terminal.WriteAtColor(4, $y++, "Due: $dueDisplay (in $daysUntil days)", [PmcVT100]::Yellow(), "")
                     }
                 } else {
-                    $this.terminal.WriteAt(4, $y++, "Due: $dueDisplay")
+                    $this.terminal.WriteAtColor(4, $y++, "Due: $dueDisplay", [PmcVT100]::Yellow(), "")
                 }
             } catch {
-                $this.terminal.WriteAt(4, $y++, "Due: $dueDisplay")
+                $this.terminal.WriteAtColor(4, $y++, "Due: $dueDisplay", [PmcVT100]::Yellow(), "")
             }
         }
 
-        if ($task.created) { $this.terminal.WriteAt(4, $y++, "Created: $($task.created)") }
-        if ($task.modified) { $this.terminal.WriteAt(4, $y++, "Modified: $($task.modified)") }
-        if ($task.completed -and ($task.status -eq 'completed' -or $task.status -eq 'done')) {
+        if ($task.PSObject.Properties['created'] -and $task.created) { $this.terminal.WriteAtColor(4, $y++, "Created: $($task.created)", [PmcVT100]::Yellow(), "") }
+        if ($task.PSObject.Properties['modified'] -and $task.modified) { $this.terminal.WriteAtColor(4, $y++, "Modified: $($task.modified)", [PmcVT100]::Yellow(), "") }
+        if ($task.PSObject.Properties['completed'] -and $task.completed -and ($task.status -eq 'completed' -or $task.status -eq 'done')) {
             $this.terminal.WriteAtColor(4, $y++, "Completed: $($task.completed)", [PmcVT100]::Green(), "")
         }
 
@@ -1799,13 +1850,32 @@ class PmcFakeTUIApp {
             }
         } catch {}
 
+        # Display subtasks if they exist
+        if ($task.PSObject.Properties['subtasks'] -and $task.subtasks -and $task.subtasks.Count -gt 0) {
+            $y++
+            $this.terminal.WriteAtColor(4, $y++, "Subtasks:", [PmcVT100]::Yellow(), "")
+            foreach ($subtask in $task.subtasks) {
+                $subtaskText = if ($subtask -is [string]) {
+                    $subtask
+                } elseif ($subtask.PSObject.Properties['text'] -and $subtask.text) {
+                    $subtask.text
+                } else {
+                    $subtask.ToString()
+                }
+                $isCompleted = $subtask.PSObject.Properties['completed'] -and $subtask.completed
+                $completed = if ($isCompleted) { "✓" } else { "○" }
+                $color = if ($isCompleted) { [PmcVT100]::Green() } else { [PmcVT100]::White() }
+                $this.terminal.WriteAtColor(6, $y++, "$completed $subtaskText", $color, "")
+            }
+        }
+
         # Display notes if they exist
-        if ($task.notes -and $task.notes.Count -gt 0) {
+        if ($task.PSObject.Properties['notes'] -and $task.notes -and $task.notes.Count -gt 0) {
             $y++
             $this.terminal.WriteAtColor(4, $y++, "Notes:", [PmcVT100]::Yellow(), "")
             foreach ($note in $task.notes) {
-                $noteText = if ($note.text) { $note.text } elseif ($note -is [string]) { $note } else { $note.ToString() }
-                $noteDate = if ($note.date) { $note.date } else { "" }
+                $noteText = if ($note.PSObject.Properties['text'] -and $note.text) { $note.text } elseif ($note -is [string]) { $note } else { $note.ToString() }
+                $noteDate = if ($note.PSObject.Properties['date'] -and $note.date) { $note.date } else { "" }
                 if ($noteDate) {
                     $this.terminal.WriteAtColor(6, $y++, "• [$noteDate] $noteText", [PmcVT100]::Cyan(), "")
                 } else {
@@ -1814,7 +1884,13 @@ class PmcFakeTUIApp {
             }
         }
 
-        $this.terminal.DrawFooter("↑↓:Nav | E:Edit | J:Project | T:Due | D:Done | P:Priority | Del:Delete | Esc:Back")
+            $this.terminal.DrawFooter("↑↓:Nav | E:Edit | J:Project | T:Due | D:Done | P:Priority | Del:Delete | Esc:Back")
+        } catch {
+            $this.terminal.Clear()
+            $this.terminal.WriteAtColor(4, 6, "Error displaying task detail: $_", [PmcVT100]::Red(), "")
+            $this.terminal.WriteAtColor(4, 8, "Stack: $($_.ScriptStackTrace)", [PmcVT100]::Gray(), "")
+            $this.terminal.DrawFooter("Press Esc to return")
+        }
     }
 
     [void] HandleTaskDetailView() {
@@ -1880,23 +1956,23 @@ class PmcFakeTUIApp {
         $titleX = ($this.terminal.Width - $title.Length) / 2
         $this.terminal.WriteAtColor([int]$titleX, 2, $title, [PmcVT100]::BgBlue(), [PmcVT100]::White())
 
-        $this.terminal.WriteAt(4, 5, "Task text:")
-        $this.terminal.WriteAt(4, 6, "> ")
+        $this.terminal.WriteAtColor(4, 5, "Task text:", [PmcVT100]::Yellow(), "")
+        $this.terminal.WriteAtColor(4, 6, "> ", [PmcVT100]::Yellow(), "")
 
         $this.terminal.WriteAtColor(4, 8, "Quick Add Syntax:", [PmcVT100]::Cyan(), "")
-        $this.terminal.WriteAt(6, 9, "@project  - Set project (e.g., @work)")
-        $this.terminal.WriteAt(6, 10, "#priority - Set priority: #high #medium #low or #h #m #l")
-        $this.terminal.WriteAt(6, 11, "!due      - Set due: !today !tomorrow !+7 (days)")
-        $this.terminal.WriteAt(4, 13, "Example: Fix bug @myapp #high !tomorrow")
+        $this.terminal.WriteAtColor(6, 9, "@project  - Set project (e.g., @work)", [PmcVT100]::Gray(), "")
+        $this.terminal.WriteAtColor(6, 10, "#priority - Set priority: #high #medium #low or #h #m #l", [PmcVT100]::Gray(), "")
+        $this.terminal.WriteAtColor(6, 11, "!due      - Set due: !today !tomorrow !+7 (days)", [PmcVT100]::Gray(), "")
+        $this.terminal.WriteAtColor(4, 13, "Example: Fix bug @myapp #high !tomorrow", [PmcVT100]::Cyan(), "")
 
         $this.terminal.FillArea(0, $this.terminal.Height - 1, $this.terminal.Width, 1, ' ')
-        $this.terminal.WriteAt(2, $this.terminal.Height - 1, "Type task with quick add syntax, Enter to save, Esc to cancel")
+        $this.terminal.WriteAtColor(2, $this.terminal.Height - 1, "Type task with quick add syntax, Enter to save, Esc to cancel", [PmcVT100]::Yellow(), "")
     }
 
     [void] HandleTaskAddForm() {
         # Get available projects
         $data = Get-PmcAllData
-        $projectList = @('inbox') + @($data.projects | ForEach-Object { $_.name } | Where-Object { $_ -and $_ -ne 'inbox' } | Sort-Object)
+        $projectList = @('none', 'inbox') + @($data.projects | ForEach-Object { $_.name } | Where-Object { $_ -and $_ -ne 'inbox' } | Sort-Object)
 
         # Use new widget-based approach with separate fields
         $input = Show-InputForm -Title "Add New Task" -Fields @(
@@ -1925,7 +2001,7 @@ class PmcFakeTUIApp {
             } else { 1 }
 
             # Get values from form fields
-            $project = if ([string]::IsNullOrWhiteSpace($input['project'])) { 'inbox' } else { $input['project'].Trim() }
+            $project = if ([string]::IsNullOrWhiteSpace($input['project']) -or $input['project'] -eq 'none') { $null } elseif ($input['project'] -eq 'inbox') { 'inbox' } else { $input['project'].Trim() }
 
             $priority = 'medium'
             if (-not [string]::IsNullOrWhiteSpace($input['priority'])) {
@@ -2089,16 +2165,16 @@ class PmcFakeTUIApp {
         $titleX = ($this.terminal.Width - $title.Length) / 2
         $this.terminal.WriteAtColor([int]$titleX, 2, $title, [PmcVT100]::BgBlue(), [PmcVT100]::White())
 
-        $this.terminal.WriteAt(4, 5, "Search for:")
-        $this.terminal.WriteAt(4, 6, "> ")
+        $this.terminal.WriteAtColor(4, 5, "Search for:", [PmcVT100]::Yellow(), "")
+        $this.terminal.WriteAtColor(4, 6, "> ", [PmcVT100]::Yellow(), "")
 
         $this.terminal.FillArea(0, $this.terminal.Height - 1, $this.terminal.Width, 1, ' ')
-        $this.terminal.WriteAt(2, $this.terminal.Height - 1, "Type search term, Enter to search, Esc to cancel")
+        $this.terminal.WriteAtColor(2, $this.terminal.Height - 1, "Type search term, Enter to search, Esc to cancel", [PmcVT100]::Yellow(), "")
     }
 
     [void] HandleSearchForm() {
         $this.DrawSearchForm()
-        $this.terminal.WriteAt(6, 6, "")
+        $this.terminal.WriteAtColor(6, 6, "", [PmcVT100]::Yellow(), "")
         $searchInput = ""
         $cursorX = 6
 
@@ -2122,13 +2198,13 @@ class PmcFakeTUIApp {
                     $searchInput = $searchInput.Substring(0, $searchInput.Length - 1)
                     $cursorX = 6 + $searchInput.Length
                     $this.terminal.FillArea(6, 6, $this.terminal.Width - 7, 1, ' ')
-                    $this.terminal.WriteAt(6, 6, $searchInput)
+                    $this.terminal.WriteAtColor(6, 6, $searchInput, [PmcVT100]::Yellow(), "")
                 }
             } else {
                 $char = $key.KeyChar
                 if ($char -and $char -ne "`0") {
                     $searchInput += $char
-                    $this.terminal.WriteAt($cursorX, 6, $char.ToString())
+                    $this.terminal.WriteAtColor($cursorX, 6, $char.ToString(), [PmcVT100]::Yellow(), "")
                     $cursorX++
                 }
             }
@@ -3153,37 +3229,45 @@ class PmcFakeTUIApp {
     }
 
     [void] DrawKanbanView() {
+        # Use New-Object to avoid property interpretation
+        $kbColSc = New-Object int[] 3
+        $kbColSc[0] = 0
+        $kbColSc[1] = 0
+        $kbColSc[2] = 0
         $selectedCol = 0
         $selectedRow = 0
         $kanbanActive = $true
 
         # Initialize variables outside the loop to avoid scope issues
         $data = $null
-        $columns = @()
+        [array]$columns = @()
+        [int]$startY = 5
+        [int]$headerHeight = 3
+        [int]$gap = 3
+        [int]$colWidth = 30
+        [int]$columnHeight = 20
 
         while ($kanbanActive) {
             $this.terminal.Clear()
             $this.menuSystem.DrawMenuBar()
 
-            $title = " Interactive Kanban Board "
+            $title = " Kanban Board "
             $titleX = ($this.terminal.Width - $title.Length) / 2
             $this.terminal.WriteAtColor([int]$titleX, 3, $title, [PmcVT100]::BgBlue(), [PmcVT100]::White())
 
             try {
                 $data = Get-PmcAllData
 
-                # Group by status with DONE column
+                # 3 column layout: TODO, IN PROGRESS, DONE
                 $columns = @(
-                    @{Name='TODO'; Status=@('active', 'todo', ''); Color=[PmcVT100]::BgYellow(); TextColor=[PmcVT100]::Black(); Tasks=@()}
-                    @{Name='IN PROGRESS'; Status=@('in-progress', 'started'); Color=[PmcVT100]::BgCyan(); TextColor=[PmcVT100]::Black(); Tasks=@()}
-                    @{Name='BLOCKED'; Status=@('blocked', 'waiting'); Color=[PmcVT100]::BgRed(); TextColor=[PmcVT100]::White(); Tasks=@()}
-                    @{Name='REVIEW'; Status=@('review'); Color=[PmcVT100]::BgGreen(); TextColor=[PmcVT100]::Black(); Tasks=@()}
-                    @{Name='DONE'; Status=@('completed', 'done'); Color=[PmcVT100]::BgGreen(); TextColor=[PmcVT100]::White(); Tasks=@()}
+                    @{Name='TODO'; Status=@('active', 'todo', '', 'pending'); Tasks=@()}
+                    @{Name='IN PROGRESS'; Status=@('in-progress', 'started', 'working'); Tasks=@()}
+                    @{Name='DONE'; Status=@('completed', 'done'); Tasks=@()}
                 )
 
                 # Populate columns
                 foreach ($task in $data.tasks) {
-                    $taskStatus = if ($task.status) { $task.status } else { '' }
+                    $taskStatus = if ($task.status) { $task.status.ToLower() } else { '' }
                     for ($i = 0; $i -lt $columns.Count; $i++) {
                         if ($columns[$i].Status -contains $taskStatus) {
                             $columns[$i].Tasks += $task
@@ -3192,82 +3276,96 @@ class PmcFakeTUIApp {
                     }
                 }
 
-                # Limit DONE to last 10 tasks
-                if ($columns[4].Tasks.Count -gt 10) {
-                    $columns[4].Tasks = @($columns[4].Tasks | Select-Object -Last 10)
-                }
+                # Calculate column dimensions with gaps
+                $gap = 3
+                $availableWidth = $this.terminal.Width - 8  # Margins on sides
+                $colWidth = [math]::Floor(($availableWidth - ($gap * 2)) / 3)
+                $startY = 5
+                $headerHeight = 3
+                $columnHeight = $this.terminal.Height - $startY - $headerHeight - 2
 
-                $colWidth = [math]::Floor(($this.terminal.Width - 12) / 5)
-                $y = 5
-
-                # Draw column title headers
+                # Draw columns with rounded bordered boxes
                 for ($i = 0; $i -lt $columns.Count; $i++) {
                     $col = $columns[$i]
-                    $x = 2 + ($colWidth + 2) * $i
-                    $titleText = "[$($i + 1)] $($col.Name)".PadRight($colWidth)
-                    $this.terminal.WriteAtColor($x, $y, $titleText, [PmcVT100]::BgBlue(), [PmcVT100]::White())
-                }
+                    $x = 4 + ($colWidth + $gap) * $i
 
-                $y++
+                    # Draw rounded box border
+                    # Top border with rounded corners
+                    $this.terminal.WriteAtColor($x, $startY, "╭" + ("─" * ($colWidth - 2)) + "╮", [PmcVT100]::Cyan(), "")
 
-                # Draw count headers
-                for ($i = 0; $i -lt $columns.Count; $i++) {
-                    $col = $columns[$i]
-                    $x = 2 + ($colWidth + 2) * $i
-                    $header = "($($col.Tasks.Count) tasks)".PadRight($colWidth)
-                    $this.terminal.WriteAtColor($x, $y, $header, $col.Color, $col.TextColor)
-                }
+                    # Column header
+                    $headerText = " $($col.Name) ($($col.Tasks.Count)) "
+                    $headerPadding = [math]::Floor(($colWidth - $headerText.Length) / 2)
+                    $headerLine = (" " * $headerPadding) + $headerText
+                    $headerLine = $headerLine.PadRight($colWidth - 2)
+                    $this.terminal.WriteAtColor($x, $startY + 1, "│", [PmcVT100]::Cyan(), "")
+                    $this.terminal.WriteAtColor($x + 1, $startY + 1, $headerLine, [PmcVT100]::Yellow(), "")
+                    $this.terminal.WriteAtColor($x + $colWidth - 1, $startY + 1, "│", [PmcVT100]::Cyan(), "")
 
-                $y += 2
-                $maxRows = $this.terminal.Height - $y - 3
+                    # Separator under header
+                    $this.terminal.WriteAtColor($x, $startY + 2, "├" + ("─" * ($colWidth - 2)) + "┤", [PmcVT100]::Cyan(), "")
 
-                # Draw separator lines between columns
-                for ($i = 0; $i -lt $maxRows; $i++) {
-                    for ($c = 1; $c -lt $columns.Count; $c++) {
-                        $x = 2 + ($colWidth + 2) * $c - 1
-                        $this.terminal.WriteAt($x, $y + $i, "│")
+                    # Side borders for content area
+                    for ($row = 0; $row -lt $columnHeight; $row++) {
+                        $this.terminal.WriteAtColor($x, $startY + 3 + $row, "│", [PmcVT100]::Cyan(), "")
+                        $this.terminal.WriteAtColor($x + $colWidth - 1, $startY + 3 + $row, "│", [PmcVT100]::Cyan(), "")
                     }
+
+                    # Bottom border with rounded corners
+                    $this.terminal.WriteAtColor($x, $startY + 3 + $columnHeight, "╰" + ("─" * ($colWidth - 2)) + "╯", [PmcVT100]::Cyan(), "")
                 }
 
-                # Draw tasks
-                for ($i = 0; $i -lt $maxRows; $i++) {
-                    for ($c = 0; $c -lt $columns.Count; $c++) {
-                        $col = $columns[$c]
-                        if ($i -lt $col.Tasks.Count) {
-                            $task = $col.Tasks[$i]
-                            $x = 2 + ($colWidth + 2) * $c
-                            $row = $y + $i
+                # Draw tasks in columns (scrollable)
+                for ($i = 0; $i -lt $columns.Count; $i++) {
+                    $col = $columns[$i]
+                    $x = 4 + ($colWidth + $gap) * $i
+                    $contentWidth = $colWidth - 4  # Account for borders and padding
 
-                            # Build task display text
-                            $pri = if ($task.priority -eq 'high') { "[!]" } elseif ($task.priority -eq 'medium') { "[*]" } else { "" }
-                            $due = if ($task.due) { " $((Get-Date -Date $task.due).ToString('MM/dd'))" } else { "" }
-                            $text = "$pri[$($task.id)] $($task.text)$due"
+                    $visibleStart = $kbColSc[$i]
+                    $visibleEnd = [math]::Min($visibleStart + $columnHeight, $col.Tasks.Count)
 
-                            if ($text.Length -gt $colWidth - 1) {
-                                $text = $text.Substring(0, $colWidth - 4) + "..."
+                    for ($taskIdx = $visibleStart; $taskIdx -lt $visibleEnd; $taskIdx++) {
+                        $task = $col.Tasks[$taskIdx]
+                        $displayRow = $taskIdx - $visibleStart
+                        $row = $startY + 3 + $displayRow
+
+                        # Build task display text
+                        $pri = if ($task.priority -eq 'high') { "!" } elseif ($task.priority -eq 'medium') { "*" } else { " " }
+                        $due = if ($task.due) { " " + (Get-Date -Date $task.due).ToString('MM/dd') } else { "" }
+                        $text = "$pri #$($task.id) $($task.text)$due"
+
+                        if ($text.Length -gt $contentWidth) {
+                            $text = $text.Substring(0, $contentWidth - 3) + "..."
+                        }
+                        $text = " " + $text.PadRight($contentWidth)
+
+                        # Highlight if selected
+                        if ($i -eq $selectedCol -and $taskIdx -eq ($selectedRow + $kbColSc[$i])) {
+                            $this.terminal.WriteAtColor($x + 1, $row, $text, [PmcVT100]::BgYellow(), [PmcVT100]::Black())
+                        } else {
+                            # Color by priority
+                            $taskColor = switch ($task.priority) {
+                                'high' { [PmcVT100]::Red() }
+                                'medium' { [PmcVT100]::Yellow() }
+                                default { "" }
                             }
-
-                            # Highlight if selected
-                            if ($c -eq $selectedCol -and $i -eq $selectedRow) {
-                                $this.terminal.WriteAtColor($x, $row, $text.PadRight($colWidth), [PmcVT100]::BgBlue(), [PmcVT100]::White())
+                            if ($taskColor) {
+                                $this.terminal.WriteAtColor($x + 1, $row, $text, $taskColor, "")
                             } else {
-                                # Color by priority
-                                $taskColor = switch ($task.priority) {
-                                    'high' { [PmcVT100]::Red() }
-                                    'medium' { [PmcVT100]::Yellow() }
-                                    default { "" }
-                                }
-                                if ($taskColor) {
-                                    $this.terminal.WriteAtColor($x, $row, $text, $taskColor, "")
-                                } else {
-                                    $this.terminal.WriteAt($x, $row, $text)
-                                }
+                                $this.terminal.WriteAt($x + 1, $row, $text)
                             }
                         }
                     }
+
+                    # Show scroll indicator if needed
+                    if ($col.Tasks.Count -gt $columnHeight) {
+                        $scrollInfo = "[$($visibleStart + 1)-$visibleEnd/$($col.Tasks.Count)]"
+                        $scrollX = $x + $colWidth - $scrollInfo.Length - 2
+                        $this.terminal.WriteAtColor($scrollX, $startY + 3 + $columnHeight, $scrollInfo, [PmcVT100]::Gray(), "")
+                    }
                 }
 
-                $this.terminal.DrawFooter("←→:Column | ↑↓:Task | 1-5:Move To Column | Enter:Edit | D:Done | Esc:Exit")
+                $this.terminal.DrawFooter("←→:Column | ↑↓:Scroll | 1-3:Move | Enter:Edit | D:Done | Esc:Exit")
 
             } catch {
                 $this.terminal.WriteAtColor(4, 6, "Error loading kanban: $_", [PmcVT100]::Red(), "")
@@ -3291,7 +3389,7 @@ class PmcFakeTUIApp {
                     }
                 }
                 'RightArrow' {
-                    if ($selectedCol -lt 4) {
+                    if ($selectedCol -lt 2) {  # 3 columns: 0, 1, 2
                         $selectedCol++
                         $selectedRow = 0
                     }
@@ -3299,23 +3397,35 @@ class PmcFakeTUIApp {
                 'UpArrow' {
                     if ($selectedRow -gt 0) {
                         $selectedRow--
+                        # Adjust scroll if needed
+                        if ($selectedRow -lt $kbColSc[$selectedCol]) {
+                            $kbColSc[$selectedCol] = $selectedRow
+                        }
                     }
                 }
                 'DownArrow' {
-                    $maxRow = $columns[$selectedCol].Tasks.Count - 1
+                    $col = $columns[$selectedCol]
+                    $maxRow = $col.Tasks.Count - 1
                     if ($selectedRow -lt $maxRow) {
                         $selectedRow++
+                        # Adjust scroll if needed
+                        $visibleRows = $this.terminal.Height - $startY - $headerHeight - 2
+                        if ($selectedRow -ge $kbColSc[$selectedCol] + $visibleRows) {
+                            $kbColSc[$selectedCol] = $selectedRow - $visibleRows + 1
+                        }
                     }
                 }
                 'D' {
                     # Mark task as done
-                    if ($columns[$selectedCol].Tasks.Count -gt $selectedRow) {
-                        $task = $columns[$selectedCol].Tasks[$selectedRow]
+                    $col = $columns[$selectedCol]
+                    if ($col.Tasks.Count -gt $selectedRow) {
+                        $task = $col.Tasks[$selectedRow]
                         try {
                             $task.status = 'done'
                             Save-PmcData -Data $data -Action "Marked task $($task.id) as done"
                             Show-InfoMessage -Message "Task marked as done!" -Title "Success" -Color "Green"
                             $selectedRow = 0
+                            $kbColSc[$selectedCol] = 0
                         } catch {
                             Show-InfoMessage -Message "Failed to update task: $_" -Title "Error" -Color "Red"
                         }
@@ -3327,17 +3437,19 @@ class PmcFakeTUIApp {
                 }
             }
 
-            # Number keys 1-5 to move task to column
-            if ($key.KeyChar -ge '1' -and $key.KeyChar -le '5') {
+            # Number keys 1-3 to move task to column
+            if ($key.KeyChar -ge '1' -and $key.KeyChar -le '3') {
                 $targetCol = [int]$key.KeyChar.ToString() - 1
-                if ($columns[$selectedCol].Tasks.Count -gt $selectedRow) {
-                    $task = $columns[$selectedCol].Tasks[$selectedRow]
+                $col = $columns[$selectedCol]
+                if ($col.Tasks.Count -gt $selectedRow) {
+                    $task = $col.Tasks[$selectedRow]
                     $newStatus = $columns[$targetCol].Status[0]
 
                     try {
                         $task.status = $newStatus
                         Save-PmcData -Data $data -Action "Moved task $($task.id) to $($columns[$targetCol].Name)"
                         $selectedRow = 0
+                        $kbColSc[$selectedCol] = 0
                     } catch {
                         Show-InfoMessage -Message "Failed to move task: $_" -Title "Error" -Color "Red"
                     }
@@ -3404,7 +3516,7 @@ class PmcFakeTUIApp {
                     $this.terminal.WriteAtColor(6, $y++, "[$($task.id)] $($task.text) (-$daysOverdue days)", [PmcVT100]::Red(), "")
                 }
                 if ($overdue.Count -gt 5) {
-                    $this.terminal.WriteAt(6, $y++, "... and $($overdue.Count - 5) more")
+                    $this.terminal.WriteAtColor(6, $y++, "... and $($overdue.Count - 5) more", [PmcVT100]::Gray(), "")
                 }
                 $y++
             }
@@ -3412,10 +3524,10 @@ class PmcFakeTUIApp {
             if ($today.Count -gt 0) {
                 $this.terminal.WriteAtColor(4, $y++, "TODAY ($($today.Count)):", [PmcVT100]::Yellow(), "")
                 foreach ($task in ($today | Select-Object -First 5)) {
-                    $this.terminal.WriteAt(6, $y++, "[$($task.id)] $($task.text)")
+                    $this.terminal.WriteAtColor(6, $y++, "[$($task.id)] $($task.text)", [PmcVT100]::Yellow(), "")
                 }
                 if ($today.Count -gt 5) {
-                    $this.terminal.WriteAt(6, $y++, "... and $($today.Count - 5) more")
+                    $this.terminal.WriteAtColor(6, $y++, "... and $($today.Count - 5) more", [PmcVT100]::Gray(), "")
                 }
                 $y++
             }
@@ -3423,10 +3535,10 @@ class PmcFakeTUIApp {
             if ($tomorrow.Count -gt 0) {
                 $this.terminal.WriteAtColor(4, $y++, "TOMORROW ($($tomorrow.Count)):", [PmcVT100]::Cyan(), "")
                 foreach ($task in ($tomorrow | Select-Object -First 3)) {
-                    $this.terminal.WriteAt(6, $y++, "[$($task.id)] $($task.text)")
+                    $this.terminal.WriteAtColor(6, $y++, "[$($task.id)] $($task.text)", [PmcVT100]::Cyan(), "")
                 }
                 if ($tomorrow.Count -gt 3) {
-                    $this.terminal.WriteAt(6, $y++, "... and $($tomorrow.Count - 3) more")
+                    $this.terminal.WriteAtColor(6, $y++, "... and $($tomorrow.Count - 3) more", [PmcVT100]::Gray(), "")
                 }
                 $y++
             }
@@ -4179,133 +4291,173 @@ class PmcFakeTUIApp {
     }
 
     [void] HandleTimeAddForm() {
-        # First ask: Project or Generic Time Code?
-        $choice = Show-SelectList -Title "Time Entry Type" -Options @('Project', 'Generic Time Code (ID1)')
+        $this.terminal.Clear()
+        $this.menuSystem.DrawMenuBar()
 
-        if (-not $choice) {
-            $this.currentView = 'main'
-            $this.DrawLayout()
+        # Get project list for selector
+        $allData = Get-PmcAllData
+        $projectList = @('(generic time code)') + @($allData.projects | ForEach-Object { $_.name } | Where-Object { $_ } | Sort-Object)
+
+        $y = 5
+        $this.terminal.WriteAtColor(4, $y++, "Add Time Entry", [PmcVT100]::Cyan(), "")
+        $y++
+
+        # Hours input
+        $this.terminal.WriteAtColor(4, $y, "Hours (e.g., 1, 1.5, 2.25): ", [PmcVT100]::Yellow(), "")
+        [Console]::SetCursorPosition(30, $y)
+        [Console]::Write([PmcVT100]::Yellow())
+        $hoursInput = [Console]::ReadLine()
+        [Console]::Write([PmcVT100]::Reset())
+        $y++
+
+        if ([string]::IsNullOrWhiteSpace($hoursInput)) {
+            $this.currentView = 'timelist'
             return
         }
 
-        $project = $null
-        $id1 = $null
+        # Parse hours
+        $hours = 0.0
+        if (-not [double]::TryParse($hoursInput, [ref]$hours) -or $hours -le 0) {
+            Show-InfoMessage -Message "Invalid hours. Enter a number like 1, 1.5, or 2.25" -Title "Error" -Color "Red"
+            $this.currentView = 'timelist'
+            return
+        }
 
-        if ($choice -eq 'Project') {
-            # Get available projects
-            $data = Get-PmcAllData
-            $projectList = @('inbox') + @($data.projects | ForEach-Object { $_.name } | Where-Object { $_ -and $_ -ne 'inbox' } | Sort-Object)
+        # Project/Code selector
+        $y++
+        $this.terminal.WriteAtColor(4, $y++, "Select Project or Time Code:", [PmcVT100]::Yellow(), "")
+        $selectedIdx = 0
+        $selectorActive = $true
 
-            $project = Show-SelectList -Title "Select Project" -Options $projectList
-            if (-not $project) {
-                $this.currentView = 'main'
-                $this.DrawLayout()
+        while ($selectorActive) {
+            # Draw options
+            for ($i = 0; $i -lt [Math]::Min($projectList.Count, 10); $i++) {
+                $displayY = $y + $i
+                $prefix = if ($i -eq $selectedIdx) { "> " } else { "  " }
+                $color = if ($i -eq $selectedIdx) { [PmcVT100]::Cyan() } else { [PmcVT100]::Yellow() }
+                $this.terminal.WriteAtColor(6, $displayY, "$prefix$($projectList[$i])", $color, "")
+            }
+
+            $key = [Console]::ReadKey($true)
+            switch ($key.Key) {
+                'UpArrow' { if ($selectedIdx -gt 0) { $selectedIdx-- } }
+                'DownArrow' { if ($selectedIdx -lt $projectList.Count - 1) { $selectedIdx++ } }
+                'Enter' { $selectorActive = $false }
+                'Escape' {
+                    $this.currentView = 'timelist'
+                    return
+                }
+            }
+        }
+
+        $selectedProject = $projectList[$selectedIdx]
+        $y += [Math]::Min($projectList.Count, 10) + 1
+
+        # If generic time code selected, ask for the code
+        $timeCode = $null
+        $isNumeric = $false
+        if ($selectedProject -eq '(generic time code)') {
+            $y++
+            $this.terminal.WriteAtColor(4, $y, "Enter Time Code (e.g., 999): ", [PmcVT100]::Yellow(), "")
+            [Console]::SetCursorPosition(34, $y)
+            [Console]::Write([PmcVT100]::Yellow())
+            $codeInput = [Console]::ReadLine().Trim()
+            [Console]::Write([PmcVT100]::Reset())
+            $y++
+
+            if ([string]::IsNullOrWhiteSpace($codeInput)) {
+                $this.currentView = 'timelist'
                 return
             }
 
-            # Ask if they want to add id1 with the project
-            $addId1 = Show-ConfirmDialog -Message "Add ID1 (generic time code)?" -Title "Optional ID1"
-            if ($addId1) {
-                $this.terminal.Clear()
-                $this.menuSystem.DrawMenuBar()
-                $this.terminal.WriteAtColor(4, 5, "ID1 (generic time code):", [PmcVT100]::Yellow(), "")
-                $this.terminal.WriteAt(30, 5, "")
-                [Console]::SetCursorPosition(30, 5)
-                $id1 = [Console]::ReadLine()
-                if ([string]::IsNullOrWhiteSpace($id1)) { $id1 = $null }
+            $tempCode = 0
+            if ([int]::TryParse($codeInput, [ref]$tempCode)) {
+                $timeCode = $tempCode
+                $isNumeric = $true
+                $selectedProject = $null
+            } else {
+                Show-InfoMessage -Message "Invalid time code. Must be a number." -Title "Error" -Color "Red"
+                $this.currentView = 'timelist'
+                return
             }
+        }
+
+        $y++
+
+        # Date input
+        $this.terminal.WriteAtColor(4, $y, "Date (today/tomorrow/+N/-N/YYYYMMDD or Enter for today): ", [PmcVT100]::Yellow(), "")
+        [Console]::SetCursorPosition(60, $y)
+        [Console]::Write([PmcVT100]::Yellow())
+        $dateInput = [Console]::ReadLine().Trim()
+        [Console]::Write([PmcVT100]::Reset())
+        $y++
+
+        # Description
+        $y++
+        $this.terminal.WriteAtColor(4, $y, "Description: ", [PmcVT100]::Yellow(), "")
+        [Console]::SetCursorPosition(17, $y)
+        [Console]::Write([PmcVT100]::Yellow())
+        $description = [Console]::ReadLine()
+        [Console]::Write([PmcVT100]::Reset())
+
+        # Build entry
+        $entry = @{
+            id = Get-PmcNextTimeId $allData
+            project = $null
+            id1 = $null
+            id2 = $null
+            date = (Get-Date).ToString('yyyy-MM-dd')
+            minutes = [int]($hours * 60)
+            description = $description.Trim()
+            created = (Get-Date).ToString('yyyy-MM-dd HH:mm:ss')
+        }
+
+        # Set project or time code
+        if ($isNumeric) {
+            $entry.id1 = $timeCode.ToString()
+            $entry.project = $null
         } else {
-            # Generic Time Code only
-            $this.terminal.Clear()
-            $this.menuSystem.DrawMenuBar()
-            $this.terminal.WriteAtColor(4, 5, "ID1 (generic time code):", [PmcVT100]::Yellow(), "")
-            $this.terminal.WriteAt(30, 5, "")
-            [Console]::SetCursorPosition(30, 5)
-            $id1 = [Console]::ReadLine()
-
-            if ([string]::IsNullOrWhiteSpace($id1)) {
-                Show-InfoMessage -Message "ID1 is required for generic time code" -Title "Error" -Color "Red"
-                $this.currentView = 'main'
-                $this.DrawLayout()
-                return
-            }
+            $entry.project = $selectedProject
+            $entry.id1 = $null
         }
 
-        # Now get hours, description, date
-        $fields = @(
-            @{Name='hours'; Label='Hours (e.g. 1.25)'; Required=$true; Type='text'}
-            @{Name='description'; Label='Description'; Required=$false; Type='text'}
-            @{Name='date'; Label='Date (YYYY-MM-DD, default=today)'; Required=$false; Type='text'}
-        )
-
-        $result = Show-InputForm -Title "Add Time Entry" -Fields $fields
-
-        # User cancelled
-        if ($null -eq $result) {
-            $this.currentView = 'main'
-            $this.DrawLayout()
-            return
-        }
-
-        # Validate and parse inputs
-        $hours = try { [double]$result['hours'] } catch { 0.0 }
-        $minutes = [int]($hours * 60)
-        $description = $result['description']
-        $dateInput = $result['date']
-
-        # Parse date - handle 'today', 'tomorrow', or actual date
-        if ([string]::IsNullOrWhiteSpace($dateInput)) {
-            $date = (Get-Date).ToString("yyyy-MM-dd")
-        } elseif ($dateInput -eq 'today') {
-            $date = (Get-Date).ToString("yyyy-MM-dd")
+        # Parse date
+        if ([string]::IsNullOrWhiteSpace($dateInput) -or $dateInput -eq 'today') {
+            $entry.date = (Get-Date).ToString('yyyy-MM-dd')
         } elseif ($dateInput -eq 'tomorrow') {
-            $date = (Get-Date).AddDays(1).ToString("yyyy-MM-dd")
-        } else {
-            $date = $dateInput
-        }
-
-        if ($hours -le 0) {
-            Show-InfoMessage -Message "Hours must be a positive number" -Title "Error" -Color "Red"
-            $this.currentView = 'main'
-            $this.DrawLayout()
-            return
+            $entry.date = (Get-Date).AddDays(1).ToString('yyyy-MM-dd')
+        } elseif ($dateInput -match '^\+(\d+)$') {
+            $entry.date = (Get-Date).AddDays([int]$matches[1]).ToString('yyyy-MM-dd')
+        } elseif ($dateInput -match '^\-(\d+)$') {
+            $entry.date = (Get-Date).AddDays(-[int]$matches[1]).ToString('yyyy-MM-dd')
+        } elseif ($dateInput -match '^(\d{4})(\d{2})(\d{2})$') {
+            try {
+                $entry.date = (Get-Date -Year ([int]$matches[1]) -Month ([int]$matches[2]) -Day ([int]$matches[3])).ToString('yyyy-MM-dd')
+            } catch {
+                $entry.date = (Get-Date).ToString('yyyy-MM-dd')
+            }
+        } elseif ($dateInput -match '^(\d{2})(\d{2})$') {
+            try {
+                $entry.date = (Get-Date -Year (Get-Date).Year -Month ([int]$matches[1]) -Day ([int]$matches[2])).ToString('yyyy-MM-dd')
+            } catch {
+                $entry.date = (Get-Date).ToString('yyyy-MM-dd')
+            }
         }
 
         try {
-            $data = Get-PmcAllData
-            if (-not $data.PSObject.Properties['timelogs']) {
-                $data | Add-Member -NotePropertyName 'timelogs' -NotePropertyValue @()
-            }
+            if (-not $allData.timelogs) { $allData.timelogs = @() }
+            $allData.timelogs += $entry
 
-            $newId = if ($data.timelogs.Count -gt 0) {
-                ($data.timelogs | ForEach-Object { $_.id } | Measure-Object -Maximum).Maximum + 1
-            } else { 1 }
+            Set-PmcAllData $allData
 
-            $entry = [PSCustomObject]@{
-                id = $newId
-                project = $project
-                id1 = if ([string]::IsNullOrWhiteSpace($id1)) { $null } else { $id1 }
-                id2 = $null
-                date = $date
-                minutes = $minutes
-                description = $description
-                created = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
-            }
-
-            $data.timelogs += $entry
-
-            $hoursDisplay = [math]::Round($hours, 2)
-            Save-PmcData -Data $data -Action "Added time entry: $hoursDisplay hours for $project"
-
-            # Success - use Show-InfoMessage to ensure user sees confirmation
-            Show-InfoMessage -Message "Time entry added successfully! $hoursDisplay hours logged to $project." -Title "Success" -Color "Green"
+            $hours = [math]::Round($entry.minutes / 60.0, 2)
+            $target = if ($entry.id1) { "#$($entry.id1)" } else { "@$($entry.project)" }
+            Show-InfoMessage -Message "Time entry added: $hours hours $target - $($entry.description)" -Title "Success" -Color "Green"
         } catch {
-            # CRITICAL FIX: Show persistent error message that user must acknowledge
             Show-InfoMessage -Message "Failed to save time entry: $_" -Title "Error" -Color "Red"
         }
 
-        $this.currentView = 'main'
-        $this.DrawLayout()
+        $this.currentView = 'timelist'
     }
 
     [void] DrawTimeList() {
@@ -4327,10 +4479,10 @@ class PmcFakeTUIApp {
             } else {
                 $headerY = 5
                 $this.terminal.WriteAtColor(2, $headerY, "ID", [PmcVT100]::Cyan(), "")
-                $this.terminal.WriteAtColor(7, $headerY, "Date", [PmcVT100]::Cyan(), "")
-                $this.terminal.WriteAtColor(20, $headerY, "Project", [PmcVT100]::Cyan(), "")
-                $this.terminal.WriteAtColor(38, $headerY, "Mins", [PmcVT100]::Cyan(), "")
-                $this.terminal.WriteAtColor(46, $headerY, "Description", [PmcVT100]::Cyan(), "")
+                $this.terminal.WriteAtColor(8, $headerY, "Date", [PmcVT100]::Cyan(), "")
+                $this.terminal.WriteAtColor(22, $headerY, "Project", [PmcVT100]::Cyan(), "")
+                $this.terminal.WriteAtColor(41, $headerY, "Hrs", [PmcVT100]::Cyan(), "")
+                $this.terminal.WriteAtColor(50, $headerY, "Description", [PmcVT100]::Cyan(), "")
                 $this.terminal.DrawHorizontalLine(0, $headerY + 1, $this.terminal.Width)
 
                 $startY = $headerY + 2
@@ -4346,23 +4498,44 @@ class PmcFakeTUIApp {
                     $bg = if ($i -eq $this.selectedTimeIndex) { [PmcVT100]::BgBlue() } else { "" }
                     $fg = if ($i -eq $this.selectedTimeIndex) { [PmcVT100]::White() } else { "" }
 
+                    # Safe string handling with null checks and date normalization
+                    $rawDate = if ($log.date) { $log.date.ToString() } else { "" }
+                    # Normalize "today" to actual date
+                    $dateStr = if ($rawDate -eq 'today') {
+                        (Get-Date).ToString('yyyy-MM-dd')
+                    } elseif ($rawDate -eq 'tomorrow') {
+                        (Get-Date).AddDays(1).ToString('yyyy-MM-dd')
+                    } else {
+                        $rawDate
+                    }
+                    $projectStr = if ($log.project) { $log.project.ToString() } else { if ($log.id1) { "#$($log.id1)" } else { "" } }
+                    $hours = if ($log.minutes) { [math]::Round($log.minutes / 60.0, 2) } else { 0 }
+                    $hoursStr = $hours.ToString("0.00")
+                    $descStr = if ($log.PSObject.Properties['description'] -and $log.description) { $log.description.ToString() } else { "" }
+
+                    # Format columns with proper padding
+                    $idCol = ($prefix + $log.id.ToString()).PadRight(5)
+                    $dateCol = $dateStr.Substring(0, [Math]::Min(10, $dateStr.Length)).PadRight(13)
+                    $projectCol = $projectStr.Substring(0, [Math]::Min(16, $projectStr.Length)).PadRight(18)
+                    $hoursCol = $hoursStr.PadRight(8)
+
                     if ($bg) {
-                        $this.terminal.WriteAtColor(2, $y, ($prefix + $log.id.ToString()).PadRight(4), $bg, $fg)
-                        $this.terminal.WriteAtColor(7, $y, $log.date.Substring(0, [Math]::Min(10, $log.date.Length)).PadRight(12), $bg, $fg)
-                        $this.terminal.WriteAtColor(20, $y, $log.project.Substring(0, [Math]::Min(16, $log.project.Length)).PadRight(17), $bg, $fg)
-                        $this.terminal.WriteAtColor(38, $y, $log.minutes.ToString().PadRight(6), $bg, [PmcVT100]::Cyan())
-                        if ($log.PSObject.Properties['description'] -and $log.description) {
-                            $desc = $log.description.Substring(0, [Math]::Min(30, $log.description.Length))
-                            $this.terminal.WriteAtColor(46, $y, $desc, $bg, $fg)
+                        $this.terminal.WriteAtColor(2, $y, $idCol, $bg, $fg)
+                        $this.terminal.WriteAtColor(8, $y, $dateCol, $bg, $fg)
+                        $this.terminal.WriteAtColor(22, $y, $projectCol, $bg, $fg)
+                        $this.terminal.WriteAtColor(41, $y, $hoursCol, $bg, [PmcVT100]::Cyan())
+                        if ($descStr) {
+                            $desc = $descStr.Substring(0, [Math]::Min(30, $descStr.Length))
+                            $this.terminal.WriteAtColor(50, $y, $desc, $bg, $fg)
                         }
                     } else {
-                        $this.terminal.WriteAtColor(2, $y, $prefix + $log.id.ToString(), [PmcVT100]::White(), "")
-                        $this.terminal.WriteAtColor(7, $y, $log.date.Substring(0, [Math]::Min(10, $log.date.Length)), [PmcVT100]::White(), "")
-                        $this.terminal.WriteAtColor(20, $y, $log.project.Substring(0, [Math]::Min(16, $log.project.Length)), [PmcVT100]::Gray(), "")
-                        $this.terminal.WriteAtColor(38, $y, $log.minutes.ToString(), [PmcVT100]::Cyan(), "")
-                        if ($log.PSObject.Properties['description'] -and $log.description) {
-                            $desc = $log.description.Substring(0, [Math]::Min(30, $log.description.Length))
-                            $this.terminal.WriteAtColor(46, $y, $desc, [PmcVT100]::White(), "")
+                        $this.terminal.WriteAtColor(2, $y, $idCol, [PmcVT100]::Yellow(), "")
+                        $this.terminal.WriteAtColor(8, $y, $dateCol, [PmcVT100]::Yellow(), "")
+                        $this.terminal.WriteAtColor(22, $y, $projectCol, [PmcVT100]::Gray(), "")
+                        $this.terminal.WriteAtColor(41, $y, $hoursCol, [PmcVT100]::Cyan(), "")
+                        if ($descStr) {
+                            $desc = $descStr.Substring(0, [Math]::Min(30, $descStr.Length))
+                            $this.terminal.WriteAtColor(50, $y, $desc, [PmcVT100]::Yellow(), "")
                         }
                     }
                     $y++
@@ -4516,13 +4689,13 @@ class PmcFakeTUIApp {
                 $this.terminal.WriteAtColor(4, $emptyY++, "No projects yet", [PmcVT100]::Yellow(), "")
                 $emptyY++
                 $this.terminal.WriteAtColor(4, $emptyY++, "Press 'A' to create your first project", [PmcVT100]::Cyan(), "")
-                $this.terminal.WriteAt(4, $emptyY++, "Or press Alt+P then L to view this screen")
+                $this.terminal.WriteAtColor(4, $emptyY++, "Or press Alt+P then L to view this screen", [PmcVT100]::Gray(), "")
             } else {
                 $headerY = 5
-                $this.terminal.WriteAt(2, $headerY, "Project")
-                $this.terminal.WriteAt(30, $headerY, "Active")
-                $this.terminal.WriteAt(42, $headerY, "Done")
-                $this.terminal.WriteAt(52, $headerY, "Total")
+                $this.terminal.WriteAtColor(2, $headerY, "Project", [PmcVT100]::Cyan(), "")
+                $this.terminal.WriteAtColor(30, $headerY, "Active", [PmcVT100]::Cyan(), "")
+                $this.terminal.WriteAtColor(42, $headerY, "Done", [PmcVT100]::Cyan(), "")
+                $this.terminal.WriteAtColor(52, $headerY, "Total", [PmcVT100]::Cyan(), "")
                 $this.terminal.DrawHorizontalLine(0, $headerY + 1, $this.terminal.Width)
 
                 $startY = $headerY + 2
@@ -4551,10 +4724,10 @@ class PmcFakeTUIApp {
                         $this.terminal.WriteAtColor(42, $y, $completed.ToString().PadRight(8), $bg, [PmcVT100]::Green())
                         $this.terminal.WriteAtColor(52, $y, $total.ToString(), $bg, $fg)
                     } else {
-                        $this.terminal.WriteAt(2, $y, $prefix + $projDisplay)
+                        $this.terminal.WriteAtColor(2, $y, $prefix + $projDisplay, [PmcVT100]::Yellow(), "")
                         $this.terminal.WriteAtColor(30, $y, $active.ToString(), [PmcVT100]::Cyan(), "")
                         $this.terminal.WriteAtColor(42, $y, $completed.ToString(), [PmcVT100]::Green(), "")
-                        $this.terminal.WriteAt(52, $y, $total.ToString())
+                        $this.terminal.WriteAtColor(52, $y, $total.ToString(), [PmcVT100]::Yellow(), "")
                     }
                     $y++
                 }
@@ -4601,6 +4774,7 @@ class PmcFakeTUIApp {
                     $proj = $this.projects[$this.selectedProjectIndex]
                     $projName = if ($proj -is [string]) { $proj } else { $proj.name }
                     $this.filterProject = $projName
+                    $this.previousView = 'projectlist'
                     $this.currentView = 'tasklist'
                     $this.LoadTasks()
                 }
@@ -4731,30 +4905,49 @@ class PmcFakeTUIApp {
     }
 
     [void] HandleTaskEditForm() {
-        # Use Show-InputForm widget
-        $fields = @(
-            @{Name='taskId'; Label='Task ID'; Required=$true}
-            @{Name='field'; Label='Field (text/priority/project/due/status)'; Required=$true}
-            @{Name='value'; Label='New Value'; Required=$false}
-        )
+        # Use the selected task if available
+        if ($this.selectedTask) {
+            $taskId = $this.selectedTask.id
 
-        $result = Show-InputForm -Title "Edit Task" -Fields $fields
+            # Simple field selector
+            $fields = @(
+                @{Name='field'; Label='Field'; Required=$true; Type='select'; Options=@('text', 'priority', 'project', 'due', 'status')}
+                @{Name='value'; Label='New Value'; Required=$false; Type='text'}
+            )
 
-        if ($null -eq $result) {
-            $this.currentView = 'main'
-            $this.DrawLayout()
-            return
-        }
+            $result = Show-InputForm -Title "Edit Task #$taskId" -Fields $fields
 
-        $taskId = try { [int]$result['taskId'] } catch { 0 }
-        $field = $result['field']
-        $value = $result['value']
+            if ($null -eq $result) {
+                $this.currentView = 'taskdetail'
+                return
+            }
 
-        if ($taskId -le 0) {
-            Show-InfoMessage -Message "Invalid task ID" -Title "Error" -Color "Red"
-            $this.currentView = 'main'
-            $this.DrawLayout()
-            return
+            $field = $result['field']
+            $value = $result['value']
+        } else {
+            # Fall back to asking for task ID
+            $fields = @(
+                @{Name='taskId'; Label='Task ID'; Required=$true}
+                @{Name='field'; Label='Field (text/priority/project/due/status)'; Required=$true}
+                @{Name='value'; Label='New Value'; Required=$false}
+            )
+
+            $result = Show-InputForm -Title "Edit Task" -Fields $fields
+
+            if ($null -eq $result) {
+                $this.currentView = 'tasklist'
+                return
+            }
+
+            $taskId = try { [int]$result['taskId'] } catch { 0 }
+            $field = $result['field']
+            $value = $result['value']
+
+            if ($taskId -le 0) {
+                Show-InfoMessage -Message "Invalid task ID" -Title "Error" -Color "Red"
+                $this.currentView = 'tasklist'
+                return
+            }
         }
 
         try {
@@ -5511,12 +5704,11 @@ class PmcFakeTUIApp {
 
     [void] HandleProjectStatsView() {
         $this.DrawProjectStatsForm()
-        $this.terminal.WriteAt(19, 6, "")
+        $this.terminal.WriteAtColor(19, 6, "", [PmcVT100]::Yellow(), "")
         [Console]::SetCursorPosition(19, 6)
         $projectName = [Console]::ReadLine()
         if ([string]::IsNullOrWhiteSpace($projectName)) {
-            $this.currentView = 'main'
-            $this.DrawLayout()
+            $this.currentView = 'projectlist'
             return
         }
         try {
@@ -7080,24 +7272,126 @@ class PmcFakeTUIApp {
     }
 
     # Tools - Weekly Report
-    [void] DrawWeeklyReport() {
+    [void] DrawWeeklyReport([int]$weekOffset = 0) {
         $this.terminal.Clear()
         $this.menuSystem.DrawMenuBar()
 
         try {
             $data = Get-PmcAllData
             $logs = if ($data.PSObject.Properties['timelogs']) { $data.timelogs } else { @() }
-            Show-PmcWeeklyTimeReport -TimeLogs $logs -WeekOffset 0
+
+            # Calculate week start (Monday)
+            $today = Get-Date
+            $daysFromMonday = ($today.DayOfWeek.value__ + 6) % 7
+            $thisMonday = $today.AddDays(-$daysFromMonday).Date
+            $weekStart = $thisMonday.AddDays($weekOffset * 7)
+            $weekEnd = $weekStart.AddDays(4)
+
+            $weekHeader = "Week of {0} - {1}" -f $weekStart.ToString('MMM dd'), $weekEnd.ToString('MMM dd, yyyy')
+
+            # Add indicator for current/past/future week
+            $weekIndicator = if ($weekOffset -eq 0) {
+                " (This Week)"
+            } elseif ($weekOffset -lt 0) {
+                " ($([Math]::Abs($weekOffset)) week$(if ([Math]::Abs($weekOffset) -gt 1) { 's' }) ago)"
+            } else {
+                " ($weekOffset week$(if ($weekOffset -gt 1) { 's' }) from now)"
+            }
+
+            $this.terminal.WriteAtColor(4, 4, "📊 TIME REPORT", [PmcVT100]::Cyan(), "")
+            $this.terminal.WriteAtColor(4, 5, "$weekHeader$weekIndicator", [PmcVT100]::Yellow(), "")
+
+            # Filter logs for the week
+            $weekLogs = @()
+            for ($d = 0; $d -lt 5; $d++) {
+                $dayDate = $weekStart.AddDays($d).ToString('yyyy-MM-dd')
+                $dayLogs = $logs | Where-Object { $_.date -eq $dayDate }
+                $weekLogs += $dayLogs
+            }
+
+            if ($weekLogs.Count -eq 0) {
+                $this.terminal.WriteAtColor(4, 7, "No time entries for this week", [PmcVT100]::Yellow(), "")
+            } else {
+                # Group by project/indirect code
+                $grouped = @{}
+                foreach ($log in $weekLogs) {
+                    $key = if ($log.id1) { "#$($log.id1)" } else { $log.project ?? 'Unknown' }
+
+                    if (-not $grouped.ContainsKey($key)) {
+                        $grouped[$key] = @{
+                            Name = if ($log.id1) { "" } else { $log.project ?? 'Unknown' }
+                            ID1 = if ($log.id1) { $log.id1 } else { '' }
+                            Mon = 0; Tue = 0; Wed = 0; Thu = 0; Fri = 0; Total = 0
+                        }
+                    }
+
+                    $logDate = [datetime]$log.date
+                    $dayIndex = ($logDate.DayOfWeek.value__ + 6) % 7
+                    $hours = [Math]::Round($log.minutes / 60.0, 1)
+
+                    switch ($dayIndex) {
+                        0 { $grouped[$key].Mon += $hours }
+                        1 { $grouped[$key].Tue += $hours }
+                        2 { $grouped[$key].Wed += $hours }
+                        3 { $grouped[$key].Thu += $hours }
+                        4 { $grouped[$key].Fri += $hours }
+                    }
+                    $grouped[$key].Total += $hours
+                }
+
+                # Draw table header
+                $y = 7
+                $header = "Name                 ID1   Mon    Tue    Wed    Thu    Fri    Total"
+                $this.terminal.WriteAtColor(4, $y++, $header, [PmcVT100]::Cyan(), "")
+                $this.terminal.WriteAtColor(4, $y++, "─" * 75, [PmcVT100]::Gray(), "")
+
+                # Draw rows
+                $grandTotal = 0
+                foreach ($entry in ($grouped.GetEnumerator() | Sort-Object Key)) {
+                    $d = $entry.Value
+                    $row = "{0,-20} {1,-5} {2,6:F1} {3,6:F1} {4,6:F1} {5,6:F1} {6,6:F1} {7,8:F1}" -f `
+                        $d.Name, $d.ID1, $d.Mon, $d.Tue, $d.Wed, $d.Thu, $d.Fri, $d.Total
+                    $this.terminal.WriteAtColor(4, $y++, $row, [PmcVT100]::Yellow(), "")
+                    $grandTotal += $d.Total
+                }
+
+                # Draw footer
+                $this.terminal.WriteAtColor(4, $y++, "─" * 75, [PmcVT100]::Gray(), "")
+                $totalRow = "                                                          Total: {0,8:F1}" -f $grandTotal
+                $this.terminal.WriteAtColor(4, $y++, $totalRow, [PmcVT100]::Yellow(), "")
+            }
         } catch {
             $this.terminal.WriteAtColor(4, 6, "Error generating weekly report: $_", [PmcVT100]::Red(), "")
         }
 
-        $this.terminal.DrawFooter("Press any key to return")
+        $this.terminal.DrawFooter("=:Next Week | -:Previous Week | Any other key to return")
     }
 
     [void] HandleWeeklyReport() {
-        $this.DrawWeeklyReport()
-        [Console]::ReadKey($true) | Out-Null
+        [int]$weekOffset = 0
+        $active = $true
+
+        while ($active) {
+            $this.DrawWeeklyReport($weekOffset)
+            $key = [Console]::ReadKey($true)
+
+            switch ($key.KeyChar) {
+                '=' {
+                    $weekOffset++
+                }
+                '-' {
+                    $weekOffset--
+                }
+                default {
+                    $active = $false
+                }
+            }
+
+            if ($key.Key -eq 'Escape') {
+                $active = $false
+            }
+        }
+
         $this.currentView = 'timelist'
     }
 

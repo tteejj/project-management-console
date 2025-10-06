@@ -87,18 +87,42 @@ class PmcMenuSystem {
 
         # View menu
         $this.AddMenu('View', 'V', @(
+            [PmcMenuItem]::new('Agenda', 'view:agenda', 'A'),
             [PmcMenuItem]::new('Today', 'view:today', 'T'),
             [PmcMenuItem]::new('This Week', 'view:week', 'W'),
             [PmcMenuItem]::new('Overdue', 'view:overdue', 'O'),
             [PmcMenuItem]::Separator(),
+            [PmcMenuItem]::new('Blocked Tasks', 'view:blocked', 'B'),
+            [PmcMenuItem]::new('No Due Date', 'view:noduedate', 'N'),
+            [PmcMenuItem]::Separator(),
             [PmcMenuItem]::new('Kanban Board', 'view:kanban', 'K'),
             [PmcMenuItem]::new('Grid View', 'view:grid', 'G')
+        ))
+
+        # Edit menu
+        $this.AddMenu('Edit', 'E', @(
+            [PmcMenuItem]::new('Undo', 'edit:undo', 'U'),
+            [PmcMenuItem]::new('Redo', 'edit:redo', 'R')
+        ))
+
+        # Time menu
+        $this.AddMenu('Time', 'I', @(
+            [PmcMenuItem]::new('Add Time Entry', 'time:add', 'A'),
+            [PmcMenuItem]::new('List Time Logs', 'time:list', 'L'),
+            [PmcMenuItem]::Separator(),
+            [PmcMenuItem]::new('Weekly Report', 'time:report', 'W'),
+            [PmcMenuItem]::Separator(),
+            [PmcMenuItem]::new('Start Timer', 'timer:start', 'S'),
+            [PmcMenuItem]::new('Stop Timer', 'timer:stop', 'T'),
+            [PmcMenuItem]::new('Timer Status', 'timer:status', 'U')
         ))
 
         # Tools menu
         $this.AddMenu('Tools', 'O', @(
             [PmcMenuItem]::new('Settings', 'tools:settings', 'S'),
             [PmcMenuItem]::new('Theme', 'tools:theme', 'T'),
+            [PmcMenuItem]::new('Focus Mode', 'tools:focus', 'F'),
+            [PmcMenuItem]::new('Timer', 'tools:timer', 'I'),
             [PmcMenuItem]::new('Debug Info', 'tools:debug', 'D'),
             [PmcMenuItem]::Separator(),
             [PmcMenuItem]::new('Backup Data', 'tools:backup', 'B')
@@ -114,27 +138,17 @@ class PmcMenuSystem {
         ))
     }
 
-    # Add a menu to the system
     [void] AddMenu([string]$name, [char]$hotkey, [PmcMenuItem[]]$items) {
-        $this.menus[$name] = @{
-            Name = $name
-            Hotkey = $hotkey
-            Items = $items
-        }
+        $this.menus[$name] = @{ Hotkey = $hotkey; Items = $items }
         $this.menuOrder += $name
     }
 
-    # Draw the menu bar
     [void] DrawMenuBar() {
-        $this.terminal.UpdateDimensions()
+        # Clear top area
+        $this.terminal.FillArea(0, 0, $this.terminal.Width, 2, ' ')
 
-        # Clear the menu bar line
-        $this.terminal.FillArea(0, 0, $this.terminal.Width, 1, ' ')
-
-        # Build menu bar text with hotkey indicators
-        $menuText = ""
+        # Draw menu names
         $x = 2
-
         for ($i = 0; $i -lt $this.menuOrder.Count; $i++) {
             $menuName = $this.menuOrder[$i]
             $menu = $this.menus[$menuName]
@@ -146,9 +160,9 @@ class PmcMenuSystem {
                 $this.terminal.WriteAtColor($x, 0, $menuName, [PmcVT100]::BgWhite(), [PmcVT100]::Blue())
                 $this.terminal.WriteAtColor($x + $menuName.Length, 0, "($hotkey)", [PmcVT100]::Yellow(), "")
             } else {
-                # Normal menu item
-                $this.terminal.WriteAt($x, 0, $menuName)
-                $this.terminal.WriteAtColor($x + $menuName.Length, 0, "($hotkey)", [PmcVT100]::Yellow(), "")
+                # Normal menu item - use theme colors
+                $this.terminal.WriteAtColor($x, 0, $menuName, [PmcVT100]::Yellow(), "")
+                $this.terminal.WriteAtColor($x + $menuName.Length, 0, "($hotkey)", [PmcVT100]::Gray(), "")
             }
 
             $x += $menuName.Length + 3 + 3  # name + "(X)" + spacing
@@ -179,6 +193,16 @@ class PmcMenuSystem {
         if (-not $menu) { return "" }
 
         $items = $menu.Items
+
+        # Check if there's only one enabled, non-separator item
+        $enabledItems = @($items | Where-Object { -not $_.Separator -and $_.Enabled })
+        if ($enabledItems.Count -eq 1) {
+            # Auto-execute the single item
+            $this.inMenuMode = $false
+            $this.selectedMenu = -1
+            return $enabledItems[0].Action
+        }
+
         $maxWidth = 20
 
         # Calculate dropdown size and position
@@ -334,6 +358,9 @@ class PmcMenuSystem {
                         } else {
                             $this.selectedMenu = $this.menuOrder.Count - 1
                         }
+                        # Auto-open dropdown when navigating with arrows
+                        $menuName = $this.menuOrder[$this.selectedMenu]
+                        return $this.ShowDropdown($menuName)
                     }
                     'RightArrow' {
                         if ($this.selectedMenu -lt $this.menuOrder.Count - 1) {
@@ -341,6 +368,9 @@ class PmcMenuSystem {
                         } else {
                             $this.selectedMenu = 0
                         }
+                        # Auto-open dropdown when navigating with arrows
+                        $menuName = $this.menuOrder[$this.selectedMenu]
+                        return $this.ShowDropdown($menuName)
                     }
                     'Enter' {
                         if ($this.selectedMenu -ge 0 -and $this.selectedMenu -lt $this.menuOrder.Count) {
@@ -351,6 +381,7 @@ class PmcMenuSystem {
                     'Escape' {
                         $this.inMenuMode = $false
                         $this.selectedMenu = -1
+                        # Continue the loop after exiting menu mode
                     }
                     default {
                         # Check for menu hotkeys
@@ -366,6 +397,8 @@ class PmcMenuSystem {
                 }
             }
         }
+        # Unreachable, but satisfies PowerShell strict mode
+        return ""
     }
 
     # Get friendly name for action (for display purposes)
@@ -388,3 +421,4 @@ class PmcMenuSystem {
         return $action
     }
 }
+

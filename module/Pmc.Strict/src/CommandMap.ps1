@@ -19,6 +19,9 @@ $Script:PmcCommandMap = @{
         week    = 'Show-PmcWeekTasksInteractive'
         month   = 'Show-PmcMonthTasksInteractive'
     }
+    subtask = @{
+        add     = 'Add-PmcSubtask'
+    }
     project = @{
         add     = 'Add-PmcProject'
         list    = 'Get-PmcProjectList'

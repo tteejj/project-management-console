@@ -1,9 +1,8 @@
-[2025-10-03 14:35:51.874] [SYSTEM] Debug log initialized
-[2025-10-03 14:35:51.877] [LOADER] Loading FakeTUI modular system
-[2025-10-03 14:35:52.217] [LOADER] FakeTUI.ps1 loaded
-[2025-10-03 14:35:52.231] [LOADER] TaskHandlers.ps1 loaded
-[2025-10-03 14:35:52.237] [LOADER] ProjectHandlers.ps1 loaded
-[2025-10-03 14:35:54.219] [MENU] Alt+I activated menu Time
-[2025-10-03 14:35:55.456] [ACTION] ProcessMenuAction: time:list
-[2025-10-03 14:36:22.676] [MENU] Alt+I activated menu Time
-[2025-10-03 14:36:25.938] [ACTION] ProcessMenuAction: tools:weeklyreport
+[2025-10-06 12:45:57.878] [SYSTEM] Debug log initialized
+[2025-10-06 12:45:57.879] [LOADER] Loading FakeTUI modular system
+[2025-10-06 12:45:58.043] [LOADER] FakeTUI.ps1 loaded
+[2025-10-06 12:45:58.048] [LOADER] TaskHandlers.ps1 loaded
+[2025-10-06 12:45:58.052] [LOADER] ProjectHandlers.ps1 loaded
+[2025-10-06 12:46:01.386] [GLOBAL] Alt+P pressed, showing dropdown for Projects
+[2025-10-06 12:46:04.070] [TASKLIST] Global action from task list: project:list
+[2025-10-06 12:46:04.081] [ACTION] ProcessMenuAction: project:list

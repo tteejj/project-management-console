@@ -719,6 +719,7 @@ Export-ModuleMember -Function `
     Initialize-PmcSecuritySystem, `
     Initialize-PmcThemeSystem, `
     Write-PmcStyled, Show-PmcHeader, Show-PmcSeparator, Show-PmcTable, `
+    Get-PmcColorPalette, Get-PmcColorSequence, ConvertFrom-PmcHex, `
     Test-PmcInputSafety, `
     Test-PmcPathSafety, `
     Invoke-PmcSecureFileOperation, `
@@ -782,6 +783,17 @@ Export-ModuleMember -Variable PmcCommandMap, PmcShortcutMap, PmcCommandMeta
 # } catch {
 #     Write-Host "✗ LegacyCompat services failed: $_" -ForegroundColor Red
 # }
+
+# Initialize core systems
+try {
+    Initialize-PmcThemeSystem
+    Initialize-PmcSecuritySystem
+    $cfg = Get-PmcConfig
+    $lvl = try { [int]$cfg.Debug.Level } catch { 0 }
+    Initialize-PmcDebugSystem -Level $lvl
+} catch {
+    Write-Host "✗ Core system initialization failed: $_" -ForegroundColor Red
+}
 
 # Register universal command shortcuts after export so functions are available
 try {
