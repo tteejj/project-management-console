@@ -2,448 +2,132 @@
   "preferences": {
     "autoBackup": true
   },
+  "currentContext": "inbox",
+  "schema_version": 1,
+  "projects": [
+    {
+      "created": "2025-10-06 13:27:00",
+      "name": "inbox",
+      "description": "Default inbox",
+      "aliases": []
+    },
+    {
+      "id": "d45e472d-57af-4836-93bb-0ec96d60d7aa",
+      "name": "New Test Project 1",
+      "description": "",
+      "created": "2025-10-06 14:57:24",
+      "status": "active",
+      "tags": []
+    },
+    {
+      "id": "a6d3f3bc-bf72-4115-87f7-75598a4aa7b5",
+      "name": "New",
+      "description": "Test 3",
+      "created": "2025-10-06 15:30:39",
+      "status": "active",
+      "tags": []
+    },
+    {
+      "id": "94a5b59d-5a11-47c6-8504-80c2a8ab1174",
+      "name": "TEST ADD 1",
+      "description": "",
+      "ID1": "123",
+      "ID2": "123456789",
+      "ProjFolder": "",
+      "AssignedDate": "20250929",
+      "DueDate": "20251029",
+      "BFDate": "20251010",
+      "CAAName": "",
+      "RequestName": "",
+      "T2020": "",
+      "icon": "",
+      "color": "Gray",
+      "sortOrder": 0,
+      "aliases": [],
+      "isArchived": false,
+      "created": "2025-10-06 15:42:49",
+      "status": "active",
+      "tags": []
+    },
+    {
+      "id": "25ea5738-9441-4462-b72b-36b49f8eb46c",
+      "name": "p4",
+      "description": "4",
+      "ID1": "44",
+      "ID2": "444",
+      "ProjFolder": "/home",
+      "AssignedDate": "1",
+      "DueDate": "1",
+      "BFDate": "1",
+      "CAAName": "/home/teej/_wpf/guide.md",
+      "RequestName": "/home/teej/_wpf/guideb.md",
+      "T2020": "/home/teej/_wpf/IMPROVEMENTS.md",
+      "icon": "",
+      "color": "Gray",
+      "sortOrder": 0,
+      "aliases": [],
+      "isArchived": false,
+      "created": "2025-10-07 10:56:54",
+      "status": "active",
+      "tags": []
+    },
+    {
+      "id": "5648d1a1-e0a5-4096-97bd-3ea599c49981",
+      "name": "p5",
+      "description": "5",
+      "ID1": "5",
+      "ID2": "55",
+      "ProjFolder": "/home",
+      "AssignedDate": "20250920",
+      "DueDate": "20251020",
+      "BFDate": "20251009",
+      "CAAName": "/home/teej/_wpf/guide.md",
+      "RequestName": "/home/teej/_wpf/guideb.md",
+      "T2020": "/home/teej/_wpf/IMPROVEMENTS.md",
+      "icon": "",
+      "color": "Gray",
+      "sortOrder": 0,
+      "aliases": [],
+      "isArchived": false,
+      "created": "2025-10-07 11:01:11",
+      "status": "active",
+      "tags": []
+    }
+  ],
   "tasks": [
     {
-      "text": "test edit again",
-      "project": "webapp",
-      "due": "2025-09-18",
-      "priority": 1,
-      "status": "pending",
-      "created": "2025-09-15",
-      "id": "2",
-      "subtasks": [
-        {
-          "text": "subtask2",
-          "completed": false,
-          "created": "2025-10-04 14:26:09"
-        }
-      ]
-    },
-    {
-      "id": 2,
-      "text": "Update documentation for API endpoints",
-      "project": "docs",
-      "due": "2025-09-20",
-      "priority": 2,
-      "status": "in-progress",
-      "created": "2025-09-16"
-    },
-    {
-      "id": 3,
-      "text": "Review pull request #145",
-      "project": "webapp",
-      "due": "2025-09-17",
-      "priority": 1,
-      "status": "completed",
-      "created": "2025-09-14"
-    },
-    {
-      "id": 4,
-      "text": "Prepare quarterly team meeting",
-      "project": "management",
-      "due": "2025-09-19",
-      "priority": 3,
-      "status": "pending",
-      "created": "2025-09-16"
-    },
-    {
-      "id": 5,
-      "text": "Deploy hotfix to production",
-      "project": "webapp",
-      "due": "2025-09-18",
-      "priority": 1,
-      "status": "active",
-      "created": "2025-09-18"
-    },
-    {
-      "due": "2025-09-20",
-      "tags": [],
-      "created": "2025-09-20 08:19:53",
-      "priority": 0,
-      "project": "1234 ab ltd.",
-      "text": "description here",
-      "id": 6,
-      "status": "pending"
-    },
-    {
-      "id": 7.0,
-      "text": "new task",
-      "status": "blocked",
-      "priority": "high",
-      "project": "inbox",
-      "due": "2025-10-04",
-      "created": "2025-10-03 13:25:38"
-    },
-    {
-      "id": 8.0,
-      "text": "addding a test task",
+      "id": 1,
+      "text": "new task 1",
       "status": "active",
       "priority": "high",
       "project": null,
-      "due": null,
-      "created": "2025-10-03 20:33:37"
-    },
-    {
-      "id": 9.0,
-      "text": "test task addition",
-      "status": "active",
-      "priority": "high",
-      "project": "1234 ab ltd.",
-      "due": null,
-      "created": "2025-10-06 12:19:17"
-    }
-  ],
-  "schema_version": 1,
-  "currentContext": "inbox",
-  "projects": [
-    {
-      "aliases": [],
-      "name": "inbox",
-      "created": "2025-09-18 21:46:08",
-      "description": "Default inbox"
-    },
-    {
-      "aliases": [],
-      "name": "webapp",
-      "created": "2025-09-15 10:00:00",
-      "description": "Web application development"
-    },
-    {
-      "aliases": [],
-      "name": "docs",
-      "created": "2025-09-16 11:30:00",
-      "description": "Documentation and guides"
-    },
-    {
-      "aliases": [],
-      "name": "management",
-      "created": "2025-09-16 14:00:00",
-      "description": "Team and project management"
-    },
-    {
-      "name": "''",
-      "description": "Created 2025-09-20",
-      "aliases": [],
-      "created": "2025-09-20 07:54:25"
-    },
-    {
-      "name": "1234 ab ltd.",
-      "description": "Created 2025-09-20",
-      "aliases": [],
-      "created": "2025-09-20 08:17:20"
+      "due": "2025-10-07",
+      "created": "2025-10-06 13:27:35"
     }
   ],
   "activityLog": [
     {
-      "action": "edit:text",
-      "user": null,
-      "timestamp": "2025-09-19 07:52:26"
-    },
-    {
-      "user": null,
-      "timestamp": "2025-09-19 08:03:10",
-      "action": "edit:text"
-    },
-    {
-      "user": null,
-      "timestamp": "2025-09-19 08:03:30",
-      "action": "edit:text"
-    },
-    {
-      "timestamp": "2025-09-19 08:13:52",
-      "action": "edit:text",
-      "user": null
-    },
-    {
-      "timestamp": "2025-09-19 08:13:53",
-      "action": "edit:text",
-      "user": null
-    },
-    {
-      "action": "edit:text",
-      "timestamp": "2025-09-19 08:19:22",
-      "user": null
-    },
-    {
-      "action": "edit:text",
-      "timestamp": "2025-09-19 08:19:34",
-      "user": null
-    },
-    {
-      "action": "edit:text",
-      "timestamp": "2025-09-19 08:19:44",
-      "user": null
-    },
-    {
-      "action": "edit:id",
-      "timestamp": "2025-09-19 08:19:51",
-      "user": null
-    },
-    {
-      "action": "edit:text",
-      "timestamp": "2025-09-19 08:19:51",
-      "user": null
-    },
-    {
-      "action": "edit:text",
-      "user": null,
-      "timestamp": "2025-09-19 08:29:37"
-    },
-    {
-      "user": null,
-      "timestamp": "2025-09-19 18:40:26",
-      "action": "time log"
-    },
-    {
-      "user": null,
-      "timestamp": "2025-09-19 18:40:31",
-      "action": "time report"
-    },
-    {
-      "timestamp": "2025-09-19 18:49:05",
-      "action": "time report",
+      "timestamp": "2025-10-06 13:27:35",
+      "action": "Added task 1",
       "user": null
     },
     {
       "user": null,
-      "timestamp": "2025-09-19 19:00:21",
-      "action": "time report"
-    },
-    {
-      "timestamp": "2025-09-19 19:20:09",
-      "action": "time report",
-      "user": null
-    },
-    {
-      "timestamp": "2025-09-19 19:41:23",
-      "action": "time report",
-      "user": null
-    },
-    {
-      "user": null,
-      "action": "time report",
-      "timestamp": "2025-09-19 19:48:11"
-    },
-    {
-      "timestamp": "2025-09-20 07:54:25",
-      "action": "project add",
-      "user": null
-    },
-    {
-      "timestamp": "2025-09-20 08:17:20",
-      "action": "project add",
-      "user": null
-    },
-    {
-      "timestamp": "2025-09-20 08:19:53",
-      "action": "task add",
-      "user": null
-    },
-    {
-      "timestamp": "2025-10-03 13:25:38",
-      "user": null,
-      "action": "Added task 7"
-    },
-    {
-      "timestamp": "2025-10-03 13:26:26",
-      "user": null,
-      "action": "Moved task 7 to IN PROGRESS"
-    },
-    {
-      "action": "Added time entry: 1 hours for ",
-      "user": null,
-      "timestamp": "2025-10-03 14:36:17"
-    },
-    {
-      "timestamp": "2025-10-03 16:31:10",
-      "user": null,
-      "action": "Added time entry: 1 hours for "
-    },
-    {
-      "action": "Moved task 7 to TODO",
-      "timestamp": "2025-10-03 17:10:26",
-      "user": null
-    },
-    {
-      "action": "Moved task 7 to BLOCKED",
-      "timestamp": "2025-10-03 17:10:59",
-      "user": null
-    },
-    {
-      "action": "Moved task 7 to IN PROGRESS",
-      "timestamp": "2025-10-03 17:11:03",
-      "user": null
-    },
-    {
-      "action": "Added task 8",
-      "user": null,
-      "timestamp": "2025-10-03 20:33:37"
-    },
-    {
-      "action": "Moved task 8 to REVIEW",
-      "user": null,
-      "timestamp": "2025-10-03 20:34:00"
-    },
-    {
-      "action": "Moved task 7 to TODO",
-      "user": null,
-      "timestamp": "2025-10-03 20:34:06"
-    },
-    {
-      "action": "Moved task 7 to BLOCKED",
-      "user": null,
-      "timestamp": "2025-10-03 20:34:08"
-    },
-    {
-      "action": "Added subtask to task #2",
-      "timestamp": "2025-10-04 10:30:46",
-      "user": null
-    },
-    {
-      "action": "Moved task 5 to IN PROGRESS",
-      "user": null,
-      "timestamp": "2025-10-04 11:11:56"
-    },
-    {
-      "action": "Moved task 8 to TODO",
-      "user": null,
-      "timestamp": "2025-10-04 11:11:58"
-    },
-    {
-      "action": "Moved task 3 to DONE",
-      "user": null,
-      "timestamp": "2025-10-04 11:11:59"
-    },
-    {
-      "timestamp": "2025-10-04 11:40:34",
-      "action": "Moved task 8 to IN PROGRESS",
-      "user": null
-    },
-    {
-      "timestamp": "2025-10-04 11:40:37",
-      "action": "Moved task 8 to TODO",
-      "user": null
-    },
-    {
-      "timestamp": "2025-10-04 11:41:02",
-      "action": "Added subtask to task #2",
-      "user": null
-    },
-    {
-      "timestamp": "2025-10-04 11:41:14",
-      "action": "Toggled task 2",
-      "user": null
-    },
-    {
-      "timestamp": "2025-10-04 11:41:16",
-      "action": "Toggled task 2",
-      "user": null
-    },
-    {
-      "user": null,
-      "action": "Added subtask to task #2",
-      "timestamp": "2025-10-04 14:26:09"
-    },
-    {
-      "timestamp": "2025-10-06 07:25:41",
-      "action": "Added time entry: 1 hours for ",
-      "user": null
-    },
-    {
-      "action": "Restored from backup: .bak1",
-      "timestamp": "2025-10-06 12:13:09",
-      "user": null
-    },
-    {
-      "action": "Moved task 2 to IN PROGRESS",
-      "timestamp": "2025-10-06 12:15:07",
-      "user": null
-    },
-    {
-      "action": "Moved task 5 to DONE",
-      "timestamp": "2025-10-06 12:15:11",
-      "user": null
-    },
-    {
-      "action": "Moved task 5 to TODO",
-      "timestamp": "2025-10-06 12:15:14",
-      "user": null
-    },
-    {
-      "action": "Added task 9",
-      "timestamp": "2025-10-06 12:19:17",
-      "user": null
+      "action": "Created project: New Test Project 1",
+      "timestamp": "2025-10-06 14:57:24"
     }
   ],
   "aliases": {},
   "timelogs": [
     {
-      "project": "webapp",
-      "time": "18:40",
-      "date": "2025-09-19",
-      "notes": "",
-      "minutes": 60,
-      "id": 1
-    },
-    {
-      "id": 2.0,
-      "project": null,
-      "id1": "050",
-      "id2": null,
-      "date": "today",
-      "minutes": 60,
-      "description": "",
-      "created": "2025-10-03 14:36:17"
-    },
-    {
-      "id": 3.0,
-      "project": null,
-      "id1": "050",
-      "id2": null,
-      "date": "2025-10-03",
-      "minutes": 60,
-      "description": "",
-      "created": "2025-10-03 16:31:10"
-    },
-    {
-      "id": 4.0,
-      "project": null,
-      "id1": "050",
-      "id2": null,
+      "created": "2025-10-06 14:57:54",
       "date": "2025-10-06",
-      "minutes": 60,
+      "id1": null,
       "description": "",
-      "created": "2025-10-06 07:25:41"
-    },
-    {
-      "id2": null,
-      "project": null,
+      "minutes": 60,
+      "project": "New Test Project 1",
       "id": "T001",
-      "description": "",
-      "created": "2025-10-06 11:28:00",
-      "id1": "999",
-      "minutes": 60,
-      "date": "2025-10-06"
-    },
-    {
-      "minutes": 120,
-      "date": "2025-10-05",
-      "id1": "999",
-      "project": null,
-      "id": "T002",
-      "created": "2025-10-06 11:57:10",
-      "id2": null,
-      "description": ""
-    },
-    {
-      "date": "2025-10-06",
-      "created": "2025-10-06 12:02:13",
-      "project": null,
-      "id1": "72",
-      "id": "T003",
-      "description": "",
-      "id2": null,
-      "minutes": 60
+      "id2": null
     }
   ],
   "deleted": [],

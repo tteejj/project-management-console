@@ -250,14 +250,22 @@ function Start-PmcShell {
             . "./module/Pmc.Strict/FakeTUI/FakeTUI-Modular.ps1"
 
             $app = [PmcFakeTUIApp]::new()
-            $app.Initialize()
-            $app.Run()
-            $app.Shutdown()
+            try { Write-FakeTUIDebug "App constructed" "BOOT" } catch {}
+            $app.Initialize(); try { Write-FakeTUIDebug "App initialized" "BOOT" } catch {}
+            $app.Run(); try { Write-FakeTUIDebug "App run completed" "BOOT" } catch {}
+            $app.Shutdown(); try { Write-FakeTUIDebug "App shutdown" "BOOT" } catch {}
 
             Write-Host "FakeTUI exited" -ForegroundColor Green
             return
         } catch {
-            Write-Host "Failed to start FakeTUI: $($_.Exception.Message)" -ForegroundColor Red
+            $msg = "Failed to start FakeTUI: $($_.Exception.Message)"
+            Write-Host $msg -ForegroundColor Red
+            $pos = try { $_.InvocationInfo.PositionMessage } catch { $null }
+            $detail = if ($pos) { ("`nPOSITION:`n{0}" -f $pos) } else { '' }
+            try {
+                Add-Content -Path (Join-Path $root 'debug.log') -Value (
+                    "[FakeTUI-START-ERROR] {0} | {1}{2}" -f (Get-Date -Format o), $_.Exception.ToString(), $detail)
+            } catch {}
             Write-Host "Falling back to CLI mode..." -ForegroundColor Yellow
             $script:UseFakeTUI = $false
         }

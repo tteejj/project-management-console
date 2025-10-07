@@ -5,9 +5,18 @@
 . "$PSScriptRoot/Debug.ps1"
 Write-FakeTUIDebug "Loading FakeTUI modular system" "LOADER"
 
-# Load main FakeTUI
-. "$PSScriptRoot/FakeTUI.ps1"
-Write-FakeTUIDebug "FakeTUI.ps1 loaded" "LOADER"
+# Load main FakeTUI only if not already loaded (avoid class redefinition errors)
+if (-not ('PmcFakeTUIApp' -as [type])) {
+    try {
+        . "$PSScriptRoot/FakeTUI.ps1"
+        Write-FakeTUIDebug "FakeTUI.ps1 loaded" "LOADER"
+    } catch {
+        Write-FakeTUIDebug "FakeTUI.ps1 load failed: $($_.Exception.Message)" "LOADER"
+        throw
+    }
+} else {
+    Write-FakeTUIDebug "FakeTUI already loaded in session; skipping reload" "LOADER"
+}
 
 # Load handler modules
 . "$PSScriptRoot/Handlers/TaskHandlers.ps1"
@@ -198,4 +207,3 @@ Add-Member -InputObject ([PmcFakeTUIApp]) -MemberType ScriptMethod -Name 'Proces
 } -Force
 
 Write-Host "FakeTUI modular extensions loaded successfully" -ForegroundColor Green
-

@@ -40,7 +40,7 @@ class PmcTaskEditor {
             $this.Project = if ($taskDataResult.project) { $taskDataResult.project } else { "" }
             $this.Priority = if ($taskDataResult.priority) { $taskDataResult.priority } else { "" }
             $this.DueDate = if ($taskDataResult.due) { $taskDataResult.due } else { "" }
-            $this.Tags = @((if ($taskDataResult.tags) { $taskDataResult.tags } else { @() }))
+            $this.Tags = @($(if ($taskDataResult.tags) { $taskDataResult.tags } else { @() }))
 
         } catch {
             throw "Failed to load task: $_"

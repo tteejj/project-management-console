@@ -37,11 +37,11 @@ function Export-PmcTasks {
                 $rows += [pscustomobject]@{
                     ID = $t.id
                     Text = $t.text
-                    Project = (if ($t.project) { $t.project } else { 'inbox' })
-                    Priority = (if ($t.priority) { $t.priority } else { 0 })
-                    Due = (if ($t.due) { $t.due } else { '' })
-                    Status = (if ($t.status) { $t.status } else { 'pending' })
-                    Created = (if ($t.created) { $t.created } else { '' })
+                    Project = $(if ($t.project) { $t.project } else { 'inbox' })
+                    Priority = $(if ($t.priority) { $t.priority } else { 0 })
+                    Due = $(if ($t.due) { $t.due } else { '' })
+                    Status = $(if ($t.status) { $t.status } else { 'pending' })
+                    Created = $(if ($t.created) { $t.created } else { '' })
                 }
             }
             $rows | Export-Csv -Path $path -NoTypeInformation -Encoding UTF8
@@ -75,7 +75,7 @@ function Import-PmcTasks {
             $projVal = if ($r.PSObject.Properties['project'] -and $r.project) { $r.project } elseif ($r.PSObject.Properties['Project'] -and $r.Project) { $r.Project } else { 'inbox' }
             $priVal = if ($r.PSObject.Properties['priority'] -and $r.priority) { $r.priority } elseif ($r.PSObject.Properties['Priority'] -and $r.Priority) { $r.Priority } else { 0 }
             $t = @{ id=$id; text=$text; project=$projVal; priority=$priVal; status='pending'; created=(Get-Date).ToString('yyyy-MM-dd HH:mm:ss') }
-            if (($r.PSObject.Properties['due'] -and $r.due) -or ($r.PSObject.Properties['Due'] -and $r.Due)) { try { $t.due = ([datetime]((if ($r.due) { $r.due } else { $r.Due }))).ToString('yyyy-MM-dd') } catch {
+            if (($r.PSObject.Properties['due'] -and $r.due) -or ($r.PSObject.Properties['Due'] -and $r.Due)) { try { $t.due = ([datetime]($(if ($r.due) { $r.due } else { $r.Due }))).ToString('yyyy-MM-dd') } catch {
                 # Date parsing failed - skip due date assignment
             } }
             $data.tasks += $t; $added++

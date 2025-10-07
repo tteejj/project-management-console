@@ -111,7 +111,7 @@ function Show-PmcHelpCommand {
         $type = if ($def['Type']) { [string]$def['Type'] } else { 'Text' }
         $req  = if ($def['Required']) { 'required' } else { '' }
         $help = if ($def['Description']) { [string]$def['Description'] } else { '' }
-        $left = (if ($pref) { "$pref$name" } else { $name }).PadRight(18).Substring(0,18)
+        $left = $(if ($pref) { "$pref$name" } else { $name }).PadRight(18).Substring(0,18)
         $right = ("[{0}] {1}" -f $type,$help)
         if ($req) { $right = "$right (required)" }
         Write-Host ("  {0} {1}" -f $left, $right)

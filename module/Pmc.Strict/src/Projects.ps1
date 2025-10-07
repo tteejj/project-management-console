@@ -1,6 +1,62 @@
 # Projects.ps1 - Project management functions
 # Core project CRUD operations for PMC
 
+function Invoke-PmcCreateProjectCore {
+    param(
+        [Parameter(Mandatory=$true)][string]$Name,
+        [string]$Description = ''
+    )
+
+    try {
+        $allData = Get-PmcAllData
+
+        if (-not $allData.projects) { $allData.projects = @() }
+
+        # Normalize any string entries to objects to ensure consistent checks
+        try {
+            $normalized = @()
+            foreach ($p in @($allData.projects)) {
+                if ($p -is [string]) {
+                    $normalized += [pscustomobject]@{
+                        id = [guid]::NewGuid().ToString()
+                        name = $p
+                        description = ''
+                        created = (Get-Date).ToString('yyyy-MM-dd HH:mm:ss')
+                        status = 'active'
+                        tags = @()
+                    }
+                } else {
+                    $normalized += $p
+                }
+            }
+            $allData.projects = $normalized
+        } catch {}
+
+        # Duplicate check (case-sensitive to match prior behavior)
+        $existing = @($allData.projects | Where-Object { $_.PSObject.Properties['name'] -and $_.name -eq $Name })
+        if ($existing.Count -gt 0) {
+            return @{ Type='error'; Message=("Project '{0}' already exists" -f $Name) }
+        }
+
+        # Build new record matching CLI shape
+        $newProject = [pscustomobject]@{
+            id = [guid]::NewGuid().ToString()
+            name = $Name
+            description = $Description
+            created = (Get-Date).ToString('yyyy-MM-dd HH:mm:ss')
+            status = 'active'
+            tags = @()
+        }
+
+        $allData.projects += $newProject
+        Set-PmcAllData $allData
+
+        return @{ Type='success'; Message=("Project '{0}' created" -f $Name); Data=$newProject }
+    } catch {
+        return @{ Type='error'; Message=("Error creating project: {0}" -f $_) }
+    }
+}
+
 function Add-PmcProject {
     param([PmcCommandContext]$Context)
 
@@ -15,38 +71,13 @@ function Add-PmcProject {
     $projectName = $Context.FreeText[0]
     $description = if ($Context.FreeText.Count -gt 1) { ($Context.FreeText[1..($Context.FreeText.Count-1)] -join ' ') } else { "" }
 
-    try {
-        # Load existing data
-        $allData = Get-PmcAllData
-
-        # Check if project already exists
-        $existing = $allData.projects | Where-Object { $_.name -eq $projectName }
-        if ($existing) {
-            Write-PmcStyled -Style 'Error' -Text "Project '$projectName' already exists"
-            return
-        }
-
-        # Create new project
-        $newProject = @{
-            id = [guid]::NewGuid().ToString()
-            name = $projectName
-            description = $description
-            created = (Get-Date).ToString('yyyy-MM-dd HH:mm:ss')
-            status = 'active'
-            tags = @()
-        }
-
-        # Add to data
-        if (-not $allData.projects) { $allData.projects = @() }
-        $allData.projects += $newProject
-
-        # Save data
-        Set-PmcAllData $allData
-
-        Write-PmcStyled -Style 'Success' -Text "✓ Project '$projectName' created"
-
-    } catch {
-        Write-PmcStyled -Style 'Error' -Text "Error creating project: $_"
+    $result = Invoke-PmcCreateProjectCore -Name $projectName -Description $description
+    if ($result -is [hashtable] -and $result.ContainsKey('Type') -and $result['Type'] -eq 'success') {
+        Write-PmcStyled -Style 'Success' -Text ("Project '{0}' created" -f $projectName)
+    } else {
+        $msg = if ($result -is [hashtable] -and $result.ContainsKey('Message')) { [string]$result['Message'] } else { [string]$result }
+        if (-not $msg) { $msg = "Failed to create project" }
+        Write-PmcStyled -Style 'Error' -Text $msg
     }
 }
 
@@ -361,4 +392,4 @@ function Get-PmcRecentProjects {
 }
 
 # Export all project functions
-Export-ModuleMember -Function Add-PmcProject, Show-PmcProject, Set-PmcProject, Edit-PmcProject, Rename-PmcProject, Remove-PmcProject, Set-PmcProjectArchived, Set-PmcProjectFields, Show-PmcProjectFields, Get-PmcProjectStats, Show-PmcProjectInfo, Get-PmcRecentProjects
+Export-ModuleMember -Function Invoke-PmcCreateProjectCore, Add-PmcProject, Show-PmcProject, Set-PmcProject, Edit-PmcProject, Rename-PmcProject, Remove-PmcProject, Set-PmcProjectArchived, Set-PmcProjectFields, Show-PmcProjectFields, Get-PmcProjectStats, Show-PmcProjectInfo, Get-PmcRecentProjects

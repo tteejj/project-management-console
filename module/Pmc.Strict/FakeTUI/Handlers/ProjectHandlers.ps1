@@ -28,7 +28,9 @@ function Invoke-ProjectEditHandler {
     try {
         $data = Get-PmcAllData
 
-        if ($data.projects -notcontains $projectName) {
+        # Find project by name within object array (handle legacy string entries)
+        $proj = @($data.projects | Where-Object { ($_-is [string] -and $_ -eq $projectName) -or ($_.PSObject.Properties['name'] -and $_.name -eq $projectName) })
+        if ($proj.Count -eq 0) {
             $app.terminal.WriteAtColor(4, 9, "Project '$projectName' not found!", [PmcVT100]::Red(), "")
             Start-Sleep -Milliseconds 2000
             $app.currentView = 'main'
@@ -83,7 +85,9 @@ function Invoke-ProjectInfoHandler {
     try {
         $data = Get-PmcAllData
 
-        if ($data.projects -notcontains $projectName) {
+        # Find project by name within object array (handle legacy string entries)
+        $proj = @($data.projects | Where-Object { ($_-is [string] -and $_ -eq $projectName) -or ($_.PSObject.Properties['name'] -and $_.name -eq $projectName) })
+        if ($proj.Count -eq 0) {
             $app.terminal.WriteAtColor(4, 9, "Project '$projectName' not found!", [PmcVT100]::Red(), "")
             Start-Sleep -Milliseconds 2000
             $app.currentView = 'main'
@@ -199,4 +203,3 @@ function Invoke-RecentProjectsHandler {
     $app.currentView = 'main'
     $app.DrawLayout()
 }
-

@@ -27,6 +27,27 @@ foreach ($file in $requiredFiles) {
 # Initialize security system to set up default allowed paths
 Initialize-PmcSecuritySystem
 
+# Compute a safe, static default root for file pickers (avoid per-method OS checks)
+try {
+    $Script:DefaultPickerRoot = '/'
+    $isWin = $false
+    try { if ($env:OS -like '*Windows*') { $isWin = $true } } catch {}
+    if (-not $isWin) {
+        try { if ([System.Environment]::OSVersion.Platform -eq [System.PlatformID]::Win32NT) { $isWin = $true } } catch {}
+    }
+    if ($isWin) { $Script:DefaultPickerRoot = 'C:\' }
+    if (-not (Test-Path $Script:DefaultPickerRoot)) { $Script:DefaultPickerRoot = (Get-Location).Path }
+} catch { $Script:DefaultPickerRoot = (Get-Location).Path }
+
+# Global error trapping and strict error behavior for better diagnostics
+try { $global:ErrorActionPreference = 'Stop' } catch {}
+trap {
+    try {
+        Write-FakeTUIDebug ("TRAP: {0} | STACK: {1}" -f $_.Exception.Message, $_.ScriptStackTrace) 'TRAP'
+    } catch {}
+    throw
+}
+
 # === PERFORMANCE CORE ===
 class PmcStringCache {
     static [hashtable]$_spaces = @{}
@@ -493,21 +514,32 @@ function Show-InputForm {
     $y = 7
 
     foreach ($field in $Fields) {
-        $label = $field.Label
-        $name = $field.Name
-        $required = if ($field.Required) { $field.Required } else { $false }
-        $type = if ($field.Type) { $field.Type } else { 'text' }
+        # Safely resolve field metadata for both hashtable and PSCustomObject
+        $label = $null; $name = $null; $required = $false; $type = 'text'; $options = $null
+        if ($field -is [hashtable]) {
+            $label = $field['Label']
+            $name = $field['Name']
+            $required = try { [bool]$field['Required'] } catch { $false }
+            $type = if ($field.ContainsKey('Type') -and $field['Type']) { [string]$field['Type'] } else { 'text' }
+            $options = if ($field.ContainsKey('Options')) { $field['Options'] } else { $null }
+        } else {
+            $label = $field.Label
+            $name = $field.Name
+            $required = if ($field.PSObject.Properties['Required'] -and $field.Required) { [bool]$field.Required } else { $false }
+            $type = if ($field.PSObject.Properties['Type'] -and $field.Type) { [string]$field.Type } else { 'text' }
+            $options = if ($field.PSObject.Properties['Options']) { $field.Options } else { $null }
+        }
 
         $terminal.WriteAt([int]($boxX + 2), $y, "${label}:")
 
-        if ($type -eq 'select' -and $field.Options) {
+        if ($type -eq 'select' -and $options) {
             # Show selection prompt
             $terminal.WriteAt([int]($boxX + 2), $y + 1, "> [Press Enter to select]")
             [Console]::SetCursorPosition([int]($boxX + 4), $y + 1)
             $key = [Console]::ReadKey($true)
 
             if ($key.Key -eq 'Enter') {
-                $value = Show-SelectList -Title $label -Options $field.Options
+                $value = Show-SelectList -Title $label -Options $options
                 if ($null -eq $value) {
                     # User pressed Escape in selection
                     return $null
@@ -519,8 +551,10 @@ function Show-InputForm {
                 # Redraw previous fields
                 $prevY = 7
                 foreach ($prevName in $results.Keys) {
-                    $prevField = $Fields | Where-Object { $_.Name -eq $prevName } | Select-Object -First 1
-                    $terminal.WriteAt([int]($boxX + 2), $prevY, "$($prevField.Label): $($results[$prevName])")
+                    $prevField = $Fields | Where-Object { ($_ -is [hashtable] -and $_['Name'] -eq $prevName) -or ($_.PSObject.Properties['Name'] -and $_.Name -eq $prevName) } | Select-Object -First 1
+                    $prevLabel = if ($prevField -is [hashtable]) { $prevField['Label'] } else { $prevField.Label }
+                    # Use braces around variable before ':' to avoid PowerShell scoped-variable parse error
+                    $terminal.WriteAt([int]($boxX + 2), $prevY, "${prevLabel}: $($results[$prevName])")
                     $prevY += 2
                 }
 
@@ -949,6 +983,165 @@ class PmcCLIAdapter {
 }
 
 # === MAIN APP ===
+function Show-FakeTUIFooter {
+    param($app,[string]$msg)
+    try { $Host.UI.RawUI.FlushInputBuffer() | Out-Null } catch {}
+    $y = $app.terminal.Height - 1
+    $app.terminal.FillArea(0, $y, $app.terminal.Width, 1, ' ')
+    $app.terminal.WriteAt(2, $y, $msg)
+}
+
+function Browse-FakeTUIPath {
+    param($app,[string]$StartPath,[bool]$DirectoriesOnly=$false)
+    $cwd = if ($StartPath -and (Test-Path $StartPath)) {
+        if (Test-Path $StartPath -PathType Leaf) { Split-Path -Parent $StartPath } else { $StartPath }
+    } else { (Get-Location).Path }
+    $selected = 0; $topIndex = 0
+    while ($true) {
+        $items = @()
+        try { $dirs = @(Get-ChildItem -Force -Directory -LiteralPath $cwd | Sort-Object Name) } catch { $dirs=@() }
+        try { $files = if ($DirectoriesOnly) { @() } else { @(Get-ChildItem -Force -File -LiteralPath $cwd | Sort-Object Name) } } catch { $files=@() }
+        $items += ([pscustomobject]@{ Kind='Up'; Name='..' })
+        foreach ($d in $dirs) { $items += [pscustomobject]@{ Kind='Dir'; Name=$d.Name } }
+        foreach ($f in $files) { $items += [pscustomobject]@{ Kind='File'; Name=$f.Name } }
+        if ($selected -ge $items.Count) { $selected = [Math]::Max(0, $items.Count-1) }
+        if ($selected -lt 0) { $selected = 0 }
+
+        $app.terminal.Clear(); $app.menuSystem.DrawMenuBar()
+        $kind = 'File'; if ($DirectoriesOnly) { $kind = 'Folder' }
+        $title = " Select $kind "
+        $titleX = ($app.terminal.Width - $title.Length) / 2
+        $app.terminal.WriteAtColor([int]$titleX, 3, $title, [PmcVT100]::BgBlue(), [PmcVT100]::White())
+        $app.terminal.WriteAtColor(4, 5, "Current: $cwd", [PmcVT100]::Cyan(), "")
+
+        $listTop = 7
+        $maxVisible = [Math]::Max(5, [Math]::Min(25, $app.terminal.Height - $listTop - 3))
+        if ($selected -lt $topIndex) { $topIndex = $selected }
+        if ($selected -ge ($topIndex + $maxVisible)) { $topIndex = $selected - $maxVisible + 1 }
+        for ($row=0; $row -lt $maxVisible; $row++) {
+            $idx = $topIndex + $row
+            $line = ''
+            if ($idx -lt $items.Count) {
+                $item = $items[$idx]
+                $tag = if ($item.Kind -eq 'Dir') { '[D]' } elseif ($item.Kind -eq 'File') { '[F]' } else { '  ' }
+                $line = "$tag $($item.Name)"
+            }
+            $prefix = if (($topIndex + $row) -eq $selected) { '> ' } else { '  ' }
+            $color = if (($topIndex + $row) -eq $selected) { [PmcVT100]::Yellow() } else { [PmcVT100]::White() }
+            $app.terminal.WriteAtColor(4, $listTop + $row, ($prefix + $line).PadRight($app.terminal.Width - 8), $color, "")
+        }
+        Show-FakeTUIFooter $app "↑/↓ scroll  |  Enter: select  |  → open folder  |  ←/Backspace up  |  Esc cancel"
+        $key = [Console]::ReadKey($true)
+        switch ($key.Key) {
+            'UpArrow' { if ($selected -gt 0) { $selected--; if ($selected -lt $topIndex) { $topIndex = $selected } } }
+            'DownArrow' { if ($selected -lt $items.Count-1) { $selected++; if ($selected -ge $topIndex+$maxVisible) { $topIndex = $selected - $maxVisible + 1 } } }
+            'PageUp' { $selected = [Math]::Max(0, $selected - $maxVisible); $topIndex = [Math]::Max(0, $topIndex - $maxVisible) }
+            'PageDown' { $selected = [Math]::Min($items.Count-1, $selected + $maxVisible); if ($selected -ge $topIndex+$maxVisible) { $topIndex = $selected - $maxVisible + 1 } }
+            'Home' { $selected = 0; $topIndex = 0 }
+            'End' { $selected = [Math]::Max(0, $items.Count-1); $topIndex = [Math]::Max(0, $items.Count - $maxVisible) }
+            'LeftArrow' { $cwd = Split-Path -Parent $cwd }
+            'Backspace' { $cwd = Split-Path -Parent $cwd }
+            'RightArrow' { if ($items.Count -gt 0) { $it=$items[$selected]; if ($it.Kind -eq 'Dir') { $cwd = Join-Path $cwd $it.Name } } }
+            'Escape' { return $null }
+            'Enter' {
+                if ($items.Count -eq 0) { continue }
+                $it = $items[$selected]
+                if ($it.Kind -eq 'Up') { $cwd = Split-Path -Parent $cwd }
+                elseif ($it.Kind -eq 'Dir') { return (Join-Path $cwd $it.Name) }
+                else { return (Join-Path $cwd $it.Name) }
+            }
+        }
+    }
+}
+
+function Select-FakeTUIPathAt {
+    param($app,[string]$Hint,[int]$Col,[int]$Row,[string]$StartPath,[bool]$DirectoriesOnly=$false)
+    Show-FakeTUIFooter $app ("$Hint  |  Enter: Pick  |  Esc: Cancel")
+    [Console]::SetCursorPosition($Col, $Row)
+    $key = [Console]::ReadKey($true)
+    if ($key.Key -eq 'Escape') { Show-FakeTUIFooter $app "Enter values; Enter = next, Esc = cancel"; return '' }
+    $sel = Browse-FakeTUIPath -app $app -StartPath $StartPath -DirectoriesOnly:$DirectoriesOnly
+    Show-FakeTUIFooter $app "Enter values; Enter = next, Esc = cancel"
+    return ($sel ?? '')
+}
+
+function Get-FakeTUISelectedProjectName {
+    param($app)
+    try {
+        if ($app.currentView -eq 'projectlist') {
+            if ($app.selectedProjectIndex -lt $app.projects.Count) {
+                $p = $app.projects[$app.selectedProjectIndex]
+                $pname = $null
+                if ($p -is [string]) { $pname = $p } else { $pname = $p.name }
+                return $pname
+            }
+        }
+        if ($app.filterProject) { return $app.filterProject }
+    } catch {}
+    return $null
+}
+
+function Open-SystemPath {
+    param([string]$Path,[bool]$IsDir=$false)
+    try {
+        if (-not $Path -or -not (Test-Path $Path)) { return $false }
+        $isWin = $false
+        try { if ($env:OS -like '*Windows*') { $isWin = $true } } catch {}
+        if (-not $isWin) { try { if ([System.Environment]::OSVersion.Platform -eq [System.PlatformID]::Win32NT) { $isWin = $true } } catch {} }
+        if ($isWin) {
+            if ($IsDir) { Start-Process -FilePath explorer.exe -ArgumentList @("$Path") | Out-Null }
+            else { Start-Process -FilePath "$Path" | Out-Null }
+            return $true
+        } else {
+            $cmd = 'xdg-open'
+            if (-not (Get-Command $cmd -ErrorAction SilentlyContinue)) { $cmd = 'gio'; $args = @('open', "$Path") } else { $args = @("$Path") }
+            Start-Process -FilePath $cmd -ArgumentList $args | Out-Null
+            return $true
+        }
+    } catch { return $false }
+}
+
+function Open-FakeTUIProjectPath {
+    param($app,[string]$Field)
+    $projName = Get-FakeTUISelectedProjectName -app $app
+    if (-not $projName) { Show-InfoMessage -Message "Select a project first (Projects → Project List)" -Title "Info" -Color "Yellow"; return }
+    try {
+        $data = Get-PmcAllData
+        $proj = $data.projects | ForEach-Object {
+            if ($_ -is [string]) { if ($_ -eq $projName) { $_ } } else { if ($_.name -eq $projName) { $_ } }
+        } | Select-Object -First 1
+        if (-not $proj) { Show-InfoMessage -Message "Project not found: $projName" -Title "Error" -Color "Red"; return }
+        $path = $null
+        if ($proj.PSObject.Properties[$Field]) { $path = $proj.$Field }
+        if (-not $path -or [string]::IsNullOrWhiteSpace($path)) { Show-InfoMessage -Message "$Field not set for project" -Title "Error" -Color "Red"; return }
+        $isDir = ($Field -eq 'ProjFolder')
+        if (Open-SystemPath -Path $path -IsDir:$isDir) {
+            Show-InfoMessage -Message "Opened: $path" -Title "Success" -Color "Green"
+        } else {
+            Show-InfoMessage -Message "Failed to open: $path" -Title "Error" -Color "Red"
+        }
+    } catch {
+        Show-InfoMessage -Message "Failed to open: $_" -Title "Error" -Color "Red"
+    }
+}
+
+function Draw-FakeTUIProjectFormValues {
+    param($app,[int]$RowStart,[hashtable]$Inputs)
+    try {
+        $app.terminal.WriteAt(28, $RowStart + 0, [string]($Inputs.Name ?? ''))
+        $app.terminal.WriteAt(16, $RowStart + 1, [string]($Inputs.Description ?? ''))
+        $app.terminal.WriteAt(9,  $RowStart + 2, [string]($Inputs.ID1 ?? ''))
+        $app.terminal.WriteAt(9,  $RowStart + 3, [string]($Inputs.ID2 ?? ''))
+        $app.terminal.WriteAt(20, $RowStart + 4, [string]($Inputs.ProjFolder ?? ''))
+        $app.terminal.WriteAt(14, $RowStart + 5, [string]($Inputs.CAAName ?? ''))
+        $app.terminal.WriteAt(17, $RowStart + 6, [string]($Inputs.RequestName ?? ''))
+        $app.terminal.WriteAt(11, $RowStart + 7, [string]($Inputs.T2020 ?? ''))
+        $app.terminal.WriteAt(32, $RowStart + 8, [string]($Inputs.AssignedDate ?? ''))
+        $app.terminal.WriteAt(27, $RowStart + 9, [string]($Inputs.DueDate ?? ''))
+        $app.terminal.WriteAt(26, $RowStart + 10, [string]($Inputs.BFDate ?? ''))
+    } catch {}
+}
+
 class PmcFakeTUIApp {
     [PmcSimpleTerminal]$terminal
     [PmcMenuSystem]$menuSystem
@@ -1048,10 +1241,10 @@ class PmcFakeTUIApp {
         try {
             $data = Get-PmcAllData
             $this.projects = if ($data.PSObject.Properties['projects']) {
-                @($data.projects | Where-Object { $_ -ne $null })
-            } else {
-                @()
-            }
+                @($data.projects | Where-Object { $_ -ne $null } | ForEach-Object {
+                    if ($_ -is [string]) { [pscustomobject]@{ name = $_ } } else { $_ }
+                })
+            } else { @() }
         } catch {
             $this.projects = @()
         }
@@ -1071,6 +1264,7 @@ class PmcFakeTUIApp {
     }
 
     [void] Initialize() {
+        Write-FakeTUIDebug "Initialize() called" "APP"
         $this.terminal.Initialize()
         # Skip landing screen - go straight to task list
         $this.currentView = 'tasklist'
@@ -1227,6 +1421,7 @@ class PmcFakeTUIApp {
                 'project:stats' { $this.currentView = 'projectstats' }
                 'project:info' { $this.currentView = 'projectinfo' }
                 'project:recent' { $this.currentView = 'projectrecent' }
+                # project open actions moved to Project List hotkeys
 
                 # Time menu
                 'time:add' { $this.currentView = 'timeadd' }
@@ -1291,183 +1486,210 @@ class PmcFakeTUIApp {
         }
     }
 
-    [void] DisplayResult([hashtable]$result) {
+    [void] DisplayResult([object]$result) {
         $contentY = 5
         $this.terminal.FillArea(2, $contentY, $this.terminal.Width - 4, $this.terminal.Height - 8, ' ')
-        switch ($result.Type) {
-            'success' { $this.terminal.WriteAtColor(4, $contentY, "✓ SUCCESS: " + $result.Message, [PmcVT100]::Green(), "") }
-            'error' { $this.terminal.WriteAtColor(4, $contentY, "✗ ERROR: " + $result.Message, [PmcVT100]::Red(), "") }
-            'info' { $this.terminal.WriteAtColor(4, $contentY, "ℹ INFO: " + $result.Message, [PmcVT100]::Cyan(), "") }
-            'exit' { $this.running = $false; return }
+
+        # Normalize result to ensure Type/Message/Data are available
+        $type = 'info'
+        $message = '(no result)'
+        $dataOut = $null
+
+        if ($null -ne $result) {
+            if ($result -is [hashtable]) {
+                if ($result.ContainsKey('Type') -and $result['Type']) { $type = [string]$result['Type'] }
+                if ($result.ContainsKey('Message') -and $null -ne $result['Message']) { $message = [string]$result['Message'] } else { $message = [string]$result }
+                if ($result.ContainsKey('Data')) { $dataOut = $result['Data'] }
+            } else {
+                # Try to read as object with properties; fall back to string
+                if ($result.PSObject -and $result.PSObject.Properties['Type'] -and $result.Type) { $type = [string]$result.Type }
+                if ($result.PSObject -and $result.PSObject.Properties['Message']) { $message = [string]$result.Message } else { $message = [string]$result }
+                if ($result.PSObject -and $result.PSObject.Properties['Data']) { $dataOut = $result.Data }
+            }
         }
-        if ($result.Data) { $this.terminal.WriteAt(4, $contentY + 2, [string]$result.Data) }
-        $this.statusMessage = "$($result.Type.ToUpper()): $($result.Message)"
+
+        switch ($type) {
+            'success' { $this.terminal.WriteAtColor(4, $contentY, "✓ SUCCESS: " + $message, [PmcVT100]::Green(), "") }
+            'error' { $this.terminal.WriteAtColor(4, $contentY, "✗ ERROR: " + $message, [PmcVT100]::Red(), "") }
+            'info' { $this.terminal.WriteAtColor(4, $contentY, "ℹ INFO: " + $message, [PmcVT100]::Cyan(), "") }
+            'exit' { $this.running = $false; return }
+            default { $this.terminal.WriteAtColor(4, $contentY, "ℹ INFO: " + $message, [PmcVT100]::Cyan(), "") }
+        }
+
+        if ($dataOut) { $this.terminal.WriteAt(4, $contentY + 2, [string]$dataOut) }
+        $this.statusMessage = "${type}: $message".ToUpper()
         $this.UpdateStatus()
     }
 
     [void] Run() {
+        Write-FakeTUIDebug "Run() entered" "APP"
         while ($this.running) {
-            if ($this.currentView -eq 'tasklist') {
-                $this.HandleTaskListView()
-            } elseif ($this.currentView -eq 'taskdetail') {
-                $this.HandleTaskDetailView()
-            } elseif ($this.currentView -eq 'taskadd') {
-                $this.HandleTaskAddForm()
-            } elseif ($this.currentView -eq 'taskedit') {
-                # Already handled in HandleTaskDetailView
-            } elseif ($this.currentView -eq 'projectfilter') {
-                $this.HandleProjectFilter()
-            } elseif ($this.currentView -eq 'search') {
-                $this.HandleSearchForm()
-            } elseif ($this.currentView -eq 'help') {
-                $this.HandleHelpView()
-            } elseif ($this.currentView -eq 'projectselect') {
-                # Already handled in HandleTaskDetailView
-            } elseif ($this.currentView -eq 'duedateedit') {
-                # Already handled in HandleTaskDetailView
-            } elseif ($this.currentView -eq 'multiselect') {
-                # Already handled in HandleTaskListView
-            } elseif ($this.currentView -eq 'multipriority') {
-                # Already handled in HandleMultiSelectMode
-            } elseif ($this.currentView -eq 'todayview') {
-                $this.HandleSpecialView()
-            } elseif ($this.currentView -eq 'overdueview') {
-                $this.HandleSpecialView()
-            } elseif ($this.currentView -eq 'upcomingview') {
-                $this.HandleSpecialView()
-            } elseif ($this.currentView -eq 'blockedview') {
-                $this.HandleSpecialView()
-            } elseif ($this.currentView -eq 'focusstatus') {
-                $this.HandleFocusStatusView()
-            } elseif ($this.currentView -eq 'timeadd') {
-                $this.HandleTimeAddForm()
-            } elseif ($this.currentView -eq 'timelist') {
-                $this.HandleTimeListView()
-            } elseif ($this.currentView -eq 'timereport') {
-                $this.HandleSpecialView()
-            } elseif ($this.currentView -eq 'projectlist') {
-                $this.HandleProjectListView()
-            } elseif ($this.currentView -eq 'projectcreate') {
-                $this.HandleProjectCreateForm()
-            } elseif ($this.currentView -eq 'projectrename') {
-                $this.HandleProjectRenameForm()
-            } elseif ($this.currentView -eq 'projectarchive') {
-                $this.HandleProjectArchiveForm()
-            } elseif ($this.currentView -eq 'projectdelete') {
-                $this.HandleProjectDeleteForm()
-            } elseif ($this.currentView -eq 'projectstats') {
-                $this.HandleProjectStatsView()
-            } elseif ($this.currentView -eq 'timeedit') {
-                $this.HandleTimeEditForm()
-            } elseif ($this.currentView -eq 'timedelete') {
-                $this.HandleTimeDeleteForm()
-            } elseif ($this.currentView -eq 'taskimport') {
-                $this.HandleTaskImportForm()
-            } elseif ($this.currentView -eq 'taskexport') {
-                $this.HandleTaskExportForm()
-            } elseif ($this.currentView -eq 'timerstatus') {
-                $this.HandleSpecialView()
-            } elseif ($this.currentView -eq 'taskedit') {
-                $this.HandleTaskEditForm()
-            } elseif ($this.currentView -eq 'taskcomplete') {
-                $this.HandleTaskCompleteForm()
-            } elseif ($this.currentView -eq 'taskdelete') {
-                $this.HandleTaskDeleteForm()
-            } elseif ($this.currentView -eq 'depadd') {
-                $this.HandleDepAddForm()
-            } elseif ($this.currentView -eq 'depremove') {
-                $this.HandleDepRemoveForm()
-            } elseif ($this.currentView -eq 'depshow') {
-                $this.HandleDepShowForm()
-            } elseif ($this.currentView -eq 'depgraph') {
-                $this.HandleDependencyGraph()
-            } elseif ($this.currentView -eq 'filerestore') {
-                $this.HandleFileRestoreForm()
-            } elseif ($this.currentView -eq 'editundo') {
-                $this.HandleSpecialView()
-            } elseif ($this.currentView -eq 'editredo') {
-                $this.HandleSpecialView()
-            } elseif ($this.currentView -eq 'tomorrowview') {
-                $this.HandleSpecialView()
-            } elseif ($this.currentView -eq 'weekview') {
-                $this.HandleSpecialView()
-            } elseif ($this.currentView -eq 'monthview') {
-                $this.HandleSpecialView()
-            } elseif ($this.currentView -eq 'noduedateview') {
-                $this.HandleSpecialView()
-            } elseif ($this.currentView -eq 'nextactionsview') {
-                $this.HandleSpecialView()
-            } elseif ($this.currentView -eq 'kanbanview') {
-                $this.HandleSpecialView()
-            } elseif ($this.currentView -eq 'burndownview') {
-                $this.HandleBurndownChart()
-            } elseif ($this.currentView -eq 'toolsreview') {
-                $this.HandleStartReview()
-            } elseif ($this.currentView -eq 'toolswizard') {
-                $this.HandleProjectWizard()
-            } elseif ($this.currentView -eq 'toolsconfig') {
-                $this.HandleConfigEditor()
-            } elseif ($this.currentView -eq 'toolstheme') {
-                $this.HandleSpecialView()
-            } elseif ($this.currentView -eq 'toolsaliases') {
-                $this.HandleManageAliases()
-            } elseif ($this.currentView -eq 'toolsweeklyreport') {
-                $this.HandleWeeklyReport()
-            } elseif ($this.currentView -eq 'agendaview') {
-                $this.HandleSpecialView()
-            } elseif ($this.currentView -eq 'taskcopy') {
-                $this.HandleCopyTaskForm()
-            } elseif ($this.currentView -eq 'taskmove') {
-                $this.HandleMoveTaskForm()
-            } elseif ($this.currentView -eq 'taskpriority') {
-                $this.HandleSetPriorityForm()
-            } elseif ($this.currentView -eq 'taskpostpone') {
-                $this.HandlePostponeTaskForm()
-            } elseif ($this.currentView -eq 'tasknote') {
-                $this.HandleAddNoteForm()
-            } elseif ($this.currentView -eq 'projectedit') {
-                $this.HandleEditProjectForm()
-            } elseif ($this.currentView -eq 'projectinfo') {
-                $this.HandleProjectInfoView()
-            } elseif ($this.currentView -eq 'projectrecent') {
-                $this.HandleRecentProjectsView()
-            } elseif ($this.currentView -eq 'timerstart') {
-                $this.HandleSpecialView()
-            } elseif ($this.currentView -eq 'timerstop') {
-                $this.HandleSpecialView()
-            } elseif ($this.currentView -eq 'focusclear') {
-                $this.HandleSpecialView()
-            } elseif ($this.currentView -eq 'toolstemplates') {
-                $this.HandleTemplates()
-            } elseif ($this.currentView -eq 'toolsstatistics') {
-                $this.HandleStatistics()
-            } elseif ($this.currentView -eq 'toolsvelocity') {
-                $this.HandleVelocity()
-            } elseif ($this.currentView -eq 'toolspreferences') {
-                $this.HandlePreferences()
-            } elseif ($this.currentView -eq 'toolsquery') {
-                $this.HandleQueryBrowser()
-            } elseif ($this.currentView -eq 'helpbrowser') {
-                $this.HandleHelpBrowser()
-            } elseif ($this.currentView -eq 'helpcategories') {
-                $this.HandleHelpCategories()
-            } elseif ($this.currentView -eq 'helpsearch') {
-                $this.HandleHelpSearch()
-            } elseif ($this.currentView -eq 'helpabout') {
-                $this.HandleAboutPMC()
-            } elseif ($this.currentView -eq 'filebackup') {
-                $this.HandleBackupView()
-            } elseif ($this.currentView -eq 'fileclearbackups') {
-                $this.HandleClearBackupsView()
-            } elseif ($this.currentView -eq 'focusset') {
-                $this.HandleFocusSetForm()
-            } else {
-                # Fallback: show menu and process action
-                $action = $this.menuSystem.HandleInput()
-                if ($action) {
-                    # Use centralized action routing
-                    $this.ProcessMenuAction($action)
+            try {
+                if ($this.currentView -eq 'tasklist') {
+                    $this.HandleTaskListView()
+                } elseif ($this.currentView -eq 'taskdetail') {
+                    $this.HandleTaskDetailView()
+                } elseif ($this.currentView -eq 'taskadd') {
+                    $this.HandleTaskAddForm()
+                } elseif ($this.currentView -eq 'taskedit') {
+                    # Already handled in HandleTaskDetailView
+                } elseif ($this.currentView -eq 'projectfilter') {
+                    $this.HandleProjectFilter()
+                } elseif ($this.currentView -eq 'search') {
+                    $this.HandleSearchForm()
+                } elseif ($this.currentView -eq 'help') {
+                    $this.HandleHelpView()
+                } elseif ($this.currentView -eq 'projectselect') {
+                    # Already handled in HandleTaskDetailView
+                } elseif ($this.currentView -eq 'duedateedit') {
+                    # Already handled in HandleTaskDetailView
+                } elseif ($this.currentView -eq 'multiselect') {
+                    # Already handled in HandleTaskListView
+                } elseif ($this.currentView -eq 'multipriority') {
+                    # Already handled in HandleMultiSelectMode
+                } elseif ($this.currentView -eq 'todayview') {
+                    $this.HandleSpecialView()
+                } elseif ($this.currentView -eq 'overdueview') {
+                    $this.HandleSpecialView()
+                } elseif ($this.currentView -eq 'upcomingview') {
+                    $this.HandleSpecialView()
+                } elseif ($this.currentView -eq 'blockedview') {
+                    $this.HandleSpecialView()
+                } elseif ($this.currentView -eq 'focusstatus') {
+                    $this.HandleFocusStatusView()
+                } elseif ($this.currentView -eq 'timeadd') {
+                    $this.HandleTimeAddForm()
+                } elseif ($this.currentView -eq 'timelist') {
+                    $this.HandleTimeListView()
+                } elseif ($this.currentView -eq 'timereport') {
+                    $this.HandleSpecialView()
+                } elseif ($this.currentView -eq 'projectlist') {
+                    $this.HandleProjectListView()
+                } elseif ($this.currentView -eq 'projectcreate') {
+                    $this.HandleProjectCreateForm()
+                } elseif ($this.currentView -eq 'projectrename') {
+                    $this.HandleProjectRenameForm()
+                } elseif ($this.currentView -eq 'projectarchive') {
+                    $this.HandleProjectArchiveForm()
+                } elseif ($this.currentView -eq 'projectdelete') {
+                    $this.HandleProjectDeleteForm()
+                } elseif ($this.currentView -eq 'projectstats') {
+                    $this.HandleProjectStatsView()
+                } elseif ($this.currentView -eq 'timeedit') {
+                    $this.HandleTimeEditForm()
+                } elseif ($this.currentView -eq 'timedelete') {
+                    $this.HandleTimeDeleteForm()
+                } elseif ($this.currentView -eq 'taskimport') {
+                    $this.HandleTaskImportForm()
+                } elseif ($this.currentView -eq 'taskexport') {
+                    $this.HandleTaskExportForm()
+                } elseif ($this.currentView -eq 'timerstatus') {
+                    $this.HandleSpecialView()
+                } elseif ($this.currentView -eq 'taskedit') {
+                    $this.HandleTaskEditForm()
+                } elseif ($this.currentView -eq 'taskcomplete') {
+                    $this.HandleTaskCompleteForm()
+                } elseif ($this.currentView -eq 'taskdelete') {
+                    $this.HandleTaskDeleteForm()
+                } elseif ($this.currentView -eq 'depadd') {
+                    $this.HandleDepAddForm()
+                } elseif ($this.currentView -eq 'depremove') {
+                    $this.HandleDepRemoveForm()
+                } elseif ($this.currentView -eq 'depshow') {
+                    $this.HandleDepShowForm()
+                } elseif ($this.currentView -eq 'depgraph') {
+                    $this.HandleDependencyGraph()
+                } elseif ($this.currentView -eq 'filerestore') {
+                    $this.HandleFileRestoreForm()
+                } elseif ($this.currentView -eq 'editundo') {
+                    $this.HandleSpecialView()
+                } elseif ($this.currentView -eq 'editredo') {
+                    $this.HandleSpecialView()
+                } elseif ($this.currentView -eq 'tomorrowview') {
+                    $this.HandleSpecialView()
+                } elseif ($this.currentView -eq 'weekview') {
+                    $this.HandleSpecialView()
+                } elseif ($this.currentView -eq 'monthview') {
+                    $this.HandleSpecialView()
+                } elseif ($this.currentView -eq 'noduedateview') {
+                    $this.HandleSpecialView()
+                } elseif ($this.currentView -eq 'nextactionsview') {
+                    $this.HandleSpecialView()
+                } elseif ($this.currentView -eq 'kanbanview') {
+                    $this.HandleSpecialView()
+                } elseif ($this.currentView -eq 'burndownview') {
+                    $this.HandleBurndownChart()
+                } elseif ($this.currentView -eq 'toolsreview') {
+                    $this.HandleStartReview()
+                } elseif ($this.currentView -eq 'toolswizard') {
+                    $this.HandleProjectWizard()
+                } elseif ($this.currentView -eq 'toolsconfig') {
+                    $this.HandleConfigEditor()
+                } elseif ($this.currentView -eq 'toolstheme') {
+                    $this.HandleSpecialView()
+                } elseif ($this.currentView -eq 'toolsaliases') {
+                    $this.HandleManageAliases()
+                } elseif ($this.currentView -eq 'toolsweeklyreport') {
+                    $this.HandleWeeklyReport()
+                } elseif ($this.currentView -eq 'agendaview') {
+                    $this.HandleSpecialView()
+                } elseif ($this.currentView -eq 'taskcopy') {
+                    $this.HandleCopyTaskForm()
+                } elseif ($this.currentView -eq 'taskmove') {
+                    $this.HandleMoveTaskForm()
+                } elseif ($this.currentView -eq 'taskpriority') {
+                    $this.HandleSetPriorityForm()
+                } elseif ($this.currentView -eq 'taskpostpone') {
+                    $this.HandlePostponeTaskForm()
+                } elseif ($this.currentView -eq 'tasknote') {
+                    $this.HandleAddNoteForm()
+                } elseif ($this.currentView -eq 'projectedit') {
+                    $this.HandleEditProjectForm()
+                } elseif ($this.currentView -eq 'projectinfo') {
+                    $this.HandleProjectInfoView()
+                } elseif ($this.currentView -eq 'projectrecent') {
+                    $this.HandleRecentProjectsView()
+                } elseif ($this.currentView -eq 'timerstart') {
+                    $this.HandleSpecialView()
+                } elseif ($this.currentView -eq 'timerstop') {
+                    $this.HandleSpecialView()
+                } elseif ($this.currentView -eq 'focusclear') {
+                    $this.HandleSpecialView()
+                } elseif ($this.currentView -eq 'toolstemplates') {
+                    $this.HandleTemplates()
+                } elseif ($this.currentView -eq 'toolsstatistics') {
+                    $this.HandleStatistics()
+                } elseif ($this.currentView -eq 'toolsvelocity') {
+                    $this.HandleVelocity()
+                } elseif ($this.currentView -eq 'toolspreferences') {
+                    $this.HandlePreferences()
+                } elseif ($this.currentView -eq 'toolsquery') {
+                    $this.HandleQueryBrowser()
+                } elseif ($this.currentView -eq 'helpbrowser') {
+                    $this.HandleHelpBrowser()
+                } elseif ($this.currentView -eq 'helpcategories') {
+                    $this.HandleHelpCategories()
+                } elseif ($this.currentView -eq 'helpsearch') {
+                    $this.HandleHelpSearch()
+                } elseif ($this.currentView -eq 'helpabout') {
+                    $this.HandleAboutPMC()
+                } elseif ($this.currentView -eq 'filebackup') {
+                    $this.HandleBackupView()
+                } elseif ($this.currentView -eq 'fileclearbackups') {
+                    $this.HandleClearBackupsView()
+                } elseif ($this.currentView -eq 'focusset') {
+                    $this.HandleFocusSetForm()
+                } else {
+                    # Fallback: show menu and process action
+                    $action = $this.menuSystem.HandleInput()
+                    if ($action) {
+                        # Use centralized action routing
+                        $this.ProcessMenuAction($action)
+                    }
                 }
+            } catch {
+                try { Write-FakeTUIDebug ("RUN LOOP EXCEPTION: {0} | STACK: {1}" -f $_.Exception.Message, $_.ScriptStackTrace) "APP" } catch {}
+                throw
             }
         }
     }
@@ -1530,7 +1752,7 @@ class PmcFakeTUIApp {
             $this.terminal.WriteAtColor(2, $y, $task.id.ToString(), [PmcVT100]::Cyan(), "")
             $this.terminal.WriteAtColor(8, $y, $statusIcon, $statusColor, "")
 
-            $text = $task.text ?? ""
+            $text = if ($null -ne $task.text) { $task.text } else { "" }
             $truncated = $false
             if ($text.Length -gt 44) {
                 $text = $text.Substring(0, 41) + "..."
@@ -1545,7 +1767,7 @@ class PmcFakeTUIApp {
             }
 
             # Show project and overdue indicator for main task
-            $project = $task.project ?? "none"
+            $project = if ($null -ne $task.project -and $task.project -ne '') { $task.project } else { 'none' }
             if ($project.Length -gt 15) { $project = $project.Substring(0, 12) + "..." }
             $this.terminal.WriteAtColor(76, $y, $project, [PmcVT100]::Gray(), "")
 
@@ -1794,9 +2016,9 @@ class PmcFakeTUIApp {
 
         $y = 4
         $this.terminal.WriteAtColor(4, $y++, "Text: $($task.text)", [PmcVT100]::Yellow(), "")
-        $this.terminal.WriteAtColor(4, $y++, "Status: $($task.status ?? 'none')", [PmcVT100]::Yellow(), "")
-        $this.terminal.WriteAtColor(4, $y++, "Priority: $($task.priority ?? 'none')", [PmcVT100]::Yellow(), "")
-        $this.terminal.WriteAtColor(4, $y++, "Project: $($task.project ?? 'none')", [PmcVT100]::Yellow(), "")
+        $this.terminal.WriteAtColor(4, $y++, "Status: $(if ($task.status) { $task.status } else { 'none' })", [PmcVT100]::Yellow(), "")
+        $this.terminal.WriteAtColor(4, $y++, "Priority: $(if ($task.priority) { $task.priority } else { 'none' })", [PmcVT100]::Yellow(), "")
+        $this.terminal.WriteAtColor(4, $y++, "Project: $(if ($task.project) { $task.project } else { 'none' })", [PmcVT100]::Yellow(), "")
 
         if ($task.PSObject.Properties['due'] -and $task.due) {
             $dueDisplay = $task.due
@@ -1841,7 +2063,7 @@ class PmcFakeTUIApp {
             if ($data.timelogs) {
                 $taskLogs = @($data.timelogs | Where-Object { $_.taskId -eq $task.id -or $_.task -eq $task.id })
                 if ($taskLogs.Count -gt 0) {
-                    $totalMinutes = ($taskLogs | ForEach-Object { $_.minutes ?? 0 } | Measure-Object -Sum).Sum
+                    $totalMinutes = ($taskLogs | ForEach-Object { if ($_.minutes) { $_.minutes } else { 0 } } | Measure-Object -Sum).Sum
                     $hours = [Math]::Floor($totalMinutes / 60)
                     $mins = $totalMinutes % 60
                     $y++
@@ -1918,7 +2140,7 @@ class PmcFakeTUIApp {
             }
             'P' {
                 $priorities = @('high', 'medium', 'low', 'none')
-                $currentIdx = $priorities.IndexOf($this.selectedTask.priority ?? 'none')
+                $currentIdx = $priorities.IndexOf($(if ($this.selectedTask.priority) { $this.selectedTask.priority } else { 'none' }))
                 $newIdx = ($currentIdx + 1) % $priorities.Count
                 $this.selectedTask.priority = if ($priorities[$newIdx] -eq 'none') { $null } else { $priorities[$newIdx] }
                 try {
@@ -2379,7 +2601,7 @@ class PmcFakeTUIApp {
         $titleX = ($this.terminal.Width - $title.Length) / 2
         $this.terminal.WriteAtColor([int]$titleX, 2, $title, [PmcVT100]::BgBlue(), [PmcVT100]::White())
 
-        $this.terminal.WriteAt(4, 5, "Current due date: $($this.selectedTask.due ?? 'none')")
+        $this.terminal.WriteAt(4, 5, "Current due date: $(if ($this.selectedTask.due) { $this.selectedTask.due } else { 'none' })")
         $this.terminal.WriteAt(4, 7, "Enter new due date (YYYY-MM-DD):")
         $this.terminal.WriteAt(4, 8, "> ")
         $this.terminal.WriteAt(4, 10, "Or press:")
@@ -2518,10 +2740,11 @@ class PmcFakeTUIApp {
             $this.terminal.WriteAt(8, $y, $task.id.ToString())
             $this.terminal.WriteAt(14, $y, $statusIcon)
 
-            $priChar = ($task.priority ?? 'none').Substring(0,1).ToUpper()
+            $priVal = if ($task.priority) { $task.priority } else { 'none' }
+            $priChar = $priVal.Substring(0,1).ToUpper()
             $this.terminal.WriteAt(24, $y, $priChar)
 
-            $text = $task.text ?? ""
+            $text = if ($task.text) { $task.text } else { "" }
             if ($text.Length -gt 45) { $text = $text.Substring(0, 42) + "..." }
             $this.terminal.WriteAt(30, $y, $text)
         }
@@ -2748,7 +2971,7 @@ class PmcFakeTUIApp {
 
         try {
             $data = Get-PmcAllData
-            $projectList = @($data.projects | Select-Object -ExpandProperty name)
+            $projectList = @($data.projects | ForEach-Object { if ($_ -is [string]) { $_ } else { $_.name } } | Where-Object { $_ })
 
             if ($projectList.Count -eq 0) {
                 $this.terminal.WriteAtColor(4, 6, "No projects available", [PmcVT100]::Yellow(), "")
@@ -2770,7 +2993,7 @@ class PmcFakeTUIApp {
     [void] HandleMultiProjectSelect([array]$taskIds) {
         try {
             $data = Get-PmcAllData
-            $projectList = @($data.projects | Select-Object -ExpandProperty name)
+            $projectList = @($data.projects | ForEach-Object { if ($_ -is [string]) { $_ } else { $_.name } } | Where-Object { $_ })
 
             if ($projectList.Count -eq 0) {
                 [Console]::ReadKey($true) | Out-Null
@@ -4736,7 +4959,7 @@ class PmcFakeTUIApp {
             $this.terminal.WriteAtColor(4, 6, "Error loading projects: $_", [PmcVT100]::Red(), "")
         }
 
-        $this.terminal.DrawFooter("↑↓:Nav | Enter:Select | A:Add | E:Edit | R:Rename | Del:Delete | I:Info | Esc:Back")
+        $this.terminal.DrawFooter("↑↓:Nav | Enter:Select | A:Add | E:Edit | Y:Rename | Del:Delete | I:Info | F:Open Folder | C:Open CAA | T:Open T2020 | R:Open Request | Esc:Back")
     }
 
     [void] HandleProjectListView() {
@@ -4792,7 +5015,7 @@ class PmcFakeTUIApp {
                     $this.currentView = 'projectedit'
                 }
             }
-            'R' {
+            'Y' {
                 $this.currentView = 'projectrename'
             }
             'Delete' {
@@ -4831,60 +5054,168 @@ class PmcFakeTUIApp {
                     # Set selected project for stats view (would need to add this property)
                 }
             }
+            'F' {
+                Open-FakeTUIProjectPath -app $this -Field 'ProjFolder'
+                $this.DrawProjectList()
+            }
+            'C' {
+                Open-FakeTUIProjectPath -app $this -Field 'CAAName'
+                $this.DrawProjectList()
+            }
+            'T' {
+                Open-FakeTUIProjectPath -app $this -Field 'T2020'
+                $this.DrawProjectList()
+            }
+            'R' {
+                Open-FakeTUIProjectPath -app $this -Field 'RequestName'
+                $this.DrawProjectList()
+            }
             'Escape' {
                 $this.currentView = 'main'
             }
         }
     }
 
-    [void] DrawProjectCreateForm() {
+    [void] DrawProjectCreateForm([int]$ActiveField = -1) {
         $this.terminal.Clear()
         $this.menuSystem.DrawMenuBar()
-
         $title = " Create New Project "
         $titleX = ($this.terminal.Width - $title.Length) / 2
         $this.terminal.WriteAtColor([int]$titleX, 3, $title, [PmcVT100]::BgBlue(), [PmcVT100]::White())
 
-        $this.terminal.WriteAtColor(4, 6, "Project Name:", [PmcVT100]::Yellow(), "")
+        $y = 6
+        $labels = @(
+            'Project Name (required):',
+            'Description:',
+            'ID1:',
+            'ID2:',
+            'Project Folder:',
+            'CAA Name:',
+            'Request Name:',
+            'T2020:',
+            'Assigned Date (yyyy-MM-dd):',
+            'Due Date (yyyy-MM-dd):',
+            'BF Date (yyyy-MM-dd):'
+        )
+        for ($i=0; $i -lt $labels.Count; $i++) {
+            $label = $labels[$i]
+            if ($ActiveField -eq $i) {
+                $this.terminal.WriteAtColor(2, $y, '> ', [PmcVT100]::Yellow(), "")
+                $this.terminal.WriteAtColor(4, $y, $label, [PmcVT100]::BgBlue(), [PmcVT100]::White())
+            } else {
+                $this.terminal.WriteAtColor(4, $y, $label, [PmcVT100]::Yellow(), "")
+            }
+            $y++
+        }
 
         $this.terminal.FillArea(0, $this.terminal.Height - 1, $this.terminal.Width, 1, ' ')
-        $this.terminal.WriteAt(2, $this.terminal.Height - 1, "Enter project name | Esc=Cancel")
+        $this.terminal.WriteAt(2, $this.terminal.Height - 1, "Enter values; Enter = next, Esc = cancel")
     }
 
     [void] HandleProjectCreateForm() {
-        # Use Show-InputForm widget
-        $fields = @(
-            @{Name='projectName'; Label='Project Name'; Required=$true}
-        )
+        $this.DrawProjectCreateForm()
 
-        $result = Show-InputForm -Title "Create New Project" -Fields $fields
+        $inputs = @{}
+        $rowStart = 6
+        $defaultRoot = $Script:DefaultPickerRoot
 
-        if ($null -eq $result) {
-            $this.currentView = 'main'
-            $this.DrawLayout()
-            return
+        $app = $this
+
+        # Helper functions moved to module-level (Show-FakeTUIFooter, Browse-FakeTUIPath, Select-FakeTUIPathAt)
+
+        function Read-LineAt([int]$col, [int]$row) {
+            [Console]::SetCursorPosition($col, $row)
+            [Console]::Write([PmcVT100]::Yellow())
+            $line = [Console]::ReadLine()
+            [Console]::Write([PmcVT100]::Reset())
+            return ($line ?? '').Trim()
         }
 
-        $projectName = $result['projectName']
+        # Read fields
+        $inputs.Name = Read-LineAt 28 ($rowStart + 0)
+        if ([string]::IsNullOrWhiteSpace($inputs.Name)) {
+            Show-InfoMessage -Message "Project name is required" -Title "Error" -Color "Red"
+            $this.currentView = 'main'
+            return
+        }
+        $inputs.Description  = Read-LineAt 16 ($rowStart + 1)
+        $inputs.ID1          = Read-LineAt 9  ($rowStart + 2)
+        $inputs.ID2          = Read-LineAt 9  ($rowStart + 3)
+        $this.DrawProjectCreateForm(4); Draw-FakeTUIProjectFormValues -app $app -RowStart $rowStart -Inputs $inputs
+        $inputs.ProjFolder   = Select-FakeTUIPathAt -app $app -Hint "Project Folder (press Enter to pick)" -Col 20 -Row ($rowStart + 4) -StartPath $defaultRoot -DirectoriesOnly:$true
+        $this.DrawProjectCreateForm(5); Draw-FakeTUIProjectFormValues -app $app -RowStart $rowStart -Inputs $inputs
+        $inputs.CAAName      = Select-FakeTUIPathAt -app $app -Hint "CAA (press Enter to pick)" -Col 14 -Row ($rowStart + 5) -StartPath $defaultRoot -DirectoriesOnly:$false
+        $this.DrawProjectCreateForm(6); Draw-FakeTUIProjectFormValues -app $app -RowStart $rowStart -Inputs $inputs
+        $inputs.RequestName  = Select-FakeTUIPathAt -app $app -Hint "Request (press Enter to pick)" -Col 17 -Row ($rowStart + 6) -StartPath $defaultRoot -DirectoriesOnly:$false
+        $this.DrawProjectCreateForm(7); Draw-FakeTUIProjectFormValues -app $app -RowStart $rowStart -Inputs $inputs
+        $inputs.T2020        = Select-FakeTUIPathAt -app $app -Hint "T2020 (press Enter to pick)" -Col 11 -Row ($rowStart + 7) -StartPath $defaultRoot -DirectoriesOnly:$false
+        $this.DrawProjectCreateForm(8); Draw-FakeTUIProjectFormValues -app $app -RowStart $rowStart -Inputs $inputs
+        $inputs.AssignedDate = Read-LineAt 32 ($rowStart + 8)
+        $inputs.DueDate      = Read-LineAt 27 ($rowStart + 9)
+        $inputs.BFDate       = Read-LineAt 26 ($rowStart + 10)
 
         try {
             $data = Get-PmcAllData
-            if (-not $data.PSObject.Properties['projects']) {
-                $data | Add-Member -NotePropertyName 'projects' -NotePropertyValue @()
+            if (-not $data.projects) { $data.projects = @() }
+
+            # Normalize legacy string entries
+            try {
+                $normalized = @()
+                foreach ($p in @($data.projects)) {
+                    if ($p -is [string]) {
+                        $normalized += [pscustomobject]@{
+                            id = [guid]::NewGuid().ToString()
+                            name = $p
+                            description = ''
+                            created = (Get-Date).ToString('yyyy-MM-dd HH:mm:ss')
+                            status = 'active'
+                            tags = @()
+                        }
+                    } else { $normalized += $p }
+                }
+                $data.projects = $normalized
+            } catch {}
+
+            # Duplicate check
+            $exists = @($data.projects | Where-Object { $_.PSObject.Properties['name'] -and $_.name -eq $inputs.Name })
+            if ($exists.Count -gt 0) {
+                Show-InfoMessage -Message ("Project '{0}' already exists" -f $inputs.Name) -Title "Error" -Color "Red"
+                $this.currentView = 'main'
+                return
             }
 
-            if ($data.projects -contains $projectName) {
-                Show-InfoMessage -Message "Project '$projectName' already exists!" -Title "Error" -Color "Red"
-            } else {
-                $data.projects += $projectName
-                Save-PmcData -Data $data -Action "Created project: $projectName"
-                Show-InfoMessage -Message "Project '$projectName' created successfully!" -Title "Success" -Color "Green"
+            # Build new project record with extended fields
+            $newProject = [pscustomobject]@{
+                id = [guid]::NewGuid().ToString()
+                name = $inputs.Name
+                description = $inputs.Description
+                ID1 = $inputs.ID1
+                ID2 = $inputs.ID2
+                ProjFolder = $inputs.ProjFolder
+                AssignedDate = $inputs.AssignedDate
+                DueDate = $inputs.DueDate
+                BFDate = $inputs.BFDate
+                CAAName = $inputs.CAAName
+                RequestName = $inputs.RequestName
+                T2020 = $inputs.T2020
+                icon = ''
+                color = 'Gray'
+                sortOrder = 0
+                aliases = @()
+                isArchived = $false
+                created = (Get-Date).ToString('yyyy-MM-dd HH:mm:ss')
+                status = 'active'
+                tags = @()
             }
+
+            $data.projects += $newProject
+            Set-PmcAllData $data
+            Show-InfoMessage -Message ("Project '{0}' created" -f $inputs.Name) -Title "Success" -Color "Green"
         } catch {
-            Show-InfoMessage -Message "Failed to create project: $_" -Title "SAVE ERROR" -Color "Red"
+            Show-InfoMessage -Message ("Failed to create project: {0}" -f $_) -Title "Error" -Color "Red"
         }
 
-        $this.currentView = 'main'
+        $this.currentView = 'projectlist'
         $this.DrawLayout()
     }
 
@@ -5568,20 +5899,27 @@ class PmcFakeTUIApp {
 
         try {
             $data = Get-PmcAllData
-            if ($data.projects -notcontains $oldName) {
+            # Find projects by name (handle legacy string entries)
+            $hasOld = @($data.projects | Where-Object { ($_ -is [string] -and $_ -eq $oldName) -or ($_.PSObject.Properties['name'] -and $_.name -eq $oldName) }).Count -gt 0
+            $hasNew = @($data.projects | Where-Object { ($_ -is [string] -and $_ -eq $newName) -or ($_.PSObject.Properties['name'] -and $_.name -eq $newName) }).Count -gt 0
+            if (-not $hasOld) {
                 Show-InfoMessage -Message "Project '$oldName' not found!" -Title "Error" -Color "Red"
-            } elseif ($data.projects -contains $newName) {
+            } elseif ($hasNew) {
                 Show-InfoMessage -Message "Project '$newName' already exists!" -Title "Error" -Color "Red"
             } else {
-                $data.projects = @($data.projects | ForEach-Object { if ($_ -eq $oldName) { $newName } else { $_ } })
-                foreach ($task in $data.tasks) {
-                    if ($task.project -eq $oldName) { $task.project = $newName }
-                }
-                if ($data.PSObject.Properties['timelogs']) {
-                    foreach ($log in $data.timelogs) {
-                        if ($log.project -eq $oldName) { $log.project = $newName }
+                # Rename in project objects, preserving object shape
+                $newProjects = @()
+                foreach ($p in @($data.projects)) {
+                    if ($p -is [string]) {
+                        $newProjects += if ($p -eq $oldName) { $newName } else { $p }
+                    } else {
+                        if ($p.name -eq $oldName) { $p.name = $newName }
+                        $newProjects += $p
                     }
                 }
+                $data.projects = $newProjects
+                foreach ($task in $data.tasks) { if ($task.project -eq $oldName) { $task.project = $newName } }
+                if ($data.PSObject.Properties['timelogs']) { foreach ($log in $data.timelogs) { if ($log.project -eq $oldName) { $log.project = $newName } } }
                 Save-PmcData -Data $data -Action "Renamed project: $oldName -> $newName"
                 Show-InfoMessage -Message "Project renamed successfully! All tasks and time logs updated." -Title "Success" -Color "Green"
             }
@@ -5621,15 +5959,18 @@ class PmcFakeTUIApp {
 
         try {
             $data = Get-PmcAllData
-            $project = $data.projects | Where-Object { $_ -eq $projectName }
-            if (-not $project) {
+            $exists = @($data.projects | Where-Object { ($_ -is [string] -and $_ -eq $projectName) -or ($_.PSObject.Properties['name'] -and $_.name -eq $projectName) }).Count -gt 0
+            if (-not $exists) {
                 Show-InfoMessage -Message "Project '$projectName' not found!" -Title "Error" -Color "Red"
             } else {
-                if (-not $data.PSObject.Properties['archivedProjects']) {
-                    $data | Add-Member -NotePropertyName 'archivedProjects' -NotePropertyValue @()
-                }
+                if (-not $data.PSObject.Properties['archivedProjects']) { $data | Add-Member -NotePropertyName 'archivedProjects' -NotePropertyValue @() }
                 $data.archivedProjects += $projectName
-                $data.projects = @($data.projects | Where-Object { $_ -ne $projectName })
+                $data.projects = @(
+                    $data.projects | Where-Object {
+                        $pName = if ($_ -is [string]) { $_ } else { $_.name }
+                        $pName -ne $projectName
+                    }
+                )
                 Save-PmcData -Data $data -Action "Archived project: $projectName"
                 Show-InfoMessage -Message "Project '$projectName' archived successfully!" -Title "Success" -Color "Green"
             }
@@ -5670,14 +6011,18 @@ class PmcFakeTUIApp {
 
         try {
             $data = Get-PmcAllData
-            if ($data.projects -notcontains $projectName) {
+            $exists = @($data.projects | Where-Object { ($_ -is [string] -and $_ -eq $projectName) -or ($_.PSObject.Properties['name'] -and $_.name -eq $projectName) }).Count -gt 0
+            if (-not $exists) {
                 Show-InfoMessage -Message "Project '$projectName' not found!" -Title "Error" -Color "Red"
             } else {
-                # Use Show-ConfirmDialog for confirmation
                 $confirmed = Show-ConfirmDialog -Message "Delete project '$projectName'? (Tasks will remain in inbox)" -Title "Confirm Deletion"
-
                 if ($confirmed) {
-                    $data.projects = @($data.projects | Where-Object { $_ -ne $projectName })
+                    $data.projects = @(
+                        $data.projects | Where-Object {
+                            $pName = if ($_ -is [string]) { $_ } else { $_.name }
+                            $pName -ne $projectName
+                        }
+                    )
                     Save-PmcData -Data $data -Action "Deleted project: $projectName"
                     Show-InfoMessage -Message "Project '$projectName' deleted successfully!" -Title "Success" -Color "Green"
                 } else {
@@ -6071,7 +6416,7 @@ class PmcFakeTUIApp {
                 $clone = $task.PSObject.Copy()
                 $clone.id = ($data.tasks | ForEach-Object { $_.id } | Measure-Object -Maximum).Maximum + 1
                 $data.tasks += $clone
-                Save-PmcAllData -Data $data
+                Set-PmcAllData $data
                 $this.terminal.WriteAtColor(4, 10, "✓ Task $taskId duplicated as task $($clone.id)", [PmcVT100]::Green(), "")
                 $this.LoadTasks()
             } else {
@@ -6121,7 +6466,7 @@ class PmcFakeTUIApp {
             $task = $data.tasks | Where-Object { $_.id -eq [int]$taskId } | Select-Object -First 1
             if ($task) {
                 $task.project = $project
-                Save-PmcAllData -Data $data
+                Set-PmcAllData $data
                 $this.terminal.WriteAtColor(4, 10, "✓ Moved task $taskId to @$project", [PmcVT100]::Green(), "")
                 $this.LoadTasks()
             } else {
@@ -6171,7 +6516,7 @@ class PmcFakeTUIApp {
             $task = $data.tasks | Where-Object { $_.id -eq [int]$taskId } | Select-Object -First 1
             if ($task) {
                 $task.priority = $priority.ToLower()
-                Save-PmcAllData -Data $data
+                Set-PmcAllData $data
                 $this.terminal.WriteAtColor(4, 10, "✓ Set task $taskId priority to $priority", [PmcVT100]::Green(), "")
                 $this.LoadTasks()
             } else {
@@ -6219,7 +6564,7 @@ class PmcFakeTUIApp {
             if ($task) {
                 $currentDue = if ($task.due) { [DateTime]::Parse($task.due) } else { Get-Date }
                 $task.due = $currentDue.AddDays($days).ToString('yyyy-MM-dd')
-                Save-PmcAllData -Data $data
+                Set-PmcAllData $data
                 $this.terminal.WriteAtColor(4, 10, "✓ Postponed task $taskId by $days day(s) to $($task.due)", [PmcVT100]::Green(), "")
                 $this.LoadTasks()
             } else {
@@ -6270,7 +6615,7 @@ class PmcFakeTUIApp {
             if ($task) {
                 if (-not $task.notes) { $task.notes = @() }
                 $task.notes += $note
-                Save-PmcAllData -Data $data
+                Set-PmcAllData $data
                 $this.terminal.WriteAtColor(4, 10, "✓ Added note to task $taskId", [PmcVT100]::Green(), "")
                 $this.LoadTasks()
             } else {
@@ -6341,7 +6686,7 @@ class PmcFakeTUIApp {
                         return
                     }
                 }
-                Save-PmcAllData -Data $data
+                Set-PmcAllData $data
                 $this.terminal.WriteAtColor(4, 12, "✓ Updated project '$projectName' $field", [PmcVT100]::Green(), "")
             } else {
                 $this.terminal.WriteAtColor(4, 12, "✗ Project '$projectName' not found", [PmcVT100]::Red(), "")
@@ -6658,7 +7003,8 @@ class PmcFakeTUIApp {
                 $y++
 
                 foreach ($task in $tasksWithDeps) {
-                    $this.terminal.WriteAtColor(4, $y++, "Task #$($task.id): $($task.text ?? $task.title)", [PmcVT100]::White(), "")
+                    $textOrTitle = if ($task.text) { $task.text } else { $task.title }
+                    $this.terminal.WriteAtColor(4, $y++, "Task #$($task.id): $textOrTitle", [PmcVT100]::White(), "")
                     $this.terminal.WriteAt(6, $y++, "└─> Depends on:")
 
                     $depCount = $task.dependencies.Count
@@ -6684,7 +7030,8 @@ class PmcFakeTUIApp {
                                 'blocked' { [PmcVT100]::Red() }
                                 default { [PmcVT100]::White() }
                             }
-                            $depText = "$prefix Task #${depId}: $($depTask.text ?? $depTask.title) $statusIcon"
+                            $depTextTitle = if ($depTask.text) { $depTask.text } else { $depTask.title }
+                            $depText = "$prefix Task #${depId}: $depTextTitle $statusIcon"
                             $this.terminal.WriteAtColor(8, $y++, $depText, $color, "")
                         } else {
                             $this.terminal.WriteAtColor(8, $y++, "$prefix Task #${depId}: [Missing task] ✗", [PmcVT100]::Red(), "")
@@ -6926,7 +7273,7 @@ class PmcFakeTUIApp {
             }
 
             $data.projects += $newProject
-            Save-PmcAllData -Data $data
+            Set-PmcAllData $data
 
             $this.terminal.WriteAtColor(4, 20, "✓ Project '$projName' created successfully!", [PmcVT100]::Green(), "")
             Start-Sleep -Seconds 1
@@ -7021,7 +7368,7 @@ class PmcFakeTUIApp {
                     }
 
                     $data.tasks += $newTask
-                    Save-PmcAllData -Data $data
+                    Set-PmcAllData $data
                     $this.LoadTasks()
 
                     $this.terminal.WriteAtColor(4, $this.terminal.Height - 3, "✓ Task created from template! Press any key...", [PmcVT100]::Green(), "")
@@ -7290,15 +7637,19 @@ class PmcFakeTUIApp {
             $weekHeader = "Week of {0} - {1}" -f $weekStart.ToString('MMM dd'), $weekEnd.ToString('MMM dd, yyyy')
 
             # Add indicator for current/past/future week
-            $weekIndicator = if ($weekOffset -eq 0) {
-                " (This Week)"
+            $weekIndicator = ''
+            if ($weekOffset -eq 0) {
+                $weekIndicator = ' (This Week)'
             } elseif ($weekOffset -lt 0) {
-                " ($([Math]::Abs($weekOffset)) week$(if ([Math]::Abs($weekOffset) -gt 1) { 's' }) ago)"
+                $weeks = [Math]::Abs($weekOffset)
+                $plural = if ($weeks -gt 1) { 's' } else { '' }
+                $weekIndicator = " ($weeks week$plural ago)"
             } else {
-                " ($weekOffset week$(if ($weekOffset -gt 1) { 's' }) from now)"
+                $plural = if ($weekOffset -gt 1) { 's' } else { '' }
+                $weekIndicator = " ($weekOffset week$plural from now)"
             }
 
-            $this.terminal.WriteAtColor(4, 4, "📊 TIME REPORT", [PmcVT100]::Cyan(), "")
+            $this.terminal.WriteAtColor(4, 4, "TIME REPORT", [PmcVT100]::Cyan(), "")
             $this.terminal.WriteAtColor(4, 5, "$weekHeader$weekIndicator", [PmcVT100]::Yellow(), "")
 
             # Filter logs for the week
@@ -7315,12 +7666,22 @@ class PmcFakeTUIApp {
                 # Group by project/indirect code
                 $grouped = @{}
                 foreach ($log in $weekLogs) {
-                    $key = if ($log.id1) { "#$($log.id1)" } else { $log.project ?? 'Unknown' }
+                    $key = ''
+                    if ($log.id1) {
+                        $key = "#$($log.id1)"
+                    } else {
+                        $name = $log.project
+                        if (-not $name) { $name = 'Unknown' }
+                        $key = $name
+                    }
 
                     if (-not $grouped.ContainsKey($key)) {
+                        $name = ''
+                        $id1 = ''
+                        if ($log.id1) { $id1 = $log.id1; $name = '' } else { $name = ($log.project); if (-not $name) { $name = 'Unknown' } }
                         $grouped[$key] = @{
-                            Name = if ($log.id1) { "" } else { $log.project ?? 'Unknown' }
-                            ID1 = if ($log.id1) { $log.id1 } else { '' }
+                            Name = $name
+                            ID1 = $id1
                             Mon = 0; Tue = 0; Wed = 0; Thu = 0; Fri = 0; Total = 0
                         }
                     }

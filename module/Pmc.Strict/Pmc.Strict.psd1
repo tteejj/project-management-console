@@ -73,6 +73,7 @@
         'Show-PmcWeekTasks',
         'Show-PmcMonthTasks',
         # PROJECT DOMAIN HANDLERS
+        'Invoke-PmcCreateProjectCore',
         'Add-PmcProject',
         'Get-PmcProjectList',
         'Show-PmcProject',

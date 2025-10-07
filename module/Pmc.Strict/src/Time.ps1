@@ -141,7 +141,7 @@ function Show-PmcWeeklyTimeReport {
     $weekHeader = "Week of {0} - {1}" -f $weekStart.ToString('MMM dd'), $weekEnd.ToString('MMM dd, yyyy')
 
     Write-Host ""
-    Write-PmcStyled -Style 'Header' -Text "📊 TIME REPORT"
+    Write-PmcStyled -Style 'Header' -Text "TIME REPORT"
     Write-PmcStyled -Style 'Header' -Text $weekHeader
     Write-PmcStyled -Style 'Muted' -Text "Use '=' next week, '-' previous week"
     Write-Host ""
@@ -284,7 +284,7 @@ function Get-PmcTimeList {
             }
         }
 
-        Write-PmcStyled -Style 'Header' -Text "`n⏰ RECENT TIME ENTRIES`n"
+        Write-PmcStyled -Style 'Header' -Text "`nRECENT TIME ENTRIES`n"
         Render-GridTemplate -Data $displayData -Template $timeTemplate
 
     } catch {
@@ -363,7 +363,7 @@ function Start-PmcTimer {
         Set-PmcState -Section 'Timer' -Key 'Project' -Value $project
         Set-PmcState -Section 'Timer' -Key 'StartTime' -Value (Get-Date).ToString('yyyy-MM-dd HH:mm:ss')
 
-        Write-PmcStyled -Style 'Success' -Text "⏱️ Timer started for project: $project"
+        Write-PmcStyled -Style 'Success' -Text "Timer started for project: $project"
 
     } catch {
         Write-PmcStyled -Style 'Error' -Text "Error starting timer: $_"
@@ -403,7 +403,7 @@ function Stop-PmcTimer {
         # Clear timer state
         Set-PmcState -Section 'Timer' -Key 'Running' -Value $false
 
-        Write-PmcStyled -Style 'Success' -Text "⏹️ Timer stopped. Logged $minutes minutes to $project"
+        Write-PmcStyled -Style 'Success' -Text "Timer stopped. Logged $minutes minutes to $project"
 
     } catch {
         Write-PmcStyled -Style 'Error' -Text "Error stopping timer: $_"
@@ -417,7 +417,7 @@ function Get-PmcTimerStatus {
         $running = Get-PmcState -Section 'Timer' -Key 'Running'
 
         if (-not $running) {
-            Write-PmcStyled -Style 'Info' -Text "⏱️ No timer is currently running"
+        Write-PmcStyled -Style 'Info' -Text "No timer is currently running"
             return
         }
 
@@ -426,7 +426,7 @@ function Get-PmcTimerStatus {
         $elapsed = (Get-Date) - $startTime
         $minutes = [Math]::Round($elapsed.TotalMinutes, 0)
 
-        Write-PmcStyled -Style 'Warning' -Text "⏱️ Timer running for $project ($minutes minutes elapsed)"
+        Write-PmcStyled -Style 'Warning' -Text "Timer running for $project ($minutes minutes elapsed)"
 
     } catch {
         Write-PmcStyled -Style 'Error' -Text "Error checking timer status: $_"
