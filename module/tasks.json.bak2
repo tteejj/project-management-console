@@ -42,19 +42,12 @@
       "priority": "high",
       "project": "inbox",
       "due": "2025-10-08",
-      "created": "2025-10-07 14:30:55",
-      "subtasks": [
-        {
-          "text": "subtask 1",
-          "completed": false,
-          "created": "2025-10-08 12:40:49"
-        }
-      ]
+      "created": "2025-10-07 14:30:55"
     },
     {
       "id": 2.0,
       "text": "task 1",
-      "status": "completed",
+      "status": "in-progress",
       "priority": "high",
       "project": "p2",
       "due": null,
@@ -111,16 +104,6 @@
       "timestamp": "2025-10-08 12:30:04",
       "user": null,
       "action": "Moved task 2 to IN PROGRESS"
-    },
-    {
-      "timestamp": "2025-10-08 12:30:05",
-      "user": null,
-      "action": "Moved task 2 to DONE"
-    },
-    {
-      "action": "Added subtask to task #1",
-      "user": null,
-      "timestamp": "2025-10-08 12:40:49"
     }
   ],
   "aliases": {},

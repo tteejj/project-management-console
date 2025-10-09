@@ -174,6 +174,8 @@
         'Import-PmcXFlowMappingsFromFile',
         'Set-PmcXFlowLatestFromFile',
         'Show-PmcXFlowConfig',
+        # CONSOLE UI
+        'Start-PmcConsoleUI',
         # DATA DISPLAY SYSTEM
         'Show-PmcDataGrid',
         # UNIVERSAL DISPLAY SYSTEM
