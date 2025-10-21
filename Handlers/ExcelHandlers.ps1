@@ -48,11 +48,7 @@ function Invoke-ExcelT2020Wizard {
     $app.terminal.Clear()
     $app.menuSystem.DrawMenuBar()
     $app.terminal.WriteAtColor(4, 6, "Excel T2020 Wizard - Step 1/6", [PmcVT100]::Cyan(), "")
-    $app.terminal.WriteAt(4, 8, "Select SOURCE Excel Workbook (CAA file)")
-    $app.terminal.DrawFooter("Press Enter to browse, Esc to cancel")
-
-    $key = [Console]::ReadKey($true)
-    if ($key.Key -eq 'Escape') { $app.currentView = 'main'; $app.DrawLayout(); return }
+if ($key.Key -eq 'Escape') { $app.currentView = 'main'; $app.DrawLayout(); return }
 
     $config.SourceWorkbook = Browse-ConsoleUIPath -app $app -StartPath $HOME -DirectoriesOnly $false
     if (-not $config.SourceWorkbook -or -not (Test-Path $config.SourceWorkbook)) {
@@ -78,7 +74,7 @@ function Invoke-ExcelT2020Wizard {
     } catch {
         Show-InfoMessage -Message "Error reading workbook: $_" -Title "Error" -Color "Red"
         Close-ExcelApp
-        $app.currentView = 'main'; $app.DrawLayout(); return
+        $app.currentVew = 'main'; $app.DrawLayout(); return
     } finally {
         Close-ExcelApp
     }
@@ -88,9 +84,6 @@ function Invoke-ExcelT2020Wizard {
     $app.menuSystem.DrawMenuBar()
     $app.terminal.WriteAtColor(4, 6, "Excel T2020 Wizard - Step 3/6", [PmcVT100]::Cyan(), "")
     $app.terminal.WriteAt(4, 8, "Select DESTINATION Excel Workbook")
-    $app.terminal.WriteAt(4, 9, "(This will be updated with extracted data)")
-    $app.terminal.DrawFooter("Press Enter to browse, Esc to cancel")
-
     $key = [Console]::ReadKey($true)
     if ($key.Key -eq 'Escape') { $app.currentView = 'main'; $app.DrawLayout(); return }
 
@@ -264,7 +257,19 @@ function Invoke-ExcelWorkflowExecution {
 
         # Copy to destination workbook
         $app.terminal.WriteAt(4, $y++, "2. Copying to destination workbook...")
-        $copyResult = Copy-T2020ForFile -SourcePath $Config.SourceWorkbook -DestinationPath $Config.DestWorkbook -SourceSheetName $Config.SourceSheet -DestSheetName $Config.DestSheet
+        $progressLine = $y
+        $y++
+
+        # Progress callback to show live updates
+        $progressCallback = {
+            param([int]$current, [int]$total, [string]$message)
+            $percent = if ($total -gt 0) { [int](($current / $total) * 100) } else { 0 }
+            $bar = ("=" * [Math]::Min(40, [int](($current / $total) * 40))).PadRight(40)
+            $progressText = "   [$bar] $percent% - $message"
+            $app.terminal.WriteAt(4, $progressLine, $progressText.PadRight($app.terminal.Width - 8))
+        }
+
+        $copyResult = Copy-T2020ForFile -SourcePath $Config.SourceWorkbook -DestinationPath $Config.DestWorkbook -SourceSheetName $Config.SourceSheet -DestSheetName $Config.DestSheet -ProgressCallback $progressCallback
 
         if (-not $copyResult.Success) {
             $result.Success = $false
@@ -431,7 +436,7 @@ function Invoke-ExcelPreviewHandler {
     $app.terminal.DrawFooter("Press any key to return")
     [Console]::ReadKey($true) | Out-Null
 
-    $app.currentView = 'main'
+        $app.currentView = 'main'
     $app.DrawLayout()
 }
 

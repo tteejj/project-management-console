@@ -166,7 +166,10 @@ class PmcKanbanRenderer {
             $laneWidth = [Math]::Max(24, [Math]::Floor( ([double]$termWidth - $totalGaps - 2) / [Math]::Max(1,$laneCount) ))
             $termHeight = 25; try { $termHeight = [PmcTerminalService]::GetHeight() } catch {}
             $statusLines = 2
-            $maxItemsPerLane = [Math]::Max(1, $termHeight - $statusLines - 2 - 2) # minus header & sep
+            # Reserve space for: header(1) + separator(1) + status lines(2) + potential drop indicator(1-2 in move mode)
+            $moveModePadding = if ($this.MoveActive) { 2 } else { 0 }
+            $reservedLines = 2 + $statusLines + $moveModePadding
+            $maxItemsPerLane = [Math]::Max(1, $termHeight - $reservedLines)
 
             # Prepare lane content lines
             $laneLines = @()
@@ -237,6 +240,10 @@ class PmcKanbanRenderer {
                 if ($lines.Count -gt $maxLines) { $maxLines = $lines.Count }
             }
 
+            # Cap maxLines to prevent terminal overflow
+            $maxAllowedLines = $termHeight - $statusLines
+            if ($maxLines -gt $maxAllowedLines) { $maxLines = $maxAllowedLines }
+
             # Compose lines row by row
             for ($row=0; $row -lt $maxLines; $row++) {
                 $lineParts = @()
@@ -270,7 +277,6 @@ class PmcKanbanRenderer {
                 $status2 = ('🎮 ←/→: lanes | ↑/↓: items | Space: move | Enter: drill down | /: filter | c: clear filter | ?/H: help | Q/Esc: exit')
             }
 
-            $sb.AppendLine('') | Out-Null
             $sb.AppendLine($status1) | Out-Null
             $sb.Append($status2) | Out-Null
         })
@@ -313,8 +319,9 @@ class PmcKanbanRenderer {
                 $this.FrameRenderer.RenderFrame($content)
                 $refresh = $false
             }
-            if ([Console]::KeyAvailable) {
-                $k = [Console]::ReadKey($true)
+
+            # Block on ReadKey - no polling needed
+            $k = [Console]::ReadKey($true)
 
                 # Handle help overlay
                 if ($this.ShowHelp) {
@@ -406,9 +413,6 @@ class PmcKanbanRenderer {
                         elseif ($k.KeyChar -eq '/') { $this.StartFilter(); $refresh = $true }
                     }
                 }
-            } else {
-                Start-Sleep -Milliseconds 50
-            }
         }
     }
 
@@ -427,6 +431,14 @@ class PmcKanbanRenderer {
             $field = $this.GroupField
             if ([string]::IsNullOrWhiteSpace($field)) { $this.MoveActive=$false; return }
 
+            # Find insertion reference BEFORE modifying anything
+            $tItems = @($targetLane.Items)
+            $insertRef = if ($this.MoveTargetIndex -ge 0 -and $this.MoveTargetIndex -lt $tItems.Count) {
+                $tItems[$this.MoveTargetIndex]
+            } else {
+                $null
+            }
+
             # Update persistent store
             $root = Get-PmcDataAlias
             $id = if ($item.PSObject.Properties['id']) { [int]$item.id } else { -1 }
@@ -442,25 +454,44 @@ class PmcKanbanRenderer {
             # Reflect change in live item
             if ($item.PSObject.Properties[$field]) { $item.$field = $val } else { Add-Member -InputObject $item -MemberType NoteProperty -Name $field -NotePropertyValue $val -Force }
 
-            # Reorder in current data to reflect new position (ephemeral)
+            # Reorder in current data to reflect new position
             $list = New-Object System.Collections.ArrayList
             foreach ($x in $this.CurrentData) { [void]$list.Add($x) }
+
+            # Remove item from its current position
             $oldIdx = $list.IndexOf($item)
             if ($oldIdx -ge 0) { $list.RemoveAt($oldIdx) }
-            # Find insertion index: before MoveTargetIndex in target lane sequence
-            $flat = @()
-            foreach ($ln in $this.Lanes) { foreach ($it in $ln.Items) { $flat += $it } }
-            # Build new lanes based on updated field
-            $this.BuildLanes(@($list))
-            $tItems = @($this.Lanes[$this.MoveTargetLane].Items)
-            $insertRef = if ($this.MoveTargetIndex -ge 0 -and $this.MoveTargetIndex -lt $tItems.Count) { $tItems[$this.MoveTargetIndex] } else { $null }
-            $insIdx = if ($insertRef) { $list.IndexOf($insertRef) } else { $list.Count }
-            if ($insIdx -lt 0) { $insIdx = $list.Count }
+
+            # Find insertion position using the reference item (if it exists)
+            $insIdx = if ($insertRef) {
+                $refIdx = $list.IndexOf($insertRef)
+                if ($refIdx -ge 0) { $refIdx } else { $list.Count }
+            } else {
+                $list.Count
+            }
+
+            # Insert item at calculated position
             $list.Insert($insIdx, $item)
 
+            # Update data and rebuild lanes ONCE
             $this.CurrentData = @($list)
             $this.BuildLanes($this.CurrentData)
-            $this.SelectedLane = $this.MoveTargetLane; $this.SelectedIndex = $this.MoveTargetIndex
+
+            # Calculate final selection position
+            # Find where the item ended up in the target lane
+            $finalLane = $this.Lanes[$this.MoveTargetLane]
+            if ($finalLane) {
+                $finalItems = @($finalLane.Items)
+                $finalIdx = 0
+                for ($i = 0; $i -lt $finalItems.Count; $i++) {
+                    if ($finalItems[$i] -eq $item) {
+                        $finalIdx = $i
+                        break
+                    }
+                }
+                $this.SelectedLane = $this.MoveTargetLane
+                $this.SelectedIndex = $finalIdx
+            }
         } catch {
             # Ignore, fail-safe
         } finally {

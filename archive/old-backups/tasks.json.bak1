@@ -708,11 +708,6 @@
       "user": null,
       "action": "Moved task 1 to TODO",
       "timestamp": "2025-10-19 15:07:57"
-    },
-    {
-      "timestamp": "2025-10-20 13:23:03",
-      "user": null,
-      "action": "Updated Kanban tasks"
     }
   ],
   "aliases": {},

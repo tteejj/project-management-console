@@ -152,20 +152,27 @@ function Copy-T2020ForFile {
         [Parameter(Mandatory)] [string]$DestinationPath,
         [string]$SourceSheetName = $Global:ExcelT2020_SourceSheetName,
         [string]$DestSheetName   = $Global:ExcelT2020_DestSheetName,
-        [array] $Mappings        = $Global:ExcelT2020_Mappings
+        [array] $Mappings        = $Global:ExcelT2020_Mappings,
+        [scriptblock]$ProgressCallback = $null
     )
     $srcWb = $null; $dstWb = $null
     try {
+        if ($ProgressCallback) { & $ProgressCallback 0 $Mappings.Count "Opening workbooks..." }
         $srcWb = Open-Workbook -Path $SourcePath -ReadOnly
         $dstWb = Open-Workbook -Path $DestinationPath
 
+        if ($ProgressCallback) { & $ProgressCallback 0 $Mappings.Count "Getting worksheets..." }
         $wsSrc = Get-Worksheet -Workbook $srcWb -Name $SourceSheetName
         $wsDst = Get-Worksheet -Workbook $dstWb -Name $DestSheetName
 
-        foreach ($m in $Mappings) {
+        $total = $Mappings.Count
+        for ($i = 0; $i -lt $total; $i++) {
+            $m = $Mappings[$i]
+            if ($ProgressCallback) { & $ProgressCallback ($i + 1) $total "Copying $($m.Field)..." }
             Copy-CellValue -SourceSheet $wsSrc -SourceCell $m.SourceCell -DestSheet $wsDst -DestCell $m.DestCell
         }
 
+        if ($ProgressCallback) { & $ProgressCallback $total $total "Saving workbook..." }
         Save-Workbook -Workbook $dstWb
         return @{ Success=$true; Message="Copied $($Mappings.Count) fields from '$SourcePath' to '$DestinationPath'" }
     } catch {

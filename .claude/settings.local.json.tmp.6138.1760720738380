@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(comm:*)",
+      "Bash(git fsck:*)",
+      "Read(///**)",
+      "Bash(pwsh -NoProfile -Command \"./start.ps1\")",
+      "Bash(pwsh:*)",
+      "Read(//home/teej/**)",
+      "Bash(cat:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

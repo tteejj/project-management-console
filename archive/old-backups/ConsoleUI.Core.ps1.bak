@@ -93,14 +93,6 @@ function Normalize-ConsoleUIDate {
     if ($d) { return $d.ToString('yyyy-MM-dd') } else { return $null }
 }
 
-function Truncate-ConsoleUIText {
-    param([string]$text, [int]$maxWidth)
-    if ($text.Length -gt $maxWidth) {
-        return $text.Substring(0, $maxWidth - 1) + '…'
-    }
-    return $text.PadRight($maxWidth)
-}
-
 function Test-ConsoleInteractive {
     try {
         if ([Console]::IsInputRedirected) { return $false }
@@ -161,6 +153,18 @@ class PmcStringCache {
             return [PmcStringCache]::_boxDrawing[$characterName]
         }
         return ""
+    }
+
+    static [string] Truncate([string]$text, [int]$maxWidth) {
+        if ([string]::IsNullOrEmpty($text)) {
+            return [PmcStringCache]::GetSpaces($maxWidth)
+        }
+        if ($text.Length -gt $maxWidth) {
+            if ($maxWidth -le 0) { return "" }
+            if ($maxWidth -eq 1) { return "…" }
+            return $text.Substring(0, $maxWidth - 1) + '…'
+        }
+        return $text.PadRight($maxWidth)
     }
 }
 
@@ -595,8 +599,8 @@ class PmcSimpleTerminal {
 
     [void] Clear() {
         if ($this.buffering) {
-            # In buffering mode, queue a clear sequence
-            $this.buffer.Append([PraxisVT]::Clear()) | Out-Null
+            # In buffering mode, queue a clear sequence (VT100: clear screen + home)
+            $this.buffer.Append("`e[2J`e[H") | Out-Null
             $this.dirtyRegions.Clear()
         } else {
             [Console]::Clear()
@@ -608,11 +612,15 @@ class PmcSimpleTerminal {
         $this.buffering = $true
         $this.buffer.Clear() | Out-Null
         $this.dirtyRegions.Clear()
+        # Add VT100 hide cursor to the BUFFER ITSELF (first thing written)
+        $this.buffer.Append("`e[?25l") | Out-Null
     }
 
     [void] EndFrame() {
         if ($this.buffering -and $this.buffer.Length -gt 0) {
-            # Write entire buffered frame at once (double buffering)
+            # Add VT100 show cursor to the BUFFER (last thing written)
+            $this.buffer.Append("`e[?25h") | Out-Null
+            # Write entire buffered frame at once - cursor hide/show are IN the buffer
             [Console]::SetCursorPosition(0, 0)
             [Console]::Write($this.buffer.ToString())
         }
@@ -626,7 +634,7 @@ class PmcSimpleTerminal {
 
         if ($this.buffering) {
             # Append to buffer with VT100 positioning
-            $this.buffer.Append([PraxisVT]::MoveTo($y + 1, $x + 1)).Append($text) | Out-Null
+            $this.buffer.Append("`e[$($y+1);$($x+1)H").Append($text) | Out-Null
             $regionKey = "$y,$x"
             $this.dirtyRegions[$regionKey] = $true
         } else {
@@ -645,7 +653,7 @@ class PmcSimpleTerminal {
 
         if ($this.buffering) {
             # Append to buffer with VT100 positioning and color
-            $this.buffer.Append([PraxisVT]::MoveTo($y + 1, $x + 1)).Append($colored) | Out-Null
+            $this.buffer.Append("`e[$($y+1);$($x+1)H").Append($colored) | Out-Null
             $regionKey = "$y,$x"
             $this.dirtyRegions[$regionKey] = $true
         } else {
@@ -729,6 +737,7 @@ class PmcMenuSystem {
     [PmcSimpleTerminal]$terminal
     [hashtable]$menus = @{}
     [string[]]$menuOrder = @()
+    [hashtable]$menuPositions = @{}
     [int]$selectedMenu = -1
     [bool]$inMenuMode = $false
     [bool]$showingDropdown = $false
@@ -786,6 +795,7 @@ class PmcMenuSystem {
     }
 
     [void] DrawMenuBar() {
+        $this.terminal.BeginFrame()
         $this.terminal.UpdateDimensions()
         $this.terminal.FillArea(0, 0, $this.terminal.Width, 1, ' ')
 
@@ -794,6 +804,9 @@ class PmcMenuSystem {
             $menuName = $this.menuOrder[$i]
             $menu = $this.menus[$menuName]
             $hotkey = $menu.Hotkey
+
+            # Store the X position of this menu for dropdown positioning
+            $this.menuPositions[$menuName] = $x
 
             if ($this.inMenuMode -and $i -eq $this.selectedMenu) {
                 $this.terminal.WriteAtColor($x, 0, $menuName, [PmcVT100]::BgWhite(), [PmcVT100]::Blue())
@@ -806,6 +819,7 @@ class PmcMenuSystem {
         }
 
         $this.terminal.DrawHorizontalLine(0, 1, $this.terminal.Width)
+        $this.terminal.EndFrame()
     }
 
     [string] HandleInput() {
@@ -880,7 +894,32 @@ class PmcMenuSystem {
         $menu = $this.menus[$menuName]
         if (-not $menu) { return "" }
         $items = $menu.Items
-        $dropdownX = 2; $dropdownY = 2; $maxWidth = 20
+
+        # Calculate dynamic X position based on menu bar position
+        $dropdownX = if ($this.menuPositions.ContainsKey($menuName)) {
+            $this.menuPositions[$menuName]
+        } else {
+            2  # Fallback to default if position not found
+        }
+        $dropdownY = 2
+
+        # Calculate dynamic width based on longest menu item text
+        $maxWidth = 20  # Minimum width
+        foreach ($item in $items) {
+            $itemText = " {0}({1}) " -f $item.Label, $item.Hotkey
+            $itemWidth = $itemText.Length + 2  # +2 for padding
+            if ($itemWidth -gt $maxWidth) {
+                $maxWidth = $itemWidth
+            }
+        }
+
+        # Clamp dropdown to terminal width to prevent going off-screen
+        $terminalWidth = $this.terminal.Width
+        if (($dropdownX + $maxWidth) -gt $terminalWidth) {
+            # Adjust X position to keep dropdown on screen
+            $dropdownX = [Math]::Max(0, $terminalWidth - $maxWidth)
+        }
+
         $this.terminal.DrawFilledBox($dropdownX, $dropdownY, $maxWidth, $items.Count + 2, $true)
 
         $selectedItem = 0
@@ -1287,7 +1326,6 @@ class PmcConsoleUIApp {
 
     [void] DrawLayout() {
         $this.terminal.BeginFrame()
-        $this.terminal.Clear()
         $this.menuSystem.DrawMenuBar()
         $this.terminal.DrawBox(1, 3, $this.terminal.Width - 2, $this.terminal.Height - 6)
         $title = " PMC - Project Management Console "
@@ -1337,12 +1375,22 @@ class PmcConsoleUIApp {
         }
         $this.UpdateStatus()
         $this.terminal.EndFrame()
+        $this.terminal.EndFrame()
     }
 
     [void] UpdateStatus() {
         $statusY = $this.terminal.Height - 1
         $this.terminal.FillArea(0, $statusY, $this.terminal.Width, 1, ' ')
         if ($this.statusMessage) { $this.terminal.WriteAtColor(2, $statusY, $this.statusMessage, [PmcVT100]::Cyan(), "") }
+    }
+
+    [void] DrawFooter([string]$text) {
+        $y = $this.terminal.Height - 1
+        $this.terminal.FillArea(0, $y, $this.terminal.Width, 1, ' ')
+        $truncated = if ($text.Length -gt $this.terminal.Width - 4) {
+            $text.Substring(0, $this.terminal.Width - 5) + '…'
+        } else { $text }
+        $this.terminal.WriteAtColor(2, $y, $truncated, [PmcVT100]::Cyan(), "")
     }
 
     [void] ShowSuccessMessage([string]$message) {
@@ -1702,7 +1750,6 @@ class PmcConsoleUIApp {
 
     [void] DrawTaskList() {
         $this.terminal.BeginFrame()
-        $this.terminal.Clear()
         $this.menuSystem.DrawMenuBar()
 
         $title = " Task List ($($this.tasks.Count) tasks) [Sort: $($this.sortBy)] "
@@ -1855,9 +1902,9 @@ class PmcConsoleUIApp {
             $taskIdx++
         }
 
-        $this.terminal.FillArea(0, $this.terminal.Height - 1, $this.terminal.Width, 1, ' ')
         $statusBar = "↑↓:Nav | Enter:Detail | A:Add | U:Subtask | E:Edit | Del:Delete | M:Multi | D:Done | S:Sort | F:Filter | C:Clear"
-        $this.terminal.WriteAtColor(2, $this.terminal.Height - 1, $statusBar, [PmcVT100]::Cyan(), "")
+        $this.terminal.DrawFooter($statusBar)
+        $this.terminal.EndFrame()
         $this.terminal.EndFrame()
     }
 
@@ -2041,8 +2088,8 @@ class PmcConsoleUIApp {
     }
 
     [void] DrawTaskDetail() {
+        $this.terminal.BeginFrame()
         try {
-            $this.terminal.Clear()
             $task = $this.selectedTask
 
             if (-not $task) {
@@ -2154,6 +2201,7 @@ class PmcConsoleUIApp {
             $this.terminal.WriteAtColor(4, 8, "Stack: $($_.ScriptStackTrace)", [PmcVT100]::Gray(), "")
             $this.terminal.DrawFooter("F10/Alt:Menus  Esc:Back")
         }
+        $this.terminal.EndFrame()
     }
 
     [void] HandleTaskDetailView() {
@@ -2228,7 +2276,7 @@ class PmcConsoleUIApp {
     }
 
     [void] DrawAddSubtaskForm() {
-        $this.terminal.Clear()
+        $this.terminal.BeginFrame()
         $this.menuSystem.DrawMenuBar()
 
         $title = " Add Subtask "
@@ -2238,6 +2286,7 @@ class PmcConsoleUIApp {
         $this.terminal.WriteAtColor(4, 6, "Parent Task: #$($this.selectedTask.id) - $($this.selectedTask.text)", [PmcVT100]::Yellow(), "")
         $this.terminal.WriteAtColor(4, 8, "Subtask text:", [PmcVT100]::Cyan(), "")
         $this.terminal.DrawFooter("Tab:Navigate  Enter:Save  Esc:Cancel")
+        $this.terminal.EndFrame()
     }
 
     [void] HandleAddSubtaskForm() {
@@ -2276,7 +2325,7 @@ class PmcConsoleUIApp {
     }
 
     [void] DrawTaskAddForm() {
-        $this.terminal.Clear()
+        $this.terminal.BeginFrame()
 
         $title = " Add New Task "
         $titleX = ($this.terminal.Width - $title.Length) / 2
@@ -2291,8 +2340,8 @@ class PmcConsoleUIApp {
         $this.terminal.WriteAtColor(6, 11, "!due      - Set due: !today !tomorrow !+7 (days)", [PmcVT100]::Gray(), "")
         $this.terminal.WriteAtColor(4, 13, "Example: Fix bug @myapp #high !tomorrow", [PmcVT100]::Cyan(), "")
 
-        $this.terminal.FillArea(0, $this.terminal.Height - 1, $this.terminal.Width, 1, ' ')
-        $this.terminal.WriteAtColor(2, $this.terminal.Height - 1, "Type task with quick add syntax, Enter to save, Esc to cancel", [PmcVT100]::Yellow(), "")
+        $this.terminal.DrawFooter("Type task with quick add syntax, Enter to save, Esc to cancel")
+        $this.terminal.EndFrame()
     }
 
     [void] HandleTaskAddForm() {
@@ -2382,7 +2431,7 @@ class PmcConsoleUIApp {
     }
 
     [void] DrawProjectFilter() {
-        $this.terminal.Clear()
+        $this.terminal.BeginFrame()
 
         $title = " Filter by Project "
         $titleX = ($this.terminal.Width - $title.Length) / 2
@@ -2418,6 +2467,7 @@ class PmcConsoleUIApp {
         } catch {}
 
         $this.terminal.DrawFooter("↑↓:Nav | Enter:Select | Esc:Back")
+        $this.terminal.EndFrame()
     }
 
     [void] HandleProjectFilter() {
@@ -2494,7 +2544,7 @@ class PmcConsoleUIApp {
     }
 
     [void] DrawSearchForm() {
-        $this.terminal.Clear()
+        $this.terminal.BeginFrame()
 
         $title = " Search Tasks "
         $titleX = ($this.terminal.Width - $title.Length) / 2
@@ -2503,8 +2553,8 @@ class PmcConsoleUIApp {
         $this.terminal.WriteAtColor(4, 5, "Search for:", [PmcVT100]::Yellow(), "")
         $this.terminal.WriteAtColor(4, 6, "> ", [PmcVT100]::Yellow(), "")
 
-        $this.terminal.FillArea(0, $this.terminal.Height - 1, $this.terminal.Width, 1, ' ')
-        $this.terminal.WriteAtColor(2, $this.terminal.Height - 1, "Type search term, Enter to search, Esc to cancel", [PmcVT100]::Yellow(), "")
+        $this.terminal.DrawFooter("Type search term, Enter to search, Esc to cancel")
+        $this.terminal.EndFrame()
     }
 
     [void] HandleSearchForm() {
@@ -2547,7 +2597,7 @@ class PmcConsoleUIApp {
     }
 
     [void] DrawHelpView() {
-        $this.terminal.Clear()
+        $this.terminal.BeginFrame()
 
         $title = " PMC ConsoleUI - Keybindings & Help "
         $titleX = ($this.terminal.Width - $title.Length) / 2
@@ -2609,6 +2659,7 @@ class PmcConsoleUIApp {
         $this.terminal.WriteAt(6, $y++, "• Scrollable lists, inline editing, full CRUD operations")
 
         $this.terminal.DrawFooter("F10/Alt:Menus  Esc:Back")
+        $this.terminal.EndFrame()
     }
 
     [void] HandleHelpView() {
@@ -2629,7 +2680,7 @@ class PmcConsoleUIApp {
     }
 
     [void] DrawProjectSelect() {
-        $this.terminal.Clear()
+        $this.terminal.BeginFrame()
 
         $title = " Change Task Project "
         $titleX = ($this.terminal.Width - $title.Length) / 2
@@ -2660,6 +2711,7 @@ class PmcConsoleUIApp {
         } catch {}
 
         $this.terminal.DrawFooter("↑↓:Nav | Enter:Select | Esc:Cancel")
+        $this.terminal.EndFrame()
     }
 
     [void] HandleProjectSelect() {
@@ -2732,7 +2784,7 @@ class PmcConsoleUIApp {
     }
 
     [void] DrawDueDateEdit() {
-        $this.terminal.Clear()
+        $this.terminal.BeginFrame()
 
         $title = " Set Due Date "
         $titleX = ($this.terminal.Width - $title.Length) / 2
@@ -2747,8 +2799,8 @@ class PmcConsoleUIApp {
         $this.terminal.WriteAt(6, 13, "3 - Next week (+7 days)")
         $this.terminal.WriteAt(6, 14, "C - Clear due date")
 
-        $this.terminal.FillArea(0, $this.terminal.Height - 1, $this.terminal.Width, 1, ' ')
-        $this.terminal.WriteAt(2, $this.terminal.Height - 1, "Type date or shortcut, Enter to save, Esc to cancel")
+        $this.terminal.DrawFooter("Type date or shortcut, Enter to save, Esc to cancel")
+        $this.terminal.EndFrame()
     }
 
     [void] HandleDueDateEdit() {
@@ -2831,7 +2883,7 @@ class PmcConsoleUIApp {
     }
 
     [void] DrawMultiSelectMode() {
-        $this.terminal.Clear()
+        $this.terminal.BeginFrame()
         $this.menuSystem.DrawMenuBar()
 
         $selectedCount = ($this.multiSelect.Values | Where-Object { $_ -eq $true }).Count
@@ -2883,8 +2935,8 @@ class PmcConsoleUIApp {
             $this.terminal.WriteAt(30, $y, $text)
         }
 
-        $this.terminal.FillArea(0, $this.terminal.Height - 1, $this.terminal.Width, 1, ' ')
-        $this.terminal.WriteAt(2, $this.terminal.Height - 1, "Space:Toggle | A:All | N:None | C:Complete | X:Delete | P:Priority | M:Move | Esc:Exit")
+        $this.terminal.DrawFooter("Space:Toggle | A:All | N:None | C:Complete | X:Delete | P:Priority | M:Move | Esc:Exit")
+        $this.terminal.EndFrame()
     }
 
     [void] HandleMultiSelectMode() {
@@ -3054,8 +3106,7 @@ class PmcConsoleUIApp {
                 }
             }
 
-            $this.terminal.FillArea(0, $this.terminal.Height - 1, $this.terminal.Width, 1, ' ')
-            $this.terminal.WriteAt(2, $this.terminal.Height - 1, "↑↓:Navigate | Enter:Select | Esc:Cancel")
+            $this.terminal.DrawFooter("↑↓:Navigate | Enter:Select | Esc:Cancel")
 
             $key = [Console]::ReadKey($true)
             switch ($key.Key) {
@@ -3207,7 +3258,7 @@ class PmcConsoleUIApp {
     }
 
     [void] DrawTomorrowView() {
-        $this.terminal.Clear()
+        $this.terminal.BeginFrame()
         $this.menuSystem.DrawMenuBar()
 
         $title = " Tomorrow's Tasks "
@@ -3245,10 +3296,11 @@ class PmcConsoleUIApp {
         }
 
         $this.terminal.DrawFooter("↑/↓:Select  Enter:Detail  E:Edit  D:Toggle  F10/Alt:Menus  Esc:Back")
+        $this.terminal.EndFrame()
     }
 
     [void] DrawWeekView() {
-        $this.terminal.Clear()
+        $this.terminal.BeginFrame()
         $this.menuSystem.DrawMenuBar()
 
         $title = " This Week's Tasks "
@@ -3324,10 +3376,11 @@ class PmcConsoleUIApp {
         }
 
         $this.terminal.DrawFooter("↑/↓:Select  Enter:Detail  E:Edit  D:Toggle  F10/Alt:Menus  Esc:Back")
+        $this.terminal.EndFrame()
     }
 
     [void] DrawMonthView() {
-        $this.terminal.Clear()
+        $this.terminal.BeginFrame()
         $this.menuSystem.DrawMenuBar()
 
         $title = " This Month's Tasks "
@@ -3415,10 +3468,11 @@ class PmcConsoleUIApp {
         }
 
         $this.terminal.DrawFooter("↑/↓:Select  Enter:Detail  E:Edit  D:Toggle  F10/Alt:Menus  Esc:Back")
+        $this.terminal.EndFrame()
     }
 
     [void] DrawNoDueDateView() {
-        $this.terminal.Clear()
+        $this.terminal.BeginFrame()
         $this.menuSystem.DrawMenuBar()
 
         $title = " Tasks Without Due Date "
@@ -3451,10 +3505,11 @@ class PmcConsoleUIApp {
         }
 
         $this.terminal.DrawFooter("↑/↓:Select  Enter:Detail  E:Edit  D:Toggle  F10/Alt:Menus  Esc:Back")
+        $this.terminal.EndFrame()
     }
 
     [void] DrawNextActionsView() {
-        $this.terminal.Clear()
+        $this.terminal.BeginFrame()
         $this.menuSystem.DrawMenuBar()
 
         $title = " Next Actions "
@@ -3499,10 +3554,11 @@ class PmcConsoleUIApp {
         }
 
         $this.terminal.DrawFooter("↑/↓:Select  Enter:Detail  E:Edit  D:Toggle  F10/Alt:Menus  Esc:Back")
+        $this.terminal.EndFrame()
     }
 
     [void] DrawTodayView() {
-        $this.terminal.Clear()
+        $this.terminal.BeginFrame()
         $this.menuSystem.DrawMenuBar()
 
         $title = " Today's Tasks "
@@ -3578,10 +3634,11 @@ class PmcConsoleUIApp {
         }
 
         $this.terminal.DrawFooter("↑/↓:Select  Enter:Detail  E:Edit  D:Toggle  F10/Alt:Menus  Esc:Back")
+        $this.terminal.EndFrame()
     }
 
     [void] DrawOverdueView() {
-        $this.terminal.Clear()
+        $this.terminal.BeginFrame()
         $this.menuSystem.DrawMenuBar()
 
         $title = " Overdue Tasks "
@@ -3624,10 +3681,11 @@ class PmcConsoleUIApp {
         }
 
         $this.terminal.DrawFooter("↑/↓:Select  Enter:Detail  E:Edit  D:Toggle  F10/Alt:Menus  Esc:Back")
+        $this.terminal.EndFrame()
     }
 
     [void] DrawUpcomingView() {
-        $this.terminal.Clear()
+        $this.terminal.BeginFrame()
         $this.menuSystem.DrawMenuBar()
 
         $title = " Upcoming Tasks (Next 7 Days) "
@@ -3669,6 +3727,7 @@ class PmcConsoleUIApp {
         }
 
         $this.terminal.DrawFooter("↑/↓:Select  Enter:Detail  E:Edit  D:Toggle  F10/Alt:Menus  Esc:Back")
+        $this.terminal.EndFrame()
     }
 
     [void] DrawKanbanView() {
@@ -3693,7 +3752,7 @@ class PmcConsoleUIApp {
         [int]$columnHeight = 20
 
         while ($kanbanActive) {
-            $this.terminal.Clear()
+            $this.terminal.BeginFrame()
             $this.menuSystem.DrawMenuBar()
 
             $title = " Kanban Board "
@@ -3837,6 +3896,8 @@ class PmcConsoleUIApp {
                 $this.terminal.WriteAtColor(4, 6, "Error loading kanban: $_", [PmcVT100]::Red(), "")
             }
 
+            $this.terminal.EndFrame()
+
             # Handle input
             $key = [Console]::ReadKey($true)
 
@@ -3929,7 +3990,7 @@ class PmcConsoleUIApp {
     }
 
     [void] DrawAgendaView() {
-        $this.terminal.Clear()
+        $this.terminal.BeginFrame()
         $this.menuSystem.DrawMenuBar()
 
         $title = " Agenda View "
@@ -4066,10 +4127,11 @@ class PmcConsoleUIApp {
         }
 
         $this.terminal.DrawFooter("↑/↓:Select  Enter:Detail  E:Edit  D:Toggle  F10/Alt:Menus  Esc:Back")
+        $this.terminal.EndFrame()
     }
 
     [void] DrawBlockedView() {
-        $this.terminal.Clear()
+        $this.terminal.BeginFrame()
         $this.menuSystem.DrawMenuBar()
 
         $title = " Blocked/Waiting Tasks "
@@ -4104,12 +4166,13 @@ class PmcConsoleUIApp {
         }
 
         $this.terminal.DrawFooter("↑/↓:Select  Enter:Detail  E:Edit  D:Toggle  F10/Alt:Menus  Esc:Back")
+        $this.terminal.EndFrame()
     }
 
     # Legacy single-shot special view handler removed. Persistent handler is used for all these views.
 
     [void] DrawBackupView() {
-        $this.terminal.Clear()
+        $this.terminal.BeginFrame()
         $this.menuSystem.DrawMenuBar()
 
         $title = " Backup Data "
@@ -4166,8 +4229,8 @@ class PmcConsoleUIApp {
             $this.terminal.WriteAtColor(4, 8, "Error loading backup info: $_", [PmcVT100]::Red(), "")
         }
 
-        $this.terminal.FillArea(0, $this.terminal.Height - 1, $this.terminal.Width, 1, ' ')
-        $this.terminal.WriteAt(2, $this.terminal.Height - 1, "C:Create Backup | Esc:Back")
+        $this.terminal.DrawFooter("C:Create Backup | Esc:Back")
+        $this.terminal.EndFrame()
     }
 
     [void] HandleBackupView() {
@@ -4202,7 +4265,7 @@ class PmcConsoleUIApp {
     }
 
     [void] DrawTimerStatus() {
-        $this.terminal.Clear()
+        $this.terminal.BeginFrame()
         $this.menuSystem.DrawMenuBar()
 
         $title = " Timer Status "
@@ -4234,10 +4297,11 @@ class PmcConsoleUIApp {
         }
 
         $this.terminal.DrawFooter("F10/Alt:Menus  Esc:Back")
+        $this.terminal.EndFrame()
     }
 
     [void] DrawTimerStart() {
-        $this.terminal.Clear()
+        $this.terminal.BeginFrame()
         $this.menuSystem.DrawMenuBar()
 
         $title = " Start Timer "
@@ -4258,12 +4322,12 @@ class PmcConsoleUIApp {
             $this.terminal.WriteAtColor(4, 6, "Error: $_", [PmcVT100]::Red(), "")
         }
 
-        $this.terminal.FillArea(0, $this.terminal.Height - 1, $this.terminal.Width, 1, ' ')
-        $this.terminal.WriteAt(2, $this.terminal.Height - 1, "S:Start | Esc:Cancel")
+        $this.terminal.DrawFooter("S:Start | Esc:Cancel")
+        $this.terminal.EndFrame()
     }
 
     [void] DrawTimerStop() {
-        $this.terminal.Clear()
+        $this.terminal.BeginFrame()
         $this.menuSystem.DrawMenuBar()
 
         $title = " Stop Timer "
@@ -4286,12 +4350,12 @@ class PmcConsoleUIApp {
             $this.terminal.WriteAtColor(4, 6, "Error: $_", [PmcVT100]::Red(), "")
         }
 
-        $this.terminal.FillArea(0, $this.terminal.Height - 1, $this.terminal.Width, 1, ' ')
-        $this.terminal.WriteAt(2, $this.terminal.Height - 1, "S:Stop | Esc:Cancel")
+        $this.terminal.DrawFooter("S:Stop | Esc:Cancel")
+        $this.terminal.EndFrame()
     }
 
     [void] DrawUndoView() {
-        $this.terminal.Clear()
+        $this.terminal.BeginFrame()
         $this.menuSystem.DrawMenuBar()
 
         $title = " Undo Last Change "
@@ -4313,12 +4377,12 @@ class PmcConsoleUIApp {
             $this.terminal.WriteAtColor(4, 6, "Error: $_", [PmcVT100]::Red(), "")
         }
 
-        $this.terminal.FillArea(0, $this.terminal.Height - 1, $this.terminal.Width, 1, ' ')
-        $this.terminal.WriteAt(2, $this.terminal.Height - 1, "U:Undo | Esc:Cancel")
+        $this.terminal.DrawFooter("U:Undo | Esc:Cancel")
+        $this.terminal.EndFrame()
     }
 
     [void] DrawRedoView() {
-        $this.terminal.Clear()
+        $this.terminal.BeginFrame()
         $this.menuSystem.DrawMenuBar()
 
         $title = " Redo Last Undone Change "
@@ -4338,12 +4402,12 @@ class PmcConsoleUIApp {
             $this.terminal.WriteAtColor(4, 6, "Error: $_", [PmcVT100]::Red(), "")
         }
 
-        $this.terminal.FillArea(0, $this.terminal.Height - 1, $this.terminal.Width, 1, ' ')
-        $this.terminal.WriteAt(2, $this.terminal.Height - 1, "R:Redo | Esc:Cancel")
+        $this.terminal.DrawFooter("R:Redo | Esc:Cancel")
+        $this.terminal.EndFrame()
     }
 
     [void] DrawFocusClearView() {
-        $this.terminal.Clear()
+        $this.terminal.BeginFrame()
         $this.menuSystem.DrawMenuBar()
 
         $title = " Clear Focus "
@@ -4355,12 +4419,12 @@ class PmcConsoleUIApp {
         $y++
         $this.terminal.WriteAtColor(4, $y, "Press 'C' to clear focus.", [PmcVT100]::Yellow(), "")
 
-        $this.terminal.FillArea(0, $this.terminal.Height - 1, $this.terminal.Width, 1, ' ')
-        $this.terminal.WriteAt(2, $this.terminal.Height - 1, "C:Clear  F10/Alt:Menus  Esc:Back")
+        $this.terminal.DrawFooter("C:Clear  F10/Alt:Menus  Esc:Back")
+        $this.terminal.EndFrame()
     }
 
     [void] DrawClearBackupsView() {
-        $this.terminal.Clear()
+        $this.terminal.BeginFrame()
         $this.menuSystem.DrawMenuBar()
 
         $title = " Clear Backup Files "
@@ -4412,8 +4476,8 @@ class PmcConsoleUIApp {
             $this.terminal.WriteAtColor(4, 8, "Error: $_", [PmcVT100]::Red(), "")
         }
 
-        $this.terminal.FillArea(0, $this.terminal.Height - 1, $this.terminal.Width, 1, ' ')
-        $this.terminal.WriteAt(2, $this.terminal.Height - 1, "A:Auto | M:Manual | B:Both | Esc:Cancel")
+        $this.terminal.DrawFooter("A:Auto | M:Manual | B:Both | Esc:Cancel")
+        $this.terminal.EndFrame()
     }
 
     [void] HandleClearBackupsView() {
@@ -4508,7 +4572,7 @@ class PmcConsoleUIApp {
     }
 
     [void] DrawFocusSetForm() {
-        $this.terminal.Clear()
+        $this.terminal.BeginFrame()
 
         $title = " Set Focus Context "
         $titleX = ($this.terminal.Width - $title.Length) / 2
@@ -4526,8 +4590,8 @@ class PmcConsoleUIApp {
             }
         } catch {}
 
-        $this.terminal.FillArea(0, $this.terminal.Height - 1, $this.terminal.Width, 1, ' ')
-        $this.terminal.WriteAt(2, $this.terminal.Height - 1, "Type project name, Enter to set, Esc to cancel")
+        $this.terminal.DrawFooter("Type project name, Enter to set, Esc to cancel")
+        $this.terminal.EndFrame()
     }
 
     [void] HandleFocusSetForm() {
@@ -4559,7 +4623,7 @@ class PmcConsoleUIApp {
     }
 
     [void] DrawFocusStatus() {
-        $this.terminal.Clear()
+        $this.terminal.BeginFrame()
         $this.menuSystem.DrawMenuBar()
 
         $title = " Focus Status "
@@ -4597,6 +4661,7 @@ class PmcConsoleUIApp {
         }
 
         $this.terminal.DrawFooter("F10/Alt:Menus  Esc:Back")
+        $this.terminal.EndFrame()
     }
 
     [void] HandleFocusStatusView() {
@@ -4617,7 +4682,7 @@ class PmcConsoleUIApp {
     }
 
     [void] DrawTimeAddForm() {
-        $this.terminal.Clear()
+        $this.terminal.BeginFrame()
         $this.menuSystem.DrawMenuBar()
 
         $title = " Add Time Entry "
@@ -4630,8 +4695,8 @@ class PmcConsoleUIApp {
         $this.terminal.WriteAtColor(4, 12, "Description:", [PmcVT100]::Yellow(), "")
         $this.terminal.WriteAt(4, 14, "Date (YYYY-MM-DD, default today):")
 
-        $this.terminal.FillArea(0, $this.terminal.Height - 1, $this.terminal.Width, 1, ' ')
-        $this.terminal.WriteAt(2, $this.terminal.Height - 1, "Enter fields | Esc=Cancel")
+        $this.terminal.DrawFooter("Enter fields | Esc=Cancel")
+        $this.terminal.EndFrame()
     }
 
     [void] HandleTimeAddForm() {
@@ -4706,8 +4771,8 @@ class PmcConsoleUIApp {
     }
 
     [void] DrawTimeList() {
+        $this.terminal.BeginFrame()
         $this.LoadTimeLogs()
-        $this.terminal.Clear()
         $this.menuSystem.DrawMenuBar()
 
         $title = " Time Log "
@@ -4791,6 +4856,7 @@ class PmcConsoleUIApp {
         }
 
         $this.terminal.DrawFooter("↑↓:Nav | A:Add | E:Edit | Del:Delete | R:Report | Esc:Back")
+        $this.terminal.EndFrame()
     }
 
     [void] HandleTimeListView() {
@@ -4861,7 +4927,7 @@ class PmcConsoleUIApp {
     }
 
     [void] DrawTimeReport() {
-        $this.terminal.Clear()
+        $this.terminal.BeginFrame()
         $this.menuSystem.DrawMenuBar()
 
         $title = " Time Report "
@@ -4915,12 +4981,13 @@ class PmcConsoleUIApp {
         }
 
         $this.terminal.DrawFooter("F10/Alt:Menus  Esc:Back")
+        $this.terminal.EndFrame()
     }
 
     [void] DrawProjectList() {
+        $this.terminal.BeginFrame()
         $this.LoadProjects()
         $this.terminal.BeginFrame()
-        $this.terminal.Clear()
         $this.menuSystem.DrawMenuBar()
 
         $title = " Project List "
@@ -4983,6 +5050,7 @@ class PmcConsoleUIApp {
         }
 
         $this.terminal.DrawFooter("↑↓:Nav | Enter:Details | V:View Tasks | A:Add | E:Edit | Del:Delete | I:Info | F:Open Folder | C:Open CAA | T:Open T2020 | R:Open Request | Esc:Back")
+        $this.terminal.EndFrame()
         $this.terminal.EndFrame()
     }
 
@@ -5143,8 +5211,7 @@ class PmcConsoleUIApp {
             $y++
         }
 
-        $this.terminal.FillArea(0, $this.terminal.Height - 1, $this.terminal.Width, 1, ' ')
-        $this.terminal.WriteAt(2, $this.terminal.Height - 1, "Enter values; Enter = next, Esc = cancel")
+        $this.terminal.DrawFooter("Enter values; Enter = next, Esc = cancel")
     }
 
     [void] HandleProjectCreateForm() {
@@ -5169,7 +5236,7 @@ class PmcConsoleUIApp {
 
         # Draw initial values (blank for create)
         foreach ($f in $fields) { $this.terminal.WriteAt($f['X'], $f['Y'], [string]$f['Value']) }
-        $this.terminal.WriteAt(2, $this.terminal.Height - 1, "Tab/Shift+Tab navigate  |  F2: Pick path  |  Enter: Create  |  Esc: Cancel")
+        $this.terminal.DrawFooter("Tab/Shift+Tab navigate  |  F2: Pick path  |  Enter: Create  |  Esc: Cancel")
 
         # In-form editor with active label highlight
         $active = 0
@@ -5395,7 +5462,7 @@ class PmcConsoleUIApp {
                 }
             }
 
-            $this.DrawLayout()
+            $this.RefreshCurrentView()
         } catch {
             Show-InfoMessage -Message "Failed to edit task: $_" -Title "Error" -Color "Red"
             $this.GoBackOr('tasklist')
@@ -5403,7 +5470,7 @@ class PmcConsoleUIApp {
     }
 
     [void] DrawTaskCompleteForm() {
-        $this.terminal.Clear()
+        $this.terminal.BeginFrame()
         $this.menuSystem.DrawMenuBar()
 
         $title = " Complete Task "
@@ -5412,8 +5479,8 @@ class PmcConsoleUIApp {
 
         $this.terminal.WriteAtColor(4, 6, "Task ID:", [PmcVT100]::Yellow(), "")
 
-        $this.terminal.FillArea(0, $this.terminal.Height - 1, $this.terminal.Width, 1, ' ')
-        $this.terminal.WriteAt(2, $this.terminal.Height - 1, "Enter task ID | Esc=Cancel")
+        $this.terminal.DrawFooter("Enter task ID | Esc=Cancel")
+        $this.terminal.EndFrame()
     }
 
     [void] HandleTaskCompleteForm() {
@@ -5457,7 +5524,7 @@ class PmcConsoleUIApp {
     }
 
     [void] DrawTaskDeleteForm() {
-        $this.terminal.Clear()
+        $this.terminal.BeginFrame()
         $this.menuSystem.DrawMenuBar()
 
         $title = " Delete Task "
@@ -5467,8 +5534,8 @@ class PmcConsoleUIApp {
         $this.terminal.WriteAtColor(4, 6, "Task ID:", [PmcVT100]::Yellow(), "")
         $this.terminal.WriteAtColor(4, 8, "WARNING: This will permanently delete the task!", [PmcVT100]::Red(), "")
 
-        $this.terminal.FillArea(0, $this.terminal.Height - 1, $this.terminal.Width, 1, ' ')
-        $this.terminal.WriteAt(2, $this.terminal.Height - 1, "Enter task ID | Esc=Cancel")
+        $this.terminal.DrawFooter("Enter task ID | Esc=Cancel")
+        $this.terminal.EndFrame()
     }
 
     [void] HandleTaskDeleteForm() {
@@ -5518,7 +5585,7 @@ class PmcConsoleUIApp {
     }
 
     [void] DrawDepAddForm() {
-        $this.terminal.Clear()
+        $this.terminal.BeginFrame()
         $this.menuSystem.DrawMenuBar()
 
         $title = " Add Dependency "
@@ -5529,8 +5596,8 @@ class PmcConsoleUIApp {
         $this.terminal.WriteAtColor(4, 8, "Depends on Task ID:", [PmcVT100]::Yellow(), "")
         $this.terminal.WriteAt(4, 10, "(Task will be blocked until dependency is completed)")
 
-        $this.terminal.FillArea(0, $this.terminal.Height - 1, $this.terminal.Width, 1, ' ')
-        $this.terminal.WriteAt(2, $this.terminal.Height - 1, "Enter IDs | Esc=Cancel")
+        $this.terminal.DrawFooter("Enter IDs | Esc=Cancel")
+        $this.terminal.EndFrame()
     }
 
     [void] HandleDepAddForm() {
@@ -5592,7 +5659,7 @@ class PmcConsoleUIApp {
     }
 
     [void] DrawDepRemoveForm() {
-        $this.terminal.Clear()
+        $this.terminal.BeginFrame()
         $this.menuSystem.DrawMenuBar()
 
         $title = " Remove Dependency "
@@ -5602,8 +5669,8 @@ class PmcConsoleUIApp {
         $this.terminal.WriteAtColor(4, 6, "Task ID:", [PmcVT100]::Yellow(), "")
         $this.terminal.WriteAtColor(4, 8, "Remove dependency on Task ID:", [PmcVT100]::Yellow(), "")
 
-        $this.terminal.FillArea(0, $this.terminal.Height - 1, $this.terminal.Width, 1, ' ')
-        $this.terminal.WriteAt(2, $this.terminal.Height - 1, "Enter IDs | Esc=Cancel")
+        $this.terminal.DrawFooter("Enter IDs | Esc=Cancel")
+        $this.terminal.EndFrame()
     }
 
     [void] HandleDepRemoveForm() {
@@ -5659,7 +5726,7 @@ class PmcConsoleUIApp {
     }
 
     [void] DrawDepShowForm() {
-        $this.terminal.Clear()
+        $this.terminal.BeginFrame()
         $this.menuSystem.DrawMenuBar()
 
         $title = " Show Task Dependencies "
@@ -5668,8 +5735,8 @@ class PmcConsoleUIApp {
 
         $this.terminal.WriteAtColor(4, 6, "Task ID:", [PmcVT100]::Yellow(), "")
 
-        $this.terminal.FillArea(0, $this.terminal.Height - 1, $this.terminal.Width, 1, ' ')
-        $this.terminal.WriteAt(2, $this.terminal.Height - 1, "Enter task ID | Esc=Cancel")
+        $this.terminal.DrawFooter("Enter task ID | Esc=Cancel")
+        $this.terminal.EndFrame()
     }
 
     [void] HandleDepShowForm() {
@@ -5733,7 +5800,7 @@ class PmcConsoleUIApp {
     }
 
     [void] DrawDepGraph() {
-        $this.terminal.Clear()
+        $this.terminal.BeginFrame()
         $this.menuSystem.DrawMenuBar()
 
         $title = " Dependency Graph "
@@ -5786,11 +5853,12 @@ class PmcConsoleUIApp {
         }
 
         $this.terminal.DrawFooter("F10/Alt:Menus  Esc:Back")
+        $this.terminal.EndFrame()
     }
 
     # File Management Methods
     [void] DrawFileRestoreForm() {
-        $this.terminal.Clear()
+        $this.terminal.BeginFrame()
         $this.menuSystem.DrawMenuBar()
         $title = " Restore Data from Backup "
         $titleX = ($this.terminal.Width - $title.Length) / 2
@@ -5849,8 +5917,8 @@ class PmcConsoleUIApp {
             $this.terminal.WriteAtColor(4, 6, "Error listing backups: $_", [PmcVT100]::Red(), "")
         }
 
-        $this.terminal.FillArea(0, $this.terminal.Height - 1, $this.terminal.Width, 1, ' ')
-        $this.terminal.WriteAt(2, $this.terminal.Height - 1, "Enter number or Esc=Cancel")
+        $this.terminal.DrawFooter("Enter number or Esc=Cancel")
+        $this.terminal.EndFrame()
     }
 
     [void] HandleFileRestoreForm() {
@@ -5929,14 +5997,14 @@ class PmcConsoleUIApp {
     
 
     [void] DrawProjectArchiveForm() {
-        $this.terminal.Clear()
+        $this.terminal.BeginFrame()
         $this.menuSystem.DrawMenuBar()
         $title = " Archive Project "
         $titleX = ($this.terminal.Width - $title.Length) / 2
         $this.terminal.WriteAtColor([int]$titleX, 3, $title, [PmcVT100]::BgBlue(), [PmcVT100]::White())
         $this.terminal.WriteAtColor(4, 6, "Project Name:", [PmcVT100]::Yellow(), "")
-        $this.terminal.FillArea(0, $this.terminal.Height - 1, $this.terminal.Width, 1, ' ')
-        $this.terminal.WriteAt(2, $this.terminal.Height - 1, "Enter project name | Esc=Cancel")
+        $this.terminal.DrawFooter("Enter project name | Esc=Cancel")
+        $this.terminal.EndFrame()
     }
 
     [void] HandleProjectArchiveForm() {
@@ -5975,15 +6043,15 @@ class PmcConsoleUIApp {
     }
 
     [void] DrawProjectDeleteForm() {
-        $this.terminal.Clear()
+        $this.terminal.BeginFrame()
         $this.menuSystem.DrawMenuBar()
         $title = " Delete Project "
         $titleX = ($this.terminal.Width - $title.Length) / 2
         $this.terminal.WriteAtColor([int]$titleX, 3, $title, [PmcVT100]::BgBlue(), [PmcVT100]::White())
         $this.terminal.WriteAtColor(4, 6, "Project Name:", [PmcVT100]::Yellow(), "")
         $this.terminal.WriteAtColor(4, 8, "WARNING: This will NOT delete tasks!", [PmcVT100]::Red(), "")
-        $this.terminal.FillArea(0, $this.terminal.Height - 1, $this.terminal.Width, 1, ' ')
-        $this.terminal.WriteAt(2, $this.terminal.Height - 1, "Enter project name | Esc=Cancel")
+        $this.terminal.DrawFooter("Enter project name | Esc=Cancel")
+        $this.terminal.EndFrame()
     }
 
     [void] HandleProjectDeleteForm() {
@@ -6025,14 +6093,14 @@ class PmcConsoleUIApp {
     }
 
     [void] DrawProjectStatsForm() {
-        $this.terminal.Clear()
+        $this.terminal.BeginFrame()
         $this.menuSystem.DrawMenuBar()
         $title = " Project Statistics "
         $titleX = ($this.terminal.Width - $title.Length) / 2
         $this.terminal.WriteAtColor([int]$titleX, 3, $title, [PmcVT100]::BgBlue(), [PmcVT100]::White())
         $this.terminal.WriteAtColor(4, 6, "Project Name:", [PmcVT100]::Yellow(), "")
-        $this.terminal.FillArea(0, $this.terminal.Height - 1, $this.terminal.Width, 1, ' ')
-        $this.terminal.WriteAt(2, $this.terminal.Height - 1, "Enter project name | Esc=Cancel")
+        $this.terminal.DrawFooter("Enter project name | Esc=Cancel")
+        $this.terminal.EndFrame()
     }
 
     [void] HandleProjectStatsView() {
@@ -6105,15 +6173,15 @@ class PmcConsoleUIApp {
 
     # Time Management Methods
     [void] DrawTimeEditForm() {
-        $this.terminal.Clear()
+        $this.terminal.BeginFrame()
         $this.menuSystem.DrawMenuBar()
         $title = " Edit Time Entry "
         $titleX = ($this.terminal.Width - $title.Length) / 2
         $this.terminal.WriteAtColor([int]$titleX, 3, $title, [PmcVT100]::BgBlue(), [PmcVT100]::White())
         $this.terminal.WriteAtColor(4, 6, "Time Entry ID:", [PmcVT100]::Yellow(), "")
         $this.terminal.WriteAtColor(4, 8, "New Minutes:", [PmcVT100]::Yellow(), "")
-        $this.terminal.FillArea(0, $this.terminal.Height - 1, $this.terminal.Width, 1, ' ')
-        $this.terminal.WriteAt(2, $this.terminal.Height - 1, "Enter ID and minutes | Esc=Cancel")
+        $this.terminal.DrawFooter("Enter ID and minutes | Esc=Cancel")
+        $this.terminal.EndFrame()
     }
 
     [void] HandleTimeEditForm() {
@@ -6189,14 +6257,14 @@ class PmcConsoleUIApp {
     }
 
     [void] DrawTimeDeleteForm() {
-        $this.terminal.Clear()
+        $this.terminal.BeginFrame()
         $this.menuSystem.DrawMenuBar()
         $title = " Delete Time Entry "
         $titleX = ($this.terminal.Width - $title.Length) / 2
         $this.terminal.WriteAtColor([int]$titleX, 3, $title, [PmcVT100]::BgBlue(), [PmcVT100]::White())
         $this.terminal.WriteAtColor(4, 6, "Time Entry ID:", [PmcVT100]::Yellow(), "")
-        $this.terminal.FillArea(0, $this.terminal.Height - 1, $this.terminal.Width, 1, ' ')
-        $this.terminal.WriteAt(2, $this.terminal.Height - 1, "Enter ID | Esc=Cancel")
+        $this.terminal.DrawFooter("Enter ID | Esc=Cancel")
+        $this.terminal.EndFrame()
     }
 
     [void] HandleTimeDeleteForm() {
@@ -6249,15 +6317,15 @@ class PmcConsoleUIApp {
 
     # Task Import/Export Methods
     [void] DrawTaskImportForm() {
-        $this.terminal.Clear()
+        $this.terminal.BeginFrame()
         $this.menuSystem.DrawMenuBar()
         $title = " Import Tasks "
         $titleX = ($this.terminal.Width - $title.Length) / 2
         $this.terminal.WriteAtColor([int]$titleX, 3, $title, [PmcVT100]::BgBlue(), [PmcVT100]::White())
         $this.terminal.WriteAtColor(4, 6, "Import File Path:", [PmcVT100]::Yellow(), "")
         $this.terminal.WriteAt(4, 8, "(Must be JSON format compatible with PMC)")
-        $this.terminal.FillArea(0, $this.terminal.Height - 1, $this.terminal.Width, 1, ' ')
-        $this.terminal.WriteAt(2, $this.terminal.Height - 1, "Enter file path | Esc=Cancel")
+        $this.terminal.DrawFooter("Enter file path | Esc=Cancel")
+        $this.terminal.EndFrame()
     }
 
     [void] HandleTaskImportForm() {
@@ -6292,15 +6360,15 @@ class PmcConsoleUIApp {
     }
 
     [void] DrawTaskExportForm() {
-        $this.terminal.Clear()
+        $this.terminal.BeginFrame()
         $this.menuSystem.DrawMenuBar()
         $title = " Export Tasks "
         $titleX = ($this.terminal.Width - $title.Length) / 2
         $this.terminal.WriteAtColor([int]$titleX, 3, $title, [PmcVT100]::BgBlue(), [PmcVT100]::White())
         $this.terminal.WriteAtColor(4, 6, "Export File Path:", [PmcVT100]::Yellow(), "")
         $this.terminal.WriteAt(4, 8, "(Will export all tasks as JSON)")
-        $this.terminal.FillArea(0, $this.terminal.Height - 1, $this.terminal.Width, 1, ' ')
-        $this.terminal.WriteAt(2, $this.terminal.Height - 1, "Enter file path | Esc=Cancel")
+        $this.terminal.DrawFooter("Enter file path | Esc=Cancel")
+        $this.terminal.EndFrame()
     }
 
     [void] HandleTaskExportForm() {
@@ -6324,7 +6392,7 @@ class PmcConsoleUIApp {
     }
 
     [void] DrawThemeEditor() {
-        $this.terminal.Clear()
+        $this.terminal.BeginFrame()
         $this.menuSystem.DrawMenuBar()
 
         $title = " Theme Editor "
@@ -6354,12 +6422,12 @@ class PmcConsoleUIApp {
         $this.terminal.WriteAtColor(4, $y++, "Press number key to preview theme", [PmcVT100]::Yellow(), "")
         $this.terminal.WriteAtColor(4, $y, "Press 'A' to apply selected theme", [PmcVT100]::Yellow(), "")
 
-        $this.terminal.FillArea(0, $this.terminal.Height - 1, $this.terminal.Width, 1, ' ')
-        $this.terminal.WriteAt(2, $this.terminal.Height - 1, "1-4:Select | A:Apply | Esc:Cancel")
+        $this.terminal.DrawFooter("1-4:Select | A:Apply | Esc:Cancel")
+        $this.terminal.EndFrame()
     }
 
     [void] DrawApplyTheme() {
-        $this.terminal.Clear()
+        $this.terminal.BeginFrame()
         $this.menuSystem.DrawMenuBar()
 
         $title = " Apply Theme "
@@ -6389,12 +6457,12 @@ class PmcConsoleUIApp {
 
         $this.terminal.WriteAtColor(4, $y, "Press number to apply theme (changes take effect immediately)", [PmcVT100]::Yellow(), "")
 
-        $this.terminal.FillArea(0, $this.terminal.Height - 1, $this.terminal.Width, 1, ' ')
-        $this.terminal.WriteAt(2, $this.terminal.Height - 1, "1-4:Apply Theme | Esc:Cancel")
+        $this.terminal.DrawFooter("1-4:Apply Theme | Esc:Cancel")
+        $this.terminal.EndFrame()
     }
 
     [void] DrawCopyTaskForm() {
-        $this.terminal.Clear()
+        $this.terminal.BeginFrame()
         $this.menuSystem.DrawMenuBar()
 
         $title = " Copy/Duplicate Task "
@@ -6404,8 +6472,8 @@ class PmcConsoleUIApp {
         $this.terminal.WriteAtColor(4, 6, "Task ID to copy:", [PmcVT100]::Yellow(), "")
         $this.terminal.WriteAt(4, 8, "This will create an exact duplicate of the task")
 
-        $this.terminal.FillArea(0, $this.terminal.Height - 1, $this.terminal.Width, 1, ' ')
-        $this.terminal.WriteAt(2, $this.terminal.Height - 1, "Enter task ID | Esc:Cancel")
+        $this.terminal.DrawFooter("Enter task ID | Esc:Cancel")
+        $this.terminal.EndFrame()
     }
 
     [void] HandleCopyTaskForm() {
@@ -6436,7 +6504,7 @@ class PmcConsoleUIApp {
     }
 
     [void] DrawMoveTaskForm() {
-        $this.terminal.Clear()
+        $this.terminal.BeginFrame()
         $this.menuSystem.DrawMenuBar()
 
         $title = " Move Task to Project "
@@ -6446,8 +6514,8 @@ class PmcConsoleUIApp {
         $this.terminal.WriteAtColor(4, 6, "Task ID:", [PmcVT100]::Yellow(), "")
         $this.terminal.WriteAtColor(4, 8, "Project Name:", [PmcVT100]::Yellow(), "")
 
-        $this.terminal.FillArea(0, $this.terminal.Height - 1, $this.terminal.Width, 1, ' ')
-        $this.terminal.WriteAt(2, $this.terminal.Height - 1, "Enter fields | Esc:Cancel")
+        $this.terminal.DrawFooter("Enter fields | Esc:Cancel")
+        $this.terminal.EndFrame()
     }
 
     [void] HandleMoveTaskForm() {
@@ -6480,7 +6548,7 @@ class PmcConsoleUIApp {
     }
 
     [void] DrawSetPriorityForm() {
-        $this.terminal.Clear()
+        $this.terminal.BeginFrame()
         $this.menuSystem.DrawMenuBar()
 
         $title = " Set Task Priority "
@@ -6490,8 +6558,8 @@ class PmcConsoleUIApp {
         $this.terminal.WriteAtColor(4, 6, "Task ID:", [PmcVT100]::Yellow(), "")
         $this.terminal.WriteAtColor(4, 8, "Priority (high/medium/low):", [PmcVT100]::Yellow(), "")
 
-        $this.terminal.FillArea(0, $this.terminal.Height - 1, $this.terminal.Width, 1, ' ')
-        $this.terminal.WriteAt(2, $this.terminal.Height - 1, "Enter fields | Esc:Cancel")
+        $this.terminal.DrawFooter("Enter fields | Esc:Cancel")
+        $this.terminal.EndFrame()
     }
 
     [void] HandleSetPriorityForm() {
@@ -6523,7 +6591,7 @@ class PmcConsoleUIApp {
     }
 
     [void] DrawPostponeTaskForm() {
-        $this.terminal.Clear()
+        $this.terminal.BeginFrame()
         $this.menuSystem.DrawMenuBar()
 
         $title = " Postpone Task "
@@ -6533,8 +6601,8 @@ class PmcConsoleUIApp {
         $this.terminal.WriteAtColor(4, 6, "Task ID:", [PmcVT100]::Yellow(), "")
         $this.terminal.WriteAtColor(4, 8, "Days to postpone (default: 1):", [PmcVT100]::Yellow(), "")
 
-        $this.terminal.FillArea(0, $this.terminal.Height - 1, $this.terminal.Width, 1, ' ')
-        $this.terminal.WriteAt(2, $this.terminal.Height - 1, "Enter fields | Esc:Cancel")
+        $this.terminal.DrawFooter("Enter fields | Esc:Cancel")
+        $this.terminal.EndFrame()
     }
 
     [void] HandlePostponeTaskForm() {
@@ -6569,7 +6637,7 @@ class PmcConsoleUIApp {
     }
 
     [void] DrawAddNoteForm() {
-        $this.terminal.Clear()
+        $this.terminal.BeginFrame()
         $this.menuSystem.DrawMenuBar()
 
         $title = " Add Note to Task "
@@ -6579,8 +6647,8 @@ class PmcConsoleUIApp {
         $this.terminal.WriteAtColor(4, 6, "Task ID:", [PmcVT100]::Yellow(), "")
         $this.terminal.WriteAtColor(4, 8, "Note:", [PmcVT100]::Yellow(), "")
 
-        $this.terminal.FillArea(0, $this.terminal.Height - 1, $this.terminal.Width, 1, ' ')
-        $this.terminal.WriteAt(2, $this.terminal.Height - 1, "Enter fields | Esc:Cancel")
+        $this.terminal.DrawFooter("Enter fields | Esc:Cancel")
+        $this.terminal.EndFrame()
     }
 
     [void] HandleAddNoteForm() {
@@ -6613,15 +6681,15 @@ class PmcConsoleUIApp {
     }
 
     [void] DrawEditProjectForm() {
-        $this.terminal.Clear()
+        $this.terminal.BeginFrame()
         $this.menuSystem.DrawMenuBar()
 
         $title = " Edit Project "
         $titleX = ($this.terminal.Width - $title.Length) / 2
         $this.terminal.WriteAtColor([int]$titleX, 3, $title, [PmcVT100]::BgBlue(), [PmcVT100]::White())
         $this.terminal.WriteAtColor(4, 6, "Edit fields; Tab/Shift+Tab navigate; F2 picks path; Enter saves; Esc cancels.", [PmcVT100]::Yellow(), "")
-        $this.terminal.FillArea(0, $this.terminal.Height - 1, $this.terminal.Width, 1, ' ')
-        $this.terminal.WriteAt(2, $this.terminal.Height - 1, "Tab/Shift+Tab navigate  |  F2: Pick path  |  Enter: Save  |  Esc: Cancel")
+        $this.terminal.DrawFooter("Tab/Shift+Tab navigate  |  F2: Pick path  |  Enter: Save  |  Esc: Cancel")
+        $this.terminal.EndFrame()
     }
 
     [void] HandleEditProjectForm() {
@@ -6799,7 +6867,7 @@ class PmcConsoleUIApp {
     }
 
     [void] DrawProjectInfoView() {
-        $this.terminal.Clear()
+        $this.terminal.BeginFrame()
         $this.menuSystem.DrawMenuBar()
 
         $title = " Project Info "
@@ -6808,8 +6876,8 @@ class PmcConsoleUIApp {
 
         $this.terminal.WriteAtColor(4, 6, "Project Name:", [PmcVT100]::Yellow(), "")
 
-        $this.terminal.FillArea(0, $this.terminal.Height - 1, $this.terminal.Width, 1, ' ')
-        $this.terminal.WriteAt(2, $this.terminal.Height - 1, "Enter project name | Esc:Cancel")
+        $this.terminal.DrawFooter("Enter project name | Esc:Cancel")
+        $this.terminal.EndFrame()
     }
 
     [void] HandleProjectInfoView() {
@@ -6968,7 +7036,7 @@ class PmcConsoleUIApp {
     }
 
     [void] DrawRecentProjectsView() {
-        $this.terminal.Clear()
+        $this.terminal.BeginFrame()
         $this.menuSystem.DrawMenuBar()
 
         $title = " Recent Projects "
@@ -7004,6 +7072,7 @@ class PmcConsoleUIApp {
         }
 
         $this.terminal.DrawFooter("F10/Alt:Menus  Esc:Back")
+        $this.terminal.EndFrame()
     }
 
     [void] HandleRecentProjectsView() {
@@ -7024,7 +7093,7 @@ class PmcConsoleUIApp {
     }
 
     [void] DrawHelpBrowser() {
-        $this.terminal.Clear()
+        $this.terminal.BeginFrame()
         $this.menuSystem.DrawMenuBar()
 
         $title = " Help Browser "
@@ -7054,6 +7123,7 @@ class PmcConsoleUIApp {
         $this.terminal.WriteAt(6, $y++, "Use Get-Command *Pmc* to see all available PowerShell commands")
 
         $this.terminal.DrawFooter("F10/Alt:Menus  Esc:Back")
+        $this.terminal.EndFrame()
     }
 
     [void] HandleHelpBrowser() {
@@ -7074,7 +7144,7 @@ class PmcConsoleUIApp {
     }
 
     [void] DrawHelpCategories() {
-        $this.terminal.Clear()
+        $this.terminal.BeginFrame()
         $this.menuSystem.DrawMenuBar()
 
         $title = " Help Categories "
@@ -7101,6 +7171,7 @@ class PmcConsoleUIApp {
         }
 
         $this.terminal.DrawFooter("F10/Alt:Menus  Esc:Back")
+        $this.terminal.EndFrame()
     }
 
     [void] HandleHelpCategories() {
@@ -7121,7 +7192,7 @@ class PmcConsoleUIApp {
     }
 
     [void] DrawHelpSearch() {
-        $this.terminal.Clear()
+        $this.terminal.BeginFrame()
         $this.menuSystem.DrawMenuBar()
 
         $title = " Help Search "
@@ -7130,8 +7201,8 @@ class PmcConsoleUIApp {
 
         $this.terminal.WriteAtColor(4, 6, "Search for:", [PmcVT100]::Yellow(), "")
 
-        $this.terminal.FillArea(0, $this.terminal.Height - 1, $this.terminal.Width, 1, ' ')
-        $this.terminal.WriteAt(2, $this.terminal.Height - 1, "Enter search term | Esc:Cancel")
+        $this.terminal.DrawFooter("Enter search term | Esc:Cancel")
+        $this.terminal.EndFrame()
     }
 
     [void] HandleHelpSearch() {
@@ -7182,8 +7253,7 @@ class PmcConsoleUIApp {
                 $this.terminal.WriteAtColor(4, $y, "No help topics found for '$searchTerm'", [PmcVT100]::Yellow(), "")
             }
 
-            $this.terminal.FillArea(0, $this.terminal.Height - 1, $this.terminal.Width, 1, ' ')
-            $this.terminal.WriteAt(2, $this.terminal.Height - 1, "F10/Alt:Menus  Esc:Back")
+            $this.terminal.DrawFooter("F10/Alt:Menus  Esc:Back")
             $k = [Console]::ReadKey($true)
             $ga = $this.CheckGlobalKeys($k)
             if ($ga) {
@@ -7197,7 +7267,7 @@ class PmcConsoleUIApp {
     }
 
     [void] DrawAboutPMC() {
-        $this.terminal.Clear()
+        $this.terminal.BeginFrame()
         $this.menuSystem.DrawMenuBar()
 
         $title = " About PMC "
@@ -7226,6 +7296,7 @@ class PmcConsoleUIApp {
         $this.terminal.WriteAt(6, $y++, "TUI Interface - October 2025")
 
         $this.terminal.DrawFooter("F10/Alt:Menus  Esc:Back")
+        $this.terminal.EndFrame()
     }
 
     [void] HandleAboutPMC() {
@@ -7247,7 +7318,7 @@ class PmcConsoleUIApp {
 
     # Dependency Graph
     [void] DrawDependencyGraph() {
-        $this.terminal.Clear()
+        $this.terminal.BeginFrame()
         $this.menuSystem.DrawMenuBar()
 
         $title = " Dependency Graph "
@@ -7308,6 +7379,7 @@ class PmcConsoleUIApp {
         }
 
         $this.terminal.WriteAt(2, $this.terminal.Height - 1, "F10/Alt:Menus  Esc:Back")
+        $this.terminal.EndFrame()
     }
 
     [void] HandleDependencyGraph() {
@@ -7329,7 +7401,7 @@ class PmcConsoleUIApp {
 
     # Burndown Chart
     [void] DrawBurndownChart() {
-        $this.terminal.Clear()
+        $this.terminal.BeginFrame()
         $this.menuSystem.DrawMenuBar()
 
         $title = " Burndown Chart "
@@ -7398,6 +7470,7 @@ class PmcConsoleUIApp {
         }
 
         $this.terminal.WriteAt(2, $this.terminal.Height - 1, "F10/Alt:Menus  Esc:Back")
+        $this.terminal.EndFrame()
     }
 
     [void] HandleBurndownChart() {
@@ -7419,7 +7492,7 @@ class PmcConsoleUIApp {
 
     # Tools Menu - Start Review
     [void] DrawStartReview() {
-        $this.terminal.Clear()
+        $this.terminal.BeginFrame()
         $this.menuSystem.DrawMenuBar()
 
         $title = " Start Review "
@@ -7460,6 +7533,7 @@ class PmcConsoleUIApp {
         }
 
         $this.terminal.WriteAt(2, $this.terminal.Height - 1, "F10/Alt:Menus  Esc:Back")
+        $this.terminal.EndFrame()
     }
 
     [void] HandleStartReview() {
@@ -7481,8 +7555,10 @@ class PmcConsoleUIApp {
 
     # Tools Menu - Project Wizard (expanded to collect full project fields)
     [void] DrawProjectWizard() {
+        $this.terminal.BeginFrame()
         # Reuse the project create form layout for consistency
         $this.DrawProjectCreateForm(0)
+        $this.terminal.EndFrame()
     }
 
     [void] HandleProjectWizard() {
@@ -7638,7 +7714,7 @@ class PmcConsoleUIApp {
 
     # Tools - Statistics
     [void] DrawStatistics() {
-        $this.terminal.Clear()
+        $this.terminal.BeginFrame()
         $this.menuSystem.DrawMenuBar()
         $title = " Statistics "
         $titleX = ($this.terminal.Width - $title.Length) / 2
@@ -7673,6 +7749,7 @@ class PmcConsoleUIApp {
             $this.terminal.WriteAtColor(4, $y, "Error: $($_.Exception.Message)", [PmcVT100]::Red(), "")
         }
         $this.terminal.WriteAt(2, $this.terminal.Height - 1, "F10/Alt:Menus  Esc:Back")
+        $this.terminal.EndFrame()
     }
 
     [void] HandleStatistics() {
@@ -7694,7 +7771,7 @@ class PmcConsoleUIApp {
 
     # Tools - Velocity
     [void] DrawVelocity() {
-        $this.terminal.Clear()
+        $this.terminal.BeginFrame()
         $this.menuSystem.DrawMenuBar()
         $title = " Team Velocity "
         $titleX = ($this.terminal.Width - $title.Length) / 2
@@ -7718,6 +7795,7 @@ class PmcConsoleUIApp {
             $this.terminal.WriteAtColor(4, $y, "Error: $($_.Exception.Message)", [PmcVT100]::Red(), "")
         }
         $this.terminal.WriteAt(2, $this.terminal.Height - 1, "F10/Alt:Menus  Esc:Back")
+        $this.terminal.EndFrame()
     }
 
     [void] HandleVelocity() {
@@ -7739,7 +7817,7 @@ class PmcConsoleUIApp {
 
     # Tools - Preferences
     [void] DrawPreferences() {
-        $this.terminal.Clear()
+        $this.terminal.BeginFrame()
         $this.menuSystem.DrawMenuBar()
         $title = " Preferences "
         $titleX = ($this.terminal.Width - $title.Length) / 2
@@ -7763,6 +7841,7 @@ class PmcConsoleUIApp {
         } catch {
             $this.terminal.WriteAtColor(4, $y, "Error loading preferences: $($_.Exception.Message)", [PmcVT100]::Red(), "")
         }
+        $this.terminal.EndFrame()
     }
 
     [void] HandlePreferences() {
@@ -7832,7 +7911,7 @@ class PmcConsoleUIApp {
 
     # Tools - Manage Aliases
     [void] DrawManageAliases() {
-        $this.terminal.Clear()
+        $this.terminal.BeginFrame()
         $this.menuSystem.DrawMenuBar()
         $title = " Manage Aliases "
         $titleX = ($this.terminal.Width - $title.Length) / 2
@@ -7845,6 +7924,7 @@ class PmcConsoleUIApp {
         $this.terminal.WriteAt(4, $y++, "done   = Complete task")
         $this.terminal.WriteAt(4, $y++, "rm     = Delete task")
         $this.terminal.WriteAt(2, $this.terminal.Height - 1, "F10/Alt:Menus  Esc:Back")
+        $this.terminal.EndFrame()
     }
 
     [void] HandleManageAliases() {

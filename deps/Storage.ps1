@@ -406,7 +406,7 @@ function Save-PmcData {
     $cfg = Get-PmcConfig; $whatIf=$false; try { if ($cfg.Behavior -and $cfg.Behavior.WhatIf) { $whatIf = [bool]$cfg.Behavior.WhatIf } } catch {
         # Configuration access failed - whatIf remains false
     }
-    if ($whatIf) { Write-Host 'WhatIf: changes not saved' -ForegroundColor DarkYellow; return }
+    if ($whatIf) { return }  # WhatIf mode - don't save (removed Write-Host to prevent screen corruption)
 
     $file = Get-PmcTaskFilePath
 
@@ -450,7 +450,7 @@ function Save-PmcData {
 
     } catch {
         Write-PmcDebugStorage -Operation 'SaveFailed' -File $file -Data @{ Error = $_.ToString() }
-        Write-Host "Failed to save data: $_" -ForegroundColor Red
+        # Removed Write-Host to prevent screen corruption in TUI - error will propagate via throw
         throw
     } finally {
         Unlock-PmcFile $lock $file

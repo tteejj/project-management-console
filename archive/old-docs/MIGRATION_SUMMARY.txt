@@ -1,0 +1,207 @@
+================================================================================
+                    VIEW MIGRATION ANALYSIS - SUMMARY
+================================================================================
+
+PROJECT: PMC Console UI - Screen Class Migration
+PURPOSE: Analyze four view methods to migrate to Screen classes
+DATE: 2024-10-18
+
+================================================================================
+                              ANALYSIS COMPLETE
+================================================================================
+
+Four view methods analyzed and documented:
+
+1. DrawTodayView (Lines 4163-4241)
+   - Status: Simple list view with 2 sections
+   - Complexity: Low
+   - Migration Priority: Phase 1 (Start here)
+   
+2. DrawWeekView (Lines 3905-3983)
+   - Status: Simple list view with 2 sections (similar to TodayView)
+   - Complexity: Low
+   - Migration Priority: Phase 2
+   
+3. DrawOverdueView (Lines 4243-4288)
+   - Status: Simple list view with 1 section
+   - Complexity: Very Low
+   - Migration Priority: Phase 3
+   
+4. DrawKanbanView (Lines 4336-4593)
+   - Status: Complex board view with custom event loop
+   - Complexity: High
+   - Migration Priority: Phase 4 (Do last)
+
+================================================================================
+                            DOCUMENTS CREATED
+================================================================================
+
+1. VIEW_MIGRATION_ANALYSIS.md
+   - Comprehensive analysis of each view
+   - Filtering logic explained
+   - Rendering approach detailed
+   - Navigation/interaction patterns
+   - Technical notes and observations
+   - Migration checklist
+
+2. VIEW_QUICK_REFERENCE.md
+   - Side-by-side comparison table
+   - Filtering patterns summary
+   - Task rendering format examples
+   - Input handling quick lookup
+   - State management overview
+   - Critical implementation notes
+
+3. VIEW_CODE_SNIPPETS.md
+   - Ready-to-use code templates
+   - Common patterns with full examples
+   - Filtering templates for each view
+   - Rendering pattern examples
+   - KanbanView-specific patterns
+   - Date formatting patterns
+
+================================================================================
+                          KEY FINDINGS SUMMARY
+================================================================================
+
+FILTERING PATTERNS:
+- TodayView & WeekView: Filter by active tasks with due dates
+- OverdueView: Filter only tasks with past due dates
+- KanbanView: Group all tasks by status (implicit filtering)
+
+RENDERING APPROACHES:
+- TodayView: 2-section list (Overdue + Today) with priority coloring
+- WeekView: 2-section list (Overdue + This Week) with date formatting
+- OverdueView: Single flat list with multi-part line rendering
+- KanbanView: 3-column board with rounded borders, per-column scrolling
+
+SELECTION MECHANISMS:
+- TodayView/WeekView/OverdueView: Linear selection using specialSelectedIndex
+- KanbanView: 2D selection (column + row) with independent column scrolling
+
+UNIQUE CHARACTERISTICS:
+- KanbanView has its own while() event loop (not standard)
+- KanbanView uses focus-after-update pattern (focusTaskId, focusCol)
+- KanbanView handles numeric keys 1-3 for column moves
+- All views use Get-ConsoleUIDateOrNull for safe date parsing
+- All views use terminal.BeginFrame/EndFrame pattern
+
+================================================================================
+                        MIGRATION STRATEGY
+================================================================================
+
+RECOMMENDED ORDER (by complexity):
+
+Phase 1: OverdueView (Simplest)
+  - Single filter condition
+  - No complex grouping
+  - Good starting point to test Screen class structure
+
+Phase 2: TodayView 
+  - Two-section filtering
+  - Priority-based coloring
+  - Tests filtering logic reusability
+
+Phase 3: WeekView
+  - Similar to TodayView but different date range
+  - Tests parameter-driven filtering
+
+Phase 4: KanbanView (Most Complex)
+  - Custom event loop
+  - 2D selection state
+  - Per-column scrolling
+  - Focus-after-update tracking
+
+================================================================================
+                         COMMON PATTERNS TO IMPLEMENT
+================================================================================
+
+ALL VIEWS NEED:
+1. Data loading: Get-PmcAllData
+2. Date parsing: Get-ConsoleUIDateOrNull
+3. Frame management: terminal.BeginFrame/EndFrame
+4. Menu bar: menuSystem.DrawMenuBar
+5. Title rendering: centered with background color
+6. Footer rendering: help text via terminal.DrawFooter
+7. Selection checking: specialSelectedIndex comparison
+
+LIST VIEWS (Today, Week, Overdue) NEED:
+1. Task filtering logic
+2. Section headers with counts
+3. Task line rendering with selection highlighting
+4. Empty state messages
+5. Up/Down arrow navigation
+6. Enter/E/D/F10/Esc handlers
+
+KANBAN VIEW NEEDS:
+1. Status-based task grouping
+2. Column rendering with borders
+3. Task selection highlighting
+4. Per-column scrolling
+5. 2D navigation (arrow keys)
+6. Numeric key handling (1-3 for moves)
+7. Custom event loop
+8. Focus-after-update logic
+
+================================================================================
+                       TECHNICAL CONSIDERATIONS
+================================================================================
+
+DATE HANDLING:
+- Always use Get-ConsoleUIDateOrNull for safe parsing
+- Always compare using .Date property (ignores time)
+- Common formats: 'MMM dd', 'ddd MMM dd', 'MM/dd'
+
+SELECTION STATE:
+- List views: $this.specialSelectedIndex + $this.specialItems
+- Kanban: $selectedCol, $selectedRow, $kbColSc[0-2]
+
+COLOR CONSTANTS:
+- Via [PmcVT100]:: class methods
+- RGB: Red(), Green(), Yellow(), Blue(), Cyan(), White(), Gray(), Black()
+- BG: BgRed(), BgGreen(), BgBlue(), BgYellow()
+
+TERMINAL COORDINATE SYSTEM:
+- X,Y coordinates for WriteAt/WriteAtColor
+- Y=3: Title line (standard)
+- Y=6+: Content area (standard)
+- Last-1: Footer (standard)
+
+INPUT HANDLING:
+- List views: Key.UpArrow, Key.DownArrow, etc. via switch
+- Kanban: Direct [Console]::ReadKey($true) in while loop
+- Global keys: CheckGlobalKeys before view-specific handling
+
+ERROR HANDLING:
+- Use Show-InfoMessage for user feedback
+- Use Save-PmcData for persistence
+- All date operations wrapped in try-catch
+
+================================================================================
+                              FILE LOCATIONS
+================================================================================
+
+Source methods in: /home/teej/pmc/ConsoleUI.Core.ps1
+  - DrawTodayView:    Lines 4163-4241
+  - DrawWeekView:     Lines 3905-3983
+  - DrawOverdueView:  Lines 4243-4288
+  - DrawKanbanView:   Lines 4336-4593
+
+Analysis documents saved to: /home/teej/pmc/
+  - VIEW_MIGRATION_ANALYSIS.md (comprehensive)
+  - VIEW_QUICK_REFERENCE.md (quick lookup)
+  - VIEW_CODE_SNIPPETS.md (code templates)
+  - MIGRATION_SUMMARY.txt (this file)
+
+================================================================================
+                            NEXT STEPS
+================================================================================
+
+1. Review VIEW_MIGRATION_ANALYSIS.md for detailed view breakdown
+2. Use VIEW_QUICK_REFERENCE.md for quick lookups during implementation
+3. Copy patterns from VIEW_CODE_SNIPPETS.md as starting point
+4. Start with Phase 1 (OverdueView) - simplest to migrate
+5. Test each Screen class thoroughly before moving to next
+6. Use migration checklist from analysis document
+
+================================================================================
