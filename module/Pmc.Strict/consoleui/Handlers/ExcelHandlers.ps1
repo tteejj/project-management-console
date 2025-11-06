@@ -1,35 +1,7 @@
 # Excel operation handlers for ConsoleUI
 # Multi-step wizard for CAA Excel import, workbook copy, and T2020 txt export
 
-function Show-SelectList {
-    param($app, [string]$Title, [array]$Options, [int]$DefaultIndex = 0)
 
-    $selected = $DefaultIndex
-    while ($true) {
-        $app.terminal.Clear()
-        $app.menuSystem.DrawMenuBar()
-
-        $titleX = ($app.terminal.Width - $Title.Length) / 2
-        $app.terminal.WriteAtColor([int]$titleX, 3, $Title, [PmcVT100]::BgBlue(), [PmcVT100]::White())
-
-        $y = 6
-        for ($i = 0; $i -lt $Options.Count; $i++) {
-            $prefix = if ($i -eq $selected) { "> " } else { "  " }
-            $color = if ($i -eq $selected) { [PmcVT100]::Yellow() } else { "" }
-            $app.terminal.WriteAtColor(4, $y + $i, "$prefix$($Options[$i])", $color, "")
-        }
-
-        $app.terminal.DrawFooter("↑/↓:Select  Enter:Choose  Esc:Cancel")
-
-        $key = [Console]::ReadKey($true)
-        switch ($key.Key) {
-            'UpArrow' { if ($selected -gt 0) { $selected-- } }
-            'DownArrow' { if ($selected -lt $Options.Count - 1) { $selected++ } }
-            'Enter' { return $Options[$selected] }
-            'Escape' { return $null }
-        }
-    }
-}
 
 function Invoke-ExcelT2020Wizard {
     param($app)
@@ -71,7 +43,7 @@ function Invoke-ExcelT2020Wizard {
             $app.currentView = 'main'; $app.DrawLayout(); return
         }
 
-        $config.SourceSheet = Show-SelectList -app $app -Title " Select SOURCE Sheet " -Options $sheets
+        $config.SourceSheet = Show-SelectList -Title " Select SOURCE Sheet " -Options $sheets
         if (-not $config.SourceSheet) {
             $app.currentView = 'main'; $app.DrawLayout(); return
         }
@@ -163,7 +135,7 @@ function Invoke-ExcelT2020Wizard {
             } | Where-Object { $_ } | Sort-Object -Unique)
 
             if ($projectNames.Count -gt 0) {
-                $config.Project = Show-SelectList -app $app -Title " Select Project " -Options $projectNames
+                $config.Project = Show-SelectList -Title " Select Project " -Options $projectNames
             } else {
                 Show-InfoMessage -Message "No projects found" -Title "Info" -Color "Yellow"
             }
@@ -389,7 +361,7 @@ function Invoke-ExcelPreviewHandler {
         $srcWb = Open-Workbook -Path $excelFile -ReadOnly
         $sheets = Get-WorksheetNames -Workbook $srcWb
 
-        $selectedSheet = Show-SelectList -app $app -Title " Select Sheet to Preview " -Options $sheets
+        $selectedSheet = Show-SelectList -Title " Select Sheet to Preview " -Options $sheets
         if (-not $selectedSheet) {
             Close-Workbook -Workbook $srcWb
             Close-ExcelApp

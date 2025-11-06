@@ -12,8 +12,11 @@ using namespace System.Text
 # Load handlers
 . (Join-Path $PSScriptRoot 'Handlers/TaskHandlers.ps1')
 . (Join-Path $PSScriptRoot 'Handlers/ProjectHandlers.ps1')
+. (Join-Path $PSScriptRoot 'deps/Project.ps1')
 try {
     . (Join-Path $PSScriptRoot 'Handlers/ExcelHandlers.ps1')
+    . (Join-Path $PSScriptRoot 'Handlers/ExcelImportHandlers.ps1')
+    . (Join-Path $PSScriptRoot 'deps/Excel.ps1')
 } catch {
     Write-ConsoleUIDebug "Excel handlers not loaded: $_" "WARN"
 }
@@ -772,7 +775,8 @@ class PmcMenuSystem {
             [PmcMenuItem]::new('Preferences', 'tools:preferences', 'P'),
             [PmcMenuItem]::Separator(),
             [PmcMenuItem]::new('Excel T2020 Workflow', 'excel:t2020', 'X'),
-            [PmcMenuItem]::new('Excel Preview', 'excel:preview', 'V')
+            [PmcMenuItem]::new('Excel Preview', 'excel:preview', 'V'),
+            [PmcMenuItem]::new('Excel Import', 'excel:import', 'I')
         ))
         $this.AddMenu('Help', 'H', @(
             [PmcMenuItem]::new('Help Browser', 'help:browser', 'B'),
@@ -1496,6 +1500,7 @@ class PmcConsoleUIApp {
                 # Excel menu
                 'excel:t2020' { $this.currentView = 'excelt2020' }
                 'excel:preview' { $this.currentView = 'excelpreview' }
+                'excel:import' { $this.currentView = 'excelimport' }
 
                 # Help menu
                 'help:browser' { $this.currentView = 'helpbrowser' }
@@ -1637,6 +1642,8 @@ class PmcConsoleUIApp {
                     Invoke-ExcelT2020Handler -app $this
                 } elseif ($this.currentView -eq 'excelpreview') {
                     Invoke-ExcelPreviewHandler -app $this
+                } elseif ($this.currentView -eq 'excelimport') {
+                    Invoke-ExcelImportWizard -app $this
                 } elseif ($this.currentView -eq 'agendaview') {
                     HandleSpecialViewPersistent $this
                 } elseif ($this.currentView -eq 'taskcopy') {

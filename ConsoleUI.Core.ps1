@@ -245,7 +245,7 @@ class PmcUIStringCache {
     static [string]$FooterMultiSelect = "Space:Toggle | A:All | N:None | C:Complete | X:Delete | P:Priority | J:Move | Esc:Exit"
     static [string]$FooterKanban = "←→:Column | ↑↓:Task | 1-3:Move | Enter:Edit | D:Done | Esc:Back"
     static [string]$FooterTheme = "1-4:Preview | A:Apply | ↑↓:Navigate | Esc:Cancel"
-    static [string]$FooterProjectNav = "↑↓:Navigate | Enter:Full Details | Esc:Back"
+    static [string]$FooterProjectNav = "↑↓:Navigate | Enter:View | A:Add | E:Edit | D:Delete | I:Info | Esc:Back"
     static [string]$FooterTimeList = "↑↓:Nav | A:Add | E:Edit | D:Delete | R:Report | Esc:Back"
     static [string]$FooterPressAnyKey = "Press any key to return"
     static [string]$FooterPleaseWait = "Please wait..."
@@ -585,6 +585,7 @@ class PmcVT100 {
     static [string]$_cachedBgYellow = ""
     static [string]$_cachedBgBlue = ""
     static [string]$_cachedBgCyan = ""
+    static [string]$_cachedBgMagenta = ""
     static [string]$_cachedBgWhite = ""
     static [string]$_cachedReset = "`e[0m"
     static [string]$_cachedBold = "`e[1m"
@@ -617,11 +618,12 @@ class PmcVT100 {
             'Black'    { $null }
             'BgRed'    { 'Error' }
             'BgGreen'  { 'Success' }
-            'BgYellow' { 'Warning' }
-            'BgBlue'   { 'Header' }
-            'BgCyan'   { 'Info' }
-            'BgWhite'  { 'Body' }
-            default    { 'Body' }
+            'BgYellow'  { 'Warning' }
+            'BgBlue'    { 'Header' }
+            'BgCyan'    { 'Info' }
+            'BgMagenta' { 'Highlight' }
+            'BgWhite'   { 'Body' }
+            default     { 'Body' }
         }
         if ($null -eq $token) { return ($bg ? "`e[48;2;0;0;0m" : "`e[38;2;0;0;0m") }
         if ($styles -and $styles.ContainsKey($token)) {
@@ -653,6 +655,7 @@ class PmcVT100 {
         [PmcVT100]::_cachedBgYellow = [PmcVT100]::_MapColor('BgYellow', $true)
         [PmcVT100]::_cachedBgBlue = [PmcVT100]::_MapColor('BgBlue', $true)
         [PmcVT100]::_cachedBgCyan = [PmcVT100]::_MapColor('BgCyan', $true)
+        [PmcVT100]::_cachedBgMagenta = [PmcVT100]::_MapColor('BgMagenta', $true)
         [PmcVT100]::_cachedBgWhite = [PmcVT100]::_MapColor('BgWhite', $true)
 
         [PmcVT100]::_colorsInitialized = $true
@@ -714,6 +717,10 @@ class PmcVT100 {
     static [string] BgCyan() {
         if (-not [PmcVT100]::_colorsInitialized) { [PmcVT100]::Initialize() }
         return [PmcVT100]::_cachedBgCyan
+    }
+    static [string] BgMagenta() {
+        if (-not [PmcVT100]::_colorsInitialized) { [PmcVT100]::Initialize() }
+        return [PmcVT100]::_cachedBgMagenta
     }
     static [string] BgWhite() {
         if (-not [PmcVT100]::_colorsInitialized) { [PmcVT100]::Initialize() }
@@ -1489,24 +1496,60 @@ class ThemeScreen : PmcListScreen {
     [void] LoadItems() {
         $this.themes = @(
             @{
-                Name = "Default"
-                Description = "Standard colors optimized for dark terminals"
+                Name = "Ocean (Default)"
+                Description = "Standard ocean blue theme (#33aaff)"
                 Id = 1
+                Hex = "#33aaff"
+                Preset = "ocean"
             }
             @{
-                Name = "Dark"
-                Description = "High contrast with bright highlights"
+                Name = "Lime"
+                Description = "Fresh lime green theme (#33cc66)"
                 Id = 2
+                Hex = "#33cc66"
+                Preset = "lime"
             }
             @{
-                Name = "Light"
-                Description = "Designed for light terminal backgrounds"
+                Name = "Purple"
+                Description = "Rich purple theme (#9966ff)"
                 Id = 3
+                Hex = "#9966ff"
+                Preset = "purple"
             }
             @{
-                Name = "Solarized"
-                Description = "Popular Solarized color palette"
+                Name = "Slate"
+                Description = "Neutral slate gray theme (#8899aa)"
                 Id = 4
+                Hex = "#8899aa"
+                Preset = "slate"
+            }
+            @{
+                Name = "Matrix"
+                Description = "Classic green matrix theme (#00ff66)"
+                Id = 5
+                Hex = "#00ff66"
+                Preset = "matrix"
+            }
+            @{
+                Name = "Amber"
+                Description = "Warm amber gold theme (#ffbf00)"
+                Id = 6
+                Hex = "#ffbf00"
+                Preset = "amber"
+            }
+            @{
+                Name = "Synthwave"
+                Description = "Neon pink synthwave theme (#ff2bd6)"
+                Id = 7
+                Hex = "#ff2bd6"
+                Preset = "synthwave"
+            }
+            @{
+                Name = "High Contrast"
+                Description = "Bright cyan for high contrast (#00ffff)"
+                Id = 8
+                Hex = "#00ffff"
+                Preset = "high-contrast"
             }
         )
         $this.items = $this.themes
@@ -1552,7 +1595,7 @@ class ThemeScreen : PmcListScreen {
             $this.Terminal.WriteAtColor(4, $y, "Press 'A' to apply previewed theme, or select another to preview", [PmcVT100]::Yellow(), "")
         } else {
             $y = $this.Height - 5
-            $this.Terminal.WriteAtColor(4, $y, "Press number key (1-4) to preview theme, 'A' to apply selected", [PmcVT100]::Yellow(), "")
+            $this.Terminal.WriteAtColor(4, $y, "Press number key (1-8) to preview theme, 'A' to apply selected", [PmcVT100]::Yellow(), "")
         }
 
         $this.Terminal.DrawFooter([PmcUIStringCache]::FooterTheme)
@@ -1583,7 +1626,7 @@ class ThemeScreen : PmcListScreen {
         }
 
         # Handle number keys for theme preview
-        if ($key.KeyChar -ge '1' -and $key.KeyChar -le '4') {
+        if ($key.KeyChar -ge '1' -and $key.KeyChar -le '8') {
             $themeId = [int]$key.KeyChar.ToString()
             $themeIndex = $themeId - 1
             if ($themeIndex -ge 0 -and $themeIndex -lt $this.themes.Count) {
@@ -1600,27 +1643,208 @@ class ThemeScreen : PmcListScreen {
     }
 
     [void] ApplyTheme([int]$themeId) {
-        # Note: This would integrate with actual theme system
-        # For now, just show a message that theme was applied
         try {
-            # In a real implementation, this would:
-            # 1. Load theme configuration from file or settings
-            # 2. Update PmcVT100 color mappings
-            # 3. Save theme preference to config
-            # 4. Trigger UI refresh
+            # Find the theme by ID
+            $theme = $this.themes | Where-Object { $_.Id -eq $themeId } | Select-Object -First 1
+            if (-not $theme) { return }
 
-            # Placeholder: Save theme ID to config
-            $configPath = Join-Path $PSScriptRoot "config.json"
-            if (Test-Path $configPath) {
-                $config = Get-Content $configPath -Raw | ConvertFrom-Json
-                if (-not $config.ui) {
-                    $config | Add-Member -NotePropertyName 'ui' -NotePropertyValue @{} -Force
-                }
-                $config.ui | Add-Member -NotePropertyName 'theme' -NotePropertyValue $themeId -Force
-                $config | ConvertTo-Json -Depth 10 | Set-Content $configPath -Encoding UTF8
+            # Apply theme using the centralized theme system
+            $cfg = Get-PmcConfig
+            if (-not (Pmc-HasProp $cfg 'Display')) {
+                $cfg | Add-Member -NotePropertyName 'Display' -NotePropertyValue @{} -Force
             }
+            if (-not (Pmc-HasProp $cfg.Display 'Theme')) {
+                $cfg.Display | Add-Member -NotePropertyName 'Theme' -NotePropertyValue @{} -Force
+            }
+            if (-not (Pmc-HasProp $cfg.Display.Theme 'Hex')) {
+                $cfg.Display.Theme | Add-Member -NotePropertyName 'Hex' -NotePropertyValue $theme.Hex -Force
+            } else {
+                $cfg.Display.Theme.Hex = $theme.Hex
+            }
+            Save-PmcConfig $cfg
+
+            # Reinitialize theme system to apply changes
+            Initialize-PmcThemeSystem
+
+            # Reinitialize VT100 color cache
+            [PmcVT100]::_colorsInitialized = $false
+            [PmcVT100]::Initialize()
+
+            Show-InfoMessage -Message "Theme '$($theme.Name)' applied successfully!" -Title "Theme Applied" -Color "Green"
         } catch {
-            # Silently fail - theme system may not be fully implemented
+            Show-InfoMessage -Message "Error applying theme: $_" -Title "Error" -Color "Red"
+        }
+    }
+}
+
+# Advanced Theme Editor Screen - Modern RGB color picker with live preview
+class ThemeEditorScreen : PmcScreen {
+    [int]$r = 170
+    [int]$g = 170
+    [int]$b = 255
+    [int]$selectedChannel = 0  # 0=R, 1=G, 2=B
+
+    ThemeEditorScreen() {
+        $this.Title = "Advanced Theme Editor"
+        # Load current theme color
+        try {
+            $cfg = Get-PmcConfig
+            $hex = if ($cfg.Display -and $cfg.Display.Theme -and $cfg.Display.Theme.Hex) {
+                [string]$cfg.Display.Theme.Hex
+            } else { '#33aaff' }
+            if (-not $hex.StartsWith('#')) { $hex = '#'+$hex }
+            $rgb = ConvertFrom-PmcHex $hex
+            $this.r = [int]$rgb.R
+            $this.g = [int]$rgb.G
+            $this.b = [int]$rgb.B
+        } catch {}
+    }
+
+    [void] Render() {
+        $this.Terminal.BeginFrame()
+        $this.MenuSystem.DrawMenuBar()
+
+        $title = " Advanced Theme Editor "
+        $titleX = ($this.Terminal.Width - $title.Length) / 2
+        $this.Terminal.WriteAtColor([int]$titleX, 3, $title, [PmcVT100]::BgBlue(), [PmcVT100]::White())
+
+        $y = 6
+
+        # Current color preview box
+        $hexColor = ("#{0:X2}{1:X2}{2:X2}" -f $this.r, $this.g, $this.b)
+        $this.Terminal.WriteAtColor(4, $y++, "═══ LIVE PREVIEW ═══", [PmcVT100]::Cyan(), "")
+        $y++
+
+        # Draw a larger preview box
+        $previewBoxWidth = 40
+        for ($i = 0; $i -lt 5; $i++) {
+            $this.Terminal.WriteAt(4, $y + $i, (" " * $previewBoxWidth))
+            $this.Terminal.WriteAtColor(4, $y + $i, (" " * $previewBoxWidth), "", "")
+            # Simulate the color using background (approximation)
+            $this.Terminal.WriteAt(4, $y + $i, ("█" * $previewBoxWidth))
+        }
+        $y += 3
+        $this.Terminal.WriteAtColor(46, $y++, "Color: $hexColor", [PmcVT100]::Cyan(), "")
+        $this.Terminal.WriteAtColor(46, $y++, "RGB: ($($this.r), $($this.g), $($this.b))", [PmcVT100]::White(), "")
+        $y += 2
+
+        # RGB Sliders
+        $this.Terminal.WriteAtColor(4, $y++, "═══ ADJUST CHANNELS ═══", [PmcVT100]::Cyan(), "")
+        $y++
+
+        $this.DrawSlider(4, $y++, "R", $this.r, ($this.selectedChannel -eq 0), [PmcVT100]::Red())
+        $y++
+        $this.DrawSlider(4, $y++, "G", $this.g, ($this.selectedChannel -eq 1), [PmcVT100]::Green())
+        $y++
+        $this.DrawSlider(4, $y++, "B", $this.b, ($this.selectedChannel -eq 2), [PmcVT100]::Blue())
+        $y += 2
+
+        # Instructions
+        $this.Terminal.WriteAtColor(4, $y++, "Use ↑/↓ to select channel", [PmcVT100]::Yellow(), "")
+        $this.Terminal.WriteAtColor(4, $y++, "Use ←/→ to adjust value (±1)", [PmcVT100]::Yellow(), "")
+        $this.Terminal.WriteAtColor(4, $y++, "Use PgUp/PgDn to adjust value (±10)", [PmcVT100]::Yellow(), "")
+        $this.Terminal.WriteAtColor(4, $y++, "Press Enter to save, Esc to cancel", [PmcVT100]::Yellow(), "")
+
+        $this.Terminal.DrawFooter("↑↓:Channel | ←→:Adjust | PgUp/PgDn:±10 | Enter:Save | Esc:Cancel")
+        $this.Terminal.EndFrame()
+    }
+
+    [void] DrawSlider([int]$x, [int]$y, [string]$label, [int]$value, [bool]$selected, [string]$color) {
+        $barWidth = 50
+        $filled = [int]([Math]::Round(($value / 255.0) * $barWidth))
+        $empty = $barWidth - $filled
+
+        $selector = if ($selected) { "→ " } else { "  " }
+        $labelColor = if ($selected) { [PmcVT100]::White() } else { [PmcVT100]::Gray() }
+
+        $this.Terminal.WriteAtColor($x, $y, $selector, $labelColor, "")
+        $this.Terminal.WriteAtColor($x + 2, $y, "$label [$value]".PadRight(10), $labelColor, "")
+
+        # Draw bar
+        $barX = $x + 12
+        $this.Terminal.WriteAtColor($barX, $y, "[", $labelColor, "")
+        if ($filled -gt 0) {
+            $this.Terminal.WriteAtColor($barX + 1, $y, ([string]::new('█', $filled)), $color, "")
+        }
+        if ($empty -gt 0) {
+            $this.Terminal.WriteAtColor($barX + 1 + $filled, $y, ([string]::new('░', $empty)), [PmcVT100]::Gray(), "")
+        }
+        $this.Terminal.WriteAtColor($barX + 1 + $barWidth, $y, "]", $labelColor, "")
+    }
+
+    [bool] HandleInput([ConsoleKeyInfo]$key) {
+        switch ($key.Key) {
+            'UpArrow' {
+                $this.selectedChannel = [Math]::Max(0, $this.selectedChannel - 1)
+                return $true
+            }
+            'DownArrow' {
+                $this.selectedChannel = [Math]::Min(2, $this.selectedChannel + 1)
+                return $true
+            }
+            'LeftArrow' {
+                $this.AdjustChannel(-1)
+                return $true
+            }
+            'RightArrow' {
+                $this.AdjustChannel(1)
+                return $true
+            }
+            'PageUp' {
+                $this.AdjustChannel(10)
+                return $true
+            }
+            'PageDown' {
+                $this.AdjustChannel(-10)
+                return $true
+            }
+            'Enter' {
+                $this.SaveTheme()
+                $this.Active = $false
+                return $true
+            }
+            'Escape' {
+                $this.Active = $false
+                return $true
+            }
+        }
+        return $false
+    }
+
+    [void] AdjustChannel([int]$delta) {
+        switch ($this.selectedChannel) {
+            0 { $this.r = [Math]::Max(0, [Math]::Min(255, $this.r + $delta)) }
+            1 { $this.g = [Math]::Max(0, [Math]::Min(255, $this.g + $delta)) }
+            2 { $this.b = [Math]::Max(0, [Math]::Min(255, $this.b + $delta)) }
+        }
+        $this.Invalidate()
+    }
+
+    [void] SaveTheme() {
+        try {
+            $hexColor = ("#{0:X2}{1:X2}{2:X2}" -f $this.r, $this.g, $this.b)
+            $cfg = Get-PmcConfig
+            if (-not (Pmc-HasProp $cfg 'Display')) {
+                $cfg | Add-Member -NotePropertyName 'Display' -NotePropertyValue @{} -Force
+            }
+            if (-not (Pmc-HasProp $cfg.Display 'Theme')) {
+                $cfg.Display | Add-Member -NotePropertyName 'Theme' -NotePropertyValue @{} -Force
+            }
+            if (-not (Pmc-HasProp $cfg.Display.Theme 'Hex')) {
+                $cfg.Display.Theme | Add-Member -NotePropertyName 'Hex' -NotePropertyValue $hexColor -Force
+            } else {
+                $cfg.Display.Theme.Hex = $hexColor
+            }
+            Save-PmcConfig $cfg
+
+            # Reinitialize theme system
+            Initialize-PmcThemeSystem
+            [PmcVT100]::_colorsInitialized = $false
+            [PmcVT100]::Initialize()
+
+            Show-InfoMessage -Message "Theme color saved: $hexColor" -Title "Success" -Color "Green"
+        } catch {
+            Show-InfoMessage -Message "Failed to save theme: $_" -Title "Error" -Color "Red"
         }
     }
 }
@@ -2108,6 +2332,25 @@ class ProjectListScreen : PmcScreen {
                     return $true
                 }
             }
+            'D' {
+                # Delete selected project
+                if ($this.App.selectedProjectIndex -lt $this.App.projects.Count) {
+                    $this.App.ShowProjectDeleteForm()
+                    # Reload projects after form closes
+                    $this.App.LoadProjects()
+                    return $true
+                }
+            }
+            'I' {
+                # Show detailed project info
+                if ($this.App.selectedProjectIndex -lt $this.App.projects.Count) {
+                    $proj = $this.App.projects[$this.App.selectedProjectIndex]
+                    $projName = if ($proj -is [string]) { $proj } else { $proj.name }
+                    $this.App.selectedProjectName = $projName
+                    $this.App.ShowProjectInfo()
+                    return $true
+                }
+            }
             'Escape' {
                 # Pop back to previous screen
                 $this.App.GoBack()
@@ -2530,25 +2773,63 @@ class KanbanScreen : PmcScreen {
         $titleX = ($this.Terminal.Width - $title.Length) / 2
         $this.Terminal.WriteAtColor([int]$titleX, 3, $title, [PmcVT100]::BgBlue(), [PmcVT100]::White())
 
-        # Calculate column widths
-        $colWidth = [Math]::Floor($this.Terminal.Width / 3)
-        $col1X = 0
-        $col2X = $colWidth
-        $col3X = $colWidth * 2
+        # Calculate column widths with spacing
+        $spacing = 2
+        $colWidth = [Math]::Floor(($this.Terminal.Width - ($spacing * 4)) / 3)
+        $col1X = $spacing
+        $col2X = $col1X + $colWidth + $spacing
+        $col3X = $col2X + $colWidth + $spacing
 
-        # Column headers
-        $this.Terminal.WriteAtColor($col1X + 2, 5, "TODO ($($this.todoTasks.Count))", [PmcVT100]::Yellow(), "")
-        $this.Terminal.WriteAtColor($col2X + 2, 5, "IN PROGRESS ($($this.inProgressTasks.Count))", [PmcVT100]::Cyan(), "")
-        $this.Terminal.WriteAtColor($col3X + 2, 5, "DONE ($($this.doneTasks.Count))", [PmcVT100]::Green(), "")
+        # Box dimensions
+        $boxTop = 5
+        $boxHeight = $this.Terminal.Height - 9
+        $headerY = $boxTop + 1
+
+        # Draw outlined boxes for each column with rounded corners
+        $this.DrawRoundedBox($col1X, $boxTop, $colWidth, $boxHeight, [PmcVT100]::Yellow())
+        $this.DrawRoundedBox($col2X, $boxTop, $colWidth, $boxHeight, [PmcVT100]::Cyan())
+        $this.DrawRoundedBox($col3X, $boxTop, $colWidth, $boxHeight, [PmcVT100]::Green())
+
+        # Column headers - centered and bold-looking
+        $header1 = "TODO ($($this.todoTasks.Count))"
+        $header2 = "IN PROGRESS ($($this.inProgressTasks.Count))"
+        $header3 = "DONE ($($this.doneTasks.Count))"
+
+        $h1X = $col1X + [Math]::Floor(($colWidth - $header1.Length) / 2)
+        $h2X = $col2X + [Math]::Floor(($colWidth - $header2.Length) / 2)
+        $h3X = $col3X + [Math]::Floor(($colWidth - $header3.Length) / 2)
+
+        $this.Terminal.WriteAtColor($h1X, $headerY, $header1, [PmcVT100]::BgYellow(), [PmcVT100]::Black())
+        $this.Terminal.WriteAtColor($h2X, $headerY, $header2, [PmcVT100]::BgCyan(), [PmcVT100]::Black())
+        $this.Terminal.WriteAtColor($h3X, $headerY, $header3, [PmcVT100]::BgGreen(), [PmcVT100]::Black())
 
         # Draw tasks in columns
-        $maxRows = $this.Terminal.Height - 10
-        $this.RenderColumn(0, $col1X, 7, $colWidth - 2, $maxRows, $this.todoTasks, [PmcVT100]::Yellow())
-        $this.RenderColumn(1, $col2X, 7, $colWidth - 2, $maxRows, $this.inProgressTasks, [PmcVT100]::Cyan())
-        $this.RenderColumn(2, $col3X, 7, $colWidth - 2, $maxRows, $this.doneTasks, [PmcVT100]::Green())
+        $contentY = $headerY + 2
+        $maxRows = $boxHeight - 4
+        $this.RenderColumn(0, $col1X, $contentY, $colWidth - 2, $maxRows, $this.todoTasks, [PmcVT100]::Yellow())
+        $this.RenderColumn(1, $col2X, $contentY, $colWidth - 2, $maxRows, $this.inProgressTasks, [PmcVT100]::Cyan())
+        $this.RenderColumn(2, $col3X, $contentY, $colWidth - 2, $maxRows, $this.doneTasks, [PmcVT100]::Green())
 
         $this.Terminal.DrawFooter([PmcUIStringCache]::FooterKanban)
         $this.Terminal.EndFrame()
+    }
+
+    [void] DrawRoundedBox([int]$x, [int]$y, [int]$width, [int]$height, [string]$color) {
+        # Top border with rounded corners
+        $this.Terminal.WriteAtColor($x, $y, "╭", $color, "")
+        $this.Terminal.WriteAtColor($x + 1, $y, ([string]::new('─', $width - 2)), $color, "")
+        $this.Terminal.WriteAtColor($x + $width - 1, $y, "╮", $color, "")
+
+        # Sides
+        for ($i = 1; $i -lt $height - 1; $i++) {
+            $this.Terminal.WriteAtColor($x, $y + $i, "│", $color, "")
+            $this.Terminal.WriteAtColor($x + $width - 1, $y + $i, "│", $color, "")
+        }
+
+        # Bottom border with rounded corners
+        $this.Terminal.WriteAtColor($x, $y + $height - 1, "╰", $color, "")
+        $this.Terminal.WriteAtColor($x + 1, $y + $height - 1, ([string]::new('─', $width - 2)), $color, "")
+        $this.Terminal.WriteAtColor($x + $width - 1, $y + $height - 1, "╯", $color, "")
     }
 
     [void] RenderColumn([int]$colNum, [int]$x, [int]$startY, [int]$width, [int]$maxRows, [array]$tasks, [string]$color) {
@@ -3318,26 +3599,63 @@ class ProjectInfoScreen : PmcScreen {
                     ($_.PSObject.Properties['name'] -and $_.name -eq $selectedProj)
                 } | Select-Object -First 1
 
-                $detailY = $this.Terminal.Height - 6
+                $detailY = $this.Terminal.Height - 12
                 $this.Terminal.DrawHorizontalLine(0, $detailY - 1, $this.Terminal.Width)
-                $this.Terminal.WriteAtColor(2, $detailY, "Project: ", [PmcVT100]::Cyan(), "")
-                $this.Terminal.WriteAt(12, $detailY, $selectedProj)
+                $this.Terminal.WriteAtColor(2, $detailY, "═══ PROJECT DETAILS ═══", [PmcVT100]::BgCyan(), [PmcVT100]::Black())
+                $y = $detailY + 1
+
+                # Project name and basic info
+                $this.Terminal.WriteAtColor(2, $y++, "Name: ", [PmcVT100]::Cyan(), "")
+                $this.Terminal.WriteAt(20, $y - 1, $selectedProj)
 
                 if ($project -and ($project -isnot [string])) {
-                    $y = $detailY + 1
                     if ($project.PSObject.Properties['description'] -and $project.description) {
-                        $desc = $project.description.Substring(0, [Math]::Min(60, $project.description.Length))
-                        $this.Terminal.WriteAt(2, $y++, "Description: $desc")
+                        $this.Terminal.WriteAtColor(2, $y++, "Description: ", [PmcVT100]::Cyan(), "")
+                        $this.Terminal.WriteAt(20, $y - 1, $project.description.Substring(0, [Math]::Min(60, $project.description.Length)))
                     }
                     if ($project.PSObject.Properties['status'] -and $project.status) {
-                        $this.Terminal.WriteAt(2, $y++, "Status: $($project.status)")
+                        $this.Terminal.WriteAtColor(2, $y++, "Status: ", [PmcVT100]::Cyan(), "")
+                        $this.Terminal.WriteAt(20, $y - 1, $project.status)
+                    }
+                    if ($project.PSObject.Properties['ID1'] -and $project.ID1) {
+                        $this.Terminal.WriteAtColor(2, $y++, "ID1: ", [PmcVT100]::Cyan(), "")
+                        $this.Terminal.WriteAt(20, $y - 1, $project.ID1)
+                    }
+                    if ($project.PSObject.Properties['ID2'] -and $project.ID2) {
+                        $this.Terminal.WriteAtColor(2, $y++, "ID2: ", [PmcVT100]::Cyan(), "")
+                        $this.Terminal.WriteAt(20, $y - 1, $project.ID2)
                     }
                 }
 
+                # Folder locations
+                try {
+                    $dataDir = Get-PmcDataDirectory
+                    $projFolder = Join-Path $dataDir $selectedProj
+                    $t2020File = Join-Path $dataDir "t2020" "$selectedProj.xlsx"
+                    $caaFolder = Join-Path $dataDir "caa" $selectedProj
+
+                    $this.Terminal.WriteAtColor(2, $y++, "Project Folder: ", [PmcVT100]::Cyan(), "")
+                    $folderExists = Test-Path $projFolder
+                    $folderColor = if ($folderExists) { [PmcVT100]::Green() } else { [PmcVT100]::Gray() }
+                    $this.Terminal.WriteAtColor(20, $y - 1, $projFolder, $folderColor, "")
+
+                    $this.Terminal.WriteAtColor(2, $y++, "T2020 File: ", [PmcVT100]::Cyan(), "")
+                    $t2020Exists = Test-Path $t2020File
+                    $t2020Color = if ($t2020Exists) { [PmcVT100]::Green() } else { [PmcVT100]::Gray() }
+                    $this.Terminal.WriteAtColor(20, $y - 1, $t2020File, $t2020Color, "")
+
+                    $this.Terminal.WriteAtColor(2, $y++, "CAA Folder: ", [PmcVT100]::Cyan(), "")
+                    $caaExists = Test-Path $caaFolder
+                    $caaColor = if ($caaExists) { [PmcVT100]::Green() } else { [PmcVT100]::Gray() }
+                    $this.Terminal.WriteAtColor(20, $y - 1, $caaFolder, $caaColor, "")
+                } catch {}
+
+                # Task statistics
                 $projTasks = @($data.tasks | Where-Object { $_.project -eq $selectedProj })
                 $active = @($projTasks | Where-Object { $_.status -ne 'completed' }).Count
                 $completed = @($projTasks | Where-Object { $_.status -eq 'completed' }).Count
-                $this.Terminal.WriteAt(2, $detailY + 2, "Active: $active | Completed: $completed | Total: $($projTasks.Count)")
+                $this.Terminal.WriteAtColor(2, $y++, "Tasks: ", [PmcVT100]::Cyan(), "")
+                $this.Terminal.WriteAt(20, $y - 1, "Active: $active | Completed: $completed | Total: $($projTasks.Count)")
             }
         } catch {
             $this.Terminal.WriteAtColor(4, 6, "Error loading project info: $_", [PmcVT100]::Red(), "")
@@ -5489,7 +5807,7 @@ class TimeListScreen : PmcScreen {
             'A' {
                 # Add new time entry
                 $addScreen = [TimeAddFormScreen]::new()
-                $this.App.PushScreen($addScreen)
+                $this.App.screenManager.Push($addScreen)
                 return $true
             }
             'E' {
@@ -5497,7 +5815,7 @@ class TimeListScreen : PmcScreen {
                 if ($this.timeLogs.Count -gt 0 -and $this.selectedIndex -ge 0 -and $this.selectedIndex -lt $this.timeLogs.Count) {
                     $selectedLog = $this.timeLogs[$this.selectedIndex]
                     $editScreen = [TimeEditFormScreen]::new($selectedLog)
-                    $this.App.PushScreen($editScreen)
+                    $this.App.screenManager.Push($editScreen)
                 }
                 return $true
             }
@@ -5506,14 +5824,14 @@ class TimeListScreen : PmcScreen {
                 if ($this.timeLogs.Count -gt 0 -and $this.selectedIndex -ge 0 -and $this.selectedIndex -lt $this.timeLogs.Count) {
                     $selectedLog = $this.timeLogs[$this.selectedIndex]
                     $deleteScreen = [TimeDeleteFormScreen]::new($selectedLog)
-                    $this.App.PushScreen($deleteScreen)
+                    $this.App.screenManager.Push($deleteScreen)
                 }
                 return $true
             }
             'R' {
                 # Show time report
                 $reportScreen = [TimeReportScreen]::new()
-                $this.App.PushScreen($reportScreen)
+                $this.App.screenManager.Push($reportScreen)
                 return $true
             }
             'Escape' {
@@ -6073,11 +6391,11 @@ class BurndownChartScreen : PmcScreen {
             }
 
             # Calculate burndown metrics
-            $totalTasks = $projectTasks.Count
-            $completedTasks = ($projectTasks | Where-Object { $_.status -eq 'done' -or $_.status -eq 'completed' }).Count
-            $inProgressTasks = ($projectTasks | Where-Object { $_.status -eq 'in-progress' }).Count
-            $blockedTasks = ($projectTasks | Where-Object { $_.status -eq 'blocked' }).Count
-            $todoTasks = ($projectTasks | Where-Object { $_.status -eq 'todo' -or $_.status -eq 'active' -or -not $_.status }).Count
+            $totalTasks = @($projectTasks).Count
+            $completedTasks = @($projectTasks | Where-Object { $_.status -eq 'done' -or $_.status -eq 'completed' }).Count
+            $inProgressTasks = @($projectTasks | Where-Object { $_.status -eq 'in-progress' }).Count
+            $blockedTasks = @($projectTasks | Where-Object { $_.status -eq 'blocked' }).Count
+            $todoTasks = @($projectTasks | Where-Object { $_.status -eq 'todo' -or $_.status -eq 'active' -or -not $_.status }).Count
 
             $projectTitle = if ($currentProject) { "Project: $currentProject" } else { "All Projects" }
             $this.Terminal.WriteAtColor(4, $y++, $projectTitle, [PmcVT100]::Cyan(), "")
@@ -6913,8 +7231,8 @@ class TimeAddFormScreen : PmcFormScreen {
 
         return @(
             @{Name='hours'; Label='Hours (e.g., 1, 1.5, 2.25)'; Required=$true; Type='text'}
-            @{Name='project'; Label='Project or Code Mode'; Required=$true; Type='select'; Options=$projectOptions}
-            @{Name='timeCode'; Label='Time Code (if generic)'; Required=$false; Type='text'}
+            @{Name='project'; Label='Choose Project or Time Code Mode'; Required=$true; Type='select'; Options=$projectOptions}
+            @{Name='timeCode'; Label='Time Code (e.g., T001, T002 - if using code mode)'; Required=$false; Type='text'}
             @{Name='task'; Label='Task (optional)'; Required=$false; Type='select'; Options=$taskOptions}
             @{Name='date'; Label='Date (today/tomorrow/YYYY-MM-DD or empty for today)'; Required=$false; Type='text'}
             @{Name='description'; Label='Description/Notes'; Required=$false; Type='text'}
@@ -6940,17 +7258,14 @@ class TimeAddFormScreen : PmcFormScreen {
             # Handle project vs time code
             $selProject = [string]$input['project']
             $timeCode = $null
-            $isNumeric = $false
 
             if ($selProject -eq '(generic time code)') {
                 $codeStr = [string]$input['timeCode']
-                $codeVal = 0
-                if (-not [int]::TryParse($codeStr, [ref]$codeVal) -or $codeVal -le 0) {
-                    Show-InfoMessage -Message "Invalid time code (must be a positive number)." -Title "Validation" -Color "Red"
+                if ([string]::IsNullOrWhiteSpace($codeStr)) {
+                    Show-InfoMessage -Message "Time code is required when using code mode. Enter a code like T001, T002, etc." -Title "Validation" -Color "Red"
                     return $false
                 }
-                $timeCode = $codeVal
-                $isNumeric = $true
+                $timeCode = $codeStr.Trim()
                 $selProject = $null
             }
 
@@ -6997,7 +7312,7 @@ class TimeAddFormScreen : PmcFormScreen {
             $entry = [PSCustomObject]@{
                 id = $nextId
                 project = $selProject
-                id1 = if ($isNumeric) { $timeCode.ToString() } else { $null }
+                id1 = if ($timeCode) { $timeCode.ToString() } else { $null }
                 id2 = $null
                 date = $dateOut.ToString('yyyy-MM-dd')
                 minutes = [int]([math]::Round($hours * 60))
@@ -7080,17 +7395,14 @@ class TimeEditFormScreen : PmcFormScreen {
             # Handle project vs time code
             $selProject = [string]$input['project']
             $timeCode = $null
-            $isNumeric = $false
 
             if ($selProject -eq '(generic time code)') {
                 $codeStr = [string]$input['timeCode']
-                $codeVal = 0
-                if (-not [int]::TryParse($codeStr, [ref]$codeVal) -or $codeVal -le 0) {
-                    Show-InfoMessage -Message "Invalid time code (must be a positive number)." -Title "Validation" -Color "Red"
+                if ([string]::IsNullOrWhiteSpace($codeStr)) {
+                    Show-InfoMessage -Message "Time code is required when using code mode. Enter a code like T001, T002, etc." -Title "Validation" -Color "Red"
                     return $false
                 }
-                $timeCode = $codeVal
-                $isNumeric = $true
+                $timeCode = $codeStr.Trim()
                 $selProject = $null
             }
 
@@ -7118,7 +7430,7 @@ class TimeEditFormScreen : PmcFormScreen {
             }
 
             $entry.project = $selProject
-            $entry.id1 = if ($isNumeric) { $timeCode.ToString() } else { $null }
+            $entry.id1 = if ($timeCode) { $timeCode.ToString() } else { $null }
             $entry.date = $dateOut.ToString('yyyy-MM-dd')
             $entry.minutes = [int]([math]::Round($hours * 60))
 
@@ -8101,16 +8413,33 @@ class PmcMenuSystem {
 
     [void] InitializeDefaultMenus() {
         $this.AddMenu('File', 'F', @(
+            [PmcMenuItem]::new('Open Folder', 'file:openfolder', 'O'),
+            [PmcMenuItem]::new('CAA Folder', 'file:openfoldercaa', 'C'),
+            [PmcMenuItem]::new('T2020 Folder', 'file:openfoldert2020', 'T'),
+            [PmcMenuItem]::Separator(),
             [PmcMenuItem]::new('Backup Data', 'file:backup', 'B'),
             [PmcMenuItem]::new('Restore Data', 'file:restore', 'R'),
-            [PmcMenuItem]::new('Clear Backups', 'file:clearbackups', 'C'),
+            [PmcMenuItem]::new('Clear Backups', 'file:clearbackups', 'L'),
+            [PmcMenuItem]::Separator(),
             [PmcMenuItem]::new('Exit', 'app:exit', 'X')
         ))
         $this.AddMenu('Tasks', 'T', @(
-            [PmcMenuItem]::new('Task List', 'task:list', 'L')
+            [PmcMenuItem]::new('Task List', 'task:list', 'L'),
+            [PmcMenuItem]::new('Add Task', 'task:add', 'A'),
+            [PmcMenuItem]::new('Edit Task', 'task:edit', 'E'),
+            [PmcMenuItem]::new('Delete Task', 'task:delete', 'D'),
+            [PmcMenuItem]::Separator(),
+            [PmcMenuItem]::new('Complete Task', 'task:complete', 'C'),
+            [PmcMenuItem]::new('Set Priority', 'task:setpriority', 'P'),
+            [PmcMenuItem]::new('Move to Project', 'task:moveproject', 'M')
         ))
         $this.AddMenu('Projects', 'P', @(
-            [PmcMenuItem]::new('Project List', 'project:list', 'L')
+            [PmcMenuItem]::new('Project List', 'project:list', 'L'),
+            [PmcMenuItem]::new('Add Project', 'project:add', 'A'),
+            [PmcMenuItem]::new('Edit Project', 'project:edit', 'E'),
+            [PmcMenuItem]::new('Delete Project', 'project:delete', 'D'),
+            [PmcMenuItem]::Separator(),
+            [PmcMenuItem]::new('Project Details', 'project:info', 'I')
         ))
         $this.AddMenu('Time', 'I', @(
             [PmcMenuItem]::new('Time Log', 'time:list', 'L'),
@@ -8129,9 +8458,8 @@ class PmcMenuSystem {
             [PmcMenuItem]::new('Help', 'view:help', 'H')
         ))
         $this.AddMenu('Tools', 'O', @(
-            # [PmcMenuItem]::new('Wizard', 'tools:wizard', 'W'),  # Disabled - not implemented
-            [PmcMenuItem]::new('Theme', 'tools:theme', 'T'),
-            [PmcMenuItem]::new('Theme Editor', 'tools:themeedit', 'E'),
+            [PmcMenuItem]::new('Theme Presets', 'tools:theme', 'T'),
+            [PmcMenuItem]::new('Advanced Theme Editor', 'tools:themeedit', 'E'),
             [PmcMenuItem]::new('Preferences', 'tools:preferences', 'P'),
             [PmcMenuItem]::Separator(),
             [PmcMenuItem]::new('Excel T2020 Workflow', 'excel:t2020', 'X'),
@@ -8900,6 +9228,9 @@ class PmcConsoleUIApp {
             if ($action -ne 'app:exit') { $this.previousView = $this.currentView }
             switch ($action) {
                 # File menu
+                'file:openfolder' { $this.ShowOpenFolder() }
+                'file:openfoldercaa' { $this.ShowOpenFolderCAA() }
+                'file:openfoldert2020' { $this.ShowOpenFolderT2020() }
                 'file:backup' { $this.ShowBackupView() }
                 'file:restore' { $this.ShowRestoreBackup() }
                 'file:clearbackups' { $this.ShowClearBackups() }
@@ -8918,7 +9249,9 @@ class PmcConsoleUIApp {
                 'task:copy' { $this.ShowTaskCopyForm() }
                 'task:move' { $this.ShowTaskMoveForm() }
                 'task:find' { $this.ShowSearchForm() }
+                'task:setpriority' { $this.ShowTaskPriorityForm() }
                 'task:priority' { $this.ShowTaskPriorityForm() }
+                'task:moveproject' { $this.ShowTaskMoveForm() }
                 'task:postpone' { $this.ShowTaskPostponeForm() }
                 'task:note' { $this.ShowTaskNoteForm() }
                 'task:import' { $this.currentView = 'taskimport' }
@@ -8926,6 +9259,7 @@ class PmcConsoleUIApp {
 
                 # Project menu
                 'project:list' { $this.NavigateToProjectList() }
+                'project:add' { $this.ShowProjectAddForm() }
                 'project:create' { $this.ShowProjectAddForm() }
                 'project:edit' { $this.currentView = 'projectedit' }
                 'project:rename' { $this.currentView = 'projectedit' }
@@ -8981,7 +9315,7 @@ class PmcConsoleUIApp {
                 'tools:velocity' { $this.currentView = 'toolsvelocity' }
                 'tools:preferences' { $this.currentView = 'toolspreferences' }
                 'tools:theme' { $this.ShowThemeScreen() }
-                'tools:themeedit' { $this.ShowThemeScreen() }
+                'tools:themeedit' { $this.ShowAdvancedThemeEditor() }
                 'tools:applytheme' { $this.ShowThemeScreen() }
                 'tools:aliases' { $this.currentView = 'toolsaliases' }
                 'tools:weeklyreport' { $this.currentView = 'toolsweeklyreport' }
@@ -9209,6 +9543,63 @@ class PmcConsoleUIApp {
         $this.screenManager.Push($screen)
     }
 
+    [void] ShowOpenFolder() {
+        try {
+            $dataDir = Get-PmcDataDirectory
+            if (Test-Path $dataDir) {
+                if ([System.Environment]::OSVersion.Platform -eq 'Unix') {
+                    Start-Process "xdg-open" -ArgumentList $dataDir
+                } else {
+                    Start-Process "explorer.exe" -ArgumentList $dataDir
+                }
+                Show-InfoMessage -Message "Opened data folder: $dataDir" -Title "Folder Opened" -Color "Green"
+            } else {
+                Show-InfoMessage -Message "Data directory not found: $dataDir" -Title "Error" -Color "Red"
+            }
+        } catch {
+            Show-InfoMessage -Message "Error opening folder: $_" -Title "Error" -Color "Red"
+        }
+        $this.GoBackOr('tasklist')
+    }
+
+    [void] ShowOpenFolderCAA() {
+        try {
+            $caaDir = Join-Path (Get-PmcDataDirectory) "caa"
+            if (Test-Path $caaDir) {
+                if ([System.Environment]::OSVersion.Platform -eq 'Unix') {
+                    Start-Process "xdg-open" -ArgumentList $caaDir
+                } else {
+                    Start-Process "explorer.exe" -ArgumentList $caaDir
+                }
+                Show-InfoMessage -Message "Opened CAA folder: $caaDir" -Title "Folder Opened" -Color "Green"
+            } else {
+                Show-InfoMessage -Message "CAA directory not found: $caaDir" -Title "Error" -Color "Red"
+            }
+        } catch {
+            Show-InfoMessage -Message "Error opening CAA folder: $_" -Title "Error" -Color "Red"
+        }
+        $this.GoBackOr('tasklist')
+    }
+
+    [void] ShowOpenFolderT2020() {
+        try {
+            $t2020Dir = Join-Path (Get-PmcDataDirectory) "t2020"
+            if (Test-Path $t2020Dir) {
+                if ([System.Environment]::OSVersion.Platform -eq 'Unix') {
+                    Start-Process "xdg-open" -ArgumentList $t2020Dir
+                } else {
+                    Start-Process "explorer.exe" -ArgumentList $t2020Dir
+                }
+                Show-InfoMessage -Message "Opened T2020 folder: $t2020Dir" -Title "Folder Opened" -Color "Green"
+            } else {
+                Show-InfoMessage -Message "T2020 directory not found: $t2020Dir" -Title "Error" -Color "Red"
+            }
+        } catch {
+            Show-InfoMessage -Message "Error opening T2020 folder: $_" -Title "Error" -Color "Red"
+        }
+        $this.GoBackOr('tasklist')
+    }
+
     # Time Tracking navigation helpers
     [void] ShowTimeList() {
         $screen = [TimeListScreen]::new()
@@ -9330,12 +9721,24 @@ class PmcConsoleUIApp {
         $this.screenManager.Push($screen)
     }
 
+    [void] ShowAdvancedThemeEditor() {
+        $screen = [ThemeEditorScreen]::new()
+        $this.screenManager.Push($screen)
+    }
+
     [void] GoBack() {
         if ($this.screenManager) {
             $this.screenManager.Pop()
         }
     }
 
+    [void] GoBackOr([string]$defaultView) {
+        if ($this.screenManager -and $this.screenManager.GetActiveScreen()) {
+            $this.screenManager.Pop()
+        } else {
+            $this.currentView = $defaultView
+        }
+    }
 
     [void] DrawTaskDetail() {
         $this.terminal.BeginFrame()
@@ -13419,11 +13822,11 @@ class PmcConsoleUIApp {
             }
 
             # Calculate burndown metrics
-            $totalTasks = $projectTasks.Count
-            $completedTasks = ($projectTasks | Where-Object { $_.status -eq 'done' -or $_.status -eq 'completed' }).Count
-            $inProgressTasks = ($projectTasks | Where-Object { $_.status -eq 'in-progress' }).Count
-            $blockedTasks = ($projectTasks | Where-Object { $_.status -eq 'blocked' }).Count
-            $todoTasks = ($projectTasks | Where-Object { $_.status -eq 'todo' -or $_.status -eq 'active' -or -not $_.status }).Count
+            $totalTasks = @($projectTasks).Count
+            $completedTasks = @($projectTasks | Where-Object { $_.status -eq 'done' -or $_.status -eq 'completed' }).Count
+            $inProgressTasks = @($projectTasks | Where-Object { $_.status -eq 'in-progress' }).Count
+            $blockedTasks = @($projectTasks | Where-Object { $_.status -eq 'blocked' }).Count
+            $todoTasks = @($projectTasks | Where-Object { $_.status -eq 'todo' -or $_.status -eq 'active' -or -not $_.status }).Count
 
             $projectTitle = if ($currentProject) { "Project: $currentProject" } else { "All Projects" }
             $this.terminal.WriteAtColor(4, $y++, $projectTitle, [PmcVT100]::Cyan(), "")

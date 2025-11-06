@@ -1,12 +1,10 @@
-[2025-10-07 11:23:34.151] [SYSTEM] Debug log initialized
-[2025-10-07 11:23:34.154] [LOADER] Loading FakeTUI modular system
-[2025-10-07 11:23:34.535] [LOADER] FakeTUI.ps1 loaded
-[2025-10-07 11:23:34.549] [LOADER] TaskHandlers.ps1 loaded
-[2025-10-07 11:23:34.555] [LOADER] ProjectHandlers.ps1 loaded
-[2025-10-07 11:23:34.887] [BOOT] App constructed
-[2025-10-07 11:23:34.893] [APP] Initialize() called
-[2025-10-07 11:23:34.912] [BOOT] App initialized
-[2025-10-07 11:23:34.938] [APP] Run() entered
-[2025-10-07 11:23:38.055] [GLOBAL] Alt+P pressed, showing dropdown for Projects
-[2025-10-07 11:23:38.803] [TASKLIST] Global action from task list: project:list
-[2025-10-07 11:23:38.814] [ACTION] ProcessMenuAction: project:list
+[2025-11-05 01:29:17.336] [SYSTEM] Debug log initialized
+[2025-11-05 01:29:17.342] [LOADER] Loading FakeTUI modular system
+[2025-11-05 01:29:17.544] [LOADER] FakeTUI.ps1 loaded
+[2025-11-05 01:29:17.549] [LOADER] TaskHandlers.ps1 loaded
+[2025-11-05 01:29:17.553] [LOADER] ProjectHandlers.ps1 loaded
+[2025-11-05 01:29:17.719] [BOOT] App constructed
+[2025-11-05 01:29:17.721] [APP] Initialize() called
+[2025-11-05 01:29:17.730] [BOOT] App initialized
+[2025-11-05 01:29:17.736] [APP] Run() entered
+[2025-11-05 01:30:08.490] [GLOBAL] Alt+O pressed, showing dropdown for Tools
