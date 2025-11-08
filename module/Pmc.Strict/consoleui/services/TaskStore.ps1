@@ -191,9 +191,9 @@ class TaskStore {
     Initialize the store
     #>
     hidden [void] _InitializeStore() {
-        $this._data.tasks = [List[hashtable]]::new()
-        $this._data.projects = [List[hashtable]]::new()
-        $this._data.timelogs = [List[hashtable]]::new()
+        $this._data.tasks = [System.Collections.ArrayList]::new()
+        $this._data.projects = [System.Collections.ArrayList]::new()
+        $this._data.timelogs = [System.Collections.ArrayList]::new()
         $this.IsLoaded = $false
     }
 
@@ -205,35 +205,50 @@ class TaskStore {
     True if load succeeded, False otherwise
     #>
     [bool] LoadData() {
+        Write-PmcTuiLog "TaskStore.LoadData: Starting" "DEBUG"
         [Monitor]::Enter($this._dataLock)
         try {
             try {
                 # Call Get-PmcAllData to load from disk
+                Write-PmcTuiLog "TaskStore.LoadData: Calling Get-PmcAllData" "DEBUG"
                 $pmcData = Get-PmcAllData
+                Write-PmcTuiLog "TaskStore.LoadData: Get-PmcAllData returned, has tasks: $($null -ne $pmcData.tasks), count: $($pmcData.tasks.Count)" "DEBUG"
 
                 if ($null -eq $pmcData) {
                     $this.LastError = "Get-PmcAllData returned null"
+                    Write-PmcTuiLog "TaskStore.LoadData: ERROR - Get-PmcAllData returned null" "ERROR"
                     $this._InvokeCallback($this.OnLoadError, $this.LastError)
                     return $false
                 }
 
                 # Extract data sections
                 if ($pmcData.tasks) {
-                    $this._data.tasks = [List[hashtable]]::new($pmcData.tasks)
+                    $this._data.tasks = [System.Collections.ArrayList]::new()
+                    foreach ($task in $pmcData.tasks) {
+                        [void]$this._data.tasks.Add($task)
+                    }
+                    Write-PmcTuiLog "TaskStore.LoadData: Loaded $($this._data.tasks.Count) tasks" "DEBUG"
                 } else {
-                    $this._data.tasks = [List[hashtable]]::new()
+                    $this._data.tasks = [System.Collections.ArrayList]::new()
+                    Write-PmcTuiLog "TaskStore.LoadData: No tasks in data, initialized empty list" "DEBUG"
                 }
 
                 if ($pmcData.projects) {
-                    $this._data.projects = [List[hashtable]]::new($pmcData.projects)
+                    $this._data.projects = [System.Collections.ArrayList]::new()
+                    foreach ($project in $pmcData.projects) {
+                        [void]$this._data.projects.Add($project)
+                    }
                 } else {
-                    $this._data.projects = [List[hashtable]]::new()
+                    $this._data.projects = [System.Collections.ArrayList]::new()
                 }
 
                 if ($pmcData.timelogs) {
-                    $this._data.timelogs = [List[hashtable]]::new($pmcData.timelogs)
+                    $this._data.timelogs = [System.Collections.ArrayList]::new()
+                    foreach ($log in $pmcData.timelogs) {
+                        [void]$this._data.timelogs.Add($log)
+                    }
                 } else {
-                    $this._data.timelogs = [List[hashtable]]::new()
+                    $this._data.timelogs = [System.Collections.ArrayList]::new()
                 }
 
                 if ($pmcData.settings) {
@@ -250,6 +265,8 @@ class TaskStore {
             }
             catch {
                 $this.LastError = "Failed to load data: $($_.Exception.Message)"
+                Write-PmcTuiLog "TaskStore.LoadData: EXCEPTION: $($_.Exception.Message)" "ERROR"
+                Write-PmcTuiLog "TaskStore.LoadData: Stack trace: $($_.ScriptStackTrace)" "ERROR"
                 $this._InvokeCallback($this.OnLoadError, $this.LastError)
                 return $false
             }
@@ -339,9 +356,9 @@ class TaskStore {
     #>
     hidden [void] _CreateBackup() {
         $this._dataBackup = @{
-            tasks = [List[hashtable]]::new($this._data.tasks)
-            projects = [List[hashtable]]::new($this._data.projects)
-            timelogs = [List[hashtable]]::new($this._data.timelogs)
+            tasks = [System.Collections.ArrayList]$this._data.tasks.Clone()
+            projects = [System.Collections.ArrayList]$this._data.projects.Clone()
+            timelogs = [System.Collections.ArrayList]$this._data.timelogs.Clone()
             settings = $this._data.settings.Clone()
         }
     }
@@ -372,7 +389,9 @@ class TaskStore {
     [array] GetAllTasks() {
         [Monitor]::Enter($this._dataLock)
         try {
-            return $this._data.tasks.ToArray()
+            $tasks = $this._data.tasks.ToArray()
+            Write-PmcTuiLog "GetAllTasks: Returning $($tasks.Count) tasks" "DEBUG"
+            return $tasks
         }
         finally {
             [Monitor]::Exit($this._dataLock)

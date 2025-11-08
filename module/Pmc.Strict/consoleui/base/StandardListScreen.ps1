@@ -135,6 +135,28 @@ class StandardListScreen : PmcScreen {
         $this._InitializeComponents()
     }
 
+    # === Initialization ===
+
+    <#
+    .SYNOPSIS
+    Initialize screen with render engine and load initial data
+    #>
+    [void] Initialize([object]$renderEngine) {
+        Write-PmcTuiLog "StandardListScreen.Initialize: Starting" "DEBUG"
+
+        # Call base class initialization
+        ([PmcScreen]$this).Initialize($renderEngine)
+
+        Write-PmcTuiLog "StandardListScreen.Initialize: Calling LoadData" "DEBUG"
+        # Load data into the list
+        $this.LoadData()
+
+        Write-PmcTuiLog "StandardListScreen.Initialize: Calling RefreshList" "DEBUG"
+        $this.RefreshList()
+
+        Write-PmcTuiLog "StandardListScreen.Initialize: Complete" "DEBUG"
+    }
+
     # === Abstract Methods (MUST override) ===
 
     <#
