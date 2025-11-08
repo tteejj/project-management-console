@@ -175,7 +175,7 @@ class DepShowFormScreen : PmcScreen {
         return $sb.ToString()
     }
 
-    [bool] HandleInput([ConsoleKeyInfo]$keyInfo) {
+    [bool] HandleKeyPress([ConsoleKeyInfo]$keyInfo) {
         if ($this.IsInputMode) {
             switch ($keyInfo.Key) {
                 'Enter' {

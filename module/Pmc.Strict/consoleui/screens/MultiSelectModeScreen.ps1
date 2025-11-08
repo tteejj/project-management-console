@@ -188,7 +188,7 @@ class MultiSelectModeScreen : PmcScreen {
         return $sb.ToString()
     }
 
-    [bool] HandleInput([ConsoleKeyInfo]$keyInfo) {
+    [bool] HandleKeyPress([ConsoleKeyInfo]$keyInfo) {
         switch ($keyInfo.Key) {
             'UpArrow' {
                 if ($this.SelectedIndex -gt 0) {
@@ -321,9 +321,24 @@ class MultiSelectModeScreen : PmcScreen {
             return
         }
 
-        # TODO: Show priority selection dialog
-        # For now, just show message
-        $this.ShowStatus("Priority selection not yet implemented")
+        # Set priority for all selected tasks
+        $allData = Get-PmcAllData
+        $updatedCount = 0
+
+        foreach ($taskId in $selectedIds) {
+            $task = $allData.tasks | Where-Object { $_.id -eq $taskId }
+            if ($task) {
+                # Cycle priority: 0 -> 1 -> 2 -> 3 -> 0
+                $task.priority = ($task.priority + 1) % 4
+                $updatedCount++
+            }
+        }
+
+        if ($updatedCount -gt 0) {
+            Set-PmcAllData $allData
+            $this.ShowSuccess("Updated priority for $updatedCount tasks")
+            $this.LoadData()
+        }
     }
 }
 

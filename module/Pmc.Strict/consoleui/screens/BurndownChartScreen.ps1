@@ -51,30 +51,92 @@ class BurndownChartScreen : PmcScreen {
 
         # Tasks menu - Navigate to different task views
         $tasksMenu = $this.MenuBar.Menus[0]
-        $tasksMenu.Items.Add([PmcMenuItem]::new("Task List", 'L', { Write-Host "Task List not implemented" }))
-        $tasksMenu.Items.Add([PmcMenuItem]::new("Tomorrow", 'T', { Write-Host "Tomorrow view not implemented" }))
-        $tasksMenu.Items.Add([PmcMenuItem]::new("Upcoming", 'U', { Write-Host "Upcoming view not implemented" }))
-        $tasksMenu.Items.Add([PmcMenuItem]::new("Next Actions", 'N', { Write-Host "Next Actions view not implemented" }))
-        $tasksMenu.Items.Add([PmcMenuItem]::new("No Due Date", 'D', { Write-Host "No Due Date view not implemented" }))
+        $tasksMenu.Items.Add([PmcMenuItem]::new("Task List", 'L', {
+            . "$PSScriptRoot/TaskListScreen.ps1"
+            $global:PmcApp.PushScreen((New-Object TaskListScreen))
+        }))
+        $tasksMenu.Items.Add([PmcMenuItem]::new("Today", 'Y', {
+            . "$PSScriptRoot/TodayViewScreen.ps1"
+            $global:PmcApp.PushScreen((New-Object TodayViewScreen))
+        }))
+        $tasksMenu.Items.Add([PmcMenuItem]::new("Tomorrow", 'T', {
+            . "$PSScriptRoot/TomorrowViewScreen.ps1"
+            $global:PmcApp.PushScreen((New-Object TomorrowViewScreen))
+        }))
+        $tasksMenu.Items.Add([PmcMenuItem]::new("Week View", 'W', {
+            . "$PSScriptRoot/WeekViewScreen.ps1"
+            $global:PmcApp.PushScreen((New-Object WeekViewScreen))
+        }))
+        $tasksMenu.Items.Add([PmcMenuItem]::new("Upcoming", 'U', {
+            . "$PSScriptRoot/UpcomingViewScreen.ps1"
+            $global:PmcApp.PushScreen((New-Object UpcomingViewScreen))
+        }))
+        $tasksMenu.Items.Add([PmcMenuItem]::new("Overdue", 'V', {
+            . "$PSScriptRoot/OverdueViewScreen.ps1"
+            $global:PmcApp.PushScreen((New-Object OverdueViewScreen))
+        }))
+        $tasksMenu.Items.Add([PmcMenuItem]::new("Next Actions", 'N', {
+            . "$PSScriptRoot/NextActionsViewScreen.ps1"
+            $global:PmcApp.PushScreen((New-Object NextActionsViewScreen))
+        }))
+        $tasksMenu.Items.Add([PmcMenuItem]::new("No Due Date", 'D', {
+            . "$PSScriptRoot/NoDueDateViewScreen.ps1"
+            $global:PmcApp.PushScreen((New-Object NoDueDateViewScreen))
+        }))
+        $tasksMenu.Items.Add([PmcMenuItem]::new("Blocked Tasks", 'B', {
+            . "$PSScriptRoot/BlockedTasksScreen.ps1"
+            $global:PmcApp.PushScreen((New-Object BlockedTasksScreen))
+        }))
         $tasksMenu.Items.Add([PmcMenuItem]::Separator())
-        $tasksMenu.Items.Add([PmcMenuItem]::new("Month View", 'M', { Write-Host "Month view not implemented" }))
-        $tasksMenu.Items.Add([PmcMenuItem]::new("Agenda View", 'A', { Write-Host "Agenda view not implemented" }))
-        $tasksMenu.Items.Add([PmcMenuItem]::new("Burndown Chart", 'B', { $screen.LoadData() }.GetNewClosure()))
+        $tasksMenu.Items.Add([PmcMenuItem]::new("Kanban Board", 'K', {
+            . "$PSScriptRoot/KanbanScreen.ps1"
+            $global:PmcApp.PushScreen((New-Object KanbanScreen))
+        }))
+        $tasksMenu.Items.Add([PmcMenuItem]::new("Month View", 'M', {
+            . "$PSScriptRoot/MonthViewScreen.ps1"
+            $global:PmcApp.PushScreen((New-Object MonthViewScreen))
+        }))
+        $tasksMenu.Items.Add([PmcMenuItem]::new("Agenda View", 'A', {
+            . "$PSScriptRoot/AgendaViewScreen.ps1"
+            $global:PmcApp.PushScreen((New-Object AgendaViewScreen))
+        }))
+        $tasksMenu.Items.Add([PmcMenuItem]::new("Burndown Chart", 'C', {
+            . "$PSScriptRoot/BurndownChartScreen.ps1"
+            $global:PmcApp.PushScreen((New-Object BurndownChartScreen))
+        }))
 
         # Projects menu
         $projectsMenu = $this.MenuBar.Menus[1]
-        $projectsMenu.Items.Add([PmcMenuItem]::new("Project List", 'L', { Write-Host "Project list not implemented" }))
-        $projectsMenu.Items.Add([PmcMenuItem]::new("Project Stats", 'S', { Write-Host "Project stats not implemented" }))
-        $projectsMenu.Items.Add([PmcMenuItem]::new("Project Info", 'I', { Write-Host "Project info not implemented" }))
+        $projectsMenu.Items.Add([PmcMenuItem]::new("Project List", 'L', {
+            . "$PSScriptRoot/ProjectListScreen.ps1"
+            $global:PmcApp.PushScreen((New-Object ProjectListScreen))
+        }))
+        $projectsMenu.Items.Add([PmcMenuItem]::new("Project Stats", 'S', {
+            . "$PSScriptRoot/ProjectStatsScreen.ps1"
+            $global:PmcApp.PushScreen((New-Object ProjectStatsScreen))
+        }))
+        $projectsMenu.Items.Add([PmcMenuItem]::new("Project Info", 'I', {
+            . "$PSScriptRoot/ProjectInfoScreen.ps1"
+            $global:PmcApp.PushScreen((New-Object ProjectInfoScreen))
+        }))
 
         # Options menu
         $optionsMenu = $this.MenuBar.Menus[2]
-        $optionsMenu.Items.Add([PmcMenuItem]::new("Theme Editor", 'T', { Write-Host "Theme editor not implemented" }))
-        $optionsMenu.Items.Add([PmcMenuItem]::new("Settings", 'S', { Write-Host "Settings not implemented" }))
+        $optionsMenu.Items.Add([PmcMenuItem]::new("Theme Editor", 'T', {
+            . "$PSScriptRoot/ThemeEditorScreen.ps1"
+            $global:PmcApp.PushScreen((New-Object ThemeEditorScreen))
+        }))
+        $optionsMenu.Items.Add([PmcMenuItem]::new("Settings", 'S', {
+            . "$PSScriptRoot/SettingsScreen.ps1"
+            $global:PmcApp.PushScreen((New-Object SettingsScreen))
+        }))
 
         # Help menu
         $helpMenu = $this.MenuBar.Menus[3]
-        $helpMenu.Items.Add([PmcMenuItem]::new("Help View", 'H', { Write-Host "Help view not implemented" }))
+        $helpMenu.Items.Add([PmcMenuItem]::new("Help View", 'H', {
+            . "$PSScriptRoot/HelpViewScreen.ps1"
+            $global:PmcApp.PushScreen((New-Object HelpViewScreen))
+        }))
         $helpMenu.Items.Add([PmcMenuItem]::new("About", 'A', { Write-Host "PMC TUI v1.0" }))
     }
 
@@ -271,7 +333,7 @@ class BurndownChartScreen : PmcScreen {
         return $sb.ToString()
     }
 
-    [bool] HandleInput([ConsoleKeyInfo]$keyInfo) {
+    [bool] HandleKeyPress([ConsoleKeyInfo]$keyInfo) {
         # This is a chart screen with no navigation
         # Only handle refresh and filter commands
         switch ($keyInfo.Key) {
@@ -280,7 +342,35 @@ class BurndownChartScreen : PmcScreen {
                 return $true
             }
             'F' {
-                $this.ShowStatus("Project filter not yet implemented")
+                # Show project list for filtering
+                $allData = Get-PmcAllData
+                $projects = $allData.projects | Where-Object { -not $_.archived }
+
+                if ($projects.Count -eq 0) {
+                    $this.ShowError("No projects available")
+                    return $true
+                }
+
+                # For now, cycle through projects
+                $currentIndex = -1
+                for ($i = 0; $i -lt $projects.Count; $i++) {
+                    if ($projects[$i].name -eq $this.FilterProject) {
+                        $currentIndex = $i
+                        break
+                    }
+                }
+
+                $nextIndex = ($currentIndex + 1) % ($projects.Count + 1)
+
+                if ($nextIndex -eq $projects.Count) {
+                    $this.FilterProject = ""
+                    $this.ShowStatus("Filter cleared - showing all projects")
+                } else {
+                    $this.FilterProject = $projects[$nextIndex].name
+                    $this.ShowStatus("Filtered to project: $($this.FilterProject)")
+                }
+
+                $this.LoadData()
                 return $true
             }
         }

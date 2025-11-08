@@ -156,7 +156,7 @@ class PmcScreen {
     .PARAMETER termHeight
     Terminal height
     #>
-    [void] ApplyLayout([PmcLayoutManager]$layoutManager, [int]$termWidth, [int]$termHeight) {
+    [void] ApplyLayout([object]$layoutManager, [int]$termWidth, [int]$termHeight) {
         $this.LayoutManager = $layoutManager
         $this.TermWidth = $termWidth
         $this.TermHeight = $termHeight

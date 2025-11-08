@@ -19,6 +19,11 @@ class NoDueDateViewScreen : PmcScreen {
     # Data
     [array]$NoDueDateTasks = @()
     [int]$SelectedIndex = 0
+    [string]$InputBuffer = ""
+    [string]$InputMode = ""  # "", "edit-field"
+    [string]$EditField = ""  # Which field being edited (priority, text)
+    [array]$EditableFields = @('priority', 'text')
+    [int]$EditFieldIndex = 0
 
     # Constructor
     NoDueDateViewScreen() : base("NoDueDateView", "Tasks Without Due Date") {
@@ -28,11 +33,11 @@ class NoDueDateViewScreen : PmcScreen {
         # Configure footer with shortcuts
         $this.Footer.ClearShortcuts()
         $this.Footer.AddShortcut("Up/Down", "Select")
-        $this.Footer.AddShortcut("Enter", "Detail")
         $this.Footer.AddShortcut("E", "Edit")
+        $this.Footer.AddShortcut("Tab", "Next Field")
         $this.Footer.AddShortcut("C", "Complete")
-        $this.Footer.AddShortcut("R", "Refresh")
-        $this.Footer.AddShortcut("Esc", "Back")
+        $this.Footer.AddShortcut("Esc", "Cancel")
+        $this.Footer.AddShortcut("Ctrl+Q", "Quit")
 
         # Setup menu items
         $this._SetupMenus()
@@ -44,30 +49,92 @@ class NoDueDateViewScreen : PmcScreen {
 
         # Tasks menu - Navigate to different task views
         $tasksMenu = $this.MenuBar.Menus[0]
-        $tasksMenu.Items.Add([PmcMenuItem]::new("Task List", 'L', { Write-Host "Task List not implemented" }))
-        $tasksMenu.Items.Add([PmcMenuItem]::new("Tomorrow", 'T', { Write-Host "Tomorrow view not implemented" }))
-        $tasksMenu.Items.Add([PmcMenuItem]::new("Upcoming", 'U', { Write-Host "Upcoming view not implemented" }))
-        $tasksMenu.Items.Add([PmcMenuItem]::new("Next Actions", 'N', { Write-Host "Next Actions view not implemented" }))
-        $tasksMenu.Items.Add([PmcMenuItem]::new("No Due Date", 'D', { $screen.LoadData() }.GetNewClosure()))
+        $tasksMenu.Items.Add([PmcMenuItem]::new("Task List", 'L', {
+            . "$PSScriptRoot/TaskListScreen.ps1"
+            $global:PmcApp.PushScreen((New-Object TaskListScreen))
+        }))
+        $tasksMenu.Items.Add([PmcMenuItem]::new("Today", 'Y', {
+            . "$PSScriptRoot/TodayViewScreen.ps1"
+            $global:PmcApp.PushScreen((New-Object TodayViewScreen))
+        }))
+        $tasksMenu.Items.Add([PmcMenuItem]::new("Tomorrow", 'T', {
+            . "$PSScriptRoot/TomorrowViewScreen.ps1"
+            $global:PmcApp.PushScreen((New-Object TomorrowViewScreen))
+        }))
+        $tasksMenu.Items.Add([PmcMenuItem]::new("Week View", 'W', {
+            . "$PSScriptRoot/WeekViewScreen.ps1"
+            $global:PmcApp.PushScreen((New-Object WeekViewScreen))
+        }))
+        $tasksMenu.Items.Add([PmcMenuItem]::new("Upcoming", 'U', {
+            . "$PSScriptRoot/UpcomingViewScreen.ps1"
+            $global:PmcApp.PushScreen((New-Object UpcomingViewScreen))
+        }))
+        $tasksMenu.Items.Add([PmcMenuItem]::new("Overdue", 'V', {
+            . "$PSScriptRoot/OverdueViewScreen.ps1"
+            $global:PmcApp.PushScreen((New-Object OverdueViewScreen))
+        }))
+        $tasksMenu.Items.Add([PmcMenuItem]::new("Next Actions", 'N', {
+            . "$PSScriptRoot/NextActionsViewScreen.ps1"
+            $global:PmcApp.PushScreen((New-Object NextActionsViewScreen))
+        }))
+        $tasksMenu.Items.Add([PmcMenuItem]::new("No Due Date", 'D', {
+            . "$PSScriptRoot/NoDueDateViewScreen.ps1"
+            $global:PmcApp.PushScreen((New-Object NoDueDateViewScreen))
+        }))
+        $tasksMenu.Items.Add([PmcMenuItem]::new("Blocked Tasks", 'B', {
+            . "$PSScriptRoot/BlockedTasksScreen.ps1"
+            $global:PmcApp.PushScreen((New-Object BlockedTasksScreen))
+        }))
         $tasksMenu.Items.Add([PmcMenuItem]::Separator())
-        $tasksMenu.Items.Add([PmcMenuItem]::new("Month View", 'M', { Write-Host "Month view not implemented" }))
-        $tasksMenu.Items.Add([PmcMenuItem]::new("Agenda View", 'A', { Write-Host "Agenda view not implemented" }))
-        $tasksMenu.Items.Add([PmcMenuItem]::new("Burndown Chart", 'B', { Write-Host "Burndown chart not implemented" }))
+        $tasksMenu.Items.Add([PmcMenuItem]::new("Kanban Board", 'K', {
+            . "$PSScriptRoot/KanbanScreen.ps1"
+            $global:PmcApp.PushScreen((New-Object KanbanScreen))
+        }))
+        $tasksMenu.Items.Add([PmcMenuItem]::new("Month View", 'M', {
+            . "$PSScriptRoot/MonthViewScreen.ps1"
+            $global:PmcApp.PushScreen((New-Object MonthViewScreen))
+        }))
+        $tasksMenu.Items.Add([PmcMenuItem]::new("Agenda View", 'A', {
+            . "$PSScriptRoot/AgendaViewScreen.ps1"
+            $global:PmcApp.PushScreen((New-Object AgendaViewScreen))
+        }))
+        $tasksMenu.Items.Add([PmcMenuItem]::new("Burndown Chart", 'C', {
+            . "$PSScriptRoot/BurndownChartScreen.ps1"
+            $global:PmcApp.PushScreen((New-Object BurndownChartScreen))
+        }))
 
         # Projects menu
         $projectsMenu = $this.MenuBar.Menus[1]
-        $projectsMenu.Items.Add([PmcMenuItem]::new("Project List", 'L', { Write-Host "Project list not implemented" }))
-        $projectsMenu.Items.Add([PmcMenuItem]::new("Project Stats", 'S', { Write-Host "Project stats not implemented" }))
-        $projectsMenu.Items.Add([PmcMenuItem]::new("Project Info", 'I', { Write-Host "Project info not implemented" }))
+        $projectsMenu.Items.Add([PmcMenuItem]::new("Project List", 'L', {
+            . "$PSScriptRoot/ProjectListScreen.ps1"
+            $global:PmcApp.PushScreen((New-Object ProjectListScreen))
+        }))
+        $projectsMenu.Items.Add([PmcMenuItem]::new("Project Stats", 'S', {
+            . "$PSScriptRoot/ProjectStatsScreen.ps1"
+            $global:PmcApp.PushScreen((New-Object ProjectStatsScreen))
+        }))
+        $projectsMenu.Items.Add([PmcMenuItem]::new("Project Info", 'I', {
+            . "$PSScriptRoot/ProjectInfoScreen.ps1"
+            $global:PmcApp.PushScreen((New-Object ProjectInfoScreen))
+        }))
 
         # Options menu
         $optionsMenu = $this.MenuBar.Menus[2]
-        $optionsMenu.Items.Add([PmcMenuItem]::new("Theme Editor", 'T', { Write-Host "Theme editor not implemented" }))
-        $optionsMenu.Items.Add([PmcMenuItem]::new("Settings", 'S', { Write-Host "Settings not implemented" }))
+        $optionsMenu.Items.Add([PmcMenuItem]::new("Theme Editor", 'T', {
+            . "$PSScriptRoot/ThemeEditorScreen.ps1"
+            $global:PmcApp.PushScreen((New-Object ThemeEditorScreen))
+        }))
+        $optionsMenu.Items.Add([PmcMenuItem]::new("Settings", 'S', {
+            . "$PSScriptRoot/SettingsScreen.ps1"
+            $global:PmcApp.PushScreen((New-Object SettingsScreen))
+        }))
 
         # Help menu
         $helpMenu = $this.MenuBar.Menus[3]
-        $helpMenu.Items.Add([PmcMenuItem]::new("Help View", 'H', { Write-Host "Help view not implemented" }))
+        $helpMenu.Items.Add([PmcMenuItem]::new("Help View", 'H', {
+            . "$PSScriptRoot/HelpViewScreen.ps1"
+            $global:PmcApp.PushScreen((New-Object HelpViewScreen))
+        }))
         $helpMenu.Items.Add([PmcMenuItem]::new("About", 'A', { Write-Host "PMC TUI v1.0" }))
     }
 
@@ -168,17 +235,22 @@ class NoDueDateViewScreen : PmcScreen {
         # Render task rows
         $startY = $headerY + 2
         $maxLines = $contentRect.Height - 4
+        $currentY = $startY
 
-        for ($i = 0; $i -lt [Math]::Min($this.NoDueDateTasks.Count, $maxLines); $i++) {
+        for ($i = 0; $i -lt $this.NoDueDateTasks.Count; $i++) {
+            if ($currentY -ge ($startY + $maxLines)) { break }
+
             $task = $this.NoDueDateTasks[$i]
-            $y = $startY + $i
+            $y = $currentY
             $isSelected = ($i -eq $this.SelectedIndex)
+            $isEditing = ($i -eq $this.SelectedIndex) -and ($this.InputMode -eq 'edit-field')
 
             # Cursor
             $sb.Append($this.Header.BuildMoveTo($contentRect.X + 2, $y))
-            if ($isSelected) {
+            if ($isSelected -or $isEditing) {
                 $sb.Append($cursorColor)
-                $sb.Append(">")
+                $cursorChar = if ($isEditing) { "E" } else { ">" }
+                $sb.Append($cursorChar)
                 $sb.Append($reset)
             } else {
                 $sb.Append(" ")
@@ -189,16 +261,27 @@ class NoDueDateViewScreen : PmcScreen {
 
             # Priority column
             $sb.Append($this.Header.BuildMoveTo($x, $y))
-            if ($isSelected) {
+            if ($isEditing -and $this.EditField -eq 'priority') {
+                # Inline edit for priority
+                $sb.Append($cursorColor)
+                $sb.Append(($this.InputBuffer + "_").PadRight(4))
+                $sb.Append($reset)
+            } elseif ($isSelected) {
                 $sb.Append($selectedBg)
                 $sb.Append($selectedFg)
+                $priText = if ($task.priority) { $task.priority.ToString().PadLeft(3) } else { "   " }
+                $sb.Append($priText)
+                $sb.Append(" ")
+                $sb.Append($reset)
             } elseif ($task.priority -gt 0) {
                 $sb.Append($priorityColor)
+                $priText = $task.priority.ToString().PadLeft(3)
+                $sb.Append($priText)
+                $sb.Append(" ")
+                $sb.Append($reset)
+            } else {
+                $sb.Append("    ")
             }
-            $priText = if ($task.priority) { $task.priority.ToString().PadLeft(3) } else { "   " }
-            $sb.Append($priText)
-            $sb.Append(" ")
-            $sb.Append($reset)
             $x += 4
 
             # ID column
@@ -216,35 +299,113 @@ class NoDueDateViewScreen : PmcScreen {
 
             # Task text column
             $sb.Append($this.Header.BuildMoveTo($x, $y))
-            if ($isSelected) {
-                $sb.Append($selectedBg)
-                $sb.Append($selectedFg)
+            if ($isEditing -and $this.EditField -eq 'text') {
+                # Inline edit for text
+                $sb.Append($cursorColor)
+                $maxTaskWidth = $contentRect.Width - ($x - $contentRect.X)
+                $text = $this.InputBuffer + "_"
+                if ($text.Length -gt $maxTaskWidth) {
+                    $text = $text.Substring(0, $maxTaskWidth)
+                }
+                $sb.Append($text)
+                $sb.Append($reset)
             } else {
-                $sb.Append($textColor)
+                if ($isSelected) {
+                    $sb.Append($selectedBg)
+                    $sb.Append($selectedFg)
+                } else {
+                    $sb.Append($textColor)
+                }
+                $maxTaskWidth = $contentRect.Width - ($x - $contentRect.X)
+                $taskText = $task.text
+                if ($taskText.Length -gt $maxTaskWidth) {
+                    $taskText = $taskText.Substring(0, $maxTaskWidth - 3) + "..."
+                }
+                $sb.Append($taskText)
+                $sb.Append($reset)
             }
-            $maxTaskWidth = $contentRect.Width - ($x - $contentRect.X)
-            $taskText = $task.text
-            if ($taskText.Length -gt $maxTaskWidth) {
-                $taskText = $taskText.Substring(0, $maxTaskWidth - 3) + "..."
+
+            $currentY++
+
+            # Calculate text width for details
+            $textWidth = $contentRect.Width - 6
+
+            # Render subtasks if present
+            if ($task.subtasks -and $task.subtasks.Count -gt 0) {
+                foreach ($subtask in $task.subtasks) {
+                    if ($currentY -ge ($startY + $maxLines)) { break }
+
+                    $sb.Append($this.Header.BuildMoveTo($contentRect.X + 6, $currentY))
+                    $sb.Append($mutedColor)
+                    $sb.Append("  └─ ")
+                    $sb.Append($subtask)
+                    $sb.Append($reset)
+                    $currentY++
+                }
             }
-            $sb.Append($taskText)
-            $sb.Append($reset)
+
+            # Render tags if present
+            if ($task.tags -and $task.tags.Count -gt 0) {
+                if ($currentY -lt ($startY + $maxLines)) {
+                    $sb.Append($this.Header.BuildMoveTo($contentRect.X + 6, $currentY))
+                    $sb.Append($mutedColor)
+                    $sb.Append("  Tags: ")
+                    $sb.Append(($task.tags -join ', '))
+                    $sb.Append($reset)
+                    $currentY++
+                }
+            }
+
+            # Render dependencies if present
+            if ($task.depends -and $task.depends.Count -gt 0) {
+                if ($currentY -lt ($startY + $maxLines)) {
+                    $sb.Append($this.Header.BuildMoveTo($contentRect.X + 6, $currentY))
+                    $sb.Append($mutedColor)
+                    $sb.Append("  Deps: ")
+                    $sb.Append(($task.depends -join ', '))
+                    $sb.Append($reset)
+                    $currentY++
+                }
+            }
+
+            # Render notes if present (first line only)
+            if ($task.notes -and $task.notes.Count -gt 0) {
+                if ($currentY -lt ($startY + $maxLines)) {
+                    $sb.Append($this.Header.BuildMoveTo($contentRect.X + 6, $currentY))
+                    $sb.Append($mutedColor)
+                    $sb.Append("  Note: ")
+                    $noteText = $task.notes[0]
+                    if ($noteText.Length -gt ($textWidth - 10)) {
+                        $noteText = $noteText.Substring(0, $textWidth - 13) + "..."
+                    }
+                    $sb.Append($noteText)
+                    $sb.Append($reset)
+                    $currentY++
+                }
+            }
         }
 
         # Show truncation indicator if needed
-        if ($this.NoDueDateTasks.Count -gt $maxLines) {
-            $y = $startY + $maxLines
-            $remaining = $this.NoDueDateTasks.Count - $maxLines
-            $sb.Append($this.Header.BuildMoveTo($contentRect.X + 4, $y))
-            $sb.Append($mutedColor)
-            $sb.Append("... and $remaining more")
-            $sb.Append($reset)
+        if ($i -lt $this.NoDueDateTasks.Count) {
+            $remaining = $this.NoDueDateTasks.Count - $i
+            if ($currentY -lt ($startY + $maxLines)) {
+                $sb.Append($this.Header.BuildMoveTo($contentRect.X + 4, $currentY))
+                $sb.Append($mutedColor)
+                $sb.Append("... and $remaining more")
+                $sb.Append($reset)
+            }
         }
 
         return $sb.ToString()
     }
 
-    [bool] HandleInput([ConsoleKeyInfo]$keyInfo) {
+    [bool] HandleKeyPress([ConsoleKeyInfo]$keyInfo) {
+        # Input mode handling
+        if ($this.InputMode) {
+            return $this._HandleInputMode($keyInfo)
+        }
+
+        # Normal mode handling
         if ($this.NoDueDateTasks.Count -eq 0) {
             return $false
         }
@@ -262,20 +423,12 @@ class NoDueDateViewScreen : PmcScreen {
                     return $true
                 }
             }
-            'Enter' {
-                $this._ShowTaskDetail()
-                return $true
-            }
             'E' {
-                $this._EditTask()
+                $this._StartEditField()
                 return $true
             }
             'C' {
                 $this._CompleteTask()
-                return $true
-            }
-            'S' {
-                $this._SetDueDate()
                 return $true
             }
             'R' {
@@ -287,27 +440,175 @@ class NoDueDateViewScreen : PmcScreen {
         return $false
     }
 
-    hidden [void] _ShowTaskDetail() {
-        if ($this.SelectedIndex -ge 0 -and $this.SelectedIndex -lt $this.NoDueDateTasks.Count) {
-            $task = $this.NoDueDateTasks[$this.SelectedIndex]
-            $this.ShowStatus("Task detail: [$($task.id)] $($task.text)")
-            # TODO: Push detail screen when implemented
+    hidden [bool] _HandleInputMode([ConsoleKeyInfo]$keyInfo) {
+        switch ($keyInfo.Key) {
+            'Enter' {
+                $this._SubmitInput()
+                return $true
+            }
+            'Escape' {
+                $this._CancelInput()
+                return $true
+            }
+            'Tab' {
+                if ($this.InputMode -eq 'edit-field') {
+                    $this._CycleField()
+                    return $true
+                }
+            }
+            'Backspace' {
+                if ($this.InputBuffer.Length -gt 0) {
+                    $this.InputBuffer = $this.InputBuffer.Substring(0, $this.InputBuffer.Length - 1)
+                    return $true
+                }
+            }
+            default {
+                # Add character to buffer
+                if ($keyInfo.KeyChar -and -not [char]::IsControl($keyInfo.KeyChar)) {
+                    $this.InputBuffer += $keyInfo.KeyChar
+                    return $true
+                }
+            }
+        }
+        return $false
+    }
+
+    hidden [void] _StartEditField() {
+        if ($this.SelectedIndex -lt 0 -or $this.SelectedIndex -ge $this.NoDueDateTasks.Count) {
+            return
+        }
+
+        $task = $this.NoDueDateTasks[$this.SelectedIndex]
+        $this.InputMode = "edit-field"
+        $this.EditFieldIndex = 0
+        $this.EditField = $this.EditableFields[$this.EditFieldIndex]
+
+        # Pre-fill with current value
+        $currentValue = $task.($this.EditField)
+        if ($currentValue) {
+            $this.InputBuffer = [string]$currentValue
+        } else {
+            $this.InputBuffer = ""
+        }
+
+        $this.ShowStatus("Editing task #$($task.id) - Press Tab to cycle fields")
+    }
+
+    hidden [void] _SubmitInput() {
+        try {
+            if ($this.InputMode -eq 'edit-field') {
+                # Update current field value
+                $this._UpdateField($this.EditField, $this.InputBuffer)
+                # Exit edit mode
+                $this.InputMode = ""
+                $this.InputBuffer = ""
+                $this.EditField = ""
+                $this.EditFieldIndex = 0
+            }
+        } catch {
+            $this.ShowError("Operation failed: $_")
+            $this.InputMode = ""
+            $this.InputBuffer = ""
+            $this.EditField = ""
+            $this.EditFieldIndex = 0
         }
     }
 
-    hidden [void] _EditTask() {
-        if ($this.SelectedIndex -ge 0 -and $this.SelectedIndex -lt $this.NoDueDateTasks.Count) {
+    hidden [void] _CancelInput() {
+        $this.InputMode = ""
+        $this.InputBuffer = ""
+        $this.EditField = ""
+        $this.EditFieldIndex = 0
+        $this.ShowStatus("Cancelled")
+    }
+
+    hidden [void] _CycleField() {
+        if ($this.InputMode -eq 'edit-field') {
+            if ($this.SelectedIndex -lt 0 -or $this.SelectedIndex -ge $this.NoDueDateTasks.Count) {
+                return
+            }
+
             $task = $this.NoDueDateTasks[$this.SelectedIndex]
-            $this.ShowStatus("Edit task: [$($task.id)]")
-            # TODO: Push edit screen when implemented
+
+            # Save current field value before switching
+            try {
+                if ($this.InputBuffer) {
+                    $this._UpdateField($this.EditField, $this.InputBuffer)
+                }
+            } catch {
+                # If update fails, show error but continue to next field
+                $this.ShowError("Invalid value for $($this.EditField): $_")
+            }
+
+            # Move to next field
+            $this.EditFieldIndex = ($this.EditFieldIndex + 1) % $this.EditableFields.Count
+            $this.EditField = $this.EditableFields[$this.EditFieldIndex]
+
+            # Load new field value
+            $currentValue = $task.($this.EditField)
+            if ($currentValue) {
+                $this.InputBuffer = [string]$currentValue
+            } else {
+                $this.InputBuffer = ""
+            }
+
+            $this.ShowStatus("Now editing: $($this.EditField) - Press Tab for next field, Enter to finish")
         }
     }
 
-    hidden [void] _SetDueDate() {
-        if ($this.SelectedIndex -ge 0 -and $this.SelectedIndex -lt $this.NoDueDateTasks.Count) {
-            $task = $this.NoDueDateTasks[$this.SelectedIndex]
-            $this.ShowStatus("Set due date for task: [$($task.id)]")
-            # TODO: Show date picker when implemented
+    hidden [void] _UpdateField([string]$field, [string]$value) {
+        if ($this.SelectedIndex -lt 0 -or $this.SelectedIndex -ge $this.NoDueDateTasks.Count) {
+            return
+        }
+
+        $task = $this.NoDueDateTasks[$this.SelectedIndex]
+
+        try {
+            # Use existing FieldSchema to normalize and validate
+            $schema = Get-PmcFieldSchema -Domain 'task' -Field $field
+
+            if (-not $schema) {
+                $this.ShowError("Unknown field: $field")
+                return
+            }
+
+            # Normalize the value using existing schema logic
+            $normalizedValue = $value
+            if ($schema.Normalize) {
+                $normalizedValue = & $schema.Normalize $value
+            }
+
+            # Validate using existing schema logic
+            if ($schema.Validate) {
+                $isValid = & $schema.Validate $normalizedValue
+                if (-not $isValid) {
+                    $this.ShowError("Invalid value for $field")
+                    return
+                }
+            }
+
+            # Update in-memory task
+            $task.$field = $normalizedValue
+
+            # Update storage
+            $allData = Get-PmcAllData
+            $taskToUpdate = $allData.tasks | Where-Object { $_.id -eq $task.id }
+
+            if ($taskToUpdate) {
+                $taskToUpdate.$field = $normalizedValue
+                Set-PmcAllData $allData
+            }
+
+            # Show formatted value in success message
+            $displayValue = $normalizedValue
+            if ($schema.DisplayFormat) {
+                $displayValue = & $schema.DisplayFormat $normalizedValue
+            }
+
+            $this.ShowSuccess("Task #$($task.id) $field = $displayValue")
+
+        } catch {
+            $this.ShowError("Error updating $field`: $_")
         }
     }
 

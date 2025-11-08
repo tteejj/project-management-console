@@ -126,7 +126,7 @@ class DepAddFormScreen : PmcScreen {
         return $sb.ToString()
     }
 
-    [bool] HandleInput([ConsoleKeyInfo]$keyInfo) {
+    [bool] HandleKeyPress([ConsoleKeyInfo]$keyInfo) {
         switch ($keyInfo.Key) {
             'Enter' {
                 if ($this.InputField -eq 'taskId') {

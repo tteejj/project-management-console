@@ -225,7 +225,7 @@ class SearchFormScreen : PmcScreen {
         return $sb.ToString()
     }
 
-    [bool] HandleInput([ConsoleKeyInfo]$keyInfo) {
+    [bool] HandleKeyPress([ConsoleKeyInfo]$keyInfo) {
         switch ($keyInfo.Key) {
             'UpArrow' {
                 if ($this.MatchingTasks.Count -gt 0 -and $this.SelectedIndex -gt 0) {
@@ -270,15 +270,13 @@ class SearchFormScreen : PmcScreen {
             return
         }
 
-        $task = $this.MatchingTasks[$this.SelectedIndex]
-
-        # TODO: Navigate to task detail screen
-        # For now, just show a message
-        $this.ShowSuccess("Selected task #$($task.id)")
-        Start-Sleep -Milliseconds 500
-
-        # Exit search screen
-        $this.RequestExit()
+        if ($this.MatchingTasks.Count -gt 0) {
+            $task = $this.MatchingTasks[$this.SelectedIndex]
+            . "$PSScriptRoot/TaskDetailScreen.ps1"
+            $screen = New-Object TaskDetailScreen
+            $screen.SetTask($task)
+            $global:PmcApp.PushScreen($screen)
+        }
     }
 }
 

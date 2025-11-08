@@ -4,9 +4,11 @@
 using namespace System.Collections.Generic
 using namespace System.Text
 
-# Load SpeedTUI framework if not already loaded
+# SpeedTUI framework must be loaded before this file
+# (loaded by PmcApplication.ps1 or Start-PmcTUI.ps1)
+# This check ensures Component class is available
 if (-not ([System.Management.Automation.PSTypeName]'Component').Type) {
-    . "$PSScriptRoot/../SpeedTUILoader.ps1"
+    throw "SpeedTUI Component class not found. Ensure SpeedTUILoader.ps1 is loaded before PmcWidget.ps1"
 }
 
 <#

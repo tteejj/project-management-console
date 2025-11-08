@@ -158,7 +158,7 @@ class FocusStatusScreen : PmcScreen {
         return $sb.ToString()
     }
 
-    [bool] HandleInput([ConsoleKeyInfo]$keyInfo) {
+    [bool] HandleKeyPress([ConsoleKeyInfo]$keyInfo) {
         # No special input handling needed
         # Esc is handled by base class
         return $false

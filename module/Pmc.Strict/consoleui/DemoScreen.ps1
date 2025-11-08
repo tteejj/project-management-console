@@ -127,7 +127,8 @@ Phase 2: COMPLETE
             'Q' {
                 $this.ShowStatus("Quitting...")
                 Start-Sleep -Milliseconds 500
-                exit
+                $global:PmcApp.Stop()
+                return $true
             }
             'R' {
                 $this.ShowStatus("Reloading...")
@@ -138,6 +139,7 @@ Phase 2: COMPLETE
                 return $false
             }
         }
+        return $false  # Unreachable but required by PowerShell parser
     }
 
     hidden [void] _SetTheme([string]$hex) {

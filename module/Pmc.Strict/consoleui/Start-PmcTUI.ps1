@@ -37,13 +37,52 @@ try {
     throw
 }
 
-Write-PmcTuiLog "Loading PmcApplication..." "INFO"
+Write-PmcTuiLog "Loading SpeedTUI framework..." "INFO"
 
 try {
-    . "$PSScriptRoot/PmcApplication.ps1"
-    Write-PmcTuiLog "PmcApplication loaded" "INFO"
+    . "$PSScriptRoot/SpeedTUILoader.ps1"
+    Write-PmcTuiLog "SpeedTUI framework loaded" "INFO"
 } catch {
-    Write-PmcTuiLog "Failed to load PmcApplication: $_" "ERROR"
+    Write-PmcTuiLog "Failed to load SpeedTUI: $_" "ERROR"
+    Write-PmcTuiLog $_.ScriptStackTrace "ERROR"
+    throw
+}
+
+Write-PmcTuiLog "Loading helpers..." "INFO"
+
+try {
+    Get-ChildItem -Path "$PSScriptRoot/helpers" -Filter "*.ps1" -ErrorAction SilentlyContinue | ForEach-Object {
+        . $_.FullName
+    }
+    Write-PmcTuiLog "Helpers loaded" "INFO"
+} catch {
+    Write-PmcTuiLog "Failed to load helpers: $_" "ERROR"
+    Write-PmcTuiLog $_.ScriptStackTrace "ERROR"
+    throw
+}
+
+Write-PmcTuiLog "Loading services..." "INFO"
+
+try {
+    Get-ChildItem -Path "$PSScriptRoot/services" -Filter "*.ps1" -ErrorAction SilentlyContinue | ForEach-Object {
+        . $_.FullName
+    }
+    Write-PmcTuiLog "Services loaded" "INFO"
+} catch {
+    Write-PmcTuiLog "Failed to load services: $_" "ERROR"
+    Write-PmcTuiLog $_.ScriptStackTrace "ERROR"
+    throw
+}
+
+Write-PmcTuiLog "Loading legacy infrastructure..." "INFO"
+
+try {
+    . "$PSScriptRoot/widgets/PmcWidget.ps1"
+    . "$PSScriptRoot/widgets/PmcPanel.ps1"
+    . "$PSScriptRoot/layout/PmcLayoutManager.ps1"
+    Write-PmcTuiLog "Legacy infrastructure loaded" "INFO"
+} catch {
+    Write-PmcTuiLog "Failed to load legacy infrastructure: $_" "ERROR"
     Write-PmcTuiLog $_.ScriptStackTrace "ERROR"
     throw
 }
@@ -55,6 +94,56 @@ try {
     Write-PmcTuiLog "PmcScreen loaded" "INFO"
 } catch {
     Write-PmcTuiLog "Failed to load PmcScreen: $_" "ERROR"
+    Write-PmcTuiLog $_.ScriptStackTrace "ERROR"
+    throw
+}
+
+Write-PmcTuiLog "Loading widgets..." "INFO"
+
+try {
+    $widgetFiles = @(
+        "TextInput.ps1",
+        "DatePicker.ps1",
+        "ProjectPicker.ps1",
+        "TagEditor.ps1",
+        "FilterPanel.ps1",
+        "InlineEditor.ps1",
+        "UniversalList.ps1"
+    )
+
+    foreach ($widgetFile in $widgetFiles) {
+        $widgetPath = Join-Path "$PSScriptRoot/widgets" $widgetFile
+        if (Test-Path $widgetPath) {
+            . $widgetPath
+        }
+    }
+    Write-PmcTuiLog "Widgets loaded" "INFO"
+} catch {
+    Write-PmcTuiLog "Failed to load widgets: $_" "ERROR"
+    Write-PmcTuiLog $_.ScriptStackTrace "ERROR"
+    throw
+}
+
+Write-PmcTuiLog "Loading base classes..." "INFO"
+
+try {
+    . "$PSScriptRoot/base/StandardFormScreen.ps1"
+    . "$PSScriptRoot/base/StandardListScreen.ps1"
+    . "$PSScriptRoot/base/StandardDashboard.ps1"
+    Write-PmcTuiLog "Base classes loaded" "INFO"
+} catch {
+    Write-PmcTuiLog "Failed to load base classes: $_" "ERROR"
+    Write-PmcTuiLog $_.ScriptStackTrace "ERROR"
+    throw
+}
+
+Write-PmcTuiLog "Loading PmcApplication..." "INFO"
+
+try {
+    . "$PSScriptRoot/PmcApplication.ps1"
+    Write-PmcTuiLog "PmcApplication loaded" "INFO"
+} catch {
+    Write-PmcTuiLog "Failed to load PmcApplication: $_" "ERROR"
     Write-PmcTuiLog $_.ScriptStackTrace "ERROR"
     throw
 }

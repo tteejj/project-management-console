@@ -108,7 +108,7 @@ class RedoViewScreen : PmcScreen {
         return $sb.ToString()
     }
 
-    [bool] HandleInput([ConsoleKeyInfo]$keyInfo) {
+    [bool] HandleKeyPress([ConsoleKeyInfo]$keyInfo) {
         switch ($keyInfo.Key) {
             'R' {
                 if ($this.UndoStatus -and $this.UndoStatus.RedoAvailable) {

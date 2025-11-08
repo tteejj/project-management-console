@@ -44,6 +44,9 @@ class PmcApplication {
     [int]$TermHeight = 24
     [bool]$Running = $false
 
+    # === Rendering State ===
+    [bool]$IsDirty = $true  # Dirty flag - true when redraw needed
+
     # === Event Handlers ===
     [scriptblock]$OnTerminalResize = $null
     [scriptblock]$OnError = $null
@@ -84,6 +87,9 @@ class PmcApplication {
             }
         }
 
+        # Clear screen to prevent old content from showing through
+        [Console]::Write("`e[2J")
+
         # Push new screen
         $this.ScreenStack.Push($screen)
         $this.CurrentScreen = $screen
@@ -103,8 +109,8 @@ class PmcApplication {
             $screen.OnEnter()
         }
 
-        # Force full render
-        $this._RenderCurrentScreen()
+        # Mark dirty for render
+        $this.IsDirty = $true
     }
 
     <#
@@ -125,6 +131,9 @@ class PmcApplication {
             $poppedScreen.OnExit()
         }
 
+        # Clear screen to prevent old content from showing through
+        [Console]::Write("`e[2J")
+
         # Restore previous screen
         if ($this.ScreenStack.Count -gt 0) {
             $this.CurrentScreen = $this.ScreenStack.Peek()
@@ -134,8 +143,8 @@ class PmcApplication {
                 $this.CurrentScreen.OnEnter()
             }
 
-            # Force full render
-            $this._RenderCurrentScreen()
+            # Mark dirty for render
+            $this.IsDirty = $true
         } else {
             $this.CurrentScreen = $null
         }
@@ -187,10 +196,15 @@ class PmcApplication {
             # EndFrame does differential rendering
             $this.RenderEngine.EndFrame()
 
+            # Clear dirty flag after successful render
+            $this.IsDirty = $false
+
         } catch {
             # Render error - log if Write-PmcTuiLog available
             if (Get-Command Write-PmcTuiLog -ErrorAction SilentlyContinue) {
                 Write-PmcTuiLog "Render error: $_" "ERROR"
+                Write-PmcTuiLog "Error at: $($_.InvocationInfo.ScriptName):$($_.InvocationInfo.ScriptLineNumber)" "ERROR"
+                Write-PmcTuiLog "Error line: $($_.InvocationInfo.Line)" "ERROR"
             }
             if ($this.OnError) {
                 & $this.OnError $_
@@ -279,12 +293,19 @@ class PmcApplication {
 
                     # Pass to current screen
                     if ($this.CurrentScreen -and $this.CurrentScreen.PSObject.Methods['HandleKeyPress']) {
-                        $this.CurrentScreen.HandleKeyPress($key)
+                        $handled = $this.CurrentScreen.HandleKeyPress($key)
+                        # Mark dirty if screen handled the key (likely changed state)
+                        if ($handled) {
+                            $this.IsDirty = $true
+                        }
                     }
                 }
 
-                # Render every frame - SpeedTUI will diff and only update changes
-                $this._RenderCurrentScreen()
+                # Only render when dirty (state changed) - preserves differential rendering benefits
+                # SpeedTUI's differential engine still optimizes within each render
+                if ($this.IsDirty) {
+                    $this._RenderCurrentScreen()
+                }
 
                 # Small sleep to prevent CPU spinning
                 Start-Sleep -Milliseconds 16  # ~60 FPS
@@ -339,8 +360,8 @@ class PmcApplication {
             & $this.OnTerminalResize $newWidth $newHeight
         }
 
-        # Force full render
-        $this._RenderCurrentScreen()
+        # Mark dirty for render
+        $this.IsDirty = $true
     }
 
     # === Utility Methods ===
@@ -364,12 +385,10 @@ class PmcApplication {
     Request a render on next frame
 
     .DESCRIPTION
-    Schedules a re-render of the current screen
+    Schedules a re-render of the current screen by setting dirty flag
     #>
     [void] RequestRender() {
-        if ($this.Running) {
-            $this._RenderCurrentScreen()
-        }
+        $this.IsDirty = $true
     }
 }
 

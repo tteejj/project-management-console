@@ -115,7 +115,7 @@ class UndoViewScreen : PmcScreen {
         return $sb.ToString()
     }
 
-    [bool] HandleInput([ConsoleKeyInfo]$keyInfo) {
+    [bool] HandleKeyPress([ConsoleKeyInfo]$keyInfo) {
         switch ($keyInfo.Key) {
             'U' {
                 if ($this.UndoStatus -and $this.UndoStatus.UndoAvailable) {

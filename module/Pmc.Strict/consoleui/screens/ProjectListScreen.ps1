@@ -52,30 +52,92 @@ class ProjectListScreen : PmcScreen {
 
         # Tasks menu - Navigate to different task views
         $tasksMenu = $this.MenuBar.Menus[0]
-        $tasksMenu.Items.Add([PmcMenuItem]::new("Task List", 'L', { Write-Host "Task List not implemented" }))
-        $tasksMenu.Items.Add([PmcMenuItem]::new("Tomorrow", 'T', { Write-Host "Tomorrow view not implemented" }))
-        $tasksMenu.Items.Add([PmcMenuItem]::new("Upcoming", 'U', { Write-Host "Upcoming view not implemented" }))
-        $tasksMenu.Items.Add([PmcMenuItem]::new("Next Actions", 'N', { Write-Host "Next Actions view not implemented" }))
-        $tasksMenu.Items.Add([PmcMenuItem]::new("No Due Date", 'D', { Write-Host "No Due Date view not implemented" }))
+        $tasksMenu.Items.Add([PmcMenuItem]::new("Task List", 'L', {
+            . "$PSScriptRoot/TaskListScreen.ps1"
+            $global:PmcApp.PushScreen((New-Object TaskListScreen))
+        }))
+        $tasksMenu.Items.Add([PmcMenuItem]::new("Today", 'Y', {
+            . "$PSScriptRoot/TodayViewScreen.ps1"
+            $global:PmcApp.PushScreen((New-Object TodayViewScreen))
+        }))
+        $tasksMenu.Items.Add([PmcMenuItem]::new("Tomorrow", 'T', {
+            . "$PSScriptRoot/TomorrowViewScreen.ps1"
+            $global:PmcApp.PushScreen((New-Object TomorrowViewScreen))
+        }))
+        $tasksMenu.Items.Add([PmcMenuItem]::new("Week View", 'W', {
+            . "$PSScriptRoot/WeekViewScreen.ps1"
+            $global:PmcApp.PushScreen((New-Object WeekViewScreen))
+        }))
+        $tasksMenu.Items.Add([PmcMenuItem]::new("Upcoming", 'U', {
+            . "$PSScriptRoot/UpcomingViewScreen.ps1"
+            $global:PmcApp.PushScreen((New-Object UpcomingViewScreen))
+        }))
+        $tasksMenu.Items.Add([PmcMenuItem]::new("Overdue", 'V', {
+            . "$PSScriptRoot/OverdueViewScreen.ps1"
+            $global:PmcApp.PushScreen((New-Object OverdueViewScreen))
+        }))
+        $tasksMenu.Items.Add([PmcMenuItem]::new("Next Actions", 'N', {
+            . "$PSScriptRoot/NextActionsViewScreen.ps1"
+            $global:PmcApp.PushScreen((New-Object NextActionsViewScreen))
+        }))
+        $tasksMenu.Items.Add([PmcMenuItem]::new("No Due Date", 'D', {
+            . "$PSScriptRoot/NoDueDateViewScreen.ps1"
+            $global:PmcApp.PushScreen((New-Object NoDueDateViewScreen))
+        }))
+        $tasksMenu.Items.Add([PmcMenuItem]::new("Blocked Tasks", 'B', {
+            . "$PSScriptRoot/BlockedTasksScreen.ps1"
+            $global:PmcApp.PushScreen((New-Object BlockedTasksScreen))
+        }))
         $tasksMenu.Items.Add([PmcMenuItem]::Separator())
-        $tasksMenu.Items.Add([PmcMenuItem]::new("Month View", 'M', { Write-Host "Month view not implemented" }))
-        $tasksMenu.Items.Add([PmcMenuItem]::new("Agenda View", 'A', { Write-Host "Agenda view not implemented" }))
-        $tasksMenu.Items.Add([PmcMenuItem]::new("Burndown Chart", 'B', { Write-Host "Burndown chart not implemented" }))
+        $tasksMenu.Items.Add([PmcMenuItem]::new("Kanban Board", 'K', {
+            . "$PSScriptRoot/KanbanScreen.ps1"
+            $global:PmcApp.PushScreen((New-Object KanbanScreen))
+        }))
+        $tasksMenu.Items.Add([PmcMenuItem]::new("Month View", 'M', {
+            . "$PSScriptRoot/MonthViewScreen.ps1"
+            $global:PmcApp.PushScreen((New-Object MonthViewScreen))
+        }))
+        $tasksMenu.Items.Add([PmcMenuItem]::new("Agenda View", 'A', {
+            . "$PSScriptRoot/AgendaViewScreen.ps1"
+            $global:PmcApp.PushScreen((New-Object AgendaViewScreen))
+        }))
+        $tasksMenu.Items.Add([PmcMenuItem]::new("Burndown Chart", 'C', {
+            . "$PSScriptRoot/BurndownChartScreen.ps1"
+            $global:PmcApp.PushScreen((New-Object BurndownChartScreen))
+        }))
 
         # Projects menu
         $projectsMenu = $this.MenuBar.Menus[1]
-        $projectsMenu.Items.Add([PmcMenuItem]::new("Project List", 'L', { $screen.LoadData() }.GetNewClosure()))
-        $projectsMenu.Items.Add([PmcMenuItem]::new("Project Stats", 'S', { Write-Host "Project stats not implemented" }))
-        $projectsMenu.Items.Add([PmcMenuItem]::new("Project Info", 'I', { Write-Host "Project info not implemented" }))
+        $projectsMenu.Items.Add([PmcMenuItem]::new("Project List", 'L', {
+            . "$PSScriptRoot/ProjectListScreen.ps1"
+            $global:PmcApp.PushScreen((New-Object ProjectListScreen))
+        }))
+        $projectsMenu.Items.Add([PmcMenuItem]::new("Project Stats", 'S', {
+            . "$PSScriptRoot/ProjectStatsScreen.ps1"
+            $global:PmcApp.PushScreen((New-Object ProjectStatsScreen))
+        }))
+        $projectsMenu.Items.Add([PmcMenuItem]::new("Project Info", 'I', {
+            . "$PSScriptRoot/ProjectInfoScreen.ps1"
+            $global:PmcApp.PushScreen((New-Object ProjectInfoScreen))
+        }))
 
         # Options menu
         $optionsMenu = $this.MenuBar.Menus[2]
-        $optionsMenu.Items.Add([PmcMenuItem]::new("Theme Editor", 'T', { Write-Host "Theme editor not implemented" }))
-        $optionsMenu.Items.Add([PmcMenuItem]::new("Settings", 'S', { Write-Host "Settings not implemented" }))
+        $optionsMenu.Items.Add([PmcMenuItem]::new("Theme Editor", 'T', {
+            . "$PSScriptRoot/ThemeEditorScreen.ps1"
+            $global:PmcApp.PushScreen((New-Object ThemeEditorScreen))
+        }))
+        $optionsMenu.Items.Add([PmcMenuItem]::new("Settings", 'S', {
+            . "$PSScriptRoot/SettingsScreen.ps1"
+            $global:PmcApp.PushScreen((New-Object SettingsScreen))
+        }))
 
         # Help menu
         $helpMenu = $this.MenuBar.Menus[3]
-        $helpMenu.Items.Add([PmcMenuItem]::new("Help View", 'H', { Write-Host "Help view not implemented" }))
+        $helpMenu.Items.Add([PmcMenuItem]::new("Help View", 'H', {
+            . "$PSScriptRoot/HelpViewScreen.ps1"
+            $global:PmcApp.PushScreen((New-Object HelpViewScreen))
+        }))
         $helpMenu.Items.Add([PmcMenuItem]::new("About", 'A', { Write-Host "PMC TUI v1.0" }))
     }
 
@@ -123,8 +185,9 @@ class ProjectListScreen : PmcScreen {
     [string] RenderContent() {
         if ($this.Projects.Count -eq 0) {
             return $this._RenderEmptyState()
+        } else {
+            return $this._RenderProjectList()
         }
-        return $this._RenderProjectList()
     }
 
     hidden [string] _RenderEmptyState() {
@@ -249,7 +312,7 @@ class ProjectListScreen : PmcScreen {
         return $sb.ToString()
     }
 
-    [bool] HandleInput([ConsoleKeyInfo]$keyInfo) {
+    [bool] HandleKeyPress([ConsoleKeyInfo]$keyInfo) {
         switch ($keyInfo.Key) {
             'UpArrow' {
                 if ($this.SelectedIndex > 0) {
@@ -258,7 +321,7 @@ class ProjectListScreen : PmcScreen {
                 return $true
             }
             'DownArrow' {
-                if ($this.SelectedIndex < $this.Projects.Count - 1) {
+                if ($this.SelectedIndex -lt ($this.Projects.Count - 1)) {
                     $this.SelectedIndex++
                 }
                 return $true
@@ -266,11 +329,434 @@ class ProjectListScreen : PmcScreen {
             'Enter' {
                 if ($this.Projects.Count > 0) {
                     $project = $this.Projects[$this.SelectedIndex]
-                    $this.ShowStatus("Viewing project: $($project.name)")
+                    . "$PSScriptRoot/ProjectInfoScreen.ps1"
+                    $screen = New-Object ProjectInfoScreen
+                    $screen.SetProject($project.name)
+                    $global:PmcApp.PushScreen($screen)
                 }
+                return $true
+            }
+            'A' {
+                $this._AddProject()
+                return $true
+            }
+            'E' {
+                $this._EditProject()
+                return $true
+            }
+            'D' {
+                $this._DeleteProject()
+                return $true
+            }
+            'R' {
+                $this._ArchiveProject()
                 return $true
             }
         }
         return $false
     }
+
+    hidden [void] _AddProject() {
+        # Show project form dialog
+        . "$PSScriptRoot/../widgets/PmcDialog.ps1"
+        $dialog = New-Object ProjectFormDialog
+
+        # Get theme for dialog rendering
+        $theme = @{
+            DialogBg = $this.Header.GetThemedAnsi('Background', $true)
+            DialogFg = $this.Header.GetThemedAnsi('Text', $false)
+            DialogBorder = $this.Header.GetThemedAnsi('Border', $false)
+            Highlight = $this.Header.GetThemedAnsi('Accent', $false)
+            PrimaryBg = $this.Header.GetThemedAnsi('Primary', $true)
+            Muted = $this.Header.GetThemedAnsi('Muted', $false)
+        }
+
+        # Dialog loop using SpeedTUI's differential rendering
+        while (-not $dialog.IsComplete) {
+            # Check if file picker requested
+            if ($dialog.FilePicker -eq 'show') {
+                $dialog.FilePicker = ''
+
+                # Show file picker
+                . "$PSScriptRoot/../widgets/PmcFilePicker.ps1"
+                $startPath = if ($dialog.Fields.path) { $dialog.Fields.path } else { [Environment]::GetFolderPath('UserProfile') }
+                $picker = New-Object PmcFilePicker($startPath, $true)
+
+                # File picker loop
+                while (-not $picker.IsComplete) {
+                    $this.RenderEngine.BeginFrame()
+
+                    # Render base screen
+                    $fullScreenOutput = $this.Render()
+                    if ($fullScreenOutput) {
+                        $global:PmcApp._WriteAnsiToEngine($fullScreenOutput)
+                    }
+
+                    # Render picker
+                    $pickerOutput = $picker.Render($this.TermWidth, $this.TermHeight)
+                    if ($pickerOutput) {
+                        $global:PmcApp._WriteAnsiToEngine($pickerOutput)
+                    }
+
+                    $this.RenderEngine.EndFrame()
+
+                    $key = [Console]::ReadKey($true)
+                    $picker.HandleInput($key)
+                }
+
+                # If path was selected, update dialog field
+                if ($picker.Result) {
+                    $dialog.Fields.path = $picker.SelectedPath
+                }
+
+                # Continue with dialog
+                continue
+            }
+
+            # Render through SpeedTUI engine
+            $this.RenderEngine.BeginFrame()
+
+            # Render FULL screen (menu, header, content, footer)
+            $fullScreenOutput = $this.Render()
+            if ($fullScreenOutput) {
+                # Parse and write screen ANSI to engine
+                $global:PmcApp._WriteAnsiToEngine($fullScreenOutput)
+            }
+
+            # Render dialog on top
+            $dialogOutput = $dialog.Render($this.TermWidth, $this.TermHeight, $theme)
+            if ($dialogOutput) {
+                # Parse and write dialog ANSI to engine
+                $global:PmcApp._WriteAnsiToEngine($dialogOutput)
+            }
+
+            # SpeedTUI does differential rendering here
+            $this.RenderEngine.EndFrame()
+
+            # Wait for input
+            $key = [Console]::ReadKey($true)
+            $dialog.HandleInput($key)
+        }
+
+        # Clear dialog by forcing full screen re-render
+        [Console]::Write("`e[2J")
+        if ($this.RenderEngine) {
+            $this.RenderEngine.InvalidateAll()
+        }
+
+        # Process result
+        if ($dialog.Result) {
+            $project = $dialog.GetProject()
+
+            # Validate
+            if ([string]::IsNullOrWhiteSpace($project.name)) {
+                $this.ShowError("Project name cannot be empty")
+                $this.LoadData()
+                return
+            }
+
+            # Check if project already exists
+            $allData = Get-PmcAllData
+            $existing = $allData.projects | Where-Object { $_.name -eq $project.name }
+            if ($existing) {
+                $this.ShowError("Project '$($project.name)' already exists")
+                $this.LoadData()
+                return
+            }
+
+            # Add created/archived fields
+            $project.created = (Get-Date).ToString('yyyy-MM-dd HH:mm:ss')
+            $project.archived = $false
+
+            # Save
+            $allData.projects += $project
+            Set-PmcAllData $allData
+
+            $this.ShowSuccess("Project '$($project.name)' created")
+            $this.LoadData()
+        } else {
+            $this.ShowStatus("Add cancelled")
+            $this.LoadData()
+        }
+    }
+
+    hidden [void] _EditProject() {
+        if ($this.SelectedIndex -lt 0 -or $this.SelectedIndex -ge $this.Projects.Count) {
+            return
+        }
+
+        $project = $this.Projects[$this.SelectedIndex]
+
+        # Show project form dialog with existing project data
+        . "$PSScriptRoot/../widgets/PmcDialog.ps1"
+        $dialog = New-Object ProjectFormDialog($project)
+
+        # Get theme for dialog rendering
+        $theme = @{
+            DialogBg = $this.Header.GetThemedAnsi('Background', $true)
+            DialogFg = $this.Header.GetThemedAnsi('Text', $false)
+            DialogBorder = $this.Header.GetThemedAnsi('Border', $false)
+            Highlight = $this.Header.GetThemedAnsi('Accent', $false)
+            PrimaryBg = $this.Header.GetThemedAnsi('Primary', $true)
+            Muted = $this.Header.GetThemedAnsi('Muted', $false)
+        }
+
+        # Dialog loop using SpeedTUI's differential rendering
+        while (-not $dialog.IsComplete) {
+            # Check if file picker requested
+            if ($dialog.FilePicker -eq 'show') {
+                $dialog.FilePicker = ''
+
+                # Show file picker
+                . "$PSScriptRoot/../widgets/PmcFilePicker.ps1"
+                $startPath = if ($dialog.Fields.path) { $dialog.Fields.path } else { [Environment]::GetFolderPath('UserProfile') }
+                $picker = New-Object PmcFilePicker($startPath, $true)
+
+                # File picker loop
+                while (-not $picker.IsComplete) {
+                    $this.RenderEngine.BeginFrame()
+
+                    # Render base screen
+                    $fullScreenOutput = $this.Render()
+                    if ($fullScreenOutput) {
+                        $global:PmcApp._WriteAnsiToEngine($fullScreenOutput)
+                    }
+
+                    # Render picker
+                    $pickerOutput = $picker.Render($this.TermWidth, $this.TermHeight)
+                    if ($pickerOutput) {
+                        $global:PmcApp._WriteAnsiToEngine($pickerOutput)
+                    }
+
+                    $this.RenderEngine.EndFrame()
+
+                    $key = [Console]::ReadKey($true)
+                    $picker.HandleInput($key)
+                }
+
+                # If path was selected, update dialog field
+                if ($picker.Result) {
+                    $dialog.Fields.path = $picker.SelectedPath
+                }
+
+                # Continue with dialog
+                continue
+            }
+
+            # Render through SpeedTUI engine
+            $this.RenderEngine.BeginFrame()
+
+            # Render FULL screen (menu, header, content, footer)
+            $fullScreenOutput = $this.Render()
+            if ($fullScreenOutput) {
+                # Parse and write screen ANSI to engine
+                $global:PmcApp._WriteAnsiToEngine($fullScreenOutput)
+            }
+
+            # Render dialog on top
+            $dialogOutput = $dialog.Render($this.TermWidth, $this.TermHeight, $theme)
+            if ($dialogOutput) {
+                # Parse and write dialog ANSI to engine
+                $global:PmcApp._WriteAnsiToEngine($dialogOutput)
+            }
+
+            # SpeedTUI does differential rendering here
+            $this.RenderEngine.EndFrame()
+
+            # Wait for input
+            $key = [Console]::ReadKey($true)
+            $dialog.HandleInput($key)
+        }
+
+        # Clear dialog by forcing full screen re-render
+        [Console]::Write("`e[2J")
+        if ($this.RenderEngine) {
+            $this.RenderEngine.InvalidateAll()
+        }
+
+        # Process result
+        if ($dialog.Result) {
+            $editedProject = $dialog.GetProject()
+
+            # Validate
+            if ([string]::IsNullOrWhiteSpace($editedProject.name)) {
+                $this.ShowError("Project name cannot be empty")
+                $this.LoadData()
+                return
+            }
+
+            # Update storage
+            $allData = Get-PmcAllData
+            $projectToUpdate = $allData.projects | Where-Object { $_.name -eq $dialog.OriginalName }
+
+            if ($projectToUpdate) {
+                $projectToUpdate.name = $editedProject.name
+                $projectToUpdate.description = $editedProject.description
+                $projectToUpdate.path = $editedProject.path
+                $projectToUpdate.aliases = $editedProject.aliases
+
+                Set-PmcAllData $allData
+                $this.ShowSuccess("Project '$($editedProject.name)' updated")
+                $this.LoadData()
+            } else {
+                $this.ShowError("Project not found in storage")
+                $this.LoadData()
+            }
+        } else {
+            $this.ShowStatus("Edit cancelled")
+            $this.LoadData()
+        }
+    }
+
+    hidden [void] _DeleteProject() {
+        if ($this.SelectedIndex -lt 0 -or $this.SelectedIndex -ge $this.Projects.Count) {
+            return
+        }
+
+        $project = $this.Projects[$this.SelectedIndex]
+
+        # Check if project has tasks
+        $allData = Get-PmcAllData
+        $projectTasks = @($allData.tasks | Where-Object { $_.project -eq $project.name })
+        if ($projectTasks.Count -gt 0) {
+            $this.ShowError("Cannot delete project with $($projectTasks.Count) task(s). Move or delete tasks first.")
+            return
+        }
+
+        # Show confirmation dialog
+        . "$PSScriptRoot/../widgets/PmcDialog.ps1"
+        $dialog = New-Object ConfirmDialog("Delete Project", "Delete '$($project.name)'?")
+
+        # Get theme for dialog rendering
+        $theme = @{
+            DialogBg = $this.Header.GetThemedAnsi('Background', $true)
+            DialogFg = $this.Header.GetThemedAnsi('Text', $false)
+            DialogBorder = $this.Header.GetThemedAnsi('Border', $false)
+            Highlight = $this.Header.GetThemedAnsi('Accent', $false)
+            PrimaryBg = $this.Header.GetThemedAnsi('Primary', $true)
+            Muted = $this.Header.GetThemedAnsi('Muted', $false)
+        }
+
+        # Dialog loop using SpeedTUI's differential rendering
+        while (-not $dialog.IsComplete) {
+            # Check if file picker requested
+            if ($dialog.FilePicker -eq 'show') {
+                $dialog.FilePicker = ''
+
+                # Show file picker
+                . "$PSScriptRoot/../widgets/PmcFilePicker.ps1"
+                $startPath = if ($dialog.Fields.path) { $dialog.Fields.path } else { [Environment]::GetFolderPath('UserProfile') }
+                $picker = New-Object PmcFilePicker($startPath, $true)
+
+                # File picker loop
+                while (-not $picker.IsComplete) {
+                    $this.RenderEngine.BeginFrame()
+
+                    # Render base screen
+                    $fullScreenOutput = $this.Render()
+                    if ($fullScreenOutput) {
+                        $global:PmcApp._WriteAnsiToEngine($fullScreenOutput)
+                    }
+
+                    # Render picker
+                    $pickerOutput = $picker.Render($this.TermWidth, $this.TermHeight)
+                    if ($pickerOutput) {
+                        $global:PmcApp._WriteAnsiToEngine($pickerOutput)
+                    }
+
+                    $this.RenderEngine.EndFrame()
+
+                    $key = [Console]::ReadKey($true)
+                    $picker.HandleInput($key)
+                }
+
+                # If path was selected, update dialog field
+                if ($picker.Result) {
+                    $dialog.Fields.path = $picker.SelectedPath
+                }
+
+                # Continue with dialog
+                continue
+            }
+
+            # Render through SpeedTUI engine
+            $this.RenderEngine.BeginFrame()
+
+            # Render FULL screen (menu, header, content, footer)
+            $fullScreenOutput = $this.Render()
+            if ($fullScreenOutput) {
+                # Parse and write screen ANSI to engine
+                $global:PmcApp._WriteAnsiToEngine($fullScreenOutput)
+            }
+
+            # Render dialog on top
+            $dialogOutput = $dialog.Render($this.TermWidth, $this.TermHeight, $theme)
+            if ($dialogOutput) {
+                # Parse and write dialog ANSI to engine
+                $global:PmcApp._WriteAnsiToEngine($dialogOutput)
+            }
+
+            # SpeedTUI does differential rendering here
+            $this.RenderEngine.EndFrame()
+
+            # Wait for input
+            $key = [Console]::ReadKey($true)
+            $dialog.HandleInput($key)
+        }
+
+        # Clear dialog by forcing full screen re-render
+        [Console]::Write("`e[2J")
+        if ($this.RenderEngine) {
+            $this.RenderEngine.InvalidateAll()
+        }
+
+        # Process result
+        if ($dialog.Result) {
+            # Delete project
+            $allData.projects = @($allData.projects | Where-Object { $_.name -ne $project.name })
+            Set-PmcAllData $allData
+
+            $this.ShowSuccess("Project '$($project.name)' deleted")
+            $this.LoadData()
+        } else {
+            $this.ShowStatus("Delete cancelled")
+            $this.LoadData()
+        }
+    }
+
+    hidden [void] _ArchiveProject() {
+        if ($this.SelectedIndex -lt 0 -or $this.SelectedIndex -ge $this.Projects.Count) {
+            return
+        }
+
+        $project = $this.Projects[$this.SelectedIndex]
+
+        try {
+            # Toggle archive status
+            $newArchiveState = -not $project.archived
+
+            # Update in-memory object
+            $project.archived = $newArchiveState
+
+            # Update storage
+            $allData = Get-PmcAllData
+            $projectToUpdate = $allData.projects | Where-Object { $_.name -eq $project.name }
+
+            if ($projectToUpdate) {
+                $projectToUpdate.archived = $newArchiveState
+                Set-PmcAllData $allData
+
+                $action = if ($newArchiveState) { "archived" } else { "unarchived" }
+                $this.ShowSuccess("Project '$($project.name)' $action")
+
+                # Reload data to reflect changes
+                $this.LoadData()
+            } else {
+                $this.ShowError("Project not found in storage")
+            }
+        } catch {
+            $this.ShowError("Failed to archive project: $_")
+        }
+    }
+
 }

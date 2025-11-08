@@ -202,7 +202,7 @@ class ClearBackupsScreen : PmcScreen {
         return $sb.ToString()
     }
 
-    [bool] HandleInput([ConsoleKeyInfo]$keyInfo) {
+    [bool] HandleKeyPress([ConsoleKeyInfo]$keyInfo) {
         switch ($keyInfo.Key) {
             'A' {
                 $this._ClearAutoBackups()
@@ -307,7 +307,7 @@ class ClearBackupsScreen : PmcScreen {
 
     hidden [void] _Cancel() {
         $this.ShowStatus("Clear cancelled")
-        # TODO: Pop screen to go back
+        $global:PmcApp.PopScreen()
     }
 }
 

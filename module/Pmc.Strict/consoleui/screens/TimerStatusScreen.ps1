@@ -144,7 +144,7 @@ class TimerStatusScreen : PmcScreen {
         return $sb.ToString()
     }
 
-    [bool] HandleInput([ConsoleKeyInfo]$keyInfo) {
+    [bool] HandleKeyPress([ConsoleKeyInfo]$keyInfo) {
         switch ($keyInfo.Key) {
             'S' {
                 if ($this.TimerStatus -and $this.TimerStatus.Running) {

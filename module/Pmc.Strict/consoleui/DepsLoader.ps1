@@ -1,54 +1,74 @@
-# ConsoleUI DepsLoader - loads local dependency copies only
+# ConsoleUI DepsLoader - loads dependencies from src/ (primary) and deps/ (ConsoleUI-specific only)
+# Eliminates duplication by using src/ as single source of truth
 
 param()
 
-$deps = Join-Path $PSScriptRoot 'deps'
+# Paths
+$depsDir = Join-Path $PSScriptRoot 'deps'
+$srcDir = Join-Path $PSScriptRoot '../src'  # Pmc.Strict/consoleui/../src = Pmc.Strict/src
+
+# Verify paths exist
+if (-not (Test-Path $srcDir)) {
+    throw "Source directory not found: $srcDir"
+}
+if (-not (Test-Path $depsDir)) {
+    throw "Deps directory not found: $depsDir"
+}
 
 # Neutralize Export-ModuleMember calls in copied files
 function Export-ModuleMember { param([Parameter(ValueFromRemainingArguments=$true)]$args) }
 
-# Load core primitives and rendering helpers first (ensure type order)
-. (Join-Path $deps 'PraxisVT.ps1')
-. (Join-Path $deps 'PraxisStringBuilder.ps1')
-. (Join-Path $deps 'TerminalDimensions.ps1')
-. (Join-Path $deps 'PraxisFrameRenderer.ps1')
+# Load core primitives and rendering helpers first (from src/)
+. (Join-Path $srcDir 'PraxisVT.ps1')
+. (Join-Path $srcDir 'PraxisStringBuilder.ps1')
+. (Join-Path $srcDir 'TerminalDimensions.ps1')
+. (Join-Path $srcDir 'PraxisFrameRenderer.ps1')
 
-# Core types/config/state/security/ui/storage/time
-. (Join-Path $deps 'Types.ps1')
-. (Join-Path $deps 'Config.ps1')
-. (Join-Path $deps 'Debug.ps1')
-. (Join-Path $deps 'Security.ps1')
-. (Join-Path $deps 'State.ps1')
-. (Join-Path $deps 'UI.ps1')
-. (Join-Path $deps 'Storage.ps1')
-. (Join-Path $deps 'Time.ps1')
+# Core types/config/state/security/ui/storage/time (from src/)
+. (Join-Path $srcDir 'Types.ps1')
+. (Join-Path $srcDir 'Config.ps1')
+. (Join-Path $srcDir 'Debug.ps1')
+. (Join-Path $srcDir 'Security.ps1')
+. (Join-Path $srcDir 'State.ps1')
+. (Join-Path $srcDir 'UI.ps1')
+. (Join-Path $srcDir 'Storage.ps1')
+. (Join-Path $srcDir 'Time.ps1')
 
-# Schema support (for grid/columns)
-. (Join-Path $deps 'FieldSchemas.ps1')
+# Schema support (from src/)
+. (Join-Path $srcDir 'FieldSchemas.ps1')
 
-# Local PmcTemplate class before template system
-. (Join-Path $PSScriptRoot 'deps/PmcTemplate.ps1')
-. (Join-Path $deps 'TemplateDisplay.ps1')
+# Template system (from src/)
+. (Join-Path $srcDir 'TemplateDisplay.ps1')
 
-# Display systems
-. (Join-Path $deps 'DataDisplay.ps1')
-. (Join-Path $deps 'UniversalDisplay.ps1')
+# ConsoleUI-specific PmcTemplate class (UNIQUE to deps/)
+. (Join-Path $depsDir 'PmcTemplate.ps1')
 
-# Help content and UI (curated content for standalone)
-. (Join-Path $PSScriptRoot 'deps/HelpContent.ps1')
-. (Join-Path $deps 'HelpUI.ps1')
+# Display systems (from src/)
+. (Join-Path $srcDir 'DataDisplay.ps1')
+. (Join-Path $srcDir 'UniversalDisplay.ps1')
 
-# Analytics + Theme
-. (Join-Path $deps 'Analytics.ps1')
-. (Join-Path $deps 'Theme.ps1')
+# Help content (UNIQUE to deps/ - curated for ConsoleUI)
+. (Join-Path $depsDir 'HelpContent.ps1')
 
-# Excel integration (optional, will load if Excel is available)
+# Help UI (from src/)
+. (Join-Path $srcDir 'HelpUI.ps1')
+
+# Analytics + Theme (from src/)
+. (Join-Path $srcDir 'Analytics.ps1')
+. (Join-Path $srcDir 'Theme.ps1')
+
+# Project utility function (UNIQUE to deps/)
+. (Join-Path $depsDir 'Project.ps1')
+
+# Excel integration (from src/, optional - will load if Excel is available)
 try {
-    . (Join-Path $deps 'Excel.ps1')
+    . (Join-Path $srcDir 'Excel.ps1')
     # Initialize field mappings from disk or defaults
-    Initialize-ExcelT2020Mappings
+    if (Get-Command Initialize-ExcelT2020Mappings -ErrorAction SilentlyContinue) {
+        Initialize-ExcelT2020Mappings
+    }
 } catch {
     Write-Host "Excel integration not available (Excel COM not installed)" -ForegroundColor Yellow
 }
 
-Write-Host "ConsoleUI deps loaded (standalone)" -ForegroundColor Green
+Write-Host "ConsoleUI deps loaded (from src/ + deps/ unique files)" -ForegroundColor Green

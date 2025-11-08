@@ -3,11 +3,11 @@
 
 $ErrorActionPreference = "Continue"
 
-# Determine SpeedTUI root
-$SpeedTUIRoot = "/home/teej/_tui/praxis-main/SpeedTUI"
+# Determine SpeedTUI root (vendored in PMC)
+$SpeedTUIRoot = Join-Path $PSScriptRoot "../../../lib/SpeedTUI"
 
 if (-not (Test-Path $SpeedTUIRoot)) {
-    throw "SpeedTUI not found at $SpeedTUIRoot"
+    throw "SpeedTUI not found at $SpeedTUIRoot (expected vendored copy)"
 }
 
 # Loading SpeedTUI (Write-ConsoleUIDebug not available yet)
@@ -35,7 +35,7 @@ try {
 
     # 6. Initialize global logger and perf monitor
     $global:logger = [Logger]::GetInstance()
-    $global:logger.GlobalLevel = [LogLevel]::Error  # Quiet for PMC
+    $global:logger.GlobalLevel = [LogLevel]::Debug  # Enable debug logging for troubleshooting
 
     $global:perfMonitor = Get-PerformanceMonitor
     $global:perfMonitor.SetLogger($global:logger)

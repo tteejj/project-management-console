@@ -185,7 +185,7 @@ class RestoreBackupScreen : PmcScreen {
         return $sb.ToString()
     }
 
-    [bool] HandleInput([ConsoleKeyInfo]$keyInfo) {
+    [bool] HandleKeyPress([ConsoleKeyInfo]$keyInfo) {
         switch ($keyInfo.Key) {
             'Y' {
                 $this._ConfirmRestore()
@@ -216,7 +216,7 @@ class RestoreBackupScreen : PmcScreen {
             $this.ShowSuccess("Data restored successfully from $($this.Backup.Name)")
 
             # Return to backup list
-            # TODO: Pop screen to go back
+            $global:PmcApp.PopScreen()
         } catch {
             $this.ShowError("Error restoring backup: $_")
         }
@@ -224,7 +224,7 @@ class RestoreBackupScreen : PmcScreen {
 
     hidden [void] _Cancel() {
         $this.ShowStatus("Restore cancelled")
-        # TODO: Pop screen to go back
+        $global:PmcApp.PopScreen()
     }
 }
 

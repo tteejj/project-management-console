@@ -118,7 +118,7 @@ class FocusClearScreen : PmcScreen {
         return $sb.ToString()
     }
 
-    [bool] HandleInput([ConsoleKeyInfo]$keyInfo) {
+    [bool] HandleKeyPress([ConsoleKeyInfo]$keyInfo) {
         switch ($keyInfo.Key) {
             'Y' {
                 if ($this.CurrentFocus -ne 'inbox') {

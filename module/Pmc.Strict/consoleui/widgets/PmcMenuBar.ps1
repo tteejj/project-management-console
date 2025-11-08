@@ -195,6 +195,13 @@ class PmcMenuBar : PmcWidget {
     Hide dropdown
     #>
     [void] HideDropdown() {
+        # Clear the dropdown immediately before hiding
+        if ($this._prevDropdownHeight -gt 0) {
+            $clearOutput = $this._ClearPreviousDropdown()
+            # Write directly to console to clear immediately
+            [Console]::Write($clearOutput)
+        }
+
         $this.DropdownVisible = $false
         $this.SelectedItemIndex = -1
         $this.Invalidate()
@@ -303,6 +310,11 @@ class PmcMenuBar : PmcWidget {
             return $false
         }
 
+        # Close dropdown BEFORE executing action
+        # This ensures the menu clears before screen changes
+        $this.HideDropdown()
+        $this.Deactivate()
+
         # Execute action
         if ($item.Action) {
             & $item.Action
@@ -313,10 +325,6 @@ class PmcMenuBar : PmcWidget {
             & $this.OnMenuItemSelected $this $menu $item
         }
 
-        # Close dropdown
-        $this.HideDropdown()
-        $this.Deactivate()
-
         return $true
     }
 
@@ -325,8 +333,24 @@ class PmcMenuBar : PmcWidget {
     [string] OnRender() {
         $sb = [System.Text.StringBuilder]::new(1024)
 
-        # Clear previous dropdown area if it exists
+        # Determine if we need to clear old dropdown
+        # Only clear if: (1) dropdown was visible before, AND (2) it's now hidden OR moved
+        $needsClear = $false
         if ($this._prevDropdownHeight -gt 0) {
+            if (-not $this.DropdownVisible) {
+                # Dropdown closed - need to clear
+                $needsClear = $true
+            } elseif ($this.SelectedMenuIndex -ge 0 -and $this.SelectedMenuIndex -lt $this._menuXPositions.Count) {
+                # Check if dropdown moved to different position
+                $currentDropdownX = $this.X + $this._menuXPositions[$this.SelectedMenuIndex]
+                if ($currentDropdownX -ne $this._prevDropdownX) {
+                    # Dropdown moved - need to clear old position
+                    $needsClear = $true
+                }
+            }
+        }
+
+        if ($needsClear) {
             $clearOutput = $this._ClearPreviousDropdown()
             $sb.Append($clearOutput)
         }
@@ -556,7 +580,9 @@ class PmcMenuBar : PmcWidget {
         # Handle Alt+hotkey even when not active (to activate menu)
         if ($keyInfo.Modifiers -band [ConsoleModifiers]::Alt) {
             if ($this._HandleMenuHotkey($char)) {
-                $this.Activate()  # Ensure menu is active
+                # Menu hotkey handler already set SelectedMenuIndex and showed dropdown
+                # Just ensure IsActive is set (don't call Activate() which resets index to 0)
+                $this.IsActive = $true
                 return $true
             }
         }

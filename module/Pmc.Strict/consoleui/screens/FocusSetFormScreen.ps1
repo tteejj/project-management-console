@@ -148,7 +148,7 @@ class FocusSetFormScreen : PmcScreen {
         return $sb.ToString()
     }
 
-    [bool] HandleInput([ConsoleKeyInfo]$keyInfo) {
+    [bool] HandleKeyPress([ConsoleKeyInfo]$keyInfo) {
         switch ($keyInfo.Key) {
             'UpArrow' {
                 if ($this.SelectedIndex -gt 0) {
