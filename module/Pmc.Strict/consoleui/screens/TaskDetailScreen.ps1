@@ -4,6 +4,9 @@ using namespace System.Text
 # TaskDetailScreen - Shows detailed view of a single task
 # Displays all fields for a specific task
 
+
+Set-StrictMode -Version Latest
+
 . "$PSScriptRoot/../PmcScreen.ps1"
 
 <#

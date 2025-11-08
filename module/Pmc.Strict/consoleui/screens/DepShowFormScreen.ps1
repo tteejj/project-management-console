@@ -4,6 +4,9 @@ using namespace System.Text
 # DepShowFormScreen - Show task dependencies
 # Displays dependencies for a specific task in tree view
 
+
+Set-StrictMode -Version Latest
+
 . "$PSScriptRoot/../PmcScreen.ps1"
 
 <#

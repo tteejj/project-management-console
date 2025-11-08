@@ -44,6 +44,8 @@ using namespace System.Text
 # . "$scriptDir/widgets/PmcPanel.ps1"
 # . "$scriptDir/services/TaskStore.ps1"
 
+Set-StrictMode -Version Latest
+
 <#
 .SYNOPSIS
 Base class for dashboard-style screens with multiple widgets

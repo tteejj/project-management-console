@@ -4,6 +4,9 @@ using namespace System.Text
 # FocusSetFormScreen - Set project focus
 # Shows project list, user selects project to focus on
 
+
+Set-StrictMode -Version Latest
+
 . "$PSScriptRoot/../PmcScreen.ps1"
 
 <#

@@ -4,6 +4,9 @@ using namespace System.Text
 # NoDueDateViewScreen - Shows tasks without a due date
 # Displays incomplete tasks that have no due date set
 
+
+Set-StrictMode -Version Latest
+
 . "$PSScriptRoot/../PmcScreen.ps1"
 
 <#

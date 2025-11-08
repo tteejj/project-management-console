@@ -4,6 +4,9 @@ using namespace System.Text
 # TimeReportScreen - Time report summary
 # Shows summary by project: total hours, task breakdown
 
+
+Set-StrictMode -Version Latest
+
 . "$PSScriptRoot/../PmcScreen.ps1"
 
 <#

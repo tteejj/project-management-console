@@ -18,6 +18,8 @@ using namespace System
 using namespace System.Collections.Generic
 using namespace System.Text
 
+Set-StrictMode -Version Latest
+
 # Load PmcWidget base class
 if (-not ([System.Management.Automation.PSTypeName]'PmcWidget').Type) {
     . "$PSScriptRoot/PmcWidget.ps1"

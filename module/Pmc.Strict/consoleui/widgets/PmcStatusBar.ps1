@@ -3,6 +3,8 @@
 
 using namespace System.Text
 
+Set-StrictMode -Version Latest
+
 <#
 .SYNOPSIS
 Status bar widget for bottom-of-screen status display

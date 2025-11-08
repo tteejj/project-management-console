@@ -4,6 +4,9 @@ using namespace System.Text
 # OverdueViewScreen - Shows overdue tasks
 # Displays tasks with due date < today and not completed
 
+
+Set-StrictMode -Version Latest
+
 . "$PSScriptRoot/../PmcScreen.ps1"
 
 <#

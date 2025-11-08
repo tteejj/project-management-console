@@ -16,6 +16,8 @@
 
 using namespace System
 
+Set-StrictMode -Version Latest
+
 # Ensure base class is loaded
 # NOTE: Base class is now loaded by the launcher script in the correct order.
 # Commenting out to avoid circular dependency issues.

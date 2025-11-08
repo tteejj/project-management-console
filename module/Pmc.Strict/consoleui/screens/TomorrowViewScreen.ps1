@@ -4,6 +4,9 @@ using namespace System.Text
 # TomorrowViewScreen - Shows tasks due tomorrow
 # Displays tasks with due date == tomorrow
 
+
+Set-StrictMode -Version Latest
+
 . "$PSScriptRoot/../PmcScreen.ps1"
 
 <#

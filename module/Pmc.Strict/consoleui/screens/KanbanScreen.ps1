@@ -4,6 +4,9 @@ using namespace System.Text
 # KanbanScreen - Shows tasks in 3-column kanban board
 # Displays tasks grouped by status: TODO / In Progress / Done
 
+
+Set-StrictMode -Version Latest
+
 . "$PSScriptRoot/../PmcScreen.ps1"
 
 <#

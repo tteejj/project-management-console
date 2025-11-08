@@ -4,6 +4,9 @@ using namespace System.Text
 # NextActionsViewScreen - Shows high-priority actionable tasks
 # Displays incomplete tasks with high priority that are not blocked/waiting
 
+
+Set-StrictMode -Version Latest
+
 . "$PSScriptRoot/../PmcScreen.ps1"
 
 <#

@@ -3,6 +3,8 @@
 
 using namespace System.Collections.Generic
 
+Set-StrictMode -Version Latest
+
 <#
 .SYNOPSIS
 Layout manager providing named regions and constraint-based positioning

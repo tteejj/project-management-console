@@ -4,6 +4,9 @@ using namespace System.Text
 # SettingsScreen - PMC TUI Settings configuration
 # Interactive screen for viewing and modifying PMC settings
 
+
+Set-StrictMode -Version Latest
+
 . "$PSScriptRoot/../PmcScreen.ps1"
 
 <#

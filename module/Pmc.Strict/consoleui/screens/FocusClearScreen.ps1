@@ -4,6 +4,9 @@ using namespace System.Text
 # FocusClearScreen - Clear focus confirmation
 # Shows current focus and asks for confirmation to clear
 
+
+Set-StrictMode -Version Latest
+
 . "$PSScriptRoot/../PmcScreen.ps1"
 
 <#

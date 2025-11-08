@@ -1,6 +1,9 @@
 # Script to apply inline editing pattern to all remaining screens
 # This automates the repetitive pattern application
 
+
+Set-StrictMode -Version Latest
+
 $screens = @(
     @{Name='OverdueViewScreen'; Array='OverdueTasks'},
     @{Name='UpcomingViewScreen'; Array='UpcomingTasks'},

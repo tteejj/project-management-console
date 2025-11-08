@@ -4,6 +4,9 @@ using namespace System.Text
 # TimeDeleteFormScreen - Delete time entry confirmation
 # Shows entry details and asks for confirmation
 
+
+Set-StrictMode -Version Latest
+
 . "$PSScriptRoot/../PmcScreen.ps1"
 
 <#

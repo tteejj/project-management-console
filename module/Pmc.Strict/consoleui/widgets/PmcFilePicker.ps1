@@ -1,6 +1,9 @@
 # PmcFilePicker - Simple directory/file picker widget
 # Keyboard navigation with Up/Down, Enter to select, Esc to cancel
 
+
+Set-StrictMode -Version Latest
+
 class PmcFilePicker {
     [string]$CurrentPath = ''
     [array]$Items = @()

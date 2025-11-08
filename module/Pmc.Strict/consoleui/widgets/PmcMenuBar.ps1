@@ -4,6 +4,8 @@
 using namespace System.Collections.Generic
 using namespace System.Text
 
+Set-StrictMode -Version Latest
+
 <#
 .SYNOPSIS
 Menu item within a dropdown menu

@@ -1,6 +1,8 @@
 using namespace System.Collections.Generic
 using namespace System.Text
 
+Set-StrictMode -Version Latest
+
 <#
 .SYNOPSIS
 Dialog system for PMC TUI

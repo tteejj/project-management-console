@@ -4,6 +4,8 @@
 using namespace System.Text
 using namespace System.Collections.Generic
 
+Set-StrictMode -Version Latest
+
 <#
 .SYNOPSIS
 Footer widget displaying keyboard shortcuts

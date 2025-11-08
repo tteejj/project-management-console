@@ -27,6 +27,8 @@ using namespace System
 using namespace System.Collections.Generic
 using namespace System.Text
 
+Set-StrictMode -Version Latest
+
 # Load PmcWidget base class and field widgets
 if (-not ([System.Management.Automation.PSTypeName]'PmcWidget').Type) {
     . "$PSScriptRoot/PmcWidget.ps1"
@@ -127,6 +129,10 @@ class InlineEditor : PmcWidget {
         $this._currentFieldIndex = 0
         $this._validationErrors = @()
 
+        # Reset state flags
+        $this.IsConfirmed = $false
+        $this.IsCancelled = $false
+
         if ($null -eq $fields -or $fields.Count -eq 0) {
             return
         }
@@ -150,6 +156,15 @@ class InlineEditor : PmcWidget {
             $this._CreateFieldWidget($fieldDef)
         }
 
+        # Add Save button as last field
+        $saveButton = @{
+            Name = '__save_button__'
+            Label = ''
+            Type = 'button'
+            ButtonText = 'Save'
+        }
+        $this._fields.Add($saveButton)
+
         # Calculate required height based on field count
         $this.Height = 6 + ($this._fields.Count * 3) + 3  # Header + fields + footer + padding
     }
@@ -162,16 +177,26 @@ class InlineEditor : PmcWidget {
     Hashtable with field names as keys and current values as values
     #>
     [hashtable] GetValues() {
+        Write-PmcTuiLog "GetValues: Starting, _fields count=$($this._fields.Count)" "DEBUG"
         $values = @{}
 
         foreach ($field in $this._fields) {
             $fieldName = $field.Name
             $fieldType = $field.Type
 
+            Write-PmcTuiLog "GetValues: Processing field=$fieldName type=$fieldType" "DEBUG"
+
+            # Skip button fields
+            if ($fieldType -eq 'button') {
+                continue
+            }
+
             $value = $this._GetFieldValue($fieldName, $fieldType)
+            Write-PmcTuiLog "GetValues: Field $fieldName value=$value" "DEBUG"
             $values[$fieldName] = $value
         }
 
+        Write-PmcTuiLog "GetValues: Returning hashtable with $($values.Keys.Count) keys: $($values.Keys -join ', ')" "DEBUG"
         return $values
     }
 
@@ -239,14 +264,51 @@ class InlineEditor : PmcWidget {
 
             # Check if widget confirmed or cancelled
             if ($widget.IsConfirmed -or $widget.IsCancelled) {
+                $field = $this._fields | Where-Object { $_.Name -eq $this._expandedFieldName } | Select-Object -First 1
+
+                # For date fields, restore TextInput and update its value
+                if ($field.Type -eq 'date') {
+                    # Get selected date from DatePicker
+                    $selectedDate = if ($widget.IsConfirmed) { $widget.GetSelectedDate() } else { $null }
+
+                    # Recreate TextInput
+                    $textWidget = [TextInput]::new()
+                    $textWidget.MaxLength = 20
+                    $textWidget.Placeholder = 'yyyy-MM-dd or +days'
+
+                    if ($selectedDate) {
+                        $textWidget.SetText($selectedDate.ToString('yyyy-MM-dd'))
+                        # Update field value
+                        $field.Value = $selectedDate
+                    }
+
+                    # Wire up callback
+                    $editor = $this
+                    $fieldRef = $field
+                    $textWidget.OnTextChanged = {
+                        param($newText)
+                        $editor._SetFieldValue($fieldRef.Name, $newText)
+                    }
+
+                    # Restore TextInput
+                    $this._fieldWidgets[$this._expandedFieldName] = $textWidget
+                }
+
                 # Collapse widget
                 $this._showFieldWidgets = $false
 
-                # Get value from widget and update field
+                # Get value from widget and update field BEFORE collapsing
                 if ($widget.IsConfirmed) {
-                    $field = $this._fields | Where-Object { $_.Name -eq $this._expandedFieldName } | Select-Object -First 1
-                    $newValue = $this._GetFieldValue($this._expandedFieldName, $field.Type)
-                    $this._InvokeCallback($this.OnFieldChanged, @($this._expandedFieldName, $newValue))
+                    # For tags, get tags directly from TagEditor
+                    if ($field.Type -eq 'tags') {
+                        $field.Value = $widget.GetTags()
+                    }
+                    # For project, get selected project
+                    elseif ($field.Type -eq 'project') {
+                        $field.Value = $widget.GetSelectedProject()
+                    }
+
+                    $this._InvokeCallback($this.OnFieldChanged, @($this._expandedFieldName, $field.Value))
                 }
 
                 $this._expandedFieldName = ""
@@ -262,8 +324,23 @@ class InlineEditor : PmcWidget {
             if ($this._currentFieldIndex -ge 0 -and $this._currentFieldIndex -lt $this._fields.Count) {
                 $currentField = $this._fields[$this._currentFieldIndex]
 
-                # For Date/Project/Tags fields - expand the widget
-                if ($currentField.Type -eq 'date' -or $currentField.Type -eq 'project' -or $currentField.Type -eq 'tags') {
+                # For Button type - validate and save
+                if ($currentField.Type -eq 'button') {
+                    if ($this._ValidateAllFields()) {
+                        Write-PmcTuiLog "InlineEditor: Save button pressed - Saving form" "DEBUG"
+                        $this.IsConfirmed = $true
+                        $values = $this.GetValues()
+                        $this._InvokeCallback($this.OnConfirmed, $values)
+                        return $true
+                    } else {
+                        Write-PmcTuiLog "InlineEditor: Validation FAILED - Errors: $($this._validationErrors -join ', ')" "ERROR"
+                        $this._InvokeCallback($this.OnValidationFailed, $this._validationErrors)
+                        return $true
+                    }
+                }
+
+                # For Date/Project fields - expand the widget (NOT tags, tags is inline text now)
+                if ($currentField.Type -eq 'date' -or $currentField.Type -eq 'project') {
                     Write-PmcTuiLog "InlineEditor: Enter on $($currentField.Type) field - expanding widget" "DEBUG"
                     $this._ExpandCurrentField()
                     return $true
@@ -362,8 +439,8 @@ class InlineEditor : PmcWidget {
         if ($this._currentFieldIndex -ge 0 -and $this._currentFieldIndex -lt $this._fields.Count) {
             $currentField = $this._fields[$this._currentFieldIndex]
 
-            # Text fields - pass input to widget (except Tab/Up/Down for navigation)
-            if ($currentField.Type -eq 'text') {
+            # Text, Date, and Tags fields - pass input to widget (except Tab/Up/Down for navigation)
+            if ($currentField.Type -eq 'text' -or $currentField.Type -eq 'date' -or $currentField.Type -eq 'tags') {
                 # Don't pass navigation keys to widget - let InlineEditor handle them
                 if ($keyInfo.Key -eq 'Tab' -or $keyInfo.Key -eq 'UpArrow' -or $keyInfo.Key -eq 'DownArrow') {
                     return $false  # Let InlineEditor handle navigation
@@ -374,10 +451,14 @@ class InlineEditor : PmcWidget {
                 }
 
                 $widget = $this._fieldWidgets[$currentField.Name]
-                return $widget.HandleInput($keyInfo)
+                # Only handle input if it's a TextInput (not DatePicker when expanded)
+                if ($widget.GetType().Name -eq 'TextInput') {
+                    return $widget.HandleInput($keyInfo)
+                }
+                return $false
             }
 
-            # Date/Project/Tags fields - press Space or F2 to expand widget
+            # Project/Tags fields - press Enter/Space/F2 to expand widget
             # Tab/Up/Down to navigate through without expanding
         }
 
@@ -463,20 +544,63 @@ class InlineEditor : PmcWidget {
             }
             $sb.Append($this.PadText($label + ":", 20, 'left'))
 
-            # Value preview
+            # Value display - for text/date fields, render the TextInput widget inline
             $sb.Append($this.BuildMoveTo($this.X + 22, $rowY))
-            if ($isFocused) {
-                $sb.Append($highlightBg)
-                $sb.Append("`e[30m")
+
+            if (($field.Type -eq 'text' -or $field.Type -eq 'date' -or $field.Type -eq 'tags') -and $isFocused -and $this._fieldWidgets.ContainsKey($field.Name)) {
+                # Render TextInput widget inline for focused text/date/tags fields
+                $widget = $this._fieldWidgets[$field.Name]
+                if ($widget.GetType().Name -eq 'TextInput') {
+                    $sb.Append($textColor)
+                    $text = $widget.GetText()
+                    $cursorPos = $widget._cursorPosition
+
+                    # Show text with cursor
+                    if ($cursorPos -le $text.Length) {
+                        $beforeCursor = $text.Substring(0, $cursorPos)
+                        $atCursor = if ($cursorPos -lt $text.Length) { $text.Substring($cursorPos, 1) } else { " " }
+                        $afterCursor = if ($cursorPos -lt $text.Length - 1) { $text.Substring($cursorPos + 1) } else { "" }
+
+                        $sb.Append($beforeCursor)
+                        $sb.Append($highlightBg)
+                        $sb.Append("`e[30m")
+                        $sb.Append($atCursor)
+                        $sb.Append($reset)
+                        $sb.Append($textColor)
+                        $sb.Append($afterCursor)
+                    } else {
+                        $sb.Append($text)
+                    }
+                    $sb.Append($reset)
+                } else {
+                    # Not a TextInput, show preview
+                    if ($isFocused) {
+                        $sb.Append($highlightBg)
+                        $sb.Append("`e[30m")
+                    } else {
+                        $sb.Append($textColor)
+                    }
+                    $valuePreview = $this._GetFieldValuePreview($field)
+                    $sb.Append($this.PadText($valuePreview, $this.Width - 24, 'left'))
+                    if ($isFocused) {
+                        $sb.Append($reset)
+                    }
+                }
             } else {
-                $sb.Append($textColor)
-            }
+                # Not focused or not text/date field - show preview
+                if ($isFocused) {
+                    $sb.Append($highlightBg)
+                    $sb.Append("`e[30m")
+                } else {
+                    $sb.Append($textColor)
+                }
 
-            $valuePreview = $this._GetFieldValuePreview($field)
-            $sb.Append($this.PadText($valuePreview, $this.Width - 24, 'left'))
+                $valuePreview = $this._GetFieldValuePreview($field)
+                $sb.Append($this.PadText($valuePreview, $this.Width - 24, 'left'))
 
-            if ($isFocused) {
-                $sb.Append($reset)
+                if ($isFocused) {
+                    $sb.Append($reset)
+                }
             }
 
             # Right border
@@ -504,7 +628,7 @@ class InlineEditor : PmcWidget {
 
         $sb.Append($this.BuildMoveTo($this.X + 2, $helpRowY))
         $sb.Append($mutedColor)
-        $helpText = "Tab: Next | Space: Edit | Enter: Save | Esc: Cancel"
+        $helpText = "Tab: Next | Enter on Save button | Esc: Cancel"
         $sb.Append($this.TruncateText($helpText, $this.Width - 4))
 
         $sb.Append($this.BuildMoveTo($this.X + $this.Width - 1, $helpRowY))
@@ -577,12 +701,30 @@ class InlineEditor : PmcWidget {
             }
 
             'date' {
-                $widget = [DatePicker]::new()
-                $widget.SetPosition($this.X + 5, $this.Y + 5)
-                $widget.SetSize(35, 14)
+                # For inline editing, use TextInput (user can type dates like "2025-11-15" or "+3")
+                # DatePicker is created on-demand when user presses Enter
+                $widget = [TextInput]::new()
+                $widget.MaxLength = 20
 
-                if ($value -and $value -is [DateTime]) {
-                    $widget.SetDate($value)
+                if ($value) {
+                    if ($value -is [DateTime]) {
+                        $widget.SetText($value.ToString('yyyy-MM-dd'))
+                    } else {
+                        $widget.SetText($value.ToString())
+                    }
+                } else {
+                    $widget.SetText('')
+                }
+
+                $widget.Placeholder = 'yyyy-MM-dd or +days'
+
+                # Wire up text change callback to update field value
+                $editor = $this
+                $field = $fieldDef
+                $widget.OnTextChanged = {
+                    param($newText)
+                    # Update the field value when text changes
+                    $editor._SetFieldValue($field.Name, $newText)
                 }
             }
 
@@ -598,13 +740,26 @@ class InlineEditor : PmcWidget {
             }
 
             'tags' {
-                $widget = [TagEditor]::new()
-                $widget.SetPosition($this.X + 5, $this.Y + 5)
-                $widget.SetSize(60, 8)
-                $widget.Label = $fieldDef.Label
+                # Tags use simple text input with comma-separated values
+                $widget = [TextInput]::new()
+                $widget.MaxLength = 100
+                $widget.Placeholder = 'tag1, tag2, tag3'
 
                 if ($value -and $value -is [array]) {
-                    $widget.SetTags($value)
+                    # Convert array to comma-separated string
+                    $widget.SetText($value -join ', ')
+                } elseif ($value) {
+                    $widget.SetText($value.ToString())
+                } else {
+                    $widget.SetText('')
+                }
+
+                # Wire up callback to save changes
+                $editor = $this
+                $field = $fieldDef
+                $widget.OnTextChanged = {
+                    param($newText)
+                    $editor._SetFieldValue($field.Name, $newText)
                 }
             }
 
@@ -614,6 +769,10 @@ class InlineEditor : PmcWidget {
                 if (-not $fieldDef.ContainsKey('Value')) {
                     $fieldDef.Value = if ($fieldDef.ContainsKey('Min')) { $fieldDef.Min } else { 0 }
                 }
+            }
+
+            'button' {
+                # Button is handled inline (no separate widget)
             }
 
             default {
@@ -639,7 +798,83 @@ class InlineEditor : PmcWidget {
 
             'date' {
                 $widget = $this._fieldWidgets[$fieldName]
-                return $widget.GetSelectedDate()
+                # Date fields use TextInput for inline editing
+                if ($widget.GetType().Name -eq 'TextInput') {
+                    $dateText = $widget.GetText().Trim().ToLower()
+                    if ([string]::IsNullOrWhiteSpace($dateText)) {
+                        return $null
+                    }
+
+                    # Parse relative dates like "+7" or "-3"
+                    if ($dateText -match '^([+-])(\d+)$') {
+                        $sign = $matches[1]
+                        $days = [int]$matches[2]
+                        if ($sign -eq '+') {
+                            return [DateTime]::Now.AddDays($days)
+                        } else {
+                            return [DateTime]::Now.AddDays(-$days)
+                        }
+                    }
+
+                    # Special keywords
+                    if ($dateText -eq 'today' -or $dateText -eq 't') {
+                        return [DateTime]::Today
+                    }
+                    if ($dateText -eq 'tomorrow' -or $dateText -eq 'tom') {
+                        return [DateTime]::Today.AddDays(1)
+                    }
+                    if ($dateText -eq 'yesterday') {
+                        return [DateTime]::Today.AddDays(-1)
+                    }
+                    if ($dateText -eq 'eom') {
+                        # End of current month
+                        $now = [DateTime]::Now
+                        return [DateTime]::new($now.Year, $now.Month, [DateTime]::DaysInMonth($now.Year, $now.Month))
+                    }
+                    if ($dateText -eq 'eoy') {
+                        # End of current year
+                        return [DateTime]::new([DateTime]::Now.Year, 12, 31)
+                    }
+                    if ($dateText -eq 'som') {
+                        # Start of current month
+                        $now = [DateTime]::Now
+                        return [DateTime]::new($now.Year, $now.Month, 1)
+                    }
+
+                    # Parse YYYYMMDD format (20251125)
+                    if ($dateText -match '^\d{8}$') {
+                        try {
+                            $year = [int]$dateText.Substring(0, 4)
+                            $month = [int]$dateText.Substring(4, 2)
+                            $day = [int]$dateText.Substring(6, 2)
+                            return [DateTime]::new($year, $month, $day)
+                        } catch {
+                            # Invalid date, fall through
+                        }
+                    }
+
+                    # Parse YYMMDD format (251125)
+                    if ($dateText -match '^\d{6}$') {
+                        try {
+                            $year = 2000 + [int]$dateText.Substring(0, 2)
+                            $month = [int]$dateText.Substring(2, 2)
+                            $day = [int]$dateText.Substring(4, 2)
+                            return [DateTime]::new($year, $month, $day)
+                        } catch {
+                            # Invalid date, fall through
+                        }
+                    }
+
+                    # Parse absolute dates (standard formats)
+                    try {
+                        return [DateTime]::Parse($dateText)
+                    } catch {
+                        return $null
+                    }
+                } else {
+                    # DatePicker (if still using old approach)
+                    return $widget.GetSelectedDate()
+                }
             }
 
             'project' {
@@ -648,8 +883,17 @@ class InlineEditor : PmcWidget {
             }
 
             'tags' {
+                # Tags are stored as comma-separated text in TextInput
                 $widget = $this._fieldWidgets[$fieldName]
-                return $widget.GetTags()
+                $tagsText = $widget.GetText()
+
+                if ([string]::IsNullOrWhiteSpace($tagsText)) {
+                    return @()
+                }
+
+                # Split by comma and trim
+                $tags = $tagsText -split ',' | ForEach-Object { $_.Trim() } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+                return @($tags)
             }
 
             'number' {
@@ -659,6 +903,10 @@ class InlineEditor : PmcWidget {
                 } else {
                     return 0
                 }
+            }
+
+            'button' {
+                return $null
             }
 
             default {
@@ -705,6 +953,16 @@ class InlineEditor : PmcWidget {
                 if ($value -is [DateTime]) {
                     return $value.ToString("yyyy-MM-dd (ddd)")
                 }
+                # Show raw text from TextInput if it exists
+                if ($this._fieldWidgets.ContainsKey($fieldName)) {
+                    $widget = $this._fieldWidgets[$fieldName]
+                    if ($widget.GetType().Name -eq 'TextInput') {
+                        $text = $widget.GetText()
+                        if (-not [string]::IsNullOrWhiteSpace($text)) {
+                            return $text
+                        }
+                    }
+                }
                 return "(no date)"
             }
 
@@ -732,6 +990,11 @@ class InlineEditor : PmcWidget {
                 $position = if ($range -gt 0) { [Math]::Floor(($val - $min) / $range * 10) } else { 0 }
                 $slider = "[" + ("-" * $position) + "●" + ("-" * (10 - $position)) + "] $val"
                 return $slider
+            }
+
+            'button' {
+                $buttonText = if ($field.ContainsKey('ButtonText')) { $field.ButtonText } else { 'Button' }
+                return "[ $buttonText ]"
             }
 
             default {
@@ -778,10 +1041,38 @@ class InlineEditor : PmcWidget {
         if ($this._currentFieldIndex -ge 0 -and $this._currentFieldIndex -lt $this._fields.Count) {
             $field = $this._fields[$this._currentFieldIndex]
 
-            # Number fields are handled inline
-            if ($field.Type -eq 'number') {
-                # Show number adjustment UI (TODO: implement arrow key adjustment)
+            # Text, Tags, Number, and Button fields are handled inline (no expansion)
+            if ($field.Type -eq 'text' -or $field.Type -eq 'tags' -or $field.Type -eq 'number' -or $field.Type -eq 'button') {
                 return
+            }
+
+            # For date fields, create DatePicker on demand
+            if ($field.Type -eq 'date') {
+                # Get current value from TextInput widget
+                $textWidget = $this._fieldWidgets[$field.Name]
+                $currentText = $textWidget.GetText()
+
+                # Create DatePicker in CALENDAR mode (not text mode)
+                $datePicker = [DatePicker]::new()
+                $datePicker.SetPosition($this.X + 5, $this.Y + 5)
+                $datePicker.SetSize(35, 14)
+
+                # Force calendar mode (not text input mode)
+                $datePicker._isCalendarMode = $true
+
+                # Parse current text value to DateTime if possible
+                if (-not [string]::IsNullOrWhiteSpace($currentText)) {
+                    try {
+                        $parsedDate = [DateTime]::Parse($currentText)
+                        $datePicker.SetDate($parsedDate)
+                    } catch {
+                        # Invalid date, use today
+                        $datePicker.SetDate([DateTime]::Now)
+                    }
+                }
+
+                # Replace the TextInput with DatePicker temporarily
+                $this._fieldWidgets[$field.Name] = $datePicker
             }
 
             $this._expandedFieldName = $field.Name
@@ -860,16 +1151,23 @@ class InlineEditor : PmcWidget {
     .SYNOPSIS
     Invoke callback safely
     #>
-    hidden [void] _InvokeCallback([scriptblock]$callback, $args) {
+    hidden [void] _InvokeCallback([scriptblock]$callback, $arg) {
         if ($null -ne $callback -and $callback -ne {}) {
             try {
-                if ($null -ne $args) {
-                    & $callback $args
+                if ($null -ne $arg) {
+                    # Use Invoke-Command with -ArgumentList to pass single arg without array wrapping
+                    Invoke-Command -ScriptBlock $callback -ArgumentList $arg
                 } else {
                     & $callback
                 }
             } catch {
-                # Silently ignore callback errors
+                # Log callback errors and rethrow so user sees them
+                if (Get-Command Write-PmcTuiLog -ErrorAction SilentlyContinue) {
+                    Write-PmcTuiLog "InlineEditor callback error: $($_.Exception.Message)" "ERROR"
+                    Write-PmcTuiLog "Callback code: $($callback.ToString())" "ERROR"
+                    Write-PmcTuiLog "Stack trace: $($_.ScriptStackTrace)" "ERROR"
+                }
+                throw  # Rethrow so it crashes and you see it
             }
         }
     }

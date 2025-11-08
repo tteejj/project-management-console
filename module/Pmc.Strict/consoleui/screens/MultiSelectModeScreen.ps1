@@ -4,6 +4,9 @@ using namespace System.Text
 # MultiSelectModeScreen - Multi-select task operations
 # Task list with checkboxes for bulk operations
 
+
+Set-StrictMode -Version Latest
+
 . "$PSScriptRoot/../PmcScreen.ps1"
 
 <#

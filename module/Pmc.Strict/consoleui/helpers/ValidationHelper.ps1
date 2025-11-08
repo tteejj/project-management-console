@@ -23,6 +23,8 @@
 using namespace System
 using namespace System.Collections.Generic
 
+Set-StrictMode -Version Latest
+
 <#
 .SYNOPSIS
 Validation result object

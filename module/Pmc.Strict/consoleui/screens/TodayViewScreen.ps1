@@ -4,6 +4,9 @@ using namespace System.Text
 # TodayViewScreen - Shows tasks due today
 # Displays tasks with due date == today
 
+
+Set-StrictMode -Version Latest
+
 . "$PSScriptRoot/../PmcScreen.ps1"
 
 <#

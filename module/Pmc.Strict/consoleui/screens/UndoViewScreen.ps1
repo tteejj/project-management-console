@@ -4,6 +4,9 @@ using namespace System.Text
 # UndoViewScreen - Undo last action
 # Shows last action details and allows undoing
 
+
+Set-StrictMode -Version Latest
+
 . "$PSScriptRoot/../PmcScreen.ps1"
 
 <#

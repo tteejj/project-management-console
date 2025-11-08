@@ -4,6 +4,8 @@ using namespace System.Text
 # BlockedTasksScreen - Migrated from DrawBlockedView in ConsoleUI.Core.ps1
 # Shows blocked and waiting tasks in new widget architecture
 
+Set-StrictMode -Version Latest
+
 . "$PSScriptRoot/../PmcScreen.ps1"
 
 <#

@@ -4,6 +4,8 @@
 using namespace System.Collections.Generic
 using namespace System.Text
 
+Set-StrictMode -Version Latest
+
 # Load dependencies
 . "$PSScriptRoot/widgets/PmcWidget.ps1"
 . "$PSScriptRoot/widgets/PmcMenuBar.ps1"
@@ -61,6 +63,7 @@ class PmcScreen {
     # === State ===
     [bool]$IsActive = $false
     [object]$RenderEngine = $null
+    [bool]$NeedsClear = $false  # Request full screen clear before next render
 
     # === Event Handlers ===
     [scriptblock]$OnEnterHandler = $null

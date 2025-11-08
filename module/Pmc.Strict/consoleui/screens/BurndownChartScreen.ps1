@@ -4,6 +4,9 @@ using namespace System.Text
 # BurndownChartScreen - Shows burndown chart with task metrics
 # Displays completion metrics and progress bar visualization
 
+
+Set-StrictMode -Version Latest
+
 . "$PSScriptRoot/../PmcScreen.ps1"
 
 <#

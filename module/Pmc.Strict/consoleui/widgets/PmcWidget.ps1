@@ -4,6 +4,8 @@
 using namespace System.Collections.Generic
 using namespace System.Text
 
+Set-StrictMode -Version Latest
+
 # SpeedTUI framework must be loaded before this file
 # (loaded by PmcApplication.ps1 or Start-PmcTUI.ps1)
 # This check ensures Component class is available

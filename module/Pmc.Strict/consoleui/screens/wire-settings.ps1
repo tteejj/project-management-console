@@ -1,6 +1,9 @@
 #!/usr/bin/env pwsh
 # Wire up SettingsScreen to all screen menus
 
+
+Set-StrictMode -Version Latest
+
 $files = Get-ChildItem "/home/teej/pmc/module/Pmc.Strict/consoleui/screens/*.ps1" | Where-Object { $_.Name -ne 'wire-settings.ps1' -and $_.Name -ne 'add-task-metadata-display.ps1' }
 
 foreach ($file in $files) {

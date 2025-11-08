@@ -25,6 +25,8 @@ try {
 
     # 3. Terminal and rendering
     . "$SpeedTUIRoot/Core/SimplifiedTerminal.ps1"
+    . "$SpeedTUIRoot/Core/CellBuffer.ps1"
+    . "$SpeedTUIRoot/Core/EnhancedRenderEngine.ps1"
     . "$SpeedTUIRoot/Core/OptimizedRenderEngine.ps1"
 
     # 4. Base Component class (THIS IS WHAT PmcWidget EXTENDS)

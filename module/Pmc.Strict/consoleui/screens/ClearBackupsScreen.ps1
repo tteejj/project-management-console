@@ -4,6 +4,9 @@ using namespace System.Text
 # ClearBackupsScreen - Clear all backup files
 # Shows count of backups and asks for confirmation
 
+
+Set-StrictMode -Version Latest
+
 . "$PSScriptRoot/../PmcScreen.ps1"
 
 <#

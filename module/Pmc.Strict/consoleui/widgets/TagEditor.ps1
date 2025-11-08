@@ -22,6 +22,8 @@ using namespace System
 using namespace System.Collections.Generic
 using namespace System.Text
 
+Set-StrictMode -Version Latest
+
 # Load PmcWidget base class if not already loaded
 if (-not ([System.Management.Automation.PSTypeName]'PmcWidget').Type) {
     . "$PSScriptRoot/PmcWidget.ps1"
@@ -505,17 +507,19 @@ class TagEditor : PmcWidget {
                     $sb.Append($displayText.Substring(0, $this._cursorPosition))
                 }
 
-                # Cursor
+                # Cursor and text after
                 if ($this._cursorPosition -lt $displayText.Length) {
+                    # Cursor on character
                     $sb.Append("`e[7m")
                     $sb.Append($displayText[$this._cursorPosition])
                     $sb.Append("`e[27m")
 
+                    # Text after cursor
                     if ($this._cursorPosition + 1 -lt $displayText.Length) {
                         $sb.Append($displayText.Substring($this._cursorPosition + 1))
                     }
                 } else {
-                    $sb.Append($displayText)
+                    # Cursor at end - show block cursor
                     $sb.Append("`e[7m `e[27m")
                 }
 

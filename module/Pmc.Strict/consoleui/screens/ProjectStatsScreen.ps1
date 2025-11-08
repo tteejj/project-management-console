@@ -4,6 +4,9 @@ using namespace System.Text
 # ProjectStatsScreen - Project statistics overview
 # Shows task counts and completion percentages for all projects
 
+
+Set-StrictMode -Version Latest
+
 . "$PSScriptRoot/../PmcScreen.ps1"
 
 <#

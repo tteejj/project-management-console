@@ -1,6 +1,7 @@
 # UniversalList.ps1 - Generic list widget with columns, sorting, filtering, and inline editing
 # THE BIG ONE - Replaces 12+ specialized list screens!
 #
+#
 # Usage:
 #   $columns = @(
 #       @{ Name='id'; Label='ID'; Width=4; Align='right' }
@@ -29,6 +30,8 @@
 using namespace System
 using namespace System.Collections.Generic
 using namespace System.Text
+
+Set-StrictMode -Version Latest
 
 # Load PmcWidget base class
 if (-not ([System.Management.Automation.PSTypeName]'PmcWidget').Type) {
@@ -629,7 +632,8 @@ class UniversalList : PmcWidget {
                 # Format value if formatter provided
                 if ($col.ContainsKey('Format') -and $null -ne $col.Format) {
                     try {
-                        $value = & $col.Format $value
+                        # Pass the WHOLE ITEM to formatter, not just the field value
+                        $value = & $col.Format $item
                     } catch {
                         $value = "(error)"
                     }
@@ -938,21 +942,23 @@ class UniversalList : PmcWidget {
     .SYNOPSIS
     Invoke callback safely
     #>
-    hidden [void] _InvokeCallback([scriptblock]$callback, $args) {
+    hidden [void] _InvokeCallback([scriptblock]$callback, $arg) {
         if ($null -ne $callback -and $callback -ne {}) {
             try {
-                if ($null -ne $args) {
-                    & $callback $args
+                if ($null -ne $arg) {
+                    # Use Invoke-Command with -ArgumentList to pass single arg without array wrapping
+                    Invoke-Command -ScriptBlock $callback -ArgumentList $arg
                 } else {
                     & $callback
                 }
             } catch {
-                # Log callback errors for debugging
-                if ($global:PmcTuiLogFile) {
-                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ERROR in callback: $_"
-                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] Callback: $($callback.ToString())"
-                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] Stack: $($_.ScriptStackTrace)"
+                # Log callback errors and rethrow so user sees them
+                if (Get-Command Write-PmcTuiLog -ErrorAction SilentlyContinue) {
+                    Write-PmcTuiLog "UniversalList callback error: $($_.Exception.Message)" "ERROR"
+                    Write-PmcTuiLog "Callback code: $($callback.ToString())" "ERROR"
+                    Write-PmcTuiLog "Stack trace: $($_.ScriptStackTrace)" "ERROR"
                 }
+                throw  # Rethrow so it crashes and you see it
             }
         }
     }

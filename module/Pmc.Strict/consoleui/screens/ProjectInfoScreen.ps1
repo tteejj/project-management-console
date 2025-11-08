@@ -4,6 +4,9 @@ using namespace System.Text
 # ProjectInfoScreen - Detailed project information
 # Shows comprehensive details about a single project
 
+
+Set-StrictMode -Version Latest
+
 . "$PSScriptRoot/../PmcScreen.ps1"
 
 <#

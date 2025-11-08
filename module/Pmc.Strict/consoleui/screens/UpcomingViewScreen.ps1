@@ -4,6 +4,9 @@ using namespace System.Text
 # UpcomingViewScreen - Shows tasks due in the future
 # Displays tasks with due date > today, sorted by due date
 
+
+Set-StrictMode -Version Latest
+
 . "$PSScriptRoot/../PmcScreen.ps1"
 
 <#

@@ -4,6 +4,9 @@ using namespace System.Text
 # DepRemoveFormScreen - Remove task dependency
 # Removes dependency relationship between two tasks
 
+
+Set-StrictMode -Version Latest
+
 . "$PSScriptRoot/../PmcScreen.ps1"
 
 <#

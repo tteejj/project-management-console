@@ -4,6 +4,9 @@ using namespace System.Text
 # TimerStatusScreen - View timer status
 # Shows current timer status: running/stopped, task, elapsed time
 
+
+Set-StrictMode -Version Latest
+
 . "$PSScriptRoot/../PmcScreen.ps1"
 
 <#

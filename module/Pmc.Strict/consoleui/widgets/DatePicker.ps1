@@ -25,6 +25,8 @@ using namespace System.Collections.Generic
 using namespace System.Text
 using namespace System.Globalization
 
+Set-StrictMode -Version Latest
+
 # Load PmcWidget base class if not already loaded
 if (-not ([System.Management.Automation.PSTypeName]'PmcWidget').Type) {
     . "$PSScriptRoot/PmcWidget.ps1"
@@ -388,7 +390,12 @@ class DatePicker : PmcWidget {
             }
 
             $sb.Append($textColor)
-            $sb.Append($this.PadText($line, $this.Width - 3, 'left'))
+            # Don't pad/truncate calendar lines - they contain ANSI codes that confuse length calculation
+            $sb.Append($line)
+            # Pad with spaces to fill remaining width (calendar is fixed format, no ANSI in padding)
+            $visibleLength = ($line -replace '\e\[[0-9;]*m', '').Length
+            $padding = [Math]::Max(0, $this.Width - 3 - $visibleLength)
+            $sb.Append(' ' * $padding)
             $sb.Append($borderColor)
             $sb.Append($this.BuildMoveTo($this.X + $this.Width - 1, $row))
             $sb.Append($this.GetBoxChar('single_vertical'))

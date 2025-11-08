@@ -4,6 +4,9 @@ using namespace System.Text
 # HelpViewScreen - PMC TUI Help documentation
 # Static help screen showing keyboard shortcuts and commands
 
+
+Set-StrictMode -Version Latest
+
 . "$PSScriptRoot/../PmcScreen.ps1"
 
 <#

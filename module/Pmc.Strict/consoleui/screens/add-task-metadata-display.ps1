@@ -1,6 +1,9 @@
 #!/usr/bin/env pwsh
 # Add subtasks, tags, dependencies, and notes display to all task view screens
 
+
+Set-StrictMode -Version Latest
+
 $screens = @(
     'TodayViewScreen.ps1',
     'TomorrowViewScreen.ps1',

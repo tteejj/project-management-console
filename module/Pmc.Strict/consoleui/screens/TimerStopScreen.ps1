@@ -4,6 +4,9 @@ using namespace System.Text
 # TimerStopScreen - Stop running timer
 # Shows current timer info and allows stopping/logging time
 
+
+Set-StrictMode -Version Latest
+
 . "$PSScriptRoot/../PmcScreen.ps1"
 
 <#

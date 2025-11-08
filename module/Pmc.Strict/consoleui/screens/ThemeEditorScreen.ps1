@@ -4,6 +4,9 @@ using namespace System.Text
 # ThemeEditorScreen - Theme selection and preview
 # Allows users to view available themes and apply them
 
+
+Set-StrictMode -Version Latest
+
 . "$PSScriptRoot/../PmcScreen.ps1"
 
 <#

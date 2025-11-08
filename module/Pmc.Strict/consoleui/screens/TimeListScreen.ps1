@@ -1,445 +1,200 @@
 using namespace System.Collections.Generic
 using namespace System.Text
 
-# TimeListScreen - Time log entries list
-# Shows time log entries with date, hours, project, description
+# TimeListScreen - Time tracking list with full CRUD operations
+# Uses UniversalList widget and InlineEditor for consistent UX
 
-. "$PSScriptRoot/../PmcScreen.ps1"
+
+Set-StrictMode -Version Latest
+
+. "$PSScriptRoot/../base/StandardListScreen.ps1"
 
 <#
 .SYNOPSIS
-Time log list screen
+Time tracking list screen with CRUD operations
 
 .DESCRIPTION
-Shows all time log entries with date, hours, project, and description.
-Supports:
-- Navigation (Up/Down arrows)
-- Deleting entries (D key)
-- Refreshing list (R key)
-- Viewing report (Rep key)
+Shows all time entries with:
+- Add/Edit/Delete via InlineEditor (a/e/d keys)
+- View entries by task or project
+- Generate time reports
+- Filter by date range
 #>
-class TimeListScreen : PmcScreen {
-    # Data
-    [array]$TimeLogs = @()
-    [int]$SelectedIndex = 0
+class TimeListScreen : StandardListScreen {
 
     # Constructor
-    TimeListScreen() : base("TimeList", "Time Entries") {
+    TimeListScreen() : base("TimeList", "Time Tracking") {
+        # Configure capabilities
+        $this.AllowAdd = $true
+        $this.AllowEdit = $true
+        $this.AllowDelete = $true
+        $this.AllowFilter = $true
+
+        # Configure list columns
+        $this.ConfigureColumns(@(
+            @{ Name='date'; Header='Date'; Width=12; Align='left' }
+            @{ Name='task'; Header='Task'; Width=30; Align='left' }
+            @{ Name='project'; Header='Project'; Width=20; Align='left' }
+            @{ Name='duration'; Header='Duration'; Width=10; Align='right' }
+            @{ Name='notes'; Header='Notes'; Width=30; Align='left' }
+        ))
+
         # Configure header
-        $this.Header.SetBreadcrumb(@("Home", "Time Entries"))
+        $this.Header.SetBreadcrumb(@("Home", "Time Tracking"))
 
-        # Configure footer with shortcuts
-        $this.Footer.ClearShortcuts()
-        $this.Footer.AddShortcut("Up/Down", "Select")
-        $this.Footer.AddShortcut("A", "Add")
-        $this.Footer.AddShortcut("E", "Edit")
-        $this.Footer.AddShortcut("D", "Delete")
-        $this.Footer.AddShortcut("R", "Refresh")
-        $this.Footer.AddShortcut("Esc", "Back")
-        $this.Footer.AddShortcut("Ctrl+Q", "Quit")
-
-        # Setup menu items
-        $this._SetupMenus()
+        # Load time entries
+        $this.RefreshList()
     }
 
-    hidden [void] _SetupMenus() {
-        # Capture $this in a variable so scriptblocks can access it
-        $screen = $this
+    # === Abstract Method Implementations ===
 
-        # Tasks menu - Navigate to different task views
-        $tasksMenu = $this.MenuBar.Menus[0]
-        $tasksMenu.Items.Add([PmcMenuItem]::new("Task List", 'L', {
-            . "$PSScriptRoot/TaskListScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object TaskListScreen))
-        }))
-        $tasksMenu.Items.Add([PmcMenuItem]::new("Today", 'Y', {
-            . "$PSScriptRoot/TodayViewScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object TodayViewScreen))
-        }))
-        $tasksMenu.Items.Add([PmcMenuItem]::new("Tomorrow", 'T', {
-            . "$PSScriptRoot/TomorrowViewScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object TomorrowViewScreen))
-        }))
-        $tasksMenu.Items.Add([PmcMenuItem]::new("Week View", 'W', {
-            . "$PSScriptRoot/WeekViewScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object WeekViewScreen))
-        }))
-        $tasksMenu.Items.Add([PmcMenuItem]::new("Upcoming", 'U', {
-            . "$PSScriptRoot/UpcomingViewScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object UpcomingViewScreen))
-        }))
-        $tasksMenu.Items.Add([PmcMenuItem]::new("Overdue", 'V', {
-            . "$PSScriptRoot/OverdueViewScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object OverdueViewScreen))
-        }))
-        $tasksMenu.Items.Add([PmcMenuItem]::new("Next Actions", 'N', {
-            . "$PSScriptRoot/NextActionsViewScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object NextActionsViewScreen))
-        }))
-        $tasksMenu.Items.Add([PmcMenuItem]::new("No Due Date", 'D', {
-            . "$PSScriptRoot/NoDueDateViewScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object NoDueDateViewScreen))
-        }))
-        $tasksMenu.Items.Add([PmcMenuItem]::new("Blocked Tasks", 'B', {
-            . "$PSScriptRoot/BlockedTasksScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object BlockedTasksScreen))
-        }))
-        $tasksMenu.Items.Add([PmcMenuItem]::Separator())
-        $tasksMenu.Items.Add([PmcMenuItem]::new("Kanban Board", 'K', {
-            . "$PSScriptRoot/KanbanScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object KanbanScreen))
-        }))
-        $tasksMenu.Items.Add([PmcMenuItem]::new("Month View", 'M', {
-            . "$PSScriptRoot/MonthViewScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object MonthViewScreen))
-        }))
-        $tasksMenu.Items.Add([PmcMenuItem]::new("Agenda View", 'A', {
-            . "$PSScriptRoot/AgendaViewScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object AgendaViewScreen))
-        }))
-        $tasksMenu.Items.Add([PmcMenuItem]::new("Burndown Chart", 'C', {
-            . "$PSScriptRoot/BurndownChartScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object BurndownChartScreen))
-        }))
-
-        # Projects menu
-        $projectsMenu = $this.MenuBar.Menus[1]
-        $projectsMenu.Items.Add([PmcMenuItem]::new("Project List", 'L', {
-            . "$PSScriptRoot/ProjectListScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object ProjectListScreen))
-        }))
-        $projectsMenu.Items.Add([PmcMenuItem]::new("Project Stats", 'S', {
-            . "$PSScriptRoot/ProjectStatsScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object ProjectStatsScreen))
-        }))
-        $projectsMenu.Items.Add([PmcMenuItem]::new("Project Info", 'I', {
-            . "$PSScriptRoot/ProjectInfoScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object ProjectInfoScreen))
-        }))
-
-        # Options menu
-        $optionsMenu = $this.MenuBar.Menus[2]
-        $optionsMenu.Items.Add([PmcMenuItem]::new("Theme Editor", 'T', {
-            . "$PSScriptRoot/ThemeEditorScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object ThemeEditorScreen))
-        }))
-        $optionsMenu.Items.Add([PmcMenuItem]::new("Settings", 'S', {
-            . "$PSScriptRoot/SettingsScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object SettingsScreen))
-        }))
-
-        # Help menu
-        $helpMenu = $this.MenuBar.Menus[3]
-        $helpMenu.Items.Add([PmcMenuItem]::new("Help View", 'H', {
-            . "$PSScriptRoot/HelpViewScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object HelpViewScreen))
-        }))
-        $helpMenu.Items.Add([PmcMenuItem]::new("About", 'A', { Write-Host "PMC TUI v1.0" }))
+    # Get entity type for store operations
+    [string] GetEntityType() {
+        return 'timelog'
     }
 
-    [void] LoadData() {
-        $this.ShowStatus("Loading time entries...")
+    # Load items from data store
+    [array] LoadItems() {
+        $entries = $this.Store.GetAllTimeLogs()
 
-        try {
-            $data = Get-PmcAllData
-
-            # Get time logs
-            if ($data.PSObject.Properties['timelogs']) {
-                $this.TimeLogs = @($data.timelogs | Sort-Object -Property date -Descending)
+        # Add computed fields and format
+        foreach ($entry in $entries) {
+            # Format duration as HH:MM
+            if ($entry.ContainsKey('minutes')) {
+                $hours = [Math]::Floor($entry.minutes / 60)
+                $mins = $entry.minutes % 60
+                $entry['duration'] = "{0:D2}:{1:D2}" -f $hours, $mins
             } else {
-                $this.TimeLogs = @()
+                $entry['duration'] = "00:00"
             }
 
-            # Reset selection if out of bounds
-            if ($this.SelectedIndex -ge $this.TimeLogs.Count) {
-                $this.SelectedIndex = [Math]::Max(0, $this.TimeLogs.Count - 1)
-            }
-
-            # Update status
-            if ($this.TimeLogs.Count -eq 0) {
-                $this.ShowStatus("No time entries")
+            # Format date
+            if ($entry.ContainsKey('date') -and $entry.date -is [DateTime]) {
+                $entry['date_display'] = $entry.date.ToString('yyyy-MM-dd')
             } else {
-                $totalMinutes = ($this.TimeLogs | Measure-Object -Property minutes -Sum).Sum
-                $totalHours = [math]::Round($totalMinutes / 60.0, 2)
-                $this.ShowStatus("$($this.TimeLogs.Count) entries, $totalHours hours total")
+                $entry['date_display'] = ''
             }
 
-        } catch {
-            $this.ShowError("Failed to load time entries: $_")
-            $this.TimeLogs = @()
+            # Ensure task and project fields exist
+            if (-not $entry.ContainsKey('task')) {
+                $entry['task'] = ''
+            }
+            if (-not $entry.ContainsKey('project')) {
+                $entry['project'] = ''
+            }
+            if (-not $entry.ContainsKey('notes')) {
+                $entry['notes'] = ''
+            }
+        }
+
+        # Sort by date descending (most recent first)
+        return $entries | Sort-Object -Property date -Descending
+    }
+
+    # Define columns for list display
+    [array] GetListColumns() {
+        return @(
+            @{ Name='date_display'; Header='Date'; Width=12 }
+            @{ Name='task'; Header='Task'; Width=30 }
+            @{ Name='project'; Header='Project'; Width=20 }
+            @{ Name='duration'; Header='Duration'; Width=10 }
+            @{ Name='notes'; Header='Notes'; Width=30 }
+        )
+    }
+
+    # Define edit fields for InlineEditor
+    [array] GetEditFields([object]$item) {
+        if ($null -eq $item -or $item.Count -eq 0) {
+            # New time entry - empty fields
+            return @(
+                @{ Name='date'; Type='date'; Label='Date'; Required=$true; Value=[DateTime]::Now }
+                @{ Name='task'; Type='text'; Label='Task'; Value='' }
+                @{ Name='project'; Type='project'; Label='Project'; Value='' }
+                @{ Name='minutes'; Type='number'; Label='Minutes'; Min=0; Max=480; Value=60 }
+                @{ Name='notes'; Type='text'; Label='Notes'; Value='' }
+            )
+        } else {
+            # Existing time entry - populate from item
+            return @(
+                @{ Name='date'; Type='date'; Label='Date'; Required=$true; Value=$item.date }
+                @{ Name='task'; Type='text'; Label='Task'; Value=$item.task }
+                @{ Name='project'; Type='project'; Label='Project'; Value=$item.project }
+                @{ Name='minutes'; Type='number'; Label='Minutes'; Min=0; Max=480; Value=$item.minutes }
+                @{ Name='notes'; Type='text'; Label='Notes'; Value=$item.notes }
+            )
         }
     }
 
-    [string] RenderContent() {
-        if ($this.TimeLogs.Count -eq 0) {
-            return $this._RenderEmptyState()
+    # Handle item creation
+    [void] OnItemCreated([hashtable]$values) {
+        $timeData = @{
+            date = [DateTime]$values.date
+            task = $values.task
+            project = $values.project
+            minutes = [int]$values.minutes
+            notes = $values.notes
+            created = [DateTime]::Now
         }
 
-        return $this._RenderTimeLogList()
+        $this.Store.AddTimeLog($timeData)
+
+        $hours = [Math]::Floor($timeData.minutes / 60)
+        $mins = $timeData.minutes % 60
+        $this.SetStatusMessage("Time entry added: {0:D2}:{1:D2}" -f $hours, $mins, "success")
     }
 
-    hidden [string] _RenderEmptyState() {
-        $sb = [System.Text.StringBuilder]::new(512)
-
-        # Get content area
-        if ($this.LayoutManager) {
-            $contentRect = $this.LayoutManager.GetRegion('Content', $this.TermWidth, $this.TermHeight)
-
-            # Center message
-            $message = "No time entries - Press A to add one"
-            $x = $contentRect.X + [Math]::Floor(($contentRect.Width - $message.Length) / 2)
-            $y = $contentRect.Y + [Math]::Floor($contentRect.Height / 2)
-
-            $textColor = $this.Header.GetThemedAnsi('Text', $false)
-            $reset = "`e[0m"
-
-            $sb.Append($this.Header.BuildMoveTo($x, $y))
-            $sb.Append($textColor)
-            $sb.Append($message)
-            $sb.Append($reset)
+    # Handle item update
+    [void] OnItemUpdated([object]$item, [hashtable]$values) {
+        $changes = @{
+            date = [DateTime]$values.date
+            task = $values.task
+            project = $values.project
+            minutes = [int]$values.minutes
+            notes = $values.notes
         }
 
-        return $sb.ToString()
+        # Time logs typically don't support update in PMC - might need to delete and re-add
+        # For now, try to update by ID if it exists
+        if ($item.ContainsKey('id')) {
+            $this.Store.UpdateTimeLog($item.id, $changes)
+            $this.SetStatusMessage("Time entry updated", "success")
+        } else {
+            $this.SetStatusMessage("Cannot update time entry without ID", "error")
+        }
     }
 
-    hidden [string] _RenderTimeLogList() {
-        $sb = [System.Text.StringBuilder]::new(4096)
-
-        if (-not $this.LayoutManager) {
-            return $sb.ToString()
+    # Handle item deletion
+    [void] OnItemDeleted([object]$item) {
+        if ($item.ContainsKey('id')) {
+            $this.Store.DeleteTimeLog($item.id)
+            $this.SetStatusMessage("Time entry deleted", "success")
+        } else {
+            $this.SetStatusMessage("Cannot delete time entry without ID", "error")
         }
-
-        # Get content area
-        $contentRect = $this.LayoutManager.GetRegion('Content', $this.TermWidth, $this.TermHeight)
-
-        # Colors
-        $textColor = $this.Header.GetThemedAnsi('Text', $false)
-        $selectedBg = $this.Header.GetThemedAnsi('Primary', $true)
-        $selectedFg = $this.Header.GetThemedAnsi('Text', $false)
-        $cursorColor = $this.Header.GetThemedAnsi('Highlight', $false)
-        $mutedColor = $this.Header.GetThemedAnsi('Muted', $false)
-        $headerColor = $this.Header.GetThemedAnsi('Muted', $false)
-        $highlightColor = $this.Header.GetThemedAnsi('Highlight', $false)
-        $reset = "`e[0m"
-
-        # Column widths
-        $idWidth = 5
-        $dateWidth = 12
-        $projectWidth = 20
-        $hoursWidth = 8
-        $descWidth = $contentRect.Width - $idWidth - $dateWidth - $projectWidth - $hoursWidth - 10
-
-        # Render column headers
-        $headerY = $this.Header.Y + 3
-        $sb.Append($this.Header.BuildMoveTo($contentRect.X + 4, $headerY))
-        $sb.Append($headerColor)
-        $sb.Append("ID   ")
-        $sb.Append("DATE        ")
-        $sb.Append("PROJECT             ")
-        $sb.Append("HOURS   ")
-        $sb.Append("DESCRIPTION")
-        $sb.Append($reset)
-
-        # Render time log rows
-        $startY = $headerY + 2
-        $maxLines = $contentRect.Height - 4
-
-        for ($i = 0; $i -lt [Math]::Min($this.TimeLogs.Count, $maxLines); $i++) {
-            $log = $this.TimeLogs[$i]
-            $y = $startY + $i
-            $isSelected = ($i -eq $this.SelectedIndex)
-
-            # Cursor
-            $sb.Append($this.Header.BuildMoveTo($contentRect.X + 2, $y))
-            if ($isSelected) {
-                $sb.Append($cursorColor)
-                $sb.Append(">")
-                $sb.Append($reset)
-            } else {
-                $sb.Append(" ")
-            }
-
-            $x = $contentRect.X + 4
-
-            # ID column
-            $sb.Append($this.Header.BuildMoveTo($x, $y))
-            if ($isSelected) {
-                $sb.Append($selectedBg)
-                $sb.Append($selectedFg)
-            } else {
-                $sb.Append($mutedColor)
-            }
-            $sb.Append($log.id.ToString().PadRight($idWidth))
-            $sb.Append($reset)
-            $x += $idWidth
-
-            # Date column - normalize "today" to actual date
-            $rawDate = if ($log.date) { $log.date.ToString() } else { "" }
-            $dateStr = if ($rawDate -eq 'today') {
-                (Get-Date).ToString('yyyy-MM-dd')
-            } elseif ($rawDate -eq 'tomorrow') {
-                (Get-Date).AddDays(1).ToString('yyyy-MM-dd')
-            } else {
-                $rawDate
-            }
-
-            $sb.Append($this.Header.BuildMoveTo($x, $y))
-            if ($isSelected) {
-                $sb.Append($selectedBg)
-                $sb.Append($selectedFg)
-            } else {
-                $sb.Append($textColor)
-            }
-            $displayDate = $dateStr.Substring(0, [Math]::Min(10, $dateStr.Length))
-            $sb.Append($displayDate.PadRight($dateWidth))
-            $sb.Append($reset)
-            $x += $dateWidth
-
-            # Project column
-            $projectStr = if ($log.project) { $log.project.ToString() } else { if ($log.id1) { "#$($log.id1)" } else { "" } }
-            $sb.Append($this.Header.BuildMoveTo($x, $y))
-            if ($isSelected) {
-                $sb.Append($selectedBg)
-                $sb.Append($selectedFg)
-            } else {
-                $sb.Append($mutedColor)
-            }
-            $displayProject = $projectStr.Substring(0, [Math]::Min($projectWidth - 1, $projectStr.Length))
-            $sb.Append($displayProject.PadRight($projectWidth))
-            $sb.Append($reset)
-            $x += $projectWidth
-
-            # Hours column
-            $hours = if ($log.minutes) { [math]::Round($log.minutes / 60.0, 2) } else { 0 }
-            $hoursStr = $hours.ToString("0.00")
-            $sb.Append($this.Header.BuildMoveTo($x, $y))
-            if ($isSelected) {
-                $sb.Append($selectedBg)
-                $sb.Append($highlightColor)
-            } else {
-                $sb.Append($highlightColor)
-            }
-            $sb.Append($hoursStr.PadRight($hoursWidth))
-            $sb.Append($reset)
-            $x += $hoursWidth
-
-            # Description column
-            $descStr = if ($log.PSObject.Properties['description'] -and $log.description) { $log.description.ToString() } else { "" }
-            $sb.Append($this.Header.BuildMoveTo($x, $y))
-            if ($isSelected) {
-                $sb.Append($selectedBg)
-                $sb.Append($selectedFg)
-            } else {
-                $sb.Append($textColor)
-            }
-
-            if ($descStr.Length -gt 0) {
-                $displayDesc = $descStr.Substring(0, [Math]::Min($descWidth, $descStr.Length))
-                if ($descStr.Length -gt $descWidth) {
-                    $displayDesc = $displayDesc.Substring(0, $descWidth - 3) + "..."
-                }
-                $sb.Append($displayDesc)
-            }
-            $sb.Append($reset)
-        }
-
-        return $sb.ToString()
     }
+
+    # === Custom Actions ===
+
+    # Generate time report for selected period
+    [void] GenerateReport() {
+        # Navigate to time report screen
+        . "$PSScriptRoot/TimeReportScreen.ps1"
+        $this.App.PushScreen([TimeReportScreen]::new())
+    }
+
+    # === Input Handling ===
 
     [bool] HandleKeyPress([ConsoleKeyInfo]$keyInfo) {
-        switch ($keyInfo.Key) {
-            'UpArrow' {
-                if ($this.SelectedIndex -gt 0) {
-                    $this.SelectedIndex--
-                    return $true
-                }
-            }
-            'DownArrow' {
-                if ($this.SelectedIndex -lt ($this.TimeLogs.Count - 1)) {
-                    $this.SelectedIndex++
-                    return $true
-                }
-            }
-            'A' {
-                $this._AddEntry()
-                return $true
-            }
-            'E' {
-                $this._EditEntry()
-                return $true
-            }
-            'D' {
-                $this._DeleteEntry()
-                return $true
-            }
-            'R' {
-                $this.LoadData()
-                return $true
-            }
+        # Call parent handler first (handles list navigation, add/edit/delete)
+        $handled = ([StandardListScreen]$this).HandleKeyPress($keyInfo)
+        if ($handled) { return $true }
+
+        # Custom key: G = Generate report
+        if ($keyInfo.Key -eq 'G') {
+            $this.GenerateReport()
+            return $true
         }
 
         return $false
     }
-
-    hidden [void] _AddEntry() {
-        . "$PSScriptRoot/TimerStartScreen.ps1"
-        $global:PmcApp.PushScreen((New-Object TimerStartScreen))
-    }
-
-    hidden [void] _EditEntry() {
-        if ($this.SelectedIndex -lt 0 -or $this.SelectedIndex -ge $this.TimeLogs.Count) {
-            $this.ShowError("No entry selected")
-            return
-        }
-
-        $entry = $this.TimeLogs[$this.SelectedIndex]
-        $this.ShowStatus("Edit time entry: $($entry.id)")
-        # Time entries are simple records, editing requires recreation
-    }
-
-    hidden [void] _DeleteEntry() {
-        if ($this.SelectedIndex -lt 0 -or $this.SelectedIndex -ge $this.TimeLogs.Count) {
-            $this.ShowError("No entry selected")
-            return
-        }
-
-        $log = $this.TimeLogs[$this.SelectedIndex]
-        $logId = $log.id
-
-        try {
-            # Load data
-            $data = Get-PmcAllData
-
-            # Remove entry
-            $data.timelogs = @($data.timelogs | Where-Object { $_.id -ne $logId })
-
-            # Save
-            Set-PmcAllData $data
-
-            $this.ShowSuccess("Time entry #$logId deleted")
-
-            # Reload
-            $this.LoadData()
-
-        } catch {
-            $this.ShowError("Failed to delete time entry: $_")
-        }
-    }
-
-    hidden [void] _ViewReport() {
-        . "$PSScriptRoot/TimeReportScreen.ps1"
-        $global:PmcApp.PushScreen((New-Object TimeReportScreen))
-    }
-}
-
-# Entry point function for compatibility
-function Show-TimeListScreen {
-    param([object]$App)
-
-    if (-not $App) {
-        throw "PmcApplication required"
-    }
-
-    $screen = [TimeListScreen]::new()
-    $App.PushScreen($screen)
 }

@@ -4,6 +4,9 @@ using namespace System.Text
 # BackupViewScreen - View and manage backup files
 # Shows list of backup files with dates
 
+
+Set-StrictMode -Version Latest
+
 . "$PSScriptRoot/../PmcScreen.ps1"
 
 <#

@@ -48,6 +48,8 @@ using namespace System
 using namespace System.Collections.Generic
 using namespace System.Text
 
+Set-StrictMode -Version Latest
+
 # Load dependencies
 # NOTE: These are now loaded by the launcher script in the correct order.
 # Commenting out to avoid circular dependency issues.
@@ -280,14 +282,16 @@ class StandardListScreen : PmcScreen {
         $this.InlineEditor = [InlineEditor]::new()
         $this.InlineEditor.SetPosition(10, 5)
         $this.InlineEditor.SetSize(70, 25)
+        # Capture $this for callback scoping
+        $screen = $this
         $this.InlineEditor.OnConfirmed = {
             param($values)
-            $this._SaveEditedItem($values)
+            $screen._SaveEditedItem($values)
         }
         $this.InlineEditor.OnCancelled = {
-            $this.ShowInlineEditor = $false
-            $this.EditorMode = ""
-            $this.CurrentEditItem = $null
+            $screen.ShowInlineEditor = $false
+            $screen.EditorMode = ""
+            $screen.CurrentEditItem = $null
         }
 
         # Wire up store events for auto-refresh
@@ -296,19 +300,19 @@ class StandardListScreen : PmcScreen {
             'task' {
                 $this.Store.OnTasksChanged = {
                     param($tasks)
-                    $this.RefreshList()
+                    $screen.RefreshList()
                 }
             }
             'project' {
                 $this.Store.OnProjectsChanged = {
                     param($projects)
-                    $this.RefreshList()
+                    $screen.RefreshList()
                 }
             }
             'timelog' {
                 $this.Store.OnTimeLogsChanged = {
                     param($logs)
-                    $this.RefreshList()
+                    $screen.RefreshList()
                 }
             }
         }
@@ -554,10 +558,16 @@ class StandardListScreen : PmcScreen {
             }
         }
 
-        # Close editor
+        # Close editor and reset state
+        Write-PmcTuiLog "_SaveEditedItem: Setting ShowInlineEditor=false" "DEBUG"
         $this.ShowInlineEditor = $false
         $this.EditorMode = ""
         $this.CurrentEditItem = $null
+
+        Write-PmcTuiLog "_SaveEditedItem: After close - ShowInlineEditor=$($this.ShowInlineEditor)" "DEBUG"
+
+        # NOTE: Don't reset IsConfirmed/IsCancelled here - HandleKeyPress checks them
+        # They will be reset when SetFields() is called for the next add/edit
     }
 
     # === Filtering ===
@@ -631,13 +641,25 @@ class StandardListScreen : PmcScreen {
         if ($this.ShowInlineEditor) {
             Write-PmcTuiLog "StandardListScreen: Routing to InlineEditor (Key=$($keyInfo.Key))" "DEBUG"
             $handled = $this.InlineEditor.HandleInput($keyInfo)
+            Write-PmcTuiLog "StandardListScreen: After HandleInput - IsConfirmed=$($this.InlineEditor.IsConfirmed) IsCancelled=$($this.InlineEditor.IsCancelled) ShowInlineEditor=$($this.ShowInlineEditor)" "DEBUG"
 
             # Check if editor closed
             if ($this.InlineEditor.IsConfirmed -or $this.InlineEditor.IsCancelled) {
+                Write-PmcTuiLog "StandardListScreen: Editor confirmed/cancelled - closing editor" "DEBUG"
                 $this.ShowInlineEditor = $false
+                # Request full screen clear to remove editor remnants
+                $this.NeedsClear = $true
+                # MUST return true to trigger re-render
+                return $true
             }
 
-            return $handled
+            Write-PmcTuiLog "StandardListScreen: After close check - ShowInlineEditor=$($this.ShowInlineEditor)" "DEBUG"
+
+            # If editor handled the key, we're done
+            if ($handled) {
+                return $true
+            }
+            # Otherwise, fall through to global shortcuts
         }
 
         # Route to filter panel if shown
@@ -650,7 +672,11 @@ class StandardListScreen : PmcScreen {
                 return $true
             }
 
-            return $handled
+            # If filter panel handled the key, we're done
+            if ($handled) {
+                return $true
+            }
+            # Otherwise, fall through to global shortcuts
         }
 
         # Global shortcuts
@@ -685,7 +711,20 @@ class StandardListScreen : PmcScreen {
             if ($global:PmcTuiLogFile) {
                 Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] RenderContent: Rendering InlineEditor"
             }
-            return $this.InlineEditor.Render()
+
+            $editorContent = $this.InlineEditor.Render()
+
+            # If an expanded widget is shown, render it as overlay
+            if ($this.InlineEditor._showFieldWidgets -and -not [string]::IsNullOrWhiteSpace($this.InlineEditor._expandedFieldName)) {
+                $fieldName = $this.InlineEditor._expandedFieldName
+                if ($this.InlineEditor._fieldWidgets.ContainsKey($fieldName)) {
+                    $widget = $this.InlineEditor._fieldWidgets[$fieldName]
+                    $widgetContent = $widget.Render()
+                    return $editorContent + "`n" + $widgetContent
+                }
+            }
+
+            return $editorContent
         }
 
         if ($this.ShowFilterPanel) {

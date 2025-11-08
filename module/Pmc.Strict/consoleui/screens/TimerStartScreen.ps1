@@ -4,6 +4,9 @@ using namespace System.Text
 # TimerStartScreen - Start timer for a task
 # Shows task list, select task to start timer for
 
+
+Set-StrictMode -Version Latest
+
 . "$PSScriptRoot/../PmcScreen.ps1"
 
 <#

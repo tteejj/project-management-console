@@ -4,6 +4,9 @@ using namespace System.Text
 # RestoreBackupScreen - Confirm and restore from backup
 # Shows backup details and asks for confirmation
 
+
+Set-StrictMode -Version Latest
+
 . "$PSScriptRoot/../PmcScreen.ps1"
 
 <#

@@ -4,6 +4,9 @@ using namespace System.Text
 # AgendaViewScreen - Shows agenda view of tasks by date buckets
 # Displays tasks grouped: overdue, today, tomorrow, this week, later, no due date
 
+
+Set-StrictMode -Version Latest
+
 . "$PSScriptRoot/../PmcScreen.ps1"
 
 <#

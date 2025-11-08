@@ -4,6 +4,9 @@ using namespace System.Text
 # MonthViewScreen - Shows tasks due this month
 # Displays tasks in three sections: overdue, this month, and no due date
 
+
+Set-StrictMode -Version Latest
+
 . "$PSScriptRoot/../PmcScreen.ps1"
 
 <#

@@ -4,6 +4,8 @@
 using namespace System
 using namespace System.Collections.Generic
 
+Set-StrictMode -Version Latest
+
 # Load SpeedTUI framework
 . "$PSScriptRoot/SpeedTUILoader.ps1"
 
@@ -53,7 +55,7 @@ class PmcApplication {
 
     # === Constructor ===
     PmcApplication() {
-        # Initialize render engine
+        # Initialize render engine (OptimizedRenderEngine with cell buffering)
         $this.RenderEngine = New-Object OptimizedRenderEngine
         $this.RenderEngine.Initialize()
 
@@ -177,6 +179,12 @@ class PmcApplication {
         }
 
         try {
+            # Check if screen requests full clear
+            if ($this.CurrentScreen.NeedsClear) {
+                $this.RenderEngine.RequestClear()
+                $this.CurrentScreen.NeedsClear = $false
+            }
+
             # USE SPEEDTUI PROPERLY - BeginFrame/WriteAt/EndFrame
             $this.RenderEngine.BeginFrame()
 
@@ -270,16 +278,22 @@ class PmcApplication {
         # Hide cursor
         [Console]::CursorVisible = $false
 
-        try {
-            # Event loop - render every frame
-            while ($this.Running -and $this.ScreenStack.Count -gt 0) {
-                # Check for terminal resize
-                $currentWidth = [Console]::WindowWidth
-                $currentHeight = [Console]::WindowHeight
+        # Track iterations for terminal size check optimization
+        $iteration = 0
 
-                if ($currentWidth -ne $this.TermWidth -or $currentHeight -ne $this.TermHeight) {
-                    $this._HandleTerminalResize($currentWidth, $currentHeight)
+        try {
+            # Event loop - render only when dirty
+            while ($this.Running -and $this.ScreenStack.Count -gt 0) {
+                # Check for terminal resize every 10th iteration (not every loop)
+                if ($iteration % 10 -eq 0) {
+                    $currentWidth = [Console]::WindowWidth
+                    $currentHeight = [Console]::WindowHeight
+
+                    if ($currentWidth -ne $this.TermWidth -or $currentHeight -ne $this.TermHeight) {
+                        $this._HandleTerminalResize($currentWidth, $currentHeight)
+                    }
                 }
+                $iteration++
 
                 # Check for input
                 if ([Console]::KeyAvailable) {
@@ -301,14 +315,18 @@ class PmcApplication {
                     }
                 }
 
-                # Only render when dirty (state changed) - preserves differential rendering benefits
-                # SpeedTUI's differential engine still optimizes within each render
+                # Only render when dirty (state changed)
                 if ($this.IsDirty) {
                     $this._RenderCurrentScreen()
+                    $iteration = 0  # Reset counter after render
                 }
 
-                # Small sleep to prevent CPU spinning
-                Start-Sleep -Milliseconds 16  # ~60 FPS
+                # Sleep longer when idle (no render) vs active
+                if ($this.IsDirty) {
+                    Start-Sleep -Milliseconds 16  # ~60 FPS when actively rendering
+                } else {
+                    Start-Sleep -Milliseconds 50  # ~20 FPS when idle, less CPU
+                }
             }
 
         } finally {

@@ -4,6 +4,9 @@ using namespace System.Text
 # WeekViewScreen - Shows tasks for the current week
 # Displays tasks with due date in current week (Monday-Sunday)
 
+
+Set-StrictMode -Version Latest
+
 . "$PSScriptRoot/../PmcScreen.ps1"
 
 <#

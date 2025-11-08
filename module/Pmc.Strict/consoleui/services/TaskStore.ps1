@@ -32,6 +32,8 @@ using namespace System
 using namespace System.Collections.Generic
 using namespace System.Threading
 
+Set-StrictMode -Version Latest
+
 <#
 .SYNOPSIS
 Centralized observable data store for PMC data with event-driven updates
@@ -280,6 +282,7 @@ class TaskStore {
     [bool] SaveData() {
         if ($this.IsSaving) {
             $this.LastError = "Save already in progress"
+            Write-PmcTuiLog "SaveData: Already saving, returning false" "ERROR"
             return $false
         }
 
@@ -299,6 +302,7 @@ class TaskStore {
                     settings = $this._data.settings
                 }
 
+                Write-PmcTuiLog "SaveData: Calling Set-PmcAllData with $($dataToSave.tasks.Count) tasks" "DEBUG"
                 # Call Set-PmcAllData to persist
                 Set-PmcAllData -Data $dataToSave
 
@@ -308,10 +312,13 @@ class TaskStore {
                 # Clear backup on successful save
                 $this._dataBackup = $null
 
+                Write-PmcTuiLog "SaveData: Success" "DEBUG"
                 return $true
             }
             catch {
                 $this.LastError = "Failed to save data: $($_.Exception.Message)"
+                Write-PmcTuiLog "SaveData: Exception: $($_.Exception.Message)" "ERROR"
+                Write-PmcTuiLog "SaveData: Stack trace: $($_.ScriptStackTrace)" "ERROR"
                 $this._InvokeCallback($this.OnSaveError, $this.LastError)
 
                 # Rollback to backup
@@ -404,18 +411,29 @@ class TaskStore {
     True if add succeeded, False otherwise
     #>
     [bool] AddTask([hashtable]$task) {
+        Write-PmcTuiLog "AddTask: Starting with task keys: $($task.Keys -join ', ')" "DEBUG"
         [Monitor]::Enter($this._dataLock)
         try {
             # Validate task
             $validationErrors = $this._ValidateEntity($task, 'task')
             if ($validationErrors.Count -gt 0) {
                 $this.LastError = "Task validation failed: $($validationErrors -join ', ')"
+                Write-PmcTuiLog "AddTask: Validation FAILED: $($validationErrors -join ', ')" "ERROR"
                 return $false
             }
+            Write-PmcTuiLog "AddTask: Validation passed" "DEBUG"
 
             # Generate ID if not present
             if (-not $task.ContainsKey('id') -or [string]::IsNullOrEmpty($task.id)) {
                 $task.id = [Guid]::NewGuid().ToString()
+            }
+
+            # Add default status fields if not present
+            if (-not $task.ContainsKey('completed')) {
+                $task.completed = $false
+            }
+            if (-not $task.ContainsKey('status')) {
+                $task.status = 'pending'
             }
 
             # Add timestamps
@@ -427,17 +445,21 @@ class TaskStore {
 
             # Add to collection
             $this._data.tasks.Add($task)
+            Write-PmcTuiLog "AddTask: Added to collection, total tasks=$($this._data.tasks.Count)" "DEBUG"
 
             # Persist
             if (-not $this.SaveData()) {
+                Write-PmcTuiLog "AddTask: SaveData FAILED" "ERROR"
                 return $false
             }
+            Write-PmcTuiLog "AddTask: SaveData succeeded" "DEBUG"
 
             # Fire events
             $this._InvokeCallback($this.OnTaskAdded, $task)
             $this._InvokeCallback($this.OnTasksChanged, $this._data.tasks.ToArray())
             $this._InvokeCallback($this.OnDataChanged, $null)
 
+            Write-PmcTuiLog "AddTask: Success" "DEBUG"
             return $true
         }
         finally {
@@ -1019,18 +1041,24 @@ class TaskStore {
     .SYNOPSIS
     Invoke callback safely
     #>
-    hidden [void] _InvokeCallback([scriptblock]$callback, $args) {
+    hidden [void] _InvokeCallback([scriptblock]$callback, $arg) {
         if ($null -ne $callback -and $callback -ne {}) {
             try {
-                if ($null -ne $args) {
-                    & $callback $args
+                if ($null -ne $arg) {
+                    # Use Invoke-Command with -ArgumentList to pass single arg without array wrapping
+                    Invoke-Command -ScriptBlock $callback -ArgumentList $arg
                 } else {
                     & $callback
                 }
             }
             catch {
-                # Silently ignore callback errors to prevent cascading failures
-                Write-Debug "Callback error: $($_.Exception.Message)"
+                # Log callback errors and rethrow so user sees them
+                if (Get-Command Write-PmcTuiLog -ErrorAction SilentlyContinue) {
+                    Write-PmcTuiLog "TaskStore callback error: $($_.Exception.Message)" "ERROR"
+                    Write-PmcTuiLog "Callback code: $($callback.ToString())" "ERROR"
+                    Write-PmcTuiLog "Stack trace: $($_.ScriptStackTrace)" "ERROR"
+                }
+                throw  # Rethrow so it crashes and you see it
             }
         }
     }

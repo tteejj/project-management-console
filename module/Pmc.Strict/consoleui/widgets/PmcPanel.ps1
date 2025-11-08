@@ -4,6 +4,8 @@
 using namespace System.Text
 using namespace System.Collections.Generic
 
+Set-StrictMode -Version Latest
+
 <#
 .SYNOPSIS
 Panel widget - container with border, title, and optional scrolling

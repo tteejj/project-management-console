@@ -4,6 +4,9 @@ using namespace System.Text
 # DepAddFormScreen - Add task dependency
 # Creates dependency relationship between two tasks
 
+
+Set-StrictMode -Version Latest
+
 . "$PSScriptRoot/../PmcScreen.ps1"
 
 <#

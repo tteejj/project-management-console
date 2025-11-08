@@ -3,6 +3,8 @@
 
 using namespace System.Text
 
+Set-StrictMode -Version Latest
+
 <#
 .SYNOPSIS
 Header widget for screen titles and navigation context

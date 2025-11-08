@@ -4,6 +4,9 @@ using namespace System.Text
 # SearchFormScreen - Search tasks
 # Input field for search query with live results display
 
+
+Set-StrictMode -Version Latest
+
 . "$PSScriptRoot/../PmcScreen.ps1"
 
 <#

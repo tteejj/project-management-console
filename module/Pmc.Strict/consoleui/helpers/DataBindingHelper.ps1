@@ -19,6 +19,8 @@
 using namespace System
 using namespace System.Collections.Generic
 
+Set-StrictMode -Version Latest
+
 <#
 .SYNOPSIS
 Convert PMC entity to widget field definitions

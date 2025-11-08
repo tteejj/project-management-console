@@ -43,6 +43,8 @@ using namespace System.Text
 # . "$scriptDir/widgets/InlineEditor.ps1"
 # . "$scriptDir/services/TaskStore.ps1"
 
+Set-StrictMode -Version Latest
+
 <#
 .SYNOPSIS
 Base class for form-based screens in PMC TUI

@@ -4,6 +4,9 @@ using namespace System.Text
 # FocusStatusScreen - Show focus status
 # Displays current focused project with task statistics
 
+
+Set-StrictMode -Version Latest
+
 . "$PSScriptRoot/../PmcScreen.ps1"
 
 <#
