@@ -51,17 +51,49 @@ while (-not $screen.ShouldExit) {
     $screen.HandleInput($key)
 }
 #>
+
+# Helper function to get title based on view mode
+function Get-TaskListTitle {
+    param([string]$viewMode)
+    switch ($viewMode) {
+        'all' { return 'All Tasks' }
+        'active' { return 'Active Tasks' }
+        'completed' { return 'Completed Tasks' }
+        'overdue' { return 'Overdue Tasks' }
+        'today' { return "Today's Tasks" }
+        'tomorrow' { return "Tomorrow's Tasks" }
+        'week' { return 'This Week' }
+        'nextactions' { return 'Next Actions' }
+        'noduedate' { return 'No Due Date' }
+        'month' { return 'This Month' }
+        'agenda' { return 'Agenda View' }
+        'upcoming' { return 'Upcoming Tasks' }
+        default { return 'Task List' }
+    }
+}
+
 class TaskListScreen : StandardListScreen {
     # Additional state
-    [string]$_viewMode = 'all'  # all, active, completed, overdue, today, week
+    [string]$_viewMode = 'all'  # all, active, completed, overdue, today, tomorrow, week, nextactions, noduedate, month, agenda, upcoming
     [bool]$_showCompleted = $true
     [string]$_sortColumn = 'due'
     [bool]$_sortAscending = $true
     [hashtable]$_stats = @{}
 
-    # Constructor
+    # Constructor with optional view mode
     TaskListScreen() : base("TaskList", "Task List") {
         $this._viewMode = 'active'
+        $this._showCompleted = $false
+        $this._sortColumn = 'due'
+        $this._sortAscending = $true
+
+        # Setup menus after base constructor
+        $this._SetupMenus()
+    }
+
+    # Constructor with explicit view mode
+    TaskListScreen([string]$viewMode) : base("TaskList", (Get-TaskListTitle $viewMode)) {
+        $this._viewMode = $viewMode
         $this._showCompleted = $false
         $this._sortColumn = 'due'
         $this._sortAscending = $true
@@ -171,6 +203,14 @@ class TaskListScreen : StandardListScreen {
                     $_.due.Date -eq [DateTime]::Today
                 }
             }
+            'tomorrow' {
+                $tomorrow = [DateTime]::Today.AddDays(1)
+                $allTasks | Where-Object {
+                    -not $_.completed -and
+                    $_.due -and
+                    $_.due.Date -eq $tomorrow
+                }
+            }
             'week' {
                 $weekEnd = [DateTime]::Today.AddDays(7)
                 $allTasks | Where-Object {
@@ -178,6 +218,43 @@ class TaskListScreen : StandardListScreen {
                     $_.due -and
                     $_.due -ge [DateTime]::Today -and
                     $_.due -le $weekEnd
+                }
+            }
+            'nextactions' {
+                # Tasks with no dependencies or all dependencies completed
+                $allTasks | Where-Object {
+                    -not $_.completed -and
+                    (-not $_.depends_on -or $_.depends_on.Count -eq 0)
+                }
+            }
+            'noduedate' {
+                $allTasks | Where-Object {
+                    -not $_.completed -and
+                    -not $_.due
+                }
+            }
+            'month' {
+                $monthEnd = [DateTime]::Today.AddDays(30)
+                $allTasks | Where-Object {
+                    -not $_.completed -and
+                    $_.due -and
+                    $_.due -ge [DateTime]::Today -and
+                    $_.due -le $monthEnd
+                }
+            }
+            'agenda' {
+                # All tasks with due dates, sorted by date
+                $allTasks | Where-Object {
+                    -not $_.completed -and
+                    $_.due
+                }
+            }
+            'upcoming' {
+                # Tasks due in the future (beyond today)
+                $allTasks | Where-Object {
+                    -not $_.completed -and
+                    $_.due -and
+                    $_.due.Date -gt [DateTime]::Today
                 }
             }
             default { $allTasks }
@@ -577,13 +654,14 @@ class TaskListScreen : StandardListScreen {
 
     # Change view mode
     [void] SetViewMode([string]$mode) {
-        $validModes = @('all', 'active', 'completed', 'overdue', 'today', 'week')
+        $validModes = @('all', 'active', 'completed', 'overdue', 'today', 'tomorrow', 'week', 'nextactions', 'noduedate', 'month', 'agenda', 'upcoming')
         if ($mode -notin $validModes) {
             $this.SetStatusMessage("Invalid view mode: $mode", "error")
             return
         }
 
         $this._viewMode = $mode
+        $this.Title = Get-TaskListTitle $mode
         $this.LoadData()
         $this.SetStatusMessage("View: $mode", "info")
     }
@@ -620,6 +698,10 @@ class TaskListScreen : StandardListScreen {
             $allTasks = @()
         }
 
+        $tomorrow = [DateTime]::Today.AddDays(1)
+        $weekEnd = [DateTime]::Today.AddDays(7)
+        $monthEnd = [DateTime]::Today.AddDays(30)
+
         $this._stats = @{
             Total = $allTasks.Count
             Active = @($allTasks | Where-Object { -not $_.completed }).Count
@@ -630,10 +712,28 @@ class TaskListScreen : StandardListScreen {
             Today = @($allTasks | Where-Object {
                 -not $_.completed -and $_.due -and $_.due.Date -eq [DateTime]::Today
             }).Count
+            Tomorrow = @($allTasks | Where-Object {
+                -not $_.completed -and $_.due -and $_.due.Date -eq $tomorrow
+            }).Count
             Week = @($allTasks | Where-Object {
                 -not $_.completed -and $_.due -and
                 $_.due -ge [DateTime]::Today -and
-                $_.due -le [DateTime]::Today.AddDays(7)
+                $_.due -le $weekEnd
+            }).Count
+            Month = @($allTasks | Where-Object {
+                -not $_.completed -and $_.due -and
+                $_.due -ge [DateTime]::Today -and
+                $_.due -le $monthEnd
+            }).Count
+            NextActions = @($allTasks | Where-Object {
+                -not $_.completed -and
+                (-not $_.depends_on -or $_.depends_on.Count -eq 0)
+            }).Count
+            NoDueDate = @($allTasks | Where-Object {
+                -not $_.completed -and -not $_.due
+            }).Count
+            Upcoming = @($allTasks | Where-Object {
+                -not $_.completed -and $_.due -and $_.due.Date -gt [DateTime]::Today
             }).Count
         }
     }
@@ -745,6 +845,69 @@ class TaskListScreen : StandardListScreen {
         $output += ([StandardListScreen]$this).Render()
 
         return $output
+    }
+
+    # Static: Register menu items for all view modes
+    static [void] RegisterMenuItems([object]$registry) {
+        # Task List (all tasks)
+        $registry.AddMenuItem('Tasks', 'Task List', 'L', {
+            . "$PSScriptRoot/TaskListScreen.ps1"
+            $global:PmcApp.PushScreen([TaskListScreen]::new())
+        }, 5)
+
+        # Today's tasks
+        $registry.AddMenuItem('Tasks', 'Today', 'Y', {
+            . "$PSScriptRoot/TaskListScreen.ps1"
+            $global:PmcApp.PushScreen([TaskListScreen]::new('today'))
+        }, 10)
+
+        # Tomorrow's tasks
+        $registry.AddMenuItem('Tasks', 'Tomorrow', 'T', {
+            . "$PSScriptRoot/TaskListScreen.ps1"
+            $global:PmcApp.PushScreen([TaskListScreen]::new('tomorrow'))
+        }, 15)
+
+        # This week
+        $registry.AddMenuItem('Tasks', 'Week View', 'W', {
+            . "$PSScriptRoot/TaskListScreen.ps1"
+            $global:PmcApp.PushScreen([TaskListScreen]::new('week'))
+        }, 20)
+
+        # Upcoming tasks
+        $registry.AddMenuItem('Tasks', 'Upcoming', 'U', {
+            . "$PSScriptRoot/TaskListScreen.ps1"
+            $global:PmcApp.PushScreen([TaskListScreen]::new('upcoming'))
+        }, 25)
+
+        # Overdue tasks
+        $registry.AddMenuItem('Tasks', 'Overdue', 'V', {
+            . "$PSScriptRoot/TaskListScreen.ps1"
+            $global:PmcApp.PushScreen([TaskListScreen]::new('overdue'))
+        }, 30)
+
+        # Next actions (no dependencies)
+        $registry.AddMenuItem('Tasks', 'Next Actions', 'N', {
+            . "$PSScriptRoot/TaskListScreen.ps1"
+            $global:PmcApp.PushScreen([TaskListScreen]::new('nextactions'))
+        }, 35)
+
+        # No due date
+        $registry.AddMenuItem('Tasks', 'No Due Date', 'D', {
+            . "$PSScriptRoot/TaskListScreen.ps1"
+            $global:PmcApp.PushScreen([TaskListScreen]::new('noduedate'))
+        }, 40)
+
+        # Month view
+        $registry.AddMenuItem('Tasks', 'Month View', 'M', {
+            . "$PSScriptRoot/TaskListScreen.ps1"
+            $global:PmcApp.PushScreen([TaskListScreen]::new('month'))
+        }, 45)
+
+        # Agenda view
+        $registry.AddMenuItem('Tasks', 'Agenda View', 'A', {
+            . "$PSScriptRoot/TaskListScreen.ps1"
+            $global:PmcApp.PushScreen([TaskListScreen]::new('agenda'))
+        }, 50)
     }
 }
 
