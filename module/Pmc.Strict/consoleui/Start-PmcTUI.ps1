@@ -114,7 +114,8 @@ try {
         "FilterPanel.ps1",
         "InlineEditor.ps1",
         "UniversalList.ps1",
-        "TimeEntryDetailDialog.ps1"
+        "TimeEntryDetailDialog.ps1",
+        "TextAreaEditor.ps1"
     )
 
     foreach ($widgetFile in $widgetFiles) {
