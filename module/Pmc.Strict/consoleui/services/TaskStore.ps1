@@ -129,11 +129,15 @@ class TaskStore {
             }
         }
         timelog = @{
-            required = @('taskId', 'duration')
+            required = @('date', 'minutes')
             types = @{
-                taskId = 'string'
-                duration = 'int'
-                timestamp = 'datetime'
+                date = 'datetime'
+                task = 'string'
+                project = 'string'
+                timecode = 'string'
+                minutes = 'int'
+                notes = 'string'
+                created = 'datetime'
             }
         }
     }
@@ -225,7 +229,16 @@ class TaskStore {
                 if ($pmcData.tasks) {
                     $this._data.tasks = [System.Collections.ArrayList]::new()
                     foreach ($task in $pmcData.tasks) {
-                        [void]$this._data.tasks.Add($task)
+                        # Convert PSCustomObject to hashtable if needed
+                        if ($task -isnot [hashtable]) {
+                            $taskHash = @{}
+                            foreach ($prop in $task.PSObject.Properties) {
+                                $taskHash[$prop.Name] = $prop.Value
+                            }
+                            [void]$this._data.tasks.Add($taskHash)
+                        } else {
+                            [void]$this._data.tasks.Add($task)
+                        }
                     }
                     Write-PmcTuiLog "TaskStore.LoadData: Loaded $($this._data.tasks.Count) tasks" "DEBUG"
                 } else {
@@ -236,7 +249,16 @@ class TaskStore {
                 if ($pmcData.projects) {
                     $this._data.projects = [System.Collections.ArrayList]::new()
                     foreach ($project in $pmcData.projects) {
-                        [void]$this._data.projects.Add($project)
+                        # Convert PSCustomObject to hashtable if needed
+                        if ($project -isnot [hashtable]) {
+                            $projectHash = @{}
+                            foreach ($prop in $project.PSObject.Properties) {
+                                $projectHash[$prop.Name] = $prop.Value
+                            }
+                            [void]$this._data.projects.Add($projectHash)
+                        } else {
+                            [void]$this._data.projects.Add($project)
+                        }
                     }
                 } else {
                     $this._data.projects = [System.Collections.ArrayList]::new()
@@ -245,7 +267,16 @@ class TaskStore {
                 if ($pmcData.timelogs) {
                     $this._data.timelogs = [System.Collections.ArrayList]::new()
                     foreach ($log in $pmcData.timelogs) {
-                        [void]$this._data.timelogs.Add($log)
+                        # Convert PSCustomObject to hashtable if needed
+                        if ($log -isnot [hashtable]) {
+                            $logHash = @{}
+                            foreach ($prop in $log.PSObject.Properties) {
+                                $logHash[$prop.Name] = $prop.Value
+                            }
+                            [void]$this._data.timelogs.Add($logHash)
+                        } else {
+                            [void]$this._data.timelogs.Add($log)
+                        }
                     }
                 } else {
                     $this._data.timelogs = [System.Collections.ArrayList]::new()
@@ -355,11 +386,21 @@ class TaskStore {
     Create backup of current data for rollback
     #>
     hidden [void] _CreateBackup() {
+        # Create shallow copy of arrays - deep copy not needed for backup/rollback
+        $tasksCopy = [System.Collections.ArrayList]::new()
+        foreach ($task in $this._data.tasks) { $tasksCopy.Add($task) | Out-Null }
+
+        $projectsCopy = [System.Collections.ArrayList]::new()
+        foreach ($project in $this._data.projects) { $projectsCopy.Add($project) | Out-Null }
+
+        $timelogsCopy = [System.Collections.ArrayList]::new()
+        foreach ($log in $this._data.timelogs) { $timelogsCopy.Add($log) | Out-Null }
+
         $this._dataBackup = @{
-            tasks = [System.Collections.ArrayList]$this._data.tasks.Clone()
-            projects = [System.Collections.ArrayList]$this._data.projects.Clone()
-            timelogs = [System.Collections.ArrayList]$this._data.timelogs.Clone()
-            settings = $this._data.settings.Clone()
+            tasks = $tasksCopy
+            projects = $projectsCopy
+            timelogs = $timelogsCopy
+            settings = $this._data.settings
         }
     }
 
@@ -432,6 +473,11 @@ class TaskStore {
     [bool] AddTask([hashtable]$task) {
         Write-PmcTuiLog "AddTask: Starting with task keys: $($task.Keys -join ', ')" "DEBUG"
         [Monitor]::Enter($this._dataLock)
+
+        $success = $false
+        $capturedTask = $null
+        $capturedTasks = $null
+
         try {
             # Validate task
             $validationErrors = $this._ValidateEntity($task, 'task')
@@ -441,6 +487,9 @@ class TaskStore {
                 return $false
             }
             Write-PmcTuiLog "AddTask: Validation passed" "DEBUG"
+
+            # Create backup BEFORE any modifications
+            $this._CreateBackup()
 
             # Generate ID if not present
             if (-not $task.ContainsKey('id') -or [string]::IsNullOrEmpty($task.id)) {
@@ -473,17 +522,26 @@ class TaskStore {
             }
             Write-PmcTuiLog "AddTask: SaveData succeeded" "DEBUG"
 
-            # Fire events
-            $this._InvokeCallback($this.OnTaskAdded, $task)
-            $this._InvokeCallback($this.OnTasksChanged, $this._data.tasks.ToArray())
-            $this._InvokeCallback($this.OnDataChanged, $null)
+            # Capture data for callbacks BEFORE releasing lock
+            $capturedTask = $task.Clone()
+            $capturedTasks = $this._data.tasks.ToArray()
+            $success = $true
 
-            Write-PmcTuiLog "AddTask: Success" "DEBUG"
-            return $true
+            Write-PmcTuiLog "AddTask: Success (lock held)" "DEBUG"
         }
         finally {
             [Monitor]::Exit($this._dataLock)
         }
+
+        # Fire events AFTER releasing lock to avoid deadlock
+        if ($success) {
+            Write-PmcTuiLog "AddTask: Firing callbacks" "DEBUG"
+            $this._InvokeCallback($this.OnTaskAdded, $capturedTask)
+            $this._InvokeCallback($this.OnTasksChanged, $capturedTasks)
+            $this._InvokeCallback($this.OnDataChanged, $null)
+        }
+
+        return $success
     }
 
     <#
@@ -501,6 +559,11 @@ class TaskStore {
     #>
     [bool] UpdateTask([string]$id, [hashtable]$changes) {
         [Monitor]::Enter($this._dataLock)
+
+        $success = $false
+        $capturedTask = $null
+        $capturedTasks = $null
+
         try {
             # Find task
             $task = $this._data.tasks | Where-Object { $_.id -eq $id } | Select-Object -First 1
@@ -510,13 +573,24 @@ class TaskStore {
                 return $false
             }
 
-            # Apply changes
+            # Create backup BEFORE any modifications
+            $this._CreateBackup()
+
+            # Apply changes - use Add-Member for PSObject compatibility
             foreach ($key in $changes.Keys) {
-                $task[$key] = $changes[$key]
+                if ($task.PSObject.Properties.Name -contains $key) {
+                    $task.$key = $changes[$key]
+                } else {
+                    Add-Member -InputObject $task -MemberType NoteProperty -Name $key -Value $changes[$key] -Force
+                }
             }
 
             # Update modified timestamp
-            $task.modified = Get-Date
+            if ($task.PSObject.Properties.Name -contains 'modified') {
+                $task.modified = Get-Date
+            } else {
+                Add-Member -InputObject $task -MemberType NoteProperty -Name 'modified' -Value (Get-Date) -Force
+            }
 
             # Validate updated task
             $validationErrors = $this._ValidateEntity($task, 'task')
@@ -531,16 +605,23 @@ class TaskStore {
                 return $false
             }
 
-            # Fire events
-            $this._InvokeCallback($this.OnTaskUpdated, $task)
-            $this._InvokeCallback($this.OnTasksChanged, $this._data.tasks.ToArray())
-            $this._InvokeCallback($this.OnDataChanged, $null)
-
-            return $true
+            # Capture data for callbacks BEFORE releasing lock
+            $capturedTask = if ($task -is [hashtable]) { $task.Clone() } else { $task.PSObject.Copy() }
+            $capturedTasks = $this._data.tasks.ToArray()
+            $success = $true
         }
         finally {
             [Monitor]::Exit($this._dataLock)
         }
+
+        # Fire events AFTER releasing lock to avoid deadlock
+        if ($success) {
+            $this._InvokeCallback($this.OnTaskUpdated, $capturedTask)
+            $this._InvokeCallback($this.OnTasksChanged, $capturedTasks)
+            $this._InvokeCallback($this.OnDataChanged, $null)
+        }
+
+        return $success
     }
 
     <#
@@ -555,6 +636,11 @@ class TaskStore {
     #>
     [bool] DeleteTask([string]$id) {
         [Monitor]::Enter($this._dataLock)
+
+        $success = $false
+        $capturedId = $id
+        $capturedTasks = $null
+
         try {
             # Find task index
             $index = -1
@@ -570,6 +656,9 @@ class TaskStore {
                 return $false
             }
 
+            # Create backup BEFORE any modifications
+            $this._CreateBackup()
+
             # Remove task
             $this._data.tasks.RemoveAt($index)
 
@@ -578,16 +667,22 @@ class TaskStore {
                 return $false
             }
 
-            # Fire events
-            $this._InvokeCallback($this.OnTaskDeleted, $id)
-            $this._InvokeCallback($this.OnTasksChanged, $this._data.tasks.ToArray())
-            $this._InvokeCallback($this.OnDataChanged, $null)
-
-            return $true
+            # Capture data for callbacks BEFORE releasing lock
+            $capturedTasks = $this._data.tasks.ToArray()
+            $success = $true
         }
         finally {
             [Monitor]::Exit($this._dataLock)
         }
+
+        # Fire events AFTER releasing lock to avoid deadlock
+        if ($success) {
+            $this._InvokeCallback($this.OnTaskDeleted, $capturedId)
+            $this._InvokeCallback($this.OnTasksChanged, $capturedTasks)
+            $this._InvokeCallback($this.OnDataChanged, $null)
+        }
+
+        return $success
     }
 
     # === Project CRUD Operations ===
@@ -657,6 +752,9 @@ class TaskStore {
                 return $false
             }
 
+            # Create backup BEFORE any modifications
+            $this._CreateBackup()
+
             # Add timestamps
             $now = Get-Date
             if (-not $project.ContainsKey('created')) {
@@ -708,13 +806,24 @@ class TaskStore {
                 return $false
             }
 
-            # Apply changes
+            # Create backup BEFORE any modifications
+            $this._CreateBackup()
+
+            # Apply changes - use Add-Member for PSObject compatibility
             foreach ($key in $changes.Keys) {
-                $project[$key] = $changes[$key]
+                if ($project.PSObject.Properties.Name -contains $key) {
+                    $project.$key = $changes[$key]
+                } else {
+                    Add-Member -InputObject $project -MemberType NoteProperty -Name $key -Value $changes[$key] -Force
+                }
             }
 
             # Update modified timestamp
-            $project.modified = Get-Date
+            if ($project.PSObject.Properties.Name -contains 'modified') {
+                $project.modified = Get-Date
+            } else {
+                Add-Member -InputObject $project -MemberType NoteProperty -Name 'modified' -Value (Get-Date) -Force
+            }
 
             # Validate updated project
             $validationErrors = $this._ValidateEntity($project, 'project')
@@ -767,6 +876,9 @@ class TaskStore {
                 $this.LastError = "Project not found: $name"
                 return $false
             }
+
+            # Create backup BEFORE any modifications
+            $this._CreateBackup()
 
             # Remove project
             $this._data.projects.RemoveAt($index)
@@ -848,6 +960,9 @@ class TaskStore {
                 return $false
             }
 
+            # Create backup BEFORE any modifications
+            $this._CreateBackup()
+
             # Generate ID if not present
             if (-not $timelog.ContainsKey('id') -or [string]::IsNullOrEmpty($timelog.id)) {
                 $timelog.id = [Guid]::NewGuid().ToString()
@@ -905,6 +1020,9 @@ class TaskStore {
                 return $false
             }
 
+            # Create backup BEFORE any modifications
+            $this._CreateBackup()
+
             # Remove time log
             $this._data.timelogs.RemoveAt($index)
 
@@ -915,6 +1033,73 @@ class TaskStore {
 
             # Fire events
             $this._InvokeCallback($this.OnTimeLogDeleted, $id)
+            $this._InvokeCallback($this.OnTimeLogsChanged, $this._data.timelogs.ToArray())
+            $this._InvokeCallback($this.OnDataChanged, $null)
+
+            return $true
+        }
+        finally {
+            [Monitor]::Exit($this._dataLock)
+        }
+    }
+
+    <#
+    .SYNOPSIS
+    Update a time log entry
+
+    .PARAMETER id
+    Time log ID
+
+    .PARAMETER changes
+    Hashtable of fields to update
+
+    .OUTPUTS
+    True if update succeeded, False otherwise
+    #>
+    [bool] UpdateTimeLog([string]$id, [hashtable]$changes) {
+        [Monitor]::Enter($this._dataLock)
+        try {
+            # Find time log
+            $timelog = $null
+            foreach ($log in $this._data.timelogs) {
+                if ($log.id -eq $id) {
+                    $timelog = $log
+                    break
+                }
+            }
+
+            if (-not $timelog) {
+                $this.LastError = "Time log not found: $id"
+                return $false
+            }
+
+            # Create backup BEFORE any modifications
+            $this._CreateBackup()
+
+            # Apply changes
+            foreach ($key in $changes.Keys) {
+                if ($key -ne 'id') {  # Don't allow ID changes
+                    $timelog[$key] = $changes[$key]
+                }
+            }
+
+            # Add modified timestamp
+            $timelog.modified = [DateTime]::Now
+
+            # Validate
+            $validationErrors = $this._ValidateEntity('timelog', $timelog)
+            if ($validationErrors.Count -gt 0) {
+                $this.LastError = "Validation failed: $($validationErrors -join ', ')"
+                return $false
+            }
+
+            # Persist
+            if (-not $this.SaveData()) {
+                return $false
+            }
+
+            # Fire events
+            $this._InvokeCallback($this.OnTimeLogUpdated, $timelog)
             $this._InvokeCallback($this.OnTimeLogsChanged, $this._data.timelogs.ToArray())
             $this._InvokeCallback($this.OnDataChanged, $null)
 
@@ -1013,7 +1198,7 @@ class TaskStore {
     .OUTPUTS
     Array of validation error messages (empty if valid)
     #>
-    hidden [string[]] _ValidateEntity([hashtable]$entity, [string]$entityType) {
+    hidden [string[]] _ValidateEntity($entity, [string]$entityType) {
         $errors = @()
 
         if (-not $this._validationRules.ContainsKey($entityType)) {
@@ -1025,28 +1210,32 @@ class TaskStore {
 
         # Check required fields
         foreach ($field in $rules.required) {
-            if (-not $entity.ContainsKey($field) -or [string]::IsNullOrEmpty($entity[$field])) {
+            $value = Get-SafeProperty $entity $field
+            if ([string]::IsNullOrEmpty($value)) {
                 $errors += "Required field missing: $field"
             }
         }
 
         # Check field types
         foreach ($field in $rules.types.Keys) {
-            if ($entity.ContainsKey($field) -and $null -ne $entity[$field]) {
-                $expectedType = $rules.types[$field]
-                $value = $entity[$field]
+            $hasField = Test-SafeProperty $entity $field
+            if ($hasField) {
+                $value = Get-SafeProperty $entity $field
+                if ($null -ne $value) {
+                    $expectedType = $rules.types[$field]
 
-                $isValid = switch ($expectedType) {
-                    'string' { $value -is [string] }
-                    'int' { $value -is [int] }
-                    'bool' { $value -is [bool] }
-                    'datetime' { $value -is [DateTime] }
-                    'array' { $value -is [array] }
-                    default { $true }
-                }
+                    $isValid = switch ($expectedType) {
+                        'string' { $value -is [string] }
+                        'int' { $value -is [int] }
+                        'bool' { $value -is [bool] }
+                        'datetime' { $value -is [DateTime] }
+                        'array' { $value -is [array] }
+                        default { $true }
+                    }
 
-                if (-not $isValid) {
-                    $errors += "Field '$field' has invalid type (expected $expectedType)"
+                    if (-not $isValid) {
+                        $errors += "Field '$field' has invalid type (expected $expectedType)"
+                    }
                 }
             }
         }
@@ -1065,19 +1254,20 @@ class TaskStore {
             try {
                 if ($null -ne $arg) {
                     # Use Invoke-Command with -ArgumentList to pass single arg without array wrapping
-                    Invoke-Command -ScriptBlock $callback -ArgumentList $arg
+                    Invoke-Command -ScriptBlock $callback -ArgumentList (,$arg)
                 } else {
                     & $callback
                 }
             }
             catch {
-                # Log callback errors and rethrow so user sees them
+                # Log callback errors but DON'T rethrow - callbacks must never crash the app
+                $this.LastError = "Callback failed: $($_.Exception.Message)"
                 if (Get-Command Write-PmcTuiLog -ErrorAction SilentlyContinue) {
                     Write-PmcTuiLog "TaskStore callback error: $($_.Exception.Message)" "ERROR"
                     Write-PmcTuiLog "Callback code: $($callback.ToString())" "ERROR"
                     Write-PmcTuiLog "Stack trace: $($_.ScriptStackTrace)" "ERROR"
                 }
-                throw  # Rethrow so it crashes and you see it
+                # DON'T rethrow - background operations must not crash
             }
         }
     }

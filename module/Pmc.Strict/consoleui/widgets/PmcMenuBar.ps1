@@ -183,12 +183,28 @@ class PmcMenuBar : PmcWidget {
     Show dropdown for currently selected menu
     #>
     [void] ShowDropdown() {
+        if ($global:PmcTuiLogFile) {
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ShowDropdown called: SelectedMenuIndex=$($this.SelectedMenuIndex) MenuCount=$($this.Menus.Count)"
+        }
         if ($this.SelectedMenuIndex -ge 0 -and $this.SelectedMenuIndex -lt $this.Menus.Count) {
+            $menu = $this.Menus[$this.SelectedMenuIndex]
+
+            # Don't show dropdown if menu has no items
+            if ($null -eq $menu.Items -or $menu.Items.Count -eq 0) {
+                if ($global:PmcTuiLogFile) {
+                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ShowDropdown: Menu '$($menu.Title)' has no items (type=$($menu.GetType().Name) Items=$($menu.Items)), not showing dropdown"
+                }
+                return
+            }
+
             $this.DropdownVisible = $true
             $this.SelectedItemIndex = 0
             # Skip separators
             $this._SelectNextEnabledItem()
             $this.Invalidate()
+            if ($global:PmcTuiLogFile) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ShowDropdown: DropdownVisible=true, Menu='$($menu.Title)' ItemCount=$($menu.Items.Count)"
+            }
         }
     }
 
@@ -298,18 +314,35 @@ class PmcMenuBar : PmcWidget {
     Execute currently selected menu item
     #>
     [bool] ExecuteSelectedItem() {
+        if ($global:PmcTuiLogFile) {
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ExecuteSelectedItem: DropdownVisible=$($this.DropdownVisible) MenuIndex=$($this.SelectedMenuIndex) ItemIndex=$($this.SelectedItemIndex)"
+        }
+
         if (-not $this.DropdownVisible -or $this.SelectedMenuIndex -lt 0 -or $this.SelectedItemIndex -lt 0) {
+            if ($global:PmcTuiLogFile) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ExecuteSelectedItem: Conditions not met, returning false"
+            }
             return $false
         }
 
         $menu = $this.Menus[$this.SelectedMenuIndex]
         if ($this.SelectedItemIndex -ge $menu.Items.Count) {
+            if ($global:PmcTuiLogFile) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ExecuteSelectedItem: ItemIndex ($($this.SelectedItemIndex)) >= ItemCount ($($menu.Items.Count)), returning false"
+            }
             return $false
         }
 
         $item = $menu.Items[$this.SelectedItemIndex]
         if ($item.IsSeparator -or -not $item.Enabled) {
+            if ($global:PmcTuiLogFile) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ExecuteSelectedItem: Item is separator or disabled, returning false"
+            }
             return $false
+        }
+
+        if ($global:PmcTuiLogFile) {
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ExecuteSelectedItem: Executing item='$($item.Label)' from menu='$($menu.Title)'"
         }
 
         # Close dropdown BEFORE executing action
@@ -333,6 +366,10 @@ class PmcMenuBar : PmcWidget {
     # === Rendering ===
 
     [string] OnRender() {
+        if ($global:PmcTuiLogFile) {
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] MenuBar.OnRender: Called (Visible=$($this.Visible) X=$($this.X) Y=$($this.Y) Width=$($this.Width))"
+        }
+
         $sb = [System.Text.StringBuilder]::new(1024)
 
         # Determine if we need to clear old dropdown
@@ -371,6 +408,10 @@ class PmcMenuBar : PmcWidget {
         }
 
         $result = $sb.ToString()
+
+        if ($global:PmcTuiLogFile) {
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] MenuBar.OnRender: Returning length=$($result.Length)"
+        }
 
         return $result
     }
@@ -579,13 +620,26 @@ class PmcMenuBar : PmcWidget {
         $key = $keyInfo.Key
         $char = $keyInfo.KeyChar
 
+        if ($global:PmcTuiLogFile) {
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] MenuBar.HandleKeyPress: Key=$key Char='$char' Alt=$($keyInfo.Modifiers -band [ConsoleModifiers]::Alt) IsActive=$($this.IsActive)"
+        }
+
         # Handle Alt+hotkey even when not active (to activate menu)
         if ($keyInfo.Modifiers -band [ConsoleModifiers]::Alt) {
+            if ($global:PmcTuiLogFile) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] MenuBar: Alt key detected, calling _HandleMenuHotkey('$char')"
+            }
             if ($this._HandleMenuHotkey($char)) {
                 # Menu hotkey handler already set SelectedMenuIndex and showed dropdown
                 # Just ensure IsActive is set (don't call Activate() which resets index to 0)
                 $this.IsActive = $true
+                if ($global:PmcTuiLogFile) {
+                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] MenuBar: Hotkey matched, menu activated"
+                }
                 return $true
+            }
+            if ($global:PmcTuiLogFile) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] MenuBar: Hotkey '$char' not matched"
             }
         }
 
@@ -618,7 +672,9 @@ class PmcMenuBar : PmcWidget {
                     return $true
                 }
                 'Enter' {
-                    return $this.ExecuteSelectedItem()
+                    $this.ExecuteSelectedItem()
+                    # Always return true - we handled the key (even if no action executed)
+                    return $true
                 }
                 'Escape' {
                     $this.HideDropdown()

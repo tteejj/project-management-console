@@ -134,8 +134,60 @@ class PmcStatusBar : PmcWidget {
         $sb.Append($reset)
 
         $result = $sb.ToString()
-        
+
         return $result
+    }
+
+    <#
+    .SYNOPSIS
+    Render directly to engine (new high-performance path)
+
+    .PARAMETER engine
+    RenderEngine instance to write to
+
+    .DESCRIPTION
+    Writes status bar content directly to RenderEngine.WriteAt()
+    without building ANSI strings. Eliminates parsing overhead.
+    #>
+    [void] RenderToEngine([object]$engine) {
+        # Colors
+        $bgColor = $this.GetThemedAnsi('Border', $true)
+        $fgColor = $this.GetThemedAnsi('Text', $false)
+        $mutedColor = $this.GetThemedAnsi('Muted', $false)
+        $reset = "`e[0m"
+
+        # Calculate section widths
+        $leftWidth = [Math]::Floor($this.Width * 0.4)
+        $centerWidth = [Math]::Floor($this.Width * 0.2)
+        $rightWidth = $this.Width - $leftWidth - $centerWidth
+
+        # Build complete status bar line
+        $sb = [System.Text.StringBuilder]::new(256)
+
+        # Background
+        if ($this.UseBackground) {
+            $sb.Append($bgColor)
+            $sb.Append($fgColor)
+        }
+
+        # Left section
+        $leftDisplay = $this.PadText($this.LeftText, $leftWidth, 'left')
+        $sb.Append($leftDisplay)
+
+        # Center section
+        $centerDisplay = $this.PadText($this.CenterText, $centerWidth, 'center')
+        $sb.Append($mutedColor)
+        $sb.Append($centerDisplay)
+        $sb.Append($fgColor)
+
+        # Right section
+        $rightDisplay = $this.PadText($this.RightText, $rightWidth, 'right')
+        $sb.Append($rightDisplay)
+
+        $sb.Append($reset)
+
+        # Write entire status bar in one call
+        $engine.WriteAt($this.X, $this.Y, $sb.ToString())
     }
 
     # === Helper Methods ===

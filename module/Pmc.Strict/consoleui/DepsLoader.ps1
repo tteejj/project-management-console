@@ -40,6 +40,9 @@ function Export-ModuleMember { param([Parameter(ValueFromRemainingArguments=$tru
 # Template system (from src/)
 . (Join-Path $srcDir 'TemplateDisplay.ps1')
 
+# Type normalization helpers (helpers/)
+. (Join-Path $PSScriptRoot 'helpers/TypeNormalization.ps1')
+
 # ConsoleUI-specific PmcTemplate class (UNIQUE to deps/)
 . (Join-Path $depsDir 'PmcTemplate.ps1')
 

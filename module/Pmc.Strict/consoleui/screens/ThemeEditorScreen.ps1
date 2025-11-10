@@ -7,7 +7,8 @@ using namespace System.Text
 
 Set-StrictMode -Version Latest
 
-. "$PSScriptRoot/../PmcScreen.ps1"
+# NOTE: PmcScreen is loaded by Start-PmcTUI.ps1 - don't load again
+# . "$PSScriptRoot/../PmcScreen.ps1"
 
 <#
 .SYNOPSIS
@@ -142,56 +143,88 @@ class ThemeEditorScreen : PmcScreen {
         $this.ShowStatus("Loading themes...")
 
         try {
-            # Define available themes
+            # Define available themes (using PMC theme system hex colors)
             $this.Themes = @(
                 @{
                     Name = "Default"
-                    Description = "Standard color scheme"
-                    Colors = @{
-                        Primary = "Blue"
-                        Success = "Green"
-                        Warning = "Yellow"
-                        Error = "Red"
-                        Text = "White"
-                    }
+                    Hex = "#33aaff"
+                    Description = "Classic blue"
                 }
                 @{
-                    Name = "Dark"
-                    Description = "High contrast dark theme"
-                    Colors = @{
-                        Primary = "Cyan"
-                        Success = "Green"
-                        Warning = "Yellow"
-                        Error = "Red"
-                        Text = "White"
-                    }
+                    Name = "Ocean"
+                    Hex = "#33aaff"
+                    Description = "Cool ocean blue"
                 }
                 @{
-                    Name = "Light"
-                    Description = "Light background theme"
-                    Colors = @{
-                        Primary = "Blue"
-                        Success = "DarkGreen"
-                        Warning = "DarkYellow"
-                        Error = "DarkRed"
-                        Text = "Black"
-                    }
+                    Name = "Lime"
+                    Hex = "#33cc66"
+                    Description = "Fresh lime green"
                 }
                 @{
-                    Name = "Solarized"
-                    Description = "Solarized color palette"
-                    Colors = @{
-                        Primary = "Cyan"
-                        Success = "Green"
-                        Warning = "Yellow"
-                        Error = "Magenta"
-                        Text = "White"
-                    }
+                    Name = "Purple"
+                    Hex = "#9966ff"
+                    Description = "Vibrant purple"
+                }
+                @{
+                    Name = "Slate"
+                    Hex = "#8899aa"
+                    Description = "Cool blue-gray"
+                }
+                @{
+                    Name = "Forest"
+                    Hex = "#228844"
+                    Description = "Deep forest green"
+                }
+                @{
+                    Name = "Sunset"
+                    Hex = "#ff8833"
+                    Description = "Warm sunset orange"
+                }
+                @{
+                    Name = "Rose"
+                    Hex = "#ff6699"
+                    Description = "Soft rose pink"
+                }
+                @{
+                    Name = "Sky"
+                    Hex = "#66ccff"
+                    Description = "Bright sky blue"
+                }
+                @{
+                    Name = "Gold"
+                    Hex = "#ffaa33"
+                    Description = "Rich golden yellow"
                 }
             )
 
-            # Get current theme (placeholder - would read from config)
-            $this.CurrentTheme = "Default"
+            # Get current theme from config
+            try {
+                $cfg = Get-PmcConfig
+                $currentHex = $null
+
+                # Safely check for Display.Theme.Hex
+                if ((Get-Member -InputObject $cfg -Name Display -MemberType Properties) -and
+                    $cfg.Display -and
+                    (Get-Member -InputObject $cfg.Display -Name Theme -MemberType Properties) -and
+                    $cfg.Display.Theme -and
+                    (Get-Member -InputObject $cfg.Display.Theme -Name Hex -MemberType Properties)) {
+                    $currentHex = $cfg.Display.Theme.Hex
+                }
+
+                # Find theme by hex
+                if ($currentHex) {
+                    foreach ($theme in $this.Themes) {
+                        if ($theme.Hex -eq $currentHex) {
+                            $this.CurrentTheme = $theme.Name
+                            break
+                        }
+                    }
+                } else {
+                    $this.CurrentTheme = "Default"
+                }
+            } catch {
+                $this.CurrentTheme = "Default"
+            }
 
             $this.ShowSuccess("$($this.Themes.Count) themes available")
 
@@ -294,28 +327,45 @@ class ThemeEditorScreen : PmcScreen {
             if ($previewY -lt $contentRect.Y + $contentRect.Height - 2) {
                 $sb.Append($this.Header.BuildMoveTo($contentRect.X + 4, $previewY))
                 $sb.Append($headerColor)
-                $sb.Append("Color Preview:")
+                $sb.Append("━" * 40)
                 $sb.Append($reset)
 
                 $previewY++
-                foreach ($colorName in $theme.Colors.Keys) {
-                    $previewY++
-                    $sb.Append($this.Header.BuildMoveTo($contentRect.X + 6, $previewY))
-                    $sb.Append($textColor)
-                    $sb.Append("$colorName".PadRight(10))
-                    $sb.Append("  ")
-                    # Simple color display
-                    $sb.Append($this.Header.GetThemedAnsi($colorName, $false))
-                    $sb.Append("████")
-                    $sb.Append($reset)
-                }
+                $sb.Append($this.Header.BuildMoveTo($contentRect.X + 4, $previewY))
+                $sb.Append($textColor)
+                $sb.Append("Selected: ")
+                $sb.Append($this.Header.GetThemedAnsi('Highlight', $false))
+                $sb.Append($theme.Name)
+                $sb.Append($reset)
+
+                $previewY++
+                $sb.Append($this.Header.BuildMoveTo($contentRect.X + 4, $previewY))
+                $sb.Append($mutedColor)
+                $sb.Append("Hex Code: ")
+                $sb.Append($this.Header.GetThemedAnsi('Success', $false))
+                $sb.Append($theme.Hex)
+                $sb.Append($reset)
+
+                $previewY++
+                $sb.Append($this.Header.BuildMoveTo($contentRect.X + 4, $previewY))
+                $sb.Append($mutedColor)
+                $sb.Append("Description: ")
+                $sb.Append($textColor)
+                $sb.Append($theme.Description)
+                $sb.Append($reset)
+
+                $previewY += 2
+                $sb.Append($this.Header.BuildMoveTo($contentRect.X + 4, $previewY))
+                $sb.Append($headerColor)
+                $sb.Append("Press Enter to apply, T to test, Esc to cancel")
+                $sb.Append($reset)
             }
         }
 
         return $sb.ToString()
     }
 
-    [bool] HandleKeyPress([ConsoleKeyInfo]$keyInfo) {
+    [bool] HandleInput([ConsoleKeyInfo]$keyInfo) {
         switch ($keyInfo.Key) {
             'UpArrow' {
                 if ($this.SelectedIndex -gt 0) {
@@ -337,20 +387,117 @@ class ThemeEditorScreen : PmcScreen {
                 $this._TestTheme()
                 return $true
             }
+            'Escape' {
+                if ($global:PmcApp) {
+                    $global:PmcApp.PopScreen()
+                }
+                return $true
+            }
         }
 
         return $false
     }
 
     hidden [void] _ApplyTheme() {
+        if ($global:PmcTuiLogFile) {
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ThemeEditor._ApplyTheme: Called, SelectedIndex=$($this.SelectedIndex)"
+        }
+
         if ($this.SelectedIndex -lt 0 -or $this.SelectedIndex -ge $this.Themes.Count) {
+            if ($global:PmcTuiLogFile) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ThemeEditor._ApplyTheme: Invalid index, returning"
+            }
             return
         }
 
         $theme = $this.Themes[$this.SelectedIndex]
-        $this.CurrentTheme = $theme.Name
-        $this.ShowSuccess("Applied theme: $($theme.Name)")
-        # In a real implementation, would save to config file
+        if ($global:PmcTuiLogFile) {
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ThemeEditor._ApplyTheme: Applying $($theme.Name) with hex $($theme.Hex)"
+        }
+
+        try {
+            # Get PMC config and set theme hex
+            $cfg = Get-PmcConfig
+
+            # Create Display property if it doesn't exist
+            if (-not (Get-Member -InputObject $cfg -Name Display -MemberType Properties)) {
+                $cfg | Add-Member -NotePropertyName Display -NotePropertyValue @{} -Force
+            }
+            if (-not $cfg.Display) {
+                $cfg.Display = @{}
+            }
+
+            # Create Theme property if it doesn't exist
+            if (-not (Get-Member -InputObject $cfg.Display -Name Theme -MemberType Properties)) {
+                $cfg.Display | Add-Member -NotePropertyName Theme -NotePropertyValue @{} -Force
+            }
+            if (-not $cfg.Display.Theme) {
+                $cfg.Display.Theme = @{}
+            }
+
+            # Set theme properties
+            if (-not (Get-Member -InputObject $cfg.Display.Theme -Name Hex -MemberType Properties)) {
+                $cfg.Display.Theme | Add-Member -NotePropertyName Hex -NotePropertyValue $theme.Hex -Force
+            } else {
+                $cfg.Display.Theme.Hex = $theme.Hex
+            }
+
+            if (-not (Get-Member -InputObject $cfg.Display.Theme -Name Enabled -MemberType Properties)) {
+                $cfg.Display.Theme | Add-Member -NotePropertyName Enabled -NotePropertyValue $true -Force
+            } else {
+                $cfg.Display.Theme.Enabled = $true
+            }
+
+            if ($global:PmcTuiLogFile) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ThemeEditor._ApplyTheme: Saving config..."
+            }
+
+            try {
+                Save-PmcConfig $cfg
+                if ($global:PmcTuiLogFile) {
+                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ThemeEditor._ApplyTheme: Save-PmcConfig completed successfully"
+                }
+            } catch {
+                if ($global:PmcTuiLogFile) {
+                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ThemeEditor._ApplyTheme: Save-PmcConfig FAILED: $_"
+                }
+                throw
+            }
+
+            # Update current theme marker
+            $this.CurrentTheme = $theme.Name
+
+            # Reinitialize theme system to apply changes
+            try {
+                if ($global:PmcTuiLogFile) {
+                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ThemeEditor._ApplyTheme: Reinitializing theme system..."
+                }
+                Initialize-PmcThemeSystem
+            } catch {
+                if ($global:PmcTuiLogFile) {
+                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ThemeEditor._ApplyTheme: Initialize-PmcThemeSystem failed: $_"
+                }
+            }
+
+            try {
+                $this.ShowSuccess("Theme saved! Restart TUI to see changes: Ctrl+Q then run again")
+            } catch {
+                # ShowSuccess may fail
+            }
+
+            if ($global:PmcTuiLogFile) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ThemeEditor._ApplyTheme: SUCCESS - Config saved, theme will apply on restart"
+            }
+        } catch {
+            if ($global:PmcTuiLogFile) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ThemeEditor._ApplyTheme: ERROR: $_"
+            }
+            try {
+                $this.ShowError("Failed to apply theme: $_")
+            } catch {
+                # ShowError may fail
+            }
+        }
     }
 
     hidden [void] _TestTheme() {

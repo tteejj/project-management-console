@@ -463,6 +463,8 @@ class MonthViewScreen : PmcScreen {
                 $taskIndex++
             }
 
+            # COMMENTED OUT: Incomplete/broken code using undefined variables
+            <#
             $currentY++
 
             # Render subtasks if present
@@ -518,6 +520,7 @@ class MonthViewScreen : PmcScreen {
                     $currentY++
                 }
             }
+            #>
         }
 
         return $sb.ToString()

@@ -23,6 +23,15 @@ Static help documentation screen showing:
 No navigation needed, just Esc to exit.
 #>
 class HelpViewScreen : PmcScreen {
+
+    # Static: Register menu items
+    static [void] RegisterMenuItems([object]$registry) {
+        $registry.AddMenuItem('Help', 'Help', 'H', {
+            . "$PSScriptRoot/HelpViewScreen.ps1"
+            $global:PmcApp.PushScreen([HelpViewScreen]::new())
+        }, 10)
+    }
+
     # Constructor
     HelpViewScreen() : base("HelpView", "PMC TUI Help") {
         # Configure header
@@ -165,8 +174,11 @@ class HelpViewScreen : PmcScreen {
         $y++
 
         $globalKeys = @(
+            "?         - Show this help screen"
             "F10       - Open menu bar"
             "Esc       - Back / Close menus / Exit"
+            "R         - Refresh current view"
+            "F         - Filter panel (when available)"
             "Alt+X     - Quick exit PMC"
             "Alt+T     - Open task list"
             "Alt+A     - Add new task"
@@ -189,15 +201,23 @@ class HelpViewScreen : PmcScreen {
 
         $taskKeys = @(
             "Up/Down   - Navigate tasks"
+            "PgUp/PgDn - Scroll page"
             "Enter     - View task details"
             "A         - Add new task"
             "E         - Edit task"
             "C         - Complete task"
             "D         - Delete task"
+            "X         - Clone task"
+            "S         - Add subtask to selected"
+            "H         - Toggle show completed"
             "Tab       - Next field (when editing)"
-            "S         - Cycle sort order"
-            "F         - Filter by project"
             "/         - Search tasks"
+            "1         - View: All tasks"
+            "2         - View: Active tasks"
+            "3         - View: Completed tasks"
+            "4         - View: Overdue tasks"
+            "5         - View: Today's tasks"
+            "6         - View: This week's tasks"
         )
         foreach ($line in $taskKeys) {
             $sb.Append($this.Header.BuildMoveTo($subIndent, $y++))
@@ -223,6 +243,56 @@ class HelpViewScreen : PmcScreen {
                 "X         - Delete selected tasks"
             )
             foreach ($line in $multiKeys) {
+                $sb.Append($this.Header.BuildMoveTo($subIndent, $y++))
+                $sb.Append($textColor)
+                $sb.Append($line)
+                $sb.Append($reset)
+            }
+            $y++
+        }
+
+        # Project List Keys
+        if ($y -lt $contentRect.Y + $contentRect.Height - 12) {
+            $sb.Append($this.Header.BuildMoveTo($indent, $y++))
+            $sb.Append($headerColor)
+            $sb.Append("Project List Keys:")
+            $sb.Append($reset)
+            $y++
+
+            $projectKeys = @(
+                "A         - Add new project"
+                "E         - Edit project"
+                "D         - Delete project"
+                "R         - Archive/Unarchive project"
+                "V         - View project details"
+            )
+            foreach ($line in $projectKeys) {
+                $sb.Append($this.Header.BuildMoveTo($subIndent, $y++))
+                $sb.Append($textColor)
+                $sb.Append($line)
+                $sb.Append($reset)
+            }
+            $y++
+        }
+
+        # Time Tracking Keys
+        if ($y -lt $contentRect.Y + $contentRect.Height - 10) {
+            $sb.Append($this.Header.BuildMoveTo($indent, $y++))
+            $sb.Append($headerColor)
+            $sb.Append("Time Tracking Keys:")
+            $sb.Append($reset)
+            $y++
+
+            $timeKeys = @(
+                "A         - Add time entry"
+                "E         - Edit time entry"
+                "D         - Delete time entry"
+                "Enter     - View entry details (aggregated entries)"
+                "W         - Weekly time report"
+                "G         - Generate time report"
+                "←/→       - Navigate weeks (in week view)"
+            )
+            foreach ($line in $timeKeys) {
                 $sb.Append($this.Header.BuildMoveTo($subIndent, $y++))
                 $sb.Append($textColor)
                 $sb.Append($line)
@@ -284,7 +354,11 @@ class HelpViewScreen : PmcScreen {
     }
 
     [bool] HandleKeyPress([ConsoleKeyInfo]$keyInfo) {
-        # Only handle Esc to go back
+        # Let MenuBar handle its keys first (F10, menu navigation, etc.)
+        if ($null -ne $this.MenuBar -and $this.MenuBar.HandleKeyPress($keyInfo)) {
+            return $true
+        }
+
         # All other keys are ignored on help screen
         return $false
     }

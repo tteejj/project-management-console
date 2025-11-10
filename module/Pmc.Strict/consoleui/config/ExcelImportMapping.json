@@ -1,0 +1,52 @@
+{
+  "profiles": {
+    "SVI-CAS": {
+      "name": "SVI-CAS Standard Import",
+      "description": "26-field import profile for SVI-CAS Excel sheets",
+      "column": "W",
+      "mappings": [
+        { "row": 3, "field": "name", "label": "Project Name", "required": true },
+        { "row": 10, "field": "ID1", "label": "ID1" },
+        { "row": 11, "field": "ID2", "label": "ID2" },
+        { "row": 13, "field": "ProjFolder", "label": "Project Folder" },
+        { "row": 15, "field": "AssignedDate", "label": "Assigned Date", "type": "date" },
+        { "row": 16, "field": "DueDate", "label": "Due Date", "type": "date" },
+        { "row": 17, "field": "BFDate", "label": "BF Date", "type": "date" },
+        { "row": 20, "field": "description", "label": "Description" },
+        { "row": 25, "field": "priority", "label": "Priority" },
+        { "row": 30, "field": "status", "label": "Status" },
+        { "row": 35, "field": "category", "label": "Category" },
+        { "row": 40, "field": "tags", "label": "Tags", "type": "array" },
+        { "row": 45, "field": "notes", "label": "Notes" },
+        { "row": 50, "field": "client", "label": "Client" },
+        { "row": 55, "field": "budget", "label": "Budget", "type": "number" },
+        { "row": 60, "field": "hours_estimated", "label": "Hours Estimated", "type": "number" },
+        { "row": 65, "field": "hours_actual", "label": "Hours Actual", "type": "number" },
+        { "row": 70, "field": "percent_complete", "label": "Percent Complete", "type": "number" },
+        { "row": 75, "field": "phase", "label": "Phase" },
+        { "row": 80, "field": "milestone", "label": "Milestone" },
+        { "row": 85, "field": "dependencies", "label": "Dependencies", "type": "array" },
+        { "row": 90, "field": "risks", "label": "Risks" },
+        { "row": 95, "field": "resources", "label": "Resources", "type": "array" },
+        { "row": 100, "field": "deliverables", "label": "Deliverables", "type": "array" },
+        { "row": 105, "field": "quality_criteria", "label": "Quality Criteria" },
+        { "row": 110, "field": "stakeholders", "label": "Stakeholders", "type": "array" }
+      ]
+    },
+    "T2020": {
+      "name": "T2020 Minimal Import",
+      "description": "8-field minimal import profile",
+      "column": "W",
+      "mappings": [
+        { "row": 3, "field": "name", "label": "Project Name", "required": true },
+        { "row": 10, "field": "ID1", "label": "ID1" },
+        { "row": 13, "field": "ProjFolder", "label": "Project Folder" },
+        { "row": 15, "field": "AssignedDate", "label": "Assigned Date", "type": "date" },
+        { "row": 16, "field": "DueDate", "label": "Due Date", "type": "date" },
+        { "row": 20, "field": "description", "label": "Description" },
+        { "row": 25, "field": "priority", "label": "Priority" },
+        { "row": 30, "field": "status", "label": "Status" }
+      ]
+    }
+  }
+}

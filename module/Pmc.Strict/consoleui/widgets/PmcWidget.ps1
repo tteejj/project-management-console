@@ -27,14 +27,15 @@ PmcWidget provides the foundation for all PMC UI components:
 - State management hooks
 
 .EXAMPLE
-class PmcMenuBar : PmcWidget {
-    [string] OnRender() {
-        $sb = Get-PooledStringBuilder
-        $color = $this.GetThemedColor('Primary')
-        # ... build output
-        return $sb.ToString()
-    }
-}
+# Example: Custom widget implementation
+# class MyCustomWidget : PmcWidget {
+#     [string] OnRender() {
+#         $sb = Get-PooledStringBuilder
+#         $color = $this.GetThemedColor('Primary')
+#         # ... build your output
+#         return $sb.ToString()
+#     }
+# }
 #>
 class PmcWidget : Component {
     # === PMC-Specific Properties ===
@@ -136,7 +137,11 @@ class PmcWidget : Component {
 
             $this._themeInitialized = $true
         } catch {
-            # Silent fallback - widget still functional with defaults
+            # Fallback - widget still functional with defaults
+            if (Get-Command Write-PmcTuiLog -ErrorAction SilentlyContinue) {
+                Write-PmcTuiLog "Theme initialization failed: $($_.Exception.Message)" "ERROR"
+                Write-PmcTuiLog "Stack: $($_.ScriptStackTrace)" "DEBUG"
+            }
             $this._themeInitialized = $true
         }
     }
@@ -168,7 +173,11 @@ class PmcWidget : Component {
                     return ("#{0:X2}{1:X2}{2:X2}" -f $rgb.R, $rgb.G, $rgb.B)
                 }
             }
-        } catch { }
+        } catch {
+            if (Get-Command Write-PmcTuiLog -ErrorAction SilentlyContinue) {
+                Write-PmcTuiLog "GetThemedColor palette lookup failed for role '$role': $($_.Exception.Message)" "DEBUG"
+            }
+        }
         $result = switch ($role) {
             'Primary' { if ($this._pmcTheme.Hex) { $this._pmcTheme.Hex } else { '#33aaff' } }
             'Border' { '#666666' }

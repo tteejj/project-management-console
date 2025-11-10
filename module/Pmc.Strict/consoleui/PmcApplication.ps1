@@ -6,13 +6,8 @@ using namespace System.Collections.Generic
 
 Set-StrictMode -Version Latest
 
-# Load SpeedTUI framework
-. "$PSScriptRoot/SpeedTUILoader.ps1"
-
-# Load PMC widget system
-. "$PSScriptRoot/widgets/PmcWidget.ps1"
-. "$PSScriptRoot/layout/PmcLayoutManager.ps1"
-. "$PSScriptRoot/theme/PmcThemeManager.ps1"
+# NOTE: SpeedTUI, widgets, layout, and theme are loaded by Start-PmcTUI.ps1
+# Do not load them again here to avoid circular dependencies and duplicate loading
 
 <#
 .SYNOPSIS
@@ -174,41 +169,99 @@ class PmcApplication {
     # === Rendering ===
 
     hidden [void] _RenderCurrentScreen() {
+        if ($global:PmcTuiLogFile) {
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] _RenderCurrentScreen: Starting (CurrentScreen=$($null -ne $this.CurrentScreen))"
+        }
+
         if (-not $this.CurrentScreen) {
+            if ($global:PmcTuiLogFile) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] _RenderCurrentScreen: CurrentScreen is null, returning"
+            }
             return
         }
 
+        if ($global:PmcTuiLogFile) {
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] _RenderCurrentScreen: CurrentScreen exists, entering try block"
+        }
+
         try {
+            if ($global:PmcTuiLogFile) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] _RenderCurrentScreen: Inside try block, checking NeedsClear"
+            }
+
             # Check if screen requests full clear
             if ($this.CurrentScreen.NeedsClear) {
+                if ($global:PmcTuiLogFile) {
+                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] _RenderCurrentScreen: NeedsClear=true, calling RequestClear"
+                }
                 $this.RenderEngine.RequestClear()
                 $this.CurrentScreen.NeedsClear = $false
+            }
+
+            if ($global:PmcTuiLogFile) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] _RenderCurrentScreen: About to call BeginFrame"
             }
 
             # USE SPEEDTUI PROPERLY - BeginFrame/WriteAt/EndFrame
             $this.RenderEngine.BeginFrame()
 
+            if ($global:PmcTuiLogFile) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] _RenderCurrentScreen: BeginFrame completed, checking for RenderToEngine method"
+            }
+
             # Get screen output (ANSI strings with position info)
             if ($this.CurrentScreen.PSObject.Methods['RenderToEngine']) {
+                if ($global:PmcTuiLogFile) {
+                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] _RenderCurrentScreen: Has RenderToEngine, calling it"
+                }
                 # New method: screen writes directly to engine
                 $this.CurrentScreen.RenderToEngine($this.RenderEngine)
+                if ($global:PmcTuiLogFile) {
+                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] _RenderCurrentScreen: RenderToEngine completed"
+                }
             } else {
+                if ($global:PmcTuiLogFile) {
+                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] _RenderCurrentScreen: No RenderToEngine, calling Render()"
+                }
                 # Fallback: screen returns ANSI string, we parse and WriteAt
                 $output = $this.CurrentScreen.Render()
+                if ($global:PmcTuiLogFile) {
+                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] _RenderCurrentScreen: Render() completed, output length=$($output.Length)"
+                }
                 if ($output) {
                     # Parse ANSI positioning and write to engine
                     $this._WriteAnsiToEngine($output)
+                    if ($global:PmcTuiLogFile) {
+                        Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] _RenderCurrentScreen: _WriteAnsiToEngine completed"
+                    }
                 }
+            }
+
+            if ($global:PmcTuiLogFile) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] _RenderCurrentScreen: About to call EndFrame"
             }
 
             # EndFrame does differential rendering
             $this.RenderEngine.EndFrame()
 
+            if ($global:PmcTuiLogFile) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] _RenderCurrentScreen: EndFrame completed, clearing dirty flag"
+            }
+
             # Clear dirty flag after successful render
             $this.IsDirty = $false
 
+            if ($global:PmcTuiLogFile) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] _RenderCurrentScreen: Render cycle complete"
+            }
+
         } catch {
             # Render error - log if Write-PmcTuiLog available
+            if ($global:PmcTuiLogFile) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] _RenderCurrentScreen: EXCEPTION CAUGHT - $_"
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] _RenderCurrentScreen: Exception at: $($_.InvocationInfo.ScriptName):$($_.InvocationInfo.ScriptLineNumber)"
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] _RenderCurrentScreen: Exception line: $($_.InvocationInfo.Line)"
+            }
             if (Get-Command Write-PmcTuiLog -ErrorAction SilentlyContinue) {
                 Write-PmcTuiLog "Render error: $_" "ERROR"
                 Write-PmcTuiLog "Error at: $($_.InvocationInfo.ScriptName):$($_.InvocationInfo.ScriptLineNumber)" "ERROR"
@@ -283,9 +336,13 @@ class PmcApplication {
 
         try {
             # Event loop - render only when dirty
+            if ($global:PmcTuiLogFile) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcApplication.Run: Entering event loop (IsDirty=$($this.IsDirty))"
+            }
+
             while ($this.Running -and $this.ScreenStack.Count -gt 0) {
-                # Check for terminal resize every 10th iteration (not every loop)
-                if ($iteration % 10 -eq 0) {
+                # Check for terminal resize every 20th iteration (not every loop)
+                if ($iteration % 20 -eq 0) {
                     $currentWidth = [Console]::WindowWidth
                     $currentHeight = [Console]::WindowHeight
 
@@ -305,7 +362,7 @@ class PmcApplication {
                         continue
                     }
 
-                    # Pass to current screen
+                    # Pass to current screen (screen handles its own menu)
                     if ($this.CurrentScreen -and $this.CurrentScreen.PSObject.Methods['HandleKeyPress']) {
                         $handled = $this.CurrentScreen.HandleKeyPress($key)
                         # Mark dirty if screen handled the key (likely changed state)
@@ -315,17 +372,23 @@ class PmcApplication {
                     }
                 }
 
+                # Capture dirty state before rendering
+                $wasActive = $this.IsDirty
+
                 # Only render when dirty (state changed)
                 if ($this.IsDirty) {
+                    if ($global:PmcTuiLogFile) {
+                        Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcApplication.Run: IsDirty=true, calling _RenderCurrentScreen"
+                    }
                     $this._RenderCurrentScreen()
                     $iteration = 0  # Reset counter after render
                 }
 
                 # Sleep longer when idle (no render) vs active
-                if ($this.IsDirty) {
+                if ($wasActive) {
                     Start-Sleep -Milliseconds 16  # ~60 FPS when actively rendering
                 } else {
-                    Start-Sleep -Milliseconds 50  # ~20 FPS when idle, less CPU
+                    Start-Sleep -Milliseconds 100  # ~10 FPS when idle, 50% less CPU
                 }
             }
 
@@ -406,6 +469,10 @@ class PmcApplication {
     Schedules a re-render of the current screen by setting dirty flag
     #>
     [void] RequestRender() {
+        if ($global:PmcTuiLogFile) {
+            $caller = (Get-PSCallStack)[1]
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] RequestRender called from: $($caller.Command) at line $($caller.ScriptLineNumber)"
+        }
         $this.IsDirty = $true
     }
 }

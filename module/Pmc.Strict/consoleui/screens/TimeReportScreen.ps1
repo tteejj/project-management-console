@@ -27,6 +27,14 @@ class TimeReportScreen : PmcScreen {
     [int]$TotalMinutes = 0
     [double]$TotalHours = 0
 
+    # Static: Register menu items
+    static [void] RegisterMenuItems([object]$registry) {
+        $registry.AddMenuItem('Time', 'Time Report', 'R', {
+            . "$PSScriptRoot/TimeReportScreen.ps1"
+            $global:PmcApp.PushScreen([TimeReportScreen]::new())
+        }, 20)
+    }
+
     # Constructor
     TimeReportScreen() : base("TimeReport", "Time Report") {
         # Configure header
@@ -34,6 +42,8 @@ class TimeReportScreen : PmcScreen {
 
         # Configure footer with shortcuts
         $this.Footer.ClearShortcuts()
+        $this.Footer.AddShortcut("W", "Weekly")
+        $this.Footer.AddShortcut("R", "Refresh")
         $this.Footer.AddShortcut("Esc", "Back")
         $this.Footer.AddShortcut("Ctrl+Q", "Quit")
 
@@ -351,10 +361,17 @@ class TimeReportScreen : PmcScreen {
     }
 
     [bool] HandleKeyPress([ConsoleKeyInfo]$keyInfo) {
-        # No navigation, just Esc to go back
         # Refresh on R key
         if ($keyInfo.Key -eq 'R') {
             $this.LoadData()
+            return $true
+        }
+
+        # Weekly report on W key
+        if ($keyInfo.Key -eq 'W') {
+            . "$PSScriptRoot/WeeklyTimeReportScreen.ps1"
+            $screen = Invoke-Expression '[WeeklyTimeReportScreen]::new()'
+            $global:PmcApp.PushScreen($screen)
             return $true
         }
 

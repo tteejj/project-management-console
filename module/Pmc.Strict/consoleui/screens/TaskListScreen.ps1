@@ -65,11 +65,92 @@ class TaskListScreen : StandardListScreen {
         $this._showCompleted = $false
         $this._sortColumn = 'due'
         $this._sortAscending = $true
+
+        # Setup menus after base constructor
+        $this._SetupMenus()
+    }
+
+    # Setup menu items using MenuRegistry
+    hidden [void] _SetupMenus() {
+        # Get singleton MenuRegistry instance
+        . "$PSScriptRoot/../services/MenuRegistry.ps1"
+        $registry = [MenuRegistry]::GetInstance()
+
+        # Auto-discover screens and let them register their own menu items (only if not already done)
+        $tasksMenuItems = $registry.GetMenuItems('Tasks')
+        if (-not $tasksMenuItems -or @($tasksMenuItems).Count -eq 0) {
+            $screenDir = $PSScriptRoot
+            $screenFiles = Get-ChildItem -Path $screenDir -Filter "*Screen.ps1" | Select-Object -ExpandProperty FullName
+            $registry.DiscoverScreens($screenFiles)
+        }
+
+        # Build menus from registry
+        $this._PopulateMenusFromRegistry($registry)
+
+        # Store populated MenuBar globally for other screens to use
+        $global:PmcSharedMenuBar = $this.MenuBar
+    }
+
+    # Populate MenuBar from registry
+    hidden [void] _PopulateMenusFromRegistry([object]$registry) {
+        $menuMapping = @{
+            'Tasks' = 0
+            'Projects' = 1
+            'Time' = 2
+            'Options' = 3
+            'Help' = 4
+        }
+
+        foreach ($menuName in $menuMapping.Keys) {
+            $menuIndex = $menuMapping[$menuName]
+            $menu = $this.MenuBar.Menus[$menuIndex]
+            $items = $registry.GetMenuItems($menuName)
+
+            if ($global:PmcTuiLogFile) {
+                if ($null -eq $items) {
+                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] _PopulateMenusFromRegistry: Menu '$menuName' has 0 items from registry (null)"
+                } elseif ($items -is [array]) {
+                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] _PopulateMenusFromRegistry: Menu '$menuName' has $($items.Count) items from registry (array)"
+                } else {
+                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] _PopulateMenusFromRegistry: Menu '$menuName' has 1 item from registry (type: $($items.GetType().Name))"
+                }
+            }
+
+            if ($null -ne $items) {
+                foreach ($item in $items) {
+                    # MenuRegistry returns hashtables, use hashtable indexing
+                    $menuItem = [PmcMenuItem]::new($item['Label'], $item['Hotkey'], $item['Action'])
+                    $menu.Items.Add($menuItem)
+                }
+            }
+        }
     }
 
     # Implement abstract method: Load data from TaskStore
     [void] LoadData() {
         $allTasks = $this.Store.GetAllTasks()
+
+        # Null check to prevent crashes
+        if ($null -eq $allTasks -or $allTasks.Count -eq 0) {
+            $this.Data = @()
+            $this.List.SetData(@())
+            return
+        }
+
+        # Normalize all tasks to hashtables for consistent access
+        # This ensures all formatters can use $task['key'] syntax instead of type-checking
+        $allTasks = $allTasks | ForEach-Object {
+            if ($_ -is [hashtable]) {
+                $_
+            } else {
+                # Convert PSCustomObject to hashtable
+                $hashtable = @{}
+                $_.PSObject.Properties | ForEach-Object {
+                    $hashtable[$_.Name] = $_.Value
+                }
+                $hashtable
+            }
+        }
 
         # Apply view mode filter
         $filteredTasks = switch ($this._viewMode) {
@@ -125,6 +206,37 @@ class TaskListScreen : StandardListScreen {
             default { $filteredTasks }
         }
 
+        # Reorganize to group subtasks with parents
+        $organized = [System.Collections.ArrayList]::new()
+        $processedIds = @{}
+
+        foreach ($task in $sortedTasks) {
+            $taskId = Get-SafeProperty $task 'id'
+            $parentId = Get-SafeProperty $task 'parent_id'
+
+            # Skip if already processed (will be added as subtask)
+            if ($processedIds.ContainsKey($taskId)) { continue }
+
+            # Add parent task only if it has no parent
+            if (-not $parentId) {
+                [void]$organized.Add($task)
+                $processedIds[$taskId] = $true
+
+                # Add all subtasks immediately after parent
+                foreach ($subtask in $sortedTasks) {
+                    $subId = Get-SafeProperty $subtask 'id'
+                    $subParentId = Get-SafeProperty $subtask 'parent_id'
+
+                    if ($subParentId -eq $taskId -and -not $processedIds.ContainsKey($subId)) {
+                        [void]$organized.Add($subtask)
+                        $processedIds[$subId] = $true
+                    }
+                }
+            }
+        }
+
+        $sortedTasks = $organized
+
         # Update stats
         $this._UpdateStats($allTasks)
 
@@ -141,13 +253,14 @@ class TaskListScreen : StandardListScreen {
                 Width = 4
                 Align = 'center'
                 Format = { param($task)
-                    if ($task.priority -ge 0 -and $task.priority -le 5) {
-                        return $task.priority.ToString()
+                    $priority = Get-SafeProperty $task 'priority'
+                    if ($priority -ge 0 -and $priority -le 5) {
+                        return $priority.ToString()
                     }
                     return '-'
                 }
                 Color = { param($task)
-                    switch ($task.priority) {
+                    switch (Get-SafeProperty $task 'priority') {
                         5 { return "`e[91m" }  # Bright red
                         4 { return "`e[31m" }  # Red
                         3 { return "`e[33m" }  # Yellow
@@ -164,14 +277,19 @@ class TaskListScreen : StandardListScreen {
                 Width = 45
                 Align = 'left'
                 Format = { param($task)
-                    $text = $task.text
-                    if ($task.completed) {
+                    $text = Get-SafeProperty $task 'text'
+                    # Indent subtasks if they have a parent
+                    $hasParent = Test-SafeProperty $task 'parent_id' -and (Get-SafeProperty $task 'parent_id')
+                    if ($hasParent) {
+                        $text = "  $text"
+                    }
+                    if (Get-SafeProperty $task 'completed') {
                         $text = "[✓] $text"
                     }
                     return $text
                 }
                 Color = { param($task)
-                    if ($task.completed) {
+                    if (Get-SafeProperty $task 'completed') {
                         return "`e[90m`e[9m"  # Gray + strikethrough
                     }
                     return "`e[37m"
@@ -183,9 +301,10 @@ class TaskListScreen : StandardListScreen {
                 Width = 12
                 Align = 'left'
                 Format = { param($task)
-                    if (-not $task.due) { return '' }
+                    $dueValue = Get-SafeProperty $task 'due'
+                    if (-not $dueValue) { return '' }
 
-                    $due = [DateTime]$task.due
+                    $due = [DateTime]$dueValue
                     $today = [DateTime]::Today
                     $diff = ($due.Date - $today).Days
 
@@ -197,9 +316,10 @@ class TaskListScreen : StandardListScreen {
                     else { return $due.ToString('MMM dd') }
                 }
                 Color = { param($task)
-                    if (-not $task.due -or $task.completed) { return "`e[90m" }
+                    $dueValue = Get-SafeProperty $task 'due'
+                    if (-not $dueValue -or (Get-SafeProperty $task 'completed')) { return "`e[90m" }
 
-                    $due = [DateTime]$task.due
+                    $due = [DateTime]$dueValue
                     $diff = ($due.Date - [DateTime]::Today).Days
 
                     if ($diff -lt 0) { return "`e[91m" }      # Overdue: bright red
@@ -214,11 +334,12 @@ class TaskListScreen : StandardListScreen {
                 Width = 15
                 Align = 'left'
                 Format = { param($task)
-                    if ($task.project) { return $task.project }
+                    $project = Get-SafeProperty $task 'project'
+                    if ($project) { return $project }
                     return ''
                 }
                 Color = { param($task)
-                    if ($task.project) { return "`e[96m" }  # Bright cyan
+                    if (Get-SafeProperty $task 'project') { return "`e[96m" }  # Bright cyan
                     return "`e[90m"
                 }
             },
@@ -228,13 +349,15 @@ class TaskListScreen : StandardListScreen {
                 Width = 20
                 Align = 'left'
                 Format = { param($task)
-                    if ($task.tags -and $task.tags.Count -gt 0) {
-                        return ($task.tags -join ', ')
+                    $tags = Get-SafeProperty $task 'tags'
+                    if ($tags -and $tags.Count -gt 0) {
+                        return ($tags -join ', ')
                     }
                     return ''
                 }
                 Color = { param($task)
-                    if ($task.tags -and $task.tags.Count -gt 0) {
+                    $tags = Get-SafeProperty $task 'tags'
+                    if ($tags -and $tags.Count -gt 0) {
                         return "`e[95m"  # Bright magenta
                     }
                     return "`e[90m"
@@ -268,54 +391,82 @@ class TaskListScreen : StandardListScreen {
 
     # Override: Handle item creation
     [void] OnItemCreated([hashtable]$values) {
-        # Convert widget values to task format
-        $taskData = @{
-            text = $values.text
-            priority = [int]$values.priority
-            project = $values.project
-            tags = $values.tags
-            completed = $false
-            created = [DateTime]::Now
+        try {
+            # Convert widget values to task format
+            $taskData = @{
+                text = $values.text
+                priority = [int]$values.priority
+                project = $values.project
+                tags = $values.tags
+                completed = $false
+                created = [DateTime]::Now
+            }
+
+            # Add due date if provided
+            if ($values.due) {
+                $taskData.due = [DateTime]$values.due
+            }
+
+            # Add to store (auto-persists and fires events)
+            $success = $this.Store.AddTask($taskData)
+            if ($success) {
+                $this.SetStatusMessage("Task created: $($taskData.text)", "success")
+            } else {
+                $this.SetStatusMessage("Failed to create task: $($this.Store.LastError)", "error")
+            }
         }
-
-        # Add due date if provided
-        if ($values.due) {
-            $taskData.due = [DateTime]$values.due
+        catch {
+            Write-PmcTuiLog "OnItemCreated exception: $_" "ERROR"
+            $this.SetStatusMessage("Unexpected error: $($_.Exception.Message)", "error")
         }
-
-        # Add to store (auto-persists and fires events)
-        $this.Store.AddTask($taskData)
-
-        $this.SetStatusMessage("Task created: $($taskData.text)", "success")
     }
 
     # Override: Handle item update
     [void] OnItemUpdated([object]$item, [hashtable]$values) {
-        # Build changes hashtable
-        $changes = @{
-            text = $values.text
-            priority = [int]$values.priority
-            project = $values.project
-            tags = $values.tags
+        try {
+            # Build changes hashtable
+            $changes = @{
+                text = $values.text
+                priority = [int]$values.priority
+                project = $values.project
+                tags = $values.tags
+            }
+
+            # Update due date
+            if ($values.due) {
+                $changes.due = [DateTime]$values.due
+            } else {
+                $changes.due = $null
+            }
+
+            # Update in store
+            $success = $this.Store.UpdateTask($item.id, $changes)
+            if ($success) {
+                $this.SetStatusMessage("Task updated: $($values.text)", "success")
+            } else {
+                $this.SetStatusMessage("Failed to update task: $($this.Store.LastError)", "error")
+            }
         }
-
-        # Update due date
-        if ($values.due) {
-            $changes.due = [DateTime]$values.due
-        } else {
-            $changes.due = $null
+        catch {
+            Write-PmcTuiLog "OnItemUpdated exception: $_" "ERROR"
+            $this.SetStatusMessage("Unexpected error: $($_.Exception.Message)", "error")
         }
-
-        # Update in store
-        $this.Store.UpdateTask($item.id, $changes)
-
-        $this.SetStatusMessage("Task updated: $($values.text)", "success")
     }
 
     # Override: Handle item deletion
     [void] OnItemDeleted([object]$item) {
-        $this.Store.DeleteTask($item.id)
-        $this.SetStatusMessage("Task deleted: $($item.text)", "success")
+        try {
+            $success = $this.Store.DeleteTask($item.id)
+            if ($success) {
+                $this.SetStatusMessage("Task deleted: $($item.text)", "success")
+            } else {
+                $this.SetStatusMessage("Failed to delete task: $($this.Store.LastError)", "error")
+            }
+        }
+        catch {
+            Write-PmcTuiLog "OnItemDeleted exception: $_" "ERROR"
+            $this.SetStatusMessage("Unexpected error: $($_.Exception.Message)", "error")
+        }
     }
 
     # Custom action: Toggle task completion
@@ -360,6 +511,33 @@ class TaskListScreen : StandardListScreen {
 
         $this.Store.AddTask($clonedTask)
         $this.SetStatusMessage("Task cloned: $($clonedTask.text)", "success")
+    }
+
+    # Custom action: Add subtask
+    [void] AddSubtask([object]$parentTask) {
+        if ($null -eq $parentTask) { return }
+
+        # Get parent id
+        $parentId = if ($parentTask -is [hashtable]) { $parentTask['id'] } else { $parentTask.id }
+
+        # Create new task with parent_id set
+        $subtask = @{
+            text = ""
+            priority = 3
+            project = ""
+            tags = @()
+            completed = $false
+            created = [DateTime]::Now
+            parent_id = $parentId
+        }
+
+        # Open inline editor in 'add' mode with parent_id pre-filled
+        $this.EditorMode = 'add'
+        $this.CurrentEditItem = $subtask
+        $fields = $this.GetEditFields($subtask)
+        $this.InlineEditor.SetFields($fields)
+        $this.InlineEditor.Title = "Add Subtask"
+        $this.ShowInlineEditor = $true
     }
 
     # Custom action: Bulk complete selected tasks
@@ -460,6 +638,22 @@ class TaskListScreen : StandardListScreen {
         }
     }
 
+    # Get custom actions for footer display
+    [array] GetCustomActions() {
+        return @(
+            @{ Key='c'; Label='Complete'; Callback={ } }
+            @{ Key='x'; Label='Clone'; Callback={ } }
+            @{ Key='s'; Label='Subtask'; Callback={ } }
+            @{ Key='h'; Label='Hide Done'; Callback={ } }
+            @{ Key='1'; Label='All'; Callback={ } }
+            @{ Key='2'; Label='Active'; Callback={ } }
+            @{ Key='3'; Label='Done'; Callback={ } }
+            @{ Key='4'; Label='Overdue'; Callback={ } }
+            @{ Key='5'; Label='Today'; Callback={ } }
+            @{ Key='6'; Label='Week'; Callback={ } }
+        )
+    }
+
     # Override: Additional keyboard shortcuts
     [bool] HandleKeyPress([ConsoleKeyInfo]$keyInfo) {
         # Handle base class shortcuts first
@@ -492,6 +686,15 @@ class TaskListScreen : StandardListScreen {
             return $true
         }
 
+        # S: Add subtask
+        if ($keyInfo.KeyChar -eq 's' -or $keyInfo.KeyChar -eq 'S') {
+            $selected = $this.List.GetSelectedItem()
+            if ($selected) {
+                $this.AddSubtask($selected)
+            }
+            return $true
+        }
+
         # Ctrl+C: Bulk complete selected
         if ($key -eq [ConsoleKey]::C -and $ctrl) {
             $this.BulkCompleteSelected()
@@ -515,15 +718,6 @@ class TaskListScreen : StandardListScreen {
         # H: Toggle show completed
         if ($keyInfo.KeyChar -eq 'h' -or $keyInfo.KeyChar -eq 'H') {
             $this.ToggleShowCompleted()
-            return $true
-        }
-
-        # S: Change sort (cycle through columns)
-        if ($keyInfo.KeyChar -eq 's' -or $keyInfo.KeyChar -eq 'S') {
-            $columns = @('priority', 'text', 'due', 'project')
-            $currentIndex = $columns.IndexOf($this._sortColumn)
-            $nextIndex = ($currentIndex + 1) % $columns.Count
-            $this.SetSortColumn($columns[$nextIndex])
             return $true
         }
 

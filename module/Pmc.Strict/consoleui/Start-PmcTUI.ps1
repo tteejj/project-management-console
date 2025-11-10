@@ -74,12 +74,17 @@ try {
     throw
 }
 
-Write-PmcTuiLog "Loading legacy infrastructure..." "INFO"
+Write-PmcTuiLog "Loading PMC widget layer (extends SpeedTUI)..." "INFO"
 
 try {
     . "$PSScriptRoot/widgets/PmcWidget.ps1"
     . "$PSScriptRoot/widgets/PmcPanel.ps1"
+    . "$PSScriptRoot/widgets/PmcMenuBar.ps1"
+    . "$PSScriptRoot/widgets/PmcHeader.ps1"
+    . "$PSScriptRoot/widgets/PmcFooter.ps1"
+    . "$PSScriptRoot/widgets/PmcStatusBar.ps1"
     . "$PSScriptRoot/layout/PmcLayoutManager.ps1"
+    . "$PSScriptRoot/theme/PmcThemeManager.ps1"
     Write-PmcTuiLog "Legacy infrastructure loaded" "INFO"
 } catch {
     Write-PmcTuiLog "Failed to load legacy infrastructure: $_" "ERROR"
@@ -108,7 +113,8 @@ try {
         "TagEditor.ps1",
         "FilterPanel.ps1",
         "InlineEditor.ps1",
-        "UniversalList.ps1"
+        "UniversalList.ps1",
+        "TimeEntryDetailDialog.ps1"
     )
 
     foreach ($widgetFile in $widgetFiles) {
@@ -155,6 +161,10 @@ try {
     Write-PmcTuiLog "TaskListScreen loaded" "INFO"
     . "$PSScriptRoot/screens/BlockedTasksScreen.ps1"
     Write-PmcTuiLog "BlockedTasksScreen loaded" "INFO"
+    . "$PSScriptRoot/screens/SettingsScreen.ps1"
+    Write-PmcTuiLog "SettingsScreen loaded" "INFO"
+    . "$PSScriptRoot/screens/ThemeEditorScreen.ps1"
+    Write-PmcTuiLog "ThemeEditorScreen loaded" "INFO"
 } catch {
     Write-PmcTuiLog "Failed to load screens: $_" "ERROR"
     Write-PmcTuiLog $_.ScriptStackTrace "ERROR"

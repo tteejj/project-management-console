@@ -90,14 +90,17 @@ class InlineEditor : PmcWidget {
     # === State Flags ===
     [bool]$IsConfirmed = $false                # True when Enter pressed and validated
     [bool]$IsCancelled = $false                # True when Esc pressed
+    [bool]$NeedsClear = $false                 # True when field widget was closed and screen needs clear
 
     # === Private State ===
-    hidden [List[hashtable]]$_fields = [List[hashtable]]::new()      # Field definitions
+    hidden [List[hashtable]]$_fields = [List[hashtable]]::new()      # Field definition
     hidden [hashtable]$_fieldWidgets = @{}                           # Widget instances keyed by field name
+    hidden [hashtable]$_datePickerWidgets = @{}                      # DatePicker instances for date fields (kept separate from TextInput)
     hidden [int]$_currentFieldIndex = 0                              # Currently focused field
     hidden [string[]]$_validationErrors = @()                        # Current validation errors
     hidden [bool]$_showFieldWidgets = $false                         # Whether to show expanded field widget
     hidden [string]$_expandedFieldName = ""                          # Name of currently expanded field
+    hidden [bool]$_datePickerMode = $false                           # True when DatePicker is active (not TextInput)
 
     # === Constructor ===
     InlineEditor() : base("InlineEditor") {
@@ -126,8 +129,10 @@ class InlineEditor : PmcWidget {
     [void] SetFields([hashtable[]]$fields) {
         $this._fields.Clear()
         $this._fieldWidgets.Clear()
+        $this._datePickerWidgets.Clear()
         $this._currentFieldIndex = 0
         $this._validationErrors = @()
+        $this._datePickerMode = $false
 
         # Reset state flags
         $this.IsConfirmed = $false
@@ -232,6 +237,7 @@ class InlineEditor : PmcWidget {
             $this._currentFieldIndex = $fieldIndex
             $this._showFieldWidgets = $false
             $this._expandedFieldName = ""
+            $this._datePickerMode = $false
         }
     }
 
@@ -254,51 +260,81 @@ class InlineEditor : PmcWidget {
             if ($keyInfo.Key -eq 'Escape') {
                 $this._showFieldWidgets = $false
                 $this._expandedFieldName = ""
+                $this._datePickerMode = $false
                 return $true
             }
 
-            $widget = $this._fieldWidgets[$this._expandedFieldName]
+            # Get the appropriate widget based on mode
+            $widget = $null
+            $field = $this._fields | Where-Object { $_.Name -eq $this._expandedFieldName } | Select-Object -First 1
+
+            if ($field.Type -eq 'date' -and $this._datePickerMode) {
+                # Use DatePicker when in DatePicker mode
+                $widget = $this._datePickerWidgets[$this._expandedFieldName]
+            } else {
+                # Use normal widget
+                $widget = $this._fieldWidgets[$this._expandedFieldName]
+            }
 
             # Check for widget-specific completion
             $handled = $widget.HandleInput($keyInfo)
 
             # Check if widget confirmed or cancelled
-            if ($widget.IsConfirmed -or $widget.IsCancelled) {
-                $field = $this._fields | Where-Object { $_.Name -eq $this._expandedFieldName } | Select-Object -First 1
+            # PmcFilePicker uses IsComplete instead of IsConfirmed/IsCancelled
+            $isComplete = $false
+            if ($widget.PSObject.Properties['IsComplete']) {
+                $isComplete = $widget.IsComplete
+            } elseif ($widget.PSObject.Properties['IsConfirmed']) {
+                $isComplete = $widget.IsConfirmed -or $widget.IsCancelled
+            }
 
-                # For date fields, restore TextInput and update its value
-                if ($field.Type -eq 'date') {
+            if ($isComplete) {
+                # For date fields in DatePicker mode, update TextInput with selected date
+                if ($field.Type -eq 'date' -and $this._datePickerMode) {
                     # Get selected date from DatePicker
                     $selectedDate = if ($widget.IsConfirmed) { $widget.GetSelectedDate() } else { $null }
 
-                    # Recreate TextInput
-                    $textWidget = [TextInput]::new()
-                    $textWidget.MaxLength = 20
-                    $textWidget.Placeholder = 'yyyy-MM-dd or +days'
-
                     if ($selectedDate) {
+                        # Update the TextInput widget (which is still stored in _fieldWidgets)
+                        $textWidget = $this._fieldWidgets[$this._expandedFieldName]
                         $textWidget.SetText($selectedDate.ToString('yyyy-MM-dd'))
                         # Update field value
                         $field.Value = $selectedDate
                     }
+                }
 
-                    # Wire up callback
-                    $editor = $this
-                    $fieldRef = $field
-                    $textWidget.OnTextChanged = {
-                        param($newText)
-                        $editor._SetFieldValue($fieldRef.Name, $newText)
-                    }
+                # For folder fields, update TextInput with selected path
+                if ($field.Type -eq 'folder' -and $widget.PSObject.Properties['IsComplete'] -and $widget.IsComplete) {
+                    Write-PmcTuiLog "InlineEditor: Folder picker complete - Result=$($widget.Result) SelectedPath='$($widget.SelectedPath)'" "DEBUG"
 
-                    # Restore TextInput
+                    # Get selected path from FilePicker
+                    $selectedPath = if ($widget.Result) { $widget.SelectedPath } else { '' }
+
+                    Write-PmcTuiLog "InlineEditor: Setting folder field value to '$selectedPath'" "DEBUG"
+
+                    # Recreate TextInput and restore it
+                    $textWidget = [TextInput]::new()
+                    $textWidget.MaxLength = 255
+                    $textWidget.Placeholder = 'Press Enter to browse...'
+                    $textWidget.SetText($selectedPath)
+
+                    # Restore TextInput in place of FilePicker
                     $this._fieldWidgets[$this._expandedFieldName] = $textWidget
+
+                    # Update field value
+                    $field.Value = $selectedPath
+
+                    Write-PmcTuiLog "InlineEditor: Folder field updated - field.Value='$($field.Value)'" "DEBUG"
                 }
 
                 # Collapse widget
                 $this._showFieldWidgets = $false
+                $this._datePickerMode = $false
+                $this.NeedsClear = $true  # Request full screen clear to remove widget
 
                 # Get value from widget and update field BEFORE collapsing
-                if ($widget.IsConfirmed) {
+                # Only for widgets that have IsConfirmed property (not PmcFilePicker which uses Result)
+                if ($widget.PSObject.Properties['IsConfirmed'] -and $widget.IsConfirmed) {
                     # For tags, get tags directly from TagEditor
                     if ($field.Type -eq 'tags') {
                         $field.Value = $widget.GetTags()
@@ -308,6 +344,11 @@ class InlineEditor : PmcWidget {
                         $field.Value = $widget.GetSelectedProject()
                     }
 
+                    $this._InvokeCallback($this.OnFieldChanged, @($this._expandedFieldName, $field.Value))
+                }
+
+                # For PmcFilePicker, trigger callback if Result is true
+                if ($field.Type -eq 'folder' -and $widget.PSObject.Properties['Result'] -and $widget.Result) {
                     $this._InvokeCallback($this.OnFieldChanged, @($this._expandedFieldName, $field.Value))
                 }
 
@@ -339,8 +380,8 @@ class InlineEditor : PmcWidget {
                     }
                 }
 
-                # For Date/Project fields - expand the widget (NOT tags, tags is inline text now)
-                if ($currentField.Type -eq 'date' -or $currentField.Type -eq 'project') {
+                # For Date/Project/Folder fields - expand the widget (NOT tags, tags is inline text now)
+                if ($currentField.Type -eq 'date' -or $currentField.Type -eq 'project' -or $currentField.Type -eq 'folder') {
                     Write-PmcTuiLog "InlineEditor: Enter on $($currentField.Type) field - expanding widget" "DEBUG"
                     $this._ExpandCurrentField()
                     return $true
@@ -414,16 +455,17 @@ class InlineEditor : PmcWidget {
             if ($currentField.Type -eq 'number') {
                 $min = if ($currentField.ContainsKey('Min')) { $currentField.Min } else { 0 }
                 $max = if ($currentField.ContainsKey('Max')) { $currentField.Max } else { 10 }
+                $step = if ($currentField.ContainsKey('Step')) { $currentField.Step } else { 1 }
                 $currentValue = $this._GetFieldValue($currentField.Name, 'number')
                 if ($null -eq $currentValue) { $currentValue = $min }
 
                 if ($keyInfo.Key -eq 'LeftArrow' -and $currentValue -gt $min) {
-                    $this._SetFieldValue($currentField.Name, $currentValue - 1)
+                    $this._SetFieldValue($currentField.Name, $currentValue - $step)
                     return $true
                 }
 
                 if ($keyInfo.Key -eq 'RightArrow' -and $currentValue -lt $max) {
-                    $this._SetFieldValue($currentField.Name, $currentValue + 1)
+                    $this._SetFieldValue($currentField.Name, $currentValue + $step)
                     return $true
                 }
             }
@@ -444,6 +486,13 @@ class InlineEditor : PmcWidget {
                 # Don't pass navigation keys to widget - let InlineEditor handle them
                 if ($keyInfo.Key -eq 'Tab' -or $keyInfo.Key -eq 'UpArrow' -or $keyInfo.Key -eq 'DownArrow') {
                     return $false  # Let InlineEditor handle navigation
+                }
+
+                # Clear validation errors when user starts editing a field
+                # This prevents stale error messages from appearing while the user is actively typing
+                # Skip for navigation and submission keys
+                if ($keyInfo.Key -ne 'Enter') {
+                    $this._validationErrors = @()
                 }
 
                 if (-not $this._fieldWidgets.ContainsKey($currentField.Name)) {
@@ -487,8 +536,56 @@ class InlineEditor : PmcWidget {
 
         # If a field widget is expanded, render it instead of the form
         if ($this._showFieldWidgets -and -not [string]::IsNullOrWhiteSpace($this._expandedFieldName)) {
-            $widget = $this._fieldWidgets[$this._expandedFieldName]
-            return $widget.Render()
+            # Get the appropriate widget based on mode
+            $field = $this._fields | Where-Object { $_.Name -eq $this._expandedFieldName } | Select-Object -First 1
+
+            $widget = $null
+            if ($field.Type -eq 'date' -and $this._datePickerMode) {
+                # Render DatePicker when in DatePicker mode
+                if ($this._datePickerWidgets.ContainsKey($this._expandedFieldName)) {
+                    $widget = $this._datePickerWidgets[$this._expandedFieldName]
+                }
+            } else {
+                # Render normal widget
+                if ($this._fieldWidgets.ContainsKey($this._expandedFieldName)) {
+                    $widget = $this._fieldWidgets[$this._expandedFieldName]
+                }
+            }
+
+            if ($null -ne $widget) {
+                # Check if widget is PmcFilePicker (needs terminal dimensions)
+                if ($widget.GetType().Name -eq 'PmcFilePicker') {
+                    # Get terminal size
+                    try {
+                        $termWidth = [Console]::WindowWidth
+                        $termHeight = [Console]::WindowHeight
+                    } catch {
+                        $termWidth = 120
+                        $termHeight = 40
+                    }
+
+                    if ($global:PmcTuiLogFile) {
+                        Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] InlineEditor: Rendering PmcFilePicker with termWidth=$termWidth, termHeight=$termHeight"
+                    }
+
+                    # Force full redraw for FilePicker every frame to avoid diff issues
+                    $this.NeedsClear = $true
+
+                    $output = $widget.Render($termWidth, $termHeight)
+
+                    if ($global:PmcTuiLogFile) {
+                        Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] InlineEditor: PmcFilePicker render returned length=$($output.Length)"
+                    }
+
+                    return $output
+                } else {
+                    return $widget.Render()
+                }
+            }
+
+            # Widget doesn't exist - fall through to render normal form
+            $this._showFieldWidgets = $false
+            $this._expandedFieldName = ""
         }
 
         # Draw top border
@@ -525,13 +622,8 @@ class InlineEditor : PmcWidget {
             $sb.Append($this.GetBoxChar('single_vertical'))
 
             # Label
-            $label = $field.Label
-            $isRequired = $false
-            if ($field -is [hashtable] -and $field.ContainsKey('Required')) {
-                $isRequired = $field.Required
-            } elseif ($field.PSObject.Properties['Required']) {
-                $isRequired = $field.Required
-            }
+            $label = Get-SafeProperty $field 'Label'
+            $isRequired = Get-SafeProperty $field 'Required' $false
             if ($isRequired) {
                 $label += " *"
             }
@@ -763,6 +855,27 @@ class InlineEditor : PmcWidget {
                 }
             }
 
+            'folder' {
+                # Folder picker - use TextInput for inline display
+                $widget = [TextInput]::new()
+                $widget.MaxLength = 255
+                $widget.Placeholder = 'Press Enter to browse...'
+
+                if ($value) {
+                    $widget.SetText($value.ToString())
+                } else {
+                    $widget.SetText('')
+                }
+
+                # Wire up callback
+                $editor = $this
+                $field = $fieldDef
+                $widget.OnTextChanged = {
+                    param($newText)
+                    $editor._SetFieldValue($field.Name, $newText)
+                }
+            }
+
             'number' {
                 # Number is handled inline (no separate widget)
                 # Store value in field definition
@@ -896,6 +1009,18 @@ class InlineEditor : PmcWidget {
                 return @($tags)
             }
 
+            'folder' {
+                # Folder path stored as text in TextInput (or PmcFilePicker if still expanded)
+                $widget = $this._fieldWidgets[$fieldName]
+                if ($widget.GetType().Name -eq 'PmcFilePicker') {
+                    # Still showing picker - return current path
+                    return $widget.CurrentPath
+                } else {
+                    # TextInput - return text
+                    return $widget.GetText()
+                }
+            }
+
             'number' {
                 $field = $this._fields | Where-Object { $_.Name -eq $fieldName } | Select-Object -First 1
                 if ($field.ContainsKey('Value')) {
@@ -997,6 +1122,13 @@ class InlineEditor : PmcWidget {
                 return "[ $buttonText ]"
             }
 
+            'folder' {
+                if ([string]::IsNullOrWhiteSpace($value)) {
+                    return "(no folder)"
+                }
+                return $value
+            }
+
             default {
                 return "(unknown)"
             }
@@ -1046,19 +1178,55 @@ class InlineEditor : PmcWidget {
                 return
             }
 
-            # For date fields, create DatePicker on demand
-            if ($field.Type -eq 'date') {
+            # For folder fields, create PmcFilePicker on demand
+            if ($field.Type -eq 'folder') {
+                # Load PmcFilePicker if not already loaded
+                . "$PSScriptRoot/PmcFilePicker.ps1"
+
                 # Get current value from TextInput widget
+                $textWidget = $this._fieldWidgets[$field.Name]
+                $currentPath = $textWidget.GetText()
+
+                # Create FilePicker using Add-Type to avoid parse-time type dependency
+                $filePickerType = 'PmcFilePicker' -as [Type]
+                $filePicker = $filePickerType::new($currentPath, $true)  # true = directories only
+                $filePicker.Width = 70
+                $filePicker.Height = 20
+
+                # Replace the TextInput with FilePicker temporarily
+                $this._fieldWidgets[$field.Name] = $filePicker
+
+                $this._expandedFieldName = $field.Name
+                $this._showFieldWidgets = $true
+                $this.NeedsClear = $true  # Force full screen redraw to show all items correctly
+
+                $filePicker.IsComplete = $false
+                $filePicker.Result = $false
+                return
+            }
+
+            # For date fields, create DatePicker on demand (if not already created)
+            if ($field.Type -eq 'date') {
+                # Get current value from TextInput widget (which stays in _fieldWidgets)
                 $textWidget = $this._fieldWidgets[$field.Name]
                 $currentText = $textWidget.GetText()
 
-                # Create DatePicker in CALENDAR mode (not text mode)
-                $datePicker = [DatePicker]::new()
-                $datePicker.SetPosition($this.X + 5, $this.Y + 5)
-                $datePicker.SetSize(35, 14)
+                # Create or reuse DatePicker (stored separately)
+                if (-not $this._datePickerWidgets.ContainsKey($field.Name)) {
+                    # Create DatePicker in CALENDAR mode (not text mode)
+                    $datePicker = [DatePicker]::new()
+                    $datePicker.SetPosition($this.X + 5, $this.Y + 5)
+                    $datePicker.SetSize(35, 14)
 
-                # Force calendar mode (not text input mode)
-                $datePicker._isCalendarMode = $true
+                    # Force calendar mode (not text input mode)
+                    $datePicker._isCalendarMode = $true
+
+                    # Store DatePicker separately
+                    $this._datePickerWidgets[$field.Name] = $datePicker
+                }
+
+                # Get the DatePicker
+                $datePicker = $this._datePickerWidgets[$field.Name]
 
                 # Parse current text value to DateTime if possible
                 if (-not [string]::IsNullOrWhiteSpace($currentText)) {
@@ -1069,19 +1237,28 @@ class InlineEditor : PmcWidget {
                         # Invalid date, use today
                         $datePicker.SetDate([DateTime]::Now)
                     }
+                } else {
+                    # No text, use today
+                    $datePicker.SetDate([DateTime]::Now)
                 }
 
-                # Replace the TextInput with DatePicker temporarily
-                $this._fieldWidgets[$field.Name] = $datePicker
+                # Set mode to DatePicker
+                $this._datePickerMode = $true
+
+                # Reset DatePicker state
+                $datePicker.IsConfirmed = $false
+                $datePicker.IsCancelled = $false
             }
 
             $this._expandedFieldName = $field.Name
             $this._showFieldWidgets = $true
 
-            # Reset widget state
-            $widget = $this._fieldWidgets[$field.Name]
-            $widget.IsConfirmed = $false
-            $widget.IsCancelled = $false
+            # Reset widget state for non-date fields
+            if ($field.Type -ne 'date') {
+                $widget = $this._fieldWidgets[$field.Name]
+                $widget.IsConfirmed = $false
+                $widget.IsCancelled = $false
+            }
         }
     }
 
@@ -1156,18 +1333,18 @@ class InlineEditor : PmcWidget {
             try {
                 if ($null -ne $arg) {
                     # Use Invoke-Command with -ArgumentList to pass single arg without array wrapping
-                    Invoke-Command -ScriptBlock $callback -ArgumentList $arg
+                    Invoke-Command -ScriptBlock $callback -ArgumentList (,$arg)
                 } else {
                     & $callback
                 }
             } catch {
-                # Log callback errors and rethrow so user sees them
+                # Log callback errors but DON'T rethrow - callbacks must never crash the app
                 if (Get-Command Write-PmcTuiLog -ErrorAction SilentlyContinue) {
                     Write-PmcTuiLog "InlineEditor callback error: $($_.Exception.Message)" "ERROR"
                     Write-PmcTuiLog "Callback code: $($callback.ToString())" "ERROR"
                     Write-PmcTuiLog "Stack trace: $($_.ScriptStackTrace)" "ERROR"
                 }
-                throw  # Rethrow so it crashes and you see it
+                # DON'T rethrow - form submission callbacks must not crash
             }
         }
     }

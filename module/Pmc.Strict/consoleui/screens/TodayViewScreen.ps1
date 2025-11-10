@@ -27,6 +27,14 @@ class TodayViewScreen : PmcScreen {
     [array]$EditableFields = @('priority', 'due', 'text')
     [int]$EditFieldIndex = 0
 
+    # Static: Register menu items
+    static [void] RegisterMenuItems([object]$registry) {
+        $registry.AddMenuItem('Tasks', 'Today', 'Y', {
+            . "$PSScriptRoot/TodayViewScreen.ps1"
+            $global:PmcApp.PushScreen([TodayViewScreen]::new())
+        }, 10)
+    }
+
     # Constructor
     TodayViewScreen() : base("TodayView", "Today's Tasks") {
         # Configure header

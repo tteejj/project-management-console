@@ -189,7 +189,11 @@ class ProjectInfoScreen : PmcScreen {
                         if ($dueDate.Date -lt $today) {
                             $this.ProjectStats.OverdueTasks++
                         }
-                    } catch {}
+                    } catch {
+                        if (Get-Command Write-PmcTuiLog -ErrorAction SilentlyContinue) {
+                            Write-PmcTuiLog "Failed to parse due date '$($task.due)' for task: $($_.Exception.Message)" "DEBUG"
+                        }
+                    }
                 }
             }
 

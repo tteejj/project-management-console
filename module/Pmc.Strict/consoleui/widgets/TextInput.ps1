@@ -426,6 +426,18 @@ class TextInput : PmcWidget {
             return
         }
 
+        # Basic input sanitization - reject control characters and null bytes
+        $charCode = [int]$ch
+        if ($charCode -lt 32 -and $charCode -ne 9) {  # Allow tab (9) but reject other control chars
+            return
+        }
+        if ($charCode -eq 0) {  # Null byte
+            return
+        }
+        if ($charCode -eq 127) {  # DEL control char
+            return
+        }
+
         # Insert character
         if ($this._cursorPosition -eq $this.Text.Length) {
             # Append

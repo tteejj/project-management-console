@@ -8,9 +8,17 @@
 # Optional opt-in level boost via PMC_CONSOLEUI_DEBUG
 try {
     if ($env:PMC_CONSOLEUI_DEBUG -and ($env:PMC_CONSOLEUI_DEBUG -match '^(?i:1|true|yes|on)$')) {
-        try { Initialize-PmcDebugSystem -Level 1 } catch {}
+        try {
+            Initialize-PmcDebugSystem -Level 1
+        } catch {
+            # Silently ignore if debug system not available - this is optional
+            Write-Warning "PMC_CONSOLEUI_DEBUG enabled but Initialize-PmcDebugSystem failed: $($_.Exception.Message)"
+        }
     }
-} catch {}
+} catch {
+    # Silently ignore env var processing errors - this is optional
+    Write-Warning "Failed to process PMC_CONSOLEUI_DEBUG environment variable: $($_.Exception.Message)"
+}
 
 function Write-ConsoleUIDebug {
     param(
@@ -20,7 +28,10 @@ function Write-ConsoleUIDebug {
 
     try {
         Write-PmcDebug -Level 1 -Category ("ConsoleUI:" + $Category) -Message $Message
-    } catch {}
+    } catch {
+        # Fallback if centralized debug system not available
+        Write-Warning "Write-ConsoleUIDebug failed (Write-PmcDebug not available): $Message"
+    }
 }
 
 function Clear-ConsoleUIDebugLog {
@@ -34,8 +45,15 @@ function Get-ConsoleUIDebugLog {
     # Read central debug log path if available
     try {
         $path = Get-PmcDebugLogPath
-        if (Test-Path $path) { Get-Content $path -Tail $Lines } else { Write-Host "No debug log found at: $path" -ForegroundColor Yellow }
-    } catch { Write-Host "Debug log unavailable" -ForegroundColor Yellow }
+        if (Test-Path $path) {
+            Get-Content $path -Tail $Lines
+        } else {
+            Write-Host "No debug log found at: $path" -ForegroundColor Yellow
+        }
+    } catch {
+        Write-Host "Debug log unavailable: $($_.Exception.Message)" -ForegroundColor Yellow
+        Write-Warning "Get-ConsoleUIDebugLog error: $($_.Exception.Message)"
+    }
 }
 
 # Centralized logging takes precedence

@@ -86,27 +86,28 @@ Optional Overrides:
 - GetEntityType() - Return 'task', 'project', or 'timelog' for store operations
 
 .EXAMPLE
-class TaskListScreen : StandardListScreen {
-    TaskListScreen() : base("TaskList", "My Tasks") {}
-
-    [void] LoadData() {
-        $tasks = $this.Store.GetAllTasks()
-        $this.List.SetData($tasks)
-    }
-
-    [array] GetColumns() {
-        return @(
-            @{ Name='text'; Label='Task'; Width=40 }
-            @{ Name='due'; Label='Due'; Width=12 }
-        )
-    }
-
-    [array] GetEditFields($item) {
-        return @(
-            @{ Name='text'; Type='text'; Label='Task'; Value=$item.text; Required=$true }
-        )
-    }
-}
+# Example: List screen implementation
+# class MyListScreen : StandardListScreen {
+#     MyListScreen() : base("MyList", "My Items") {}
+#
+#     [void] LoadData() {
+#         $items = $this.Store.GetAllItems()
+#         $this.List.SetData($items)
+#     }
+#
+#     [array] GetColumns() {
+#         return @(
+#             @{ Name='name'; Label='Name'; Width=40 }
+#             @{ Name='status'; Label='Status'; Width=12 }
+#         )
+#     }
+#
+#     [array] GetEditFields($item) {
+#         return @(
+#             @{ Name='name'; Type='text'; Label='Name'; Value=$item.name; Required=$true }
+#         )
+#     }
+# }
 #>
 class StandardListScreen : PmcScreen {
     # === Core Components ===
@@ -120,6 +121,7 @@ class StandardListScreen : PmcScreen {
     [bool]$ShowInlineEditor = $false
     [string]$EditorMode = ""  # 'add' or 'edit'
     [object]$CurrentEditItem = $null
+    hidden [bool]$_isHandlingInput = $false  # Re-entry guard for HandleKeyPress
 
     # === Configuration ===
     [bool]$AllowAdd = $true
@@ -131,6 +133,9 @@ class StandardListScreen : PmcScreen {
 
     # === Constructor ===
     StandardListScreen([string]$key, [string]$title) : base($key, $title) {
+        # UniversalList has its own status and action footer, so disable the screen's StatusBar
+        $this.StatusBar = $null
+
         # Initialize components
         $this._InitializeComponents()
     }
@@ -216,7 +221,7 @@ class StandardListScreen : PmcScreen {
     [void] OnItemSelected($item) {
         # Default: update status bar
         if ($null -ne $item -and $item.Count -gt 0 -and $this.StatusBar) {
-            $text = if ($item.ContainsKey('text')) { $item.text } elseif ($item.ContainsKey('name')) { $item.name } else { "Item selected" }
+            $text = if ($null -ne $item.text) { $item.text } elseif ($null -ne $item.name) { $item.name } else { "Item selected" }
             $this.StatusBar.SetLeftText($text)
         }
     }
@@ -251,6 +256,11 @@ class StandardListScreen : PmcScreen {
     Initialize all components
     #>
     hidden [void] _InitializeComponents() {
+        # DEBUG
+        if ($global:PmcTuiLogFile) {
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] StandardListScreen._InitializeComponents: Starting (MenuBar=$($null -ne $this.MenuBar))"
+        }
+
         # Get terminal size
         $termSize = $this._GetTerminalSize()
         $this.TermWidth = $termSize.Width
@@ -268,28 +278,34 @@ class StandardListScreen : PmcScreen {
         $this.List.AllowInlineEdit = $this.AllowEdit
         $this.List.AllowSearch = $this.AllowSearch
 
-        # Wire up list events (capture $this as $screen for scriptblock scope)
-        $screen = $this
+        if ($global:PmcTuiLogFile) {
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] StandardListScreen._InitializeComponents: List created"
+        }
 
+        # Wire up list events using GetNewClosure()
         $this.List.OnSelectionChanged = {
             param($item)
-            $screen.OnItemSelected($item)
-        }
+            $currentScreen = $global:PmcApp.CurrentScreen
+            $currentScreen.OnItemSelected($item)
+        }.GetNewClosure()
 
         $this.List.OnItemEdit = {
             param($item)
-            $screen.EditItem($item)
-        }
+            $currentScreen = $global:PmcApp.CurrentScreen
+            $currentScreen.EditItem($item)
+        }.GetNewClosure()
 
         $this.List.OnItemDelete = {
             param($item)
-            $screen.DeleteItem($item)
-        }
+            $currentScreen = $global:PmcApp.CurrentScreen
+            $currentScreen.DeleteItem($item)
+        }.GetNewClosure()
 
         $this.List.OnItemActivated = {
             param($item)
-            $screen.OnItemActivated($item)
-        }
+            $currentScreen = $global:PmcApp.CurrentScreen
+            $currentScreen.OnItemActivated($item)
+        }.GetNewClosure()
 
         # Initialize FilterPanel
         $this.FilterPanel = [FilterPanel]::new()
@@ -304,17 +320,17 @@ class StandardListScreen : PmcScreen {
         $this.InlineEditor = [InlineEditor]::new()
         $this.InlineEditor.SetPosition(10, 5)
         $this.InlineEditor.SetSize(70, 25)
-        # Capture $this for callback scoping
-        $screen = $this
+        # Capture $this explicitly to avoid wrong screen receiving callback
+        $thisScreen = $this
         $this.InlineEditor.OnConfirmed = {
             param($values)
-            $screen._SaveEditedItem($values)
-        }
+            $thisScreen._SaveEditedItem($values)
+        }.GetNewClosure()
         $this.InlineEditor.OnCancelled = {
-            $screen.ShowInlineEditor = $false
-            $screen.EditorMode = ""
-            $screen.CurrentEditItem = $null
-        }
+            $thisScreen.ShowInlineEditor = $false
+            $thisScreen.EditorMode = ""
+            $thisScreen.CurrentEditItem = $null
+        }.GetNewClosure()
 
         # Wire up store events for auto-refresh
         $entityType = $this.GetEntityType()
@@ -322,20 +338,28 @@ class StandardListScreen : PmcScreen {
             'task' {
                 $this.Store.OnTasksChanged = {
                     param($tasks)
-                    $screen.RefreshList()
-                }
+                    $currentScreen = $global:PmcApp.CurrentScreen
+                    if ($currentScreen.GetType().Name -eq 'TaskListScreen') {
+                        $currentScreen.RefreshList()
+                    }
+                }.GetNewClosure()
             }
             'project' {
                 $this.Store.OnProjectsChanged = {
                     param($projects)
-                    $screen.RefreshList()
-                }
+                    $currentScreen = $global:PmcApp.CurrentScreen
+                    if ($currentScreen.GetType().Name -eq 'ProjectListScreen') {
+                        $currentScreen.RefreshList()
+                    }
+                }.GetNewClosure()
             }
             'timelog' {
                 $this.Store.OnTimeLogsChanged = {
                     param($logs)
-                    $screen.RefreshList()
-                }
+                    $currentScreen = $global:PmcApp.CurrentScreen
+                    # Check if current screen cares about time logs
+                    $currentScreen.RefreshList()
+                }.GetNewClosure()
             }
         }
 
@@ -348,31 +372,43 @@ class StandardListScreen : PmcScreen {
     Configure list actions (Add, Edit, Delete, + custom)
     #>
     hidden [void] _ConfigureListActions() {
-        # Capture $this in local variable for use in scriptblocks
-        $screen = $this
+        if ($global:PmcTuiLogFile) {
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] _ConfigureListActions: Screen instance type=$($this.GetType().Name) key=$($this.ScreenKey)"
+        }
 
         if ($this.AllowAdd) {
-            $this.List.AddAction('a', 'Add', {
-                $screen.AddItem()
-            })
+            # Use GetNewClosure() to capture current scope
+            $addAction = {
+                # Find the screen that owns this List by walking up
+                $currentScreen = $global:PmcApp.CurrentScreen
+                if ($global:PmcTuiLogFile) {
+                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] Action 'a' callback: currentScreen type=$($currentScreen.GetType().Name) key=$($currentScreen.ScreenKey)"
+                }
+                $currentScreen.AddItem()
+            }.GetNewClosure()
+            $this.List.AddAction('a', 'Add', $addAction)
         }
 
         if ($this.AllowEdit) {
-            $this.List.AddAction('e', 'Edit', {
-                $selectedItem = $screen.List.GetSelectedItem()
+            $editAction = {
+                $currentScreen = $global:PmcApp.CurrentScreen
+                $selectedItem = $currentScreen.List.GetSelectedItem()
                 if ($null -ne $selectedItem) {
-                    $screen.EditItem($selectedItem)
+                    $currentScreen.EditItem($selectedItem)
                 }
-            })
+            }.GetNewClosure()
+            $this.List.AddAction('e', 'Edit', $editAction)
         }
 
         if ($this.AllowDelete) {
-            $this.List.AddAction('d', 'Delete', {
-                $selectedItem = $screen.List.GetSelectedItem()
+            $deleteAction = {
+                $currentScreen = $global:PmcApp.CurrentScreen
+                $selectedItem = $currentScreen.List.GetSelectedItem()
                 if ($null -ne $selectedItem) {
-                    $screen.DeleteItem($selectedItem)
+                    $currentScreen.DeleteItem($selectedItem)
                 }
-            })
+            }.GetNewClosure()
+            $this.List.AddAction('d', 'Delete', $deleteAction)
         }
 
         # Add custom actions from subclass
@@ -416,6 +452,20 @@ class StandardListScreen : PmcScreen {
     #>
     [void] OnExit() {
         $this.IsActive = $false
+
+        # Cleanup event handlers to prevent memory leaks
+        $entityType = $this.GetEntityType()
+        switch ($entityType) {
+            'task' {
+                $this.Store.OnTasksChanged = $null
+            }
+            'project' {
+                $this.Store.OnProjectsChanged = $null
+            }
+            'timelog' {
+                $this.Store.OnTimeLogsChanged = $null
+            }
+        }
     }
 
     # === CRUD Operations ===
@@ -427,7 +477,7 @@ class StandardListScreen : PmcScreen {
     [void] AddItem() {
         # DEBUG logging
         if ($global:PmcTuiLogFile) {
-            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] StandardListScreen.AddItem() called"
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] StandardListScreen.AddItem() called on type=$($this.GetType().Name) key=$($this.ScreenKey)"
         }
 
         $this.EditorMode = 'add'
@@ -440,10 +490,19 @@ class StandardListScreen : PmcScreen {
 
         $this.InlineEditor.SetFields($fields)
         $this.InlineEditor.Title = "Add New"
+
+        if ($global:PmcTuiLogFile) {
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] AddItem: About to set ShowInlineEditor=true (currently: $($this.ShowInlineEditor))"
+        }
+
         $this.ShowInlineEditor = $true
 
         if ($global:PmcTuiLogFile) {
-            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ShowInlineEditor set to: $($this.ShowInlineEditor)"
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] AddItem: ShowInlineEditor set to: $($this.ShowInlineEditor)"
+        }
+
+        if ($global:PmcTuiLogFile) {
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] AddItem: Exiting (ShowInlineEditor=$($this.ShowInlineEditor))"
         }
     }
 
@@ -487,17 +546,17 @@ class StandardListScreen : PmcScreen {
 
         switch ($entityType) {
             'task' {
-                if ($item.ContainsKey('id')) {
+                if ($null -ne $item.id) {
                     $success = $this.Store.DeleteTask($item.id)
                 }
             }
             'project' {
-                if ($item.ContainsKey('name')) {
+                if ($null -ne $item.name) {
                     $success = $this.Store.DeleteProject($item.name)
                 }
             }
             'timelog' {
-                if ($item.ContainsKey('id')) {
+                if ($null -ne $item.id) {
                     $success = $this.Store.DeleteTimeLog($item.id)
                 }
             }
@@ -523,70 +582,38 @@ class StandardListScreen : PmcScreen {
     #>
     hidden [void] _SaveEditedItem($values) {
         Write-PmcTuiLog "StandardListScreen._SaveEditedItem: Mode=$($this.EditorMode) Values=$($values | ConvertTo-Json -Compress)" "DEBUG"
-        $entityType = $this.GetEntityType()
-        $success = $false
 
-        if ($this.EditorMode -eq 'add') {
-            # Add new item
-            Write-PmcTuiLog "Adding new $entityType with values: $($values | ConvertTo-Json -Compress)" "DEBUG"
-            switch ($entityType) {
-                'task' {
-                    $success = $this.Store.AddTask($values)
-                    Write-PmcTuiLog "AddTask returned: $success" "DEBUG"
-                }
-                'project' {
-                    $success = $this.Store.AddProject($values)
-                }
-                'timelog' {
-                    $success = $this.Store.AddTimeLog($values)
-                }
+        try {
+            if ($this.EditorMode -eq 'add') {
+                # Call subclass callback for item creation
+                Write-PmcTuiLog "Calling OnItemCreated with values: $($values | ConvertTo-Json -Compress)" "DEBUG"
+                $this.OnItemCreated($values)
+            }
+            elseif ($this.EditorMode -eq 'edit') {
+                # Call subclass callback for item update
+                Write-PmcTuiLog "Calling OnItemUpdated with item and values" "DEBUG"
+                $this.OnItemUpdated($this.CurrentEditItem, $values)
+            }
+            else {
+                Write-PmcTuiLog "ERROR: EditorMode is '$($this.EditorMode)' - expected 'add' or 'edit'" "ERROR"
+                $this.SetStatusMessage("Invalid editor mode", "error")
+                return
             }
 
-            if ($success) {
-                if ($this.StatusBar) {
-                    $this.StatusBar.SetLeftText("Item added")
-                }
-            }
+            # Only close editor on success
+            Write-PmcTuiLog "_SaveEditedItem: Setting ShowInlineEditor=false" "DEBUG"
+            $this.ShowInlineEditor = $false
+            $this.EditorMode = ""
+            $this.CurrentEditItem = $null
+
+            Write-PmcTuiLog "_SaveEditedItem: After close - ShowInlineEditor=$($this.ShowInlineEditor)" "DEBUG"
         }
-        elseif ($this.EditorMode -eq 'edit') {
-            # Update existing item
-            switch ($entityType) {
-                'task' {
-                    if ($this.CurrentEditItem.ContainsKey('id')) {
-                        $success = $this.Store.UpdateTask($this.CurrentEditItem.id, $values)
-                    }
-                }
-                'project' {
-                    if ($this.CurrentEditItem.ContainsKey('name')) {
-                        $success = $this.Store.UpdateProject($this.CurrentEditItem.name, $values)
-                    }
-                }
-                'timelog' {
-                    # Time logs don't support update - delete and re-add
-                    $success = $false
-                }
-            }
-
-            if ($success) {
-                if ($this.StatusBar) {
-                    $this.StatusBar.SetLeftText("Item updated")
-                }
-            }
+        catch {
+            Write-PmcTuiLog "_SaveEditedItem failed: $_" "ERROR"
+            Write-PmcTuiLog "Stack trace: $($_.ScriptStackTrace)" "ERROR"
+            $this.SetStatusMessage("Failed to save: $($_.Exception.Message)", "error")
+            # Keep editor open so user can retry
         }
-
-        if (-not $success) {
-            if ($this.StatusBar) {
-                $this.StatusBar.SetLeftText("Failed to save: $($this.Store.LastError)")
-            }
-        }
-
-        # Close editor and reset state
-        Write-PmcTuiLog "_SaveEditedItem: Setting ShowInlineEditor=false" "DEBUG"
-        $this.ShowInlineEditor = $false
-        $this.EditorMode = ""
-        $this.CurrentEditItem = $null
-
-        Write-PmcTuiLog "_SaveEditedItem: After close - ShowInlineEditor=$($this.ShowInlineEditor)" "DEBUG"
 
         # NOTE: Don't reset IsConfirmed/IsCancelled here - HandleKeyPress checks them
         # They will be reset when SetFields() is called for the next add/edit
@@ -659,62 +686,110 @@ class StandardListScreen : PmcScreen {
     True if input was handled, False otherwise
     #>
     [bool] HandleKeyPress([ConsoleKeyInfo]$keyInfo) {
-        # Route to inline editor if shown
-        if ($this.ShowInlineEditor) {
-            Write-PmcTuiLog "StandardListScreen: Routing to InlineEditor (Key=$($keyInfo.Key))" "DEBUG"
-            $handled = $this.InlineEditor.HandleInput($keyInfo)
-            Write-PmcTuiLog "StandardListScreen: After HandleInput - IsConfirmed=$($this.InlineEditor.IsConfirmed) IsCancelled=$($this.InlineEditor.IsCancelled) ShowInlineEditor=$($this.ShowInlineEditor)" "DEBUG"
+        # Re-entry guard: prevent infinite recursion
+        if ($this._isHandlingInput) {
+            return $false
+        }
+        $this._isHandlingInput = $true
+        try {
+            # Check Alt+key for menu bar first (before editor/filter)
+            if ($keyInfo.Modifiers -band [ConsoleModifiers]::Alt) {
+                if ($null -ne $this.MenuBar -and $this.MenuBar.HandleKeyPress($keyInfo)) {
+                    return $true
+                }
+            }
 
-            # Check if editor closed
-            if ($this.InlineEditor.IsConfirmed -or $this.InlineEditor.IsCancelled) {
-                Write-PmcTuiLog "StandardListScreen: Editor confirmed/cancelled - closing editor" "DEBUG"
-                $this.ShowInlineEditor = $false
-                # Request full screen clear to remove editor remnants
-                $this.NeedsClear = $true
-                # MUST return true to trigger re-render
+            # F10 activates menu
+            if ($keyInfo.Key -eq [ConsoleKey]::F10) {
+                if ($null -ne $this.MenuBar) {
+                    $this.MenuBar.Activate()
+                    return $true
+                }
+            }
+
+            # If menu is active, route all keys to it
+            if ($null -ne $this.MenuBar -and $this.MenuBar.IsActive) {
+                if ($this.MenuBar.HandleKeyPress($keyInfo)) {
+                    return $true
+                }
+            }
+
+            # Route to inline editor if shown
+            if ($this.ShowInlineEditor) {
+                Write-PmcTuiLog "StandardListScreen: Routing to InlineEditor (Key=$($keyInfo.Key))" "DEBUG"
+                $handled = $this.InlineEditor.HandleInput($keyInfo)
+                Write-PmcTuiLog "StandardListScreen: After HandleInput - IsConfirmed=$($this.InlineEditor.IsConfirmed) IsCancelled=$($this.InlineEditor.IsCancelled) ShowInlineEditor=$($this.ShowInlineEditor)" "DEBUG"
+
+                # Check if editor needs clear (field widget was closed)
+                if ($this.InlineEditor.NeedsClear) {
+                    Write-PmcTuiLog "StandardListScreen: Editor field widget closed - requesting clear" "DEBUG"
+                    $this.NeedsClear = $true
+                    $this.InlineEditor.NeedsClear = $false  # Reset flag
+                    return $true
+                }
+
+                # Check if editor closed
+                if ($this.InlineEditor.IsConfirmed -or $this.InlineEditor.IsCancelled) {
+                    Write-PmcTuiLog "StandardListScreen: Editor confirmed/cancelled - closing editor" "DEBUG"
+                    $this.ShowInlineEditor = $false
+                    # Request full screen clear to remove editor remnants
+                    $this.NeedsClear = $true
+                    # MUST return true to trigger re-render
+                    return $true
+                }
+
+                Write-PmcTuiLog "StandardListScreen: After close check - ShowInlineEditor=$($this.ShowInlineEditor)" "DEBUG"
+
+                # If editor handled the key, we're done
+                if ($handled) {
+                    return $true
+                }
+                # Otherwise, fall through to global shortcuts
+            }
+
+            # Route to filter panel if shown
+            if ($this.ShowFilterPanel) {
+                $handled = $this.FilterPanel.HandleInput($keyInfo)
+
+                # Esc closes filter panel
+                if ($keyInfo.Key -eq 'Escape') {
+                    $this.ShowFilterPanel = $false
+                    return $true
+                }
+
+                # If filter panel handled the key, we're done
+                if ($handled) {
+                    return $true
+                }
+                # Otherwise, fall through to global shortcuts
+            }
+
+            # Global shortcuts
+
+            # ? = Help
+            if ($keyInfo.KeyChar -eq '?') {
+                . "$PSScriptRoot/../screens/HelpViewScreen.ps1"
+                $screen = Invoke-Expression '[HelpViewScreen]::new()'
+                $this.App.PushScreen($screen)
                 return $true
             }
 
-            Write-PmcTuiLog "StandardListScreen: After close check - ShowInlineEditor=$($this.ShowInlineEditor)" "DEBUG"
-
-            # If editor handled the key, we're done
-            if ($handled) {
-                return $true
-            }
-            # Otherwise, fall through to global shortcuts
-        }
-
-        # Route to filter panel if shown
-        if ($this.ShowFilterPanel) {
-            $handled = $this.FilterPanel.HandleInput($keyInfo)
-
-            # Esc closes filter panel
-            if ($keyInfo.Key -eq 'Escape') {
-                $this.ShowFilterPanel = $false
+            if ($keyInfo.Key -eq 'F' -and $this.AllowFilter) {
+                $this.ToggleFilterPanel()
                 return $true
             }
 
-            # If filter panel handled the key, we're done
-            if ($handled) {
+            if ($keyInfo.Key -eq 'R') {
+                # Refresh
+                $this.RefreshList()
                 return $true
             }
-            # Otherwise, fall through to global shortcuts
-        }
 
-        # Global shortcuts
-        if ($keyInfo.Key -eq 'F' -and $this.AllowFilter) {
-            $this.ToggleFilterPanel()
-            return $true
+            # Route to list
+            return $this.List.HandleInput($keyInfo)
+        } finally {
+            $this._isHandlingInput = $false
         }
-
-        if ($keyInfo.Key -eq 'R') {
-            # Refresh
-            $this.RefreshList()
-            return $true
-        }
-
-        # Route to list
-        return $this.List.HandleInput($keyInfo)
     }
 
     # === Rendering ===
@@ -729,23 +804,17 @@ class StandardListScreen : PmcScreen {
     [string] RenderContent() {
         # Priority rendering order: editor > filter panel > list
 
+        if ($global:PmcTuiLogFile) {
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] RenderContent: ENTRY - type=$($this.GetType().Name) key=$($this.ScreenKey) ShowInlineEditor=$($this.ShowInlineEditor) EditorMode=$($this.EditorMode)"
+        }
+
         if ($this.ShowInlineEditor) {
             if ($global:PmcTuiLogFile) {
                 Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] RenderContent: Rendering InlineEditor"
             }
 
+            # InlineEditor.Render() handles both form and expanded widgets
             $editorContent = $this.InlineEditor.Render()
-
-            # If an expanded widget is shown, render it as overlay
-            if ($this.InlineEditor._showFieldWidgets -and -not [string]::IsNullOrWhiteSpace($this.InlineEditor._expandedFieldName)) {
-                $fieldName = $this.InlineEditor._expandedFieldName
-                if ($this.InlineEditor._fieldWidgets.ContainsKey($fieldName)) {
-                    $widget = $this.InlineEditor._fieldWidgets[$fieldName]
-                    $widgetContent = $widget.Render()
-                    return $editorContent + "`n" + $widgetContent
-                }
-            }
-
             return $editorContent
         }
 
@@ -760,51 +829,23 @@ class StandardListScreen : PmcScreen {
         }
 
         if ($global:PmcTuiLogFile) {
-            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] RenderContent: Rendering List (ShowInlineEditor=$($this.ShowInlineEditor), ShowFilterPanel=$($this.ShowFilterPanel))"
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] RenderContent: Rendering List (ShowInlineEditor=$($this.ShowInlineEditor), ShowFilterPanel=$($this.ShowFilterPanel), List=$($null -ne $this.List))"
         }
 
-        return $this.List.Render()
+        if ($null -eq $this.List) {
+            if ($global:PmcTuiLogFile) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] RenderContent: ERROR - List is null!"
+            }
+            return ""
+        }
+
+        $listOutput = $this.List.Render()
+        if ($global:PmcTuiLogFile) {
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] RenderContent: List.Render() returned length=$($listOutput.Length)"
+        }
+        return $listOutput
     }
 
-    <#
-    .SYNOPSIS
-    Render the complete screen
-
-    .OUTPUTS
-    ANSI string ready for display
-    #>
-    [string] Render() {
-        $sb = [StringBuilder]::new(8192)
-
-        # Clear screen
-        $sb.Append("`e[2J")
-        $sb.Append("`e[H")
-
-        # Render menu bar (if exists)
-        if ($null -ne $this.MenuBar) {
-            $sb.Append($this.MenuBar.Render())
-        }
-
-        # Render header (if exists)
-        if ($null -ne $this.Header) {
-            $sb.Append($this.Header.Render())
-        }
-
-        # Render content
-        $sb.Append($this.RenderContent())
-
-        # Render footer (if exists)
-        if ($null -ne $this.Footer) {
-            $sb.Append($this.Footer.Render())
-        }
-
-        # Render status bar (if exists)
-        if ($null -ne $this.StatusBar) {
-            $sb.Append($this.StatusBar.Render())
-        }
-
-        return $sb.ToString()
-    }
 
     # === Helper Methods ===
 

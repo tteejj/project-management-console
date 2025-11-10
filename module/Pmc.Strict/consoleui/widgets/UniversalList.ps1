@@ -119,8 +119,9 @@ class UniversalList : PmcWidget {
         $this._filterPanel = [FilterPanel]::new()
         $this._filterPanel.SetPosition($this.X + 10, $this.Y + 5)
         $this._filterPanel.SetSize(60, 12)
+        $self = $this
         $this._filterPanel.OnFiltersChanged = { param($filters)
-            $this._ApplyFilters()
+            $self._ApplyFilters()
         }
     }
 
@@ -368,7 +369,12 @@ class UniversalList : PmcWidget {
                 $this._showInlineEditor = $false
             }
 
-            return $handled
+            # If editor handled the key, we're done
+            # Otherwise, fall through to allow parent/global handlers (e.g., Ctrl+Q)
+            if ($handled) {
+                return $true
+            }
+            # Don't return false here - let parent handlers have a chance
         }
 
         # Route input to filter panel if shown
@@ -381,12 +387,23 @@ class UniversalList : PmcWidget {
                 return $true
             }
 
-            return $handled
+            # If filter panel handled the key, we're done
+            # Otherwise, fall through to allow parent/global handlers
+            if ($handled) {
+                return $true
+            }
+            # Don't return false here - let parent handlers have a chance
         }
 
         # Search mode input
         if ($this.IsInSearchMode) {
-            return $this._HandleSearchInput($keyInfo)
+            $handled = $this._HandleSearchInput($keyInfo)
+            # If search handled the key, we're done
+            # Otherwise, fall through to allow parent/global handlers (e.g., Ctrl+Q)
+            if ($handled) {
+                return $true
+            }
+            # Don't return false here - let parent handlers have a chance
         }
 
         # Global shortcuts
@@ -421,14 +438,22 @@ class UniversalList : PmcWidget {
         }
 
         if ($keyInfo.Key -eq 'Home') {
-            $this._selectedIndex = 0
+            if ($this._filteredData.Count -eq 0) {
+                $this._selectedIndex = -1
+            } else {
+                $this._selectedIndex = 0
+            }
             $this._AdjustScrollOffset()
             $this._TriggerSelectionChanged()
             return $true
         }
 
         if ($keyInfo.Key -eq 'End') {
-            $this._selectedIndex = [Math]::Max(0, $this._filteredData.Count - 1)
+            if ($this._filteredData.Count -eq 0) {
+                $this._selectedIndex = -1
+            } else {
+                $this._selectedIndex = $this._filteredData.Count - 1
+            }
             $this._AdjustScrollOffset()
             $this._TriggerSelectionChanged()
             return $true
@@ -449,22 +474,49 @@ class UniversalList : PmcWidget {
             return $true
         }
 
-        # Search mode
-        if ($keyInfo.KeyChar -eq '/' -and $this.AllowSearch) {
+        # /: Toggle sort (cycle through columns)
+        if ($keyInfo.KeyChar -eq '/') {
+            if ($this._columns.Count -gt 0) {
+                # Find current sort column index
+                $currentIdx = -1
+                for ($i = 0; $i -lt $this._columns.Count; $i++) {
+                    if ($this._columns[$i].Name -eq $this._sortColumn) {
+                        $currentIdx = $i
+                        break
+                    }
+                }
+
+                # Move to next column (or reverse if same column)
+                if ($currentIdx -eq -1) {
+                    # No sort, start with first column
+                    $this._sortColumn = $this._columns[0].Name
+                    $this._sortAscending = $true
+                } elseif ($this._sortAscending) {
+                    # Same column, reverse to descending
+                    $this._sortAscending = $false
+                } else {
+                    # Next column, ascending
+                    $nextIdx = ($currentIdx + 1) % $this._columns.Count
+                    $this._sortColumn = $this._columns[$nextIdx].Name
+                    $this._sortAscending = $true
+                }
+
+                # Re-sort data
+                $this._ApplySort()
+                return $true
+            }
+        }
+
+        # ?: Search mode (filter by text)
+        if ($keyInfo.KeyChar -eq '?' -and $this.AllowSearch) {
             $this.IsInSearchMode = $true
             $this._searchText = ""
             return $true
         }
 
-        # Filter mode
+        # F: Filter mode
         if ($keyInfo.Key -eq 'F') {
             $this.ShowFilterPanel()
-            return $true
-        }
-
-        # Sort by column (S then number)
-        if ($keyInfo.Key -eq 'S') {
-            # TODO: Enter sort mode, wait for column number
             return $true
         }
 
@@ -700,10 +752,14 @@ class UniversalList : PmcWidget {
             $selectedItem = $this.GetSelectedItem()
             if ($null -ne $selectedItem) {
                 $preview = "Selected: "
-                if ($selectedItem.text) {
-                    $preview += $selectedItem.text
-                } elseif ($selectedItem.id) {
-                    $preview += "ID $($selectedItem.id)"
+                # Handle both hashtables and objects
+                $text = if ($selectedItem -is [hashtable]) { $selectedItem['text'] } else { $selectedItem.text }
+                $id = if ($selectedItem -is [hashtable]) { $selectedItem['id'] } else { $selectedItem.id }
+
+                if ($text) {
+                    $preview += $text
+                } elseif ($id) {
+                    $preview += "ID $id"
                 } else {
                     $preview += "(item)"
                 }
@@ -717,14 +773,8 @@ class UniversalList : PmcWidget {
         $sb.Append($borderColor)
         $sb.Append($this.GetBoxChar('single_vertical'))
 
-        # Actions row
+        # Actions row(s) - support multi-line if needed
         $actionsRowY = $this.Y + $this.Height - 2
-        $sb.Append($this.BuildMoveTo($this.X, $actionsRowY))
-        $sb.Append($borderColor)
-        $sb.Append($this.GetBoxChar('single_vertical'))
-
-        $sb.Append($this.BuildMoveTo($this.X + 2, $actionsRowY))
-        $sb.Append($mutedColor)
 
         # Build actions string
         $actionsStr = ""
@@ -736,15 +786,51 @@ class UniversalList : PmcWidget {
             $actionsStr += "$($key.ToUpper())=$($action.Label)"
         }
 
+        if ($global:PmcTuiLogFile) {
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] UniversalList._RenderList: actionsStr='$actionsStr' (Keys=$($this._actions.Keys.Count))"
+        }
+
         if ($actionsStr.Length -eq 0) {
             $actionsStr = "↑/↓: Nav | Space: Select | /: Search | F: Filter | Enter: Open"
         }
 
-        $sb.Append($this.TruncateText($actionsStr, $this.Width - 4))
+        # Split into multiple lines if too long
+        $maxWidth = $this.Width - 4
+        $actionLines = @()
+        $currentLine = ""
 
-        $sb.Append($this.BuildMoveTo($this.X + $this.Width - 1, $actionsRowY))
-        $sb.Append($borderColor)
-        $sb.Append($this.GetBoxChar('single_vertical'))
+        foreach ($actionPair in ($actionsStr -split ' \| ')) {
+            $testLine = if ($currentLine.Length -eq 0) { $actionPair } else { "$currentLine | $actionPair" }
+            if ($testLine.Length -le $maxWidth) {
+                $currentLine = $testLine
+            } else {
+                if ($currentLine.Length -gt 0) {
+                    $actionLines += $currentLine
+                }
+                $currentLine = $actionPair
+            }
+        }
+        if ($currentLine.Length -gt 0) {
+            $actionLines += $currentLine
+        }
+
+        # Render each action line (max 2 lines to not crowd the UI)
+        $linesToRender = [Math]::Min($actionLines.Count, 2)
+        for ($i = 0; $i -lt $linesToRender; $i++) {
+            $lineY = $actionsRowY - ($linesToRender - 1 - $i)
+
+            $sb.Append($this.BuildMoveTo($this.X, $lineY))
+            $sb.Append($borderColor)
+            $sb.Append($this.GetBoxChar('single_vertical'))
+
+            $sb.Append($this.BuildMoveTo($this.X + 2, $lineY))
+            $sb.Append($mutedColor)
+            $sb.Append($this.TruncateText($actionLines[$i], $maxWidth))
+
+            $sb.Append($this.BuildMoveTo($this.X + $this.Width - 1, $lineY))
+            $sb.Append($borderColor)
+            $sb.Append($this.GetBoxChar('single_vertical'))
+        }
 
         # Bottom border
         $sb.Append($this.BuildMoveTo($this.X, $this.Y + $this.Height - 1))
@@ -760,7 +846,12 @@ class UniversalList : PmcWidget {
     Move selection up
     #>
     hidden [void] _MoveSelectionUp([int]$count = 1) {
-        $this._selectedIndex = [Math]::Max(0, $this._selectedIndex - $count)
+        if ($this._filteredData.Count -eq 0) {
+            $this._selectedIndex = -1
+        } else {
+            $this._selectedIndex = [Math]::Max(0, $this._selectedIndex - $count)
+            $this._selectedIndex = [Math]::Min($this._selectedIndex, $this._filteredData.Count - 1)
+        }
         $this._AdjustScrollOffset()
         $this._TriggerSelectionChanged()
     }
@@ -770,7 +861,12 @@ class UniversalList : PmcWidget {
     Move selection down
     #>
     hidden [void] _MoveSelectionDown([int]$count = 1) {
-        $this._selectedIndex = [Math]::Min($this._filteredData.Count - 1, $this._selectedIndex + $count)
+        if ($this._filteredData.Count -eq 0) {
+            $this._selectedIndex = -1
+        } else {
+            $this._selectedIndex = [Math]::Min($this._filteredData.Count - 1, $this._selectedIndex + $count)
+            $this._selectedIndex = [Math]::Max(0, $this._selectedIndex)
+        }
         $this._AdjustScrollOffset()
         $this._TriggerSelectionChanged()
     }
@@ -808,6 +904,11 @@ class UniversalList : PmcWidget {
     Toggle multi-select for current item
     #>
     hidden [void] _ToggleMultiSelect() {
+        # Don't toggle if no data or invalid selection
+        if ($this._filteredData.Count -eq 0 -or $this._selectedIndex -lt 0) {
+            return
+        }
+
         if ($this._selectedIndices.Contains($this._selectedIndex)) {
             [void]$this._selectedIndices.Remove($this._selectedIndex)
         } else {
@@ -861,9 +962,12 @@ class UniversalList : PmcWidget {
         $this._ApplySearch()
         $this._ApplySort()
 
-        # Reset selection
-        if ($this._selectedIndex -ge $this._filteredData.Count) {
-            $this._selectedIndex = [Math]::Max(0, $this._filteredData.Count - 1)
+        # Reset selection with proper bounds checking
+        if ($this._filteredData.Count -eq 0) {
+            $this._selectedIndex = -1  # Explicitly invalid when no data
+        } else {
+            $this._selectedIndex = [Math]::Min($this._selectedIndex, $this._filteredData.Count - 1)
+            $this._selectedIndex = [Math]::Max(0, $this._selectedIndex)
         }
         $this._AdjustScrollOffset()
     }
@@ -947,18 +1051,18 @@ class UniversalList : PmcWidget {
             try {
                 if ($null -ne $arg) {
                     # Use Invoke-Command with -ArgumentList to pass single arg without array wrapping
-                    Invoke-Command -ScriptBlock $callback -ArgumentList $arg
+                    Invoke-Command -ScriptBlock $callback -ArgumentList (,$arg)
                 } else {
                     & $callback
                 }
             } catch {
-                # Log callback errors and rethrow so user sees them
+                # Log callback errors but DON'T rethrow - callbacks must never crash the app
                 if (Get-Command Write-PmcTuiLog -ErrorAction SilentlyContinue) {
                     Write-PmcTuiLog "UniversalList callback error: $($_.Exception.Message)" "ERROR"
                     Write-PmcTuiLog "Callback code: $($callback.ToString())" "ERROR"
                     Write-PmcTuiLog "Stack trace: $($_.ScriptStackTrace)" "ERROR"
                 }
-                throw  # Rethrow so it crashes and you see it
+                # DON'T rethrow - UI callbacks must not crash
             }
         }
     }

@@ -7,7 +7,8 @@ using namespace System.Text
 
 Set-StrictMode -Version Latest
 
-. "$PSScriptRoot/../PmcScreen.ps1"
+# NOTE: PmcScreen is loaded by Start-PmcTUI.ps1 - don't load again
+# . "$PSScriptRoot/../PmcScreen.ps1"
 
 <#
 .SYNOPSIS
@@ -29,6 +30,14 @@ class SettingsScreen : PmcScreen {
     [string]$InputMode = 'none'  # 'none', 'edit'
     [string]$InputBuffer = ''
     [int]$EditingIndex = -1
+
+    # Static: Register menu items
+    static [void] RegisterMenuItems([object]$registry) {
+        $registry.AddMenuItem('Options', 'Settings', 'S', {
+            . "$PSScriptRoot/SettingsScreen.ps1"
+            $global:PmcApp.PushScreen([SettingsScreen]::new())
+        }, 20)
+    }
 
     # Constructor
     SettingsScreen() : base("Settings", "Settings") {
@@ -139,18 +148,32 @@ class SettingsScreen : PmcScreen {
 
     [void] LoadData() {
         # Load current settings
+        $dataFile = "~/.pmc/data.json"
+        try {
+            $dataFile = Get-PmcTaskFilePath
+        } catch {
+            # Use default if Get-PmcTaskFilePath fails
+        }
+
+        $currentContext = "inbox"
+        try {
+            $currentContext = Get-PmcCurrentContext
+        } catch {
+            # Use default if Get-PmcCurrentContext fails
+        }
+
         $this.SettingsList = @(
             @{
                 name = "Data File"
                 key = "dataFile"
-                value = if ($global:PmcDataFile) { $global:PmcDataFile } else { "~/.pmc/data.json" }
+                value = $dataFile
                 editable = $false
                 description = "Location of PMC data storage"
             }
             @{
                 name = "Default Project"
                 key = "defaultProject"
-                value = if ($global:PmcDefaultProject) { $global:PmcDefaultProject } else { "inbox" }
+                value = $currentContext
                 editable = $true
                 description = "Default project for new tasks"
             }
@@ -166,7 +189,8 @@ class SettingsScreen : PmcScreen {
                 key = "theme"
                 value = "default"
                 editable = $false
-                description = "UI color theme (use Theme Editor to change)"
+                action = "launchThemeEditor"
+                description = "UI color theme (press Enter to change)"
             }
             @{
                 name = "TUI Version"
@@ -284,7 +308,7 @@ class SettingsScreen : PmcScreen {
         return $sb.ToString()
     }
 
-    [bool] HandleKeyPress([ConsoleKeyInfo]$keyInfo) {
+    [bool] HandleInput([ConsoleKeyInfo]$keyInfo) {
         # Handle input mode
         if ($this.InputMode -eq 'edit') {
             return $this._HandleEditMode($keyInfo)
@@ -292,7 +316,7 @@ class SettingsScreen : PmcScreen {
 
         switch ($keyInfo.Key) {
             'UpArrow' {
-                if ($this.SelectedIndex > 0) {
+                if ($this.SelectedIndex -gt 0) {
                     $this.SelectedIndex--
                 }
                 return $true
@@ -304,8 +328,15 @@ class SettingsScreen : PmcScreen {
                 return $true
             }
             'Enter' {
-                if ($this.SettingsList.Count > 0) {
+                if ($this.SettingsList.Count -gt 0) {
                     $this._StartEdit()
+                }
+                return $true
+            }
+            'Escape' {
+                # Go back to previous screen
+                if ($global:PmcApp) {
+                    $global:PmcApp.PopScreen()
                 }
                 return $true
             }
@@ -316,15 +347,29 @@ class SettingsScreen : PmcScreen {
     hidden [void] _StartEdit() {
         $setting = $this.SettingsList[$this.SelectedIndex]
 
+        # Check if this setting has a special action
+        if ($setting.action) {
+            switch ($setting.action) {
+                'launchThemeEditor' {
+                    # Launch Theme Editor screen (ThemeEditorScreen is already loaded by Start-PmcTUI.ps1)
+                    if ($global:PmcApp) {
+                        $themeScreen = New-Object ThemeEditorScreen
+                        $global:PmcApp.PushScreen($themeScreen)
+                    }
+                    return
+                }
+            }
+        }
+
         if (-not $setting.editable) {
-            $this.ShowError("$($setting.name) is read-only")
+            try { $this.ShowError("$($setting.name) is read-only") } catch { }
             return
         }
 
         $this.InputMode = 'edit'
         $this.EditingIndex = $this.SelectedIndex
         $this.InputBuffer = $setting.value
-        $this.ShowStatus("Edit value (Enter: save, Esc: cancel)")
+        try { $this.ShowStatus("Edit value (Enter: save, Esc: cancel)") } catch { }
     }
 
     hidden [bool] _HandleEditMode([ConsoleKeyInfo]$keyInfo) {
@@ -350,6 +395,7 @@ class SettingsScreen : PmcScreen {
                 return $true
             }
         }
+        return $false  # Fallback return
     }
 
     hidden [void] _SaveEdit() {
@@ -363,8 +409,15 @@ class SettingsScreen : PmcScreen {
         # Apply the setting based on key
         switch ($setting.key) {
             'defaultProject' {
-                $global:PmcDefaultProject = $newValue
-                $this.ShowSuccess("Default project updated to '$newValue'")
+                try {
+                    # Use Set-PmcFocus to change the current context
+                    Set-PmcFocus -Project $newValue
+                    $this.ShowSuccess("Default project updated to '$newValue'")
+                } catch {
+                    $this.ShowError("Failed to set default project: $_")
+                    # Revert the value
+                    $setting.value = $oldValue
+                }
             }
             default {
                 $this.ShowSuccess("$($setting.name) updated")

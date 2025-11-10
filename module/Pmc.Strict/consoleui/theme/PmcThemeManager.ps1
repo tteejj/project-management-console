@@ -308,6 +308,63 @@ class PmcThemeManager {
         }
     }
 
+    <#
+    .SYNOPSIS
+    Get complete theme hashtable with ANSI sequences for dialogs/widgets
+
+    .DESCRIPTION
+    Returns a standard hashtable with common theme elements as ANSI sequences.
+    Useful for passing to dialogs, widgets, and other components that need
+    multiple theme colors.
+
+    .OUTPUTS
+    Hashtable with ANSI sequences for common theme roles
+
+    .EXAMPLE
+    $theme = $themeManager.GetTheme()
+    # Returns @{
+    #   Primary = "`e[38;2;51;170;255m"
+    #   PrimaryBg = "`e[48;2;51;170;255m"
+    #   Text = "`e[38;2;204;204;204m"
+    #   ...
+    # }
+    #>
+    [hashtable] GetTheme() {
+        return @{
+            # Primary colors
+            Primary = $this.GetAnsiSequence('Primary', $false)
+            PrimaryBg = $this.GetAnsiSequence('Primary', $true)
+
+            # Dialog colors (common pattern from TimeListScreen)
+            DialogBg = $this.GetAnsiSequence('Surface', $true)
+            DialogFg = $this.GetAnsiSequence('OnSurface', $false)
+            DialogBorder = $this.GetAnsiSequence('Outline', $false)
+
+            # Text hierarchy
+            Header = $this.GetAnsiSequence('Header', $false)
+            Title = $this.GetAnsiSequence('Title', $false)
+            Text = $this.GetAnsiSequence('Text', $false)
+            Body = $this.GetAnsiSequence('Body', $false)
+            Muted = $this.GetAnsiSequence('Muted', $false)
+            Label = $this.GetAnsiSequence('Label', $false)
+
+            # Semantic colors
+            Highlight = $this.GetAnsiSequence('Highlight', $false)
+            Error = $this.GetAnsiSequence('Error', $false)
+            Warning = $this.GetAnsiSequence('Warning', $false)
+            Success = $this.GetAnsiSequence('Success', $false)
+            Info = $this.GetAnsiSequence('Info', $false)
+
+            # UI elements
+            Border = $this.GetAnsiSequence('Border', $false)
+            Status = $this.GetAnsiSequence('Status', $false)
+
+            # Special
+            Bright = $this.GetAnsiSequence('Bright', $false)
+            Reset = "`e[0m"
+        }
+    }
+
     # === Theme Management ===
 
     <#

@@ -6,15 +6,8 @@ using namespace System.Text
 
 Set-StrictMode -Version Latest
 
-# Load dependencies
-. "$PSScriptRoot/widgets/PmcWidget.ps1"
-. "$PSScriptRoot/widgets/PmcMenuBar.ps1"
-. "$PSScriptRoot/widgets/PmcHeader.ps1"
-. "$PSScriptRoot/widgets/PmcFooter.ps1"
-. "$PSScriptRoot/widgets/PmcStatusBar.ps1"
-. "$PSScriptRoot/widgets/PmcPanel.ps1"
-. "$PSScriptRoot/layout/PmcLayoutManager.ps1"
-. "$PSScriptRoot/theme/PmcThemeManager.ps1"
+# NOTE: All dependencies are loaded by Start-PmcTUI.ps1
+# Do not load them again here to avoid circular dependencies and duplicate loading
 
 <#
 .SYNOPSIS
@@ -29,19 +22,20 @@ PmcScreen provides:
 - Rendering orchestration
 
 .EXAMPLE
-class TaskListScreen : PmcScreen {
-    TaskListScreen() : base("TaskList", "Tasks") {
-        $this.Header.SetBreadcrumb(@("Home", "Tasks"))
-    }
-
-    [void] LoadData() {
-        # Load tasks...
-    }
-
-    [string] RenderContent() {
-        # Render task list...
-    }
-}
+# Example: Custom screen implementation
+# class MyCustomScreen : PmcScreen {
+#     MyCustomScreen() : base("MyScreen", "My Screen Title") {
+#         $this.Header.SetBreadcrumb(@("Home", "My Screen"))
+#     }
+#
+#     [void] LoadData() {
+#         # Load your data...
+#     }
+#
+#     [string] RenderContent() {
+#         # Render your content...
+#     }
+# }
 #>
 class PmcScreen {
     # === Core Properties ===
@@ -80,12 +74,18 @@ class PmcScreen {
     }
 
     hidden [void] _CreateDefaultWidgets() {
-        # Menu bar
-        $this.MenuBar = New-Object PmcMenuBar
-        $this.MenuBar.AddMenu("Tasks", 'T', @())
-        $this.MenuBar.AddMenu("Projects", 'P', @())
-        $this.MenuBar.AddMenu("Options", 'O', @())
-        $this.MenuBar.AddMenu("Help", '?', @())
+        # Menu bar - use shared MenuBar if available (populated by TaskListScreen)
+        if (Get-Variable -Name PmcSharedMenuBar -Scope Global -ErrorAction SilentlyContinue) {
+            $this.MenuBar = $global:PmcSharedMenuBar
+        } else {
+            # Create default empty MenuBar (will be populated by TaskListScreen)
+            $this.MenuBar = New-Object PmcMenuBar
+            $this.MenuBar.AddMenu("Tasks", 'T', @())
+            $this.MenuBar.AddMenu("Projects", 'P', @())
+            $this.MenuBar.AddMenu("Time", 'M', @())
+            $this.MenuBar.AddMenu("Options", 'O', @())
+            $this.MenuBar.AddMenu("Help", '?', @())
+        }
 
         # Header
         $this.Header = New-Object PmcHeader -ArgumentList $this.ScreenTitle
@@ -262,11 +262,26 @@ class PmcScreen {
     [string] Render() {
         $sb = [System.Text.StringBuilder]::new(4096)
 
+        # DEBUG
+        if ($global:PmcTuiLogFile) {
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcScreen.Render: Starting (MenuBar=$($null -ne $this.MenuBar), Header=$($null -ne $this.Header))"
+        }
+
         # Render MenuBar (if present)
         if ($this.MenuBar) {
+            if ($global:PmcTuiLogFile) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcScreen.Render: Rendering MenuBar"
+            }
             $output = $this.MenuBar.Render()
             if ($output) {
                 $sb.Append($output)
+                if ($global:PmcTuiLogFile) {
+                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcScreen.Render: MenuBar output length=$($output.Length)"
+                }
+            } else {
+                if ($global:PmcTuiLogFile) {
+                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcScreen.Render: MenuBar returned null/empty"
+                }
             }
         }
 
@@ -279,9 +294,19 @@ class PmcScreen {
         }
 
         # Render content (override in subclass)
+        if ($global:PmcTuiLogFile) {
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcScreen.Render: Calling RenderContent()"
+        }
         $contentOutput = $this.RenderContent()
         if ($contentOutput) {
             $sb.Append($contentOutput)
+            if ($global:PmcTuiLogFile) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcScreen.Render: Content output length=$($contentOutput.Length)"
+            }
+        } else {
+            if ($global:PmcTuiLogFile) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcScreen.Render: RenderContent() returned null/empty"
+            }
         }
 
         # Render content widgets
@@ -325,6 +350,150 @@ class PmcScreen {
     [string] RenderContent() {
         # Override in subclass
         return ""
+    }
+
+    <#
+    .SYNOPSIS
+    Render directly to engine
+
+    .PARAMETER engine
+    RenderEngine instance to write to
+
+    .DESCRIPTION
+    Renders screen by calling widget Render() methods and writing ANSI output to engine.
+    Widgets use SpeedTUI's Render() → OnRender() pattern which returns ANSI strings.
+    We parse those ANSI strings and write them to the engine using WriteAt().
+    #>
+    [void] RenderToEngine([object]$engine) {
+        # Render MenuBar (if present)
+        if ($this.MenuBar) {
+            if ($global:PmcTuiLogFile) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcScreen.RenderToEngine: Calling MenuBar.Render()"
+            }
+            $output = $this.MenuBar.Render()
+            if ($global:PmcTuiLogFile) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcScreen.RenderToEngine: MenuBar.Render() returned length=$($output.Length)"
+            }
+            if ($output) {
+                $this._ParseAnsiAndWrite($engine, $output)
+                if ($global:PmcTuiLogFile) {
+                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcScreen.RenderToEngine: MenuBar ANSI parsed and written to engine"
+                }
+            }
+        }
+
+        # Render Header
+        if ($this.Header) {
+            $output = $this.Header.Render()
+            if ($output) {
+                $this._ParseAnsiAndWrite($engine, $output)
+            }
+        }
+
+        # Render content
+        $contentOutput = $this.RenderContent()
+        if ($contentOutput) {
+            $this._ParseAnsiAndWrite($engine, $contentOutput)
+        }
+
+        # Render content widgets
+        foreach ($widget in $this.ContentWidgets) {
+            $output = $widget.Render()
+            if ($output) {
+                $this._ParseAnsiAndWrite($engine, $output)
+            }
+        }
+
+        # Render Footer
+        if ($this.Footer) {
+            $output = $this.Footer.Render()
+            if ($output) {
+                $this._ParseAnsiAndWrite($engine, $output)
+            }
+        }
+
+        # Render StatusBar
+        if ($this.StatusBar) {
+            $output = $this.StatusBar.Render()
+            if ($output) {
+                $this._ParseAnsiAndWrite($engine, $output)
+            }
+        }
+    }
+
+    hidden [void] _ParseAnsiAndWrite([object]$engine, [string]$ansiOutput) {
+        # Parse ANSI cursor positioning and write to engine
+        # ANSI format: ESC[row;colH (1-based)
+        # WriteAt format: WriteAt(x, y) where x=col-1, y=row-1 (0-based)
+
+        if ($global:PmcTuiLogFile) {
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] _ParseAnsiAndWrite: Input length=$($ansiOutput.Length)"
+        }
+
+        $pattern = "`e\[(\d+);(\d+)H"
+        $matches = [regex]::Matches($ansiOutput, $pattern)
+
+        if ($global:PmcTuiLogFile) {
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] _ParseAnsiAndWrite: Found $($matches.Count) position markers"
+        }
+
+        if ($matches.Count -eq 0) {
+            # No positioning - write at 0,0
+            if ($global:PmcTuiLogFile) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] _ParseAnsiAndWrite: No position markers, writing entire output at (0,0)"
+            }
+            if ($ansiOutput) {
+                $engine.WriteAt(0, 0, $ansiOutput)
+            }
+            return
+        }
+
+        for ($i = 0; $i -lt $matches.Count; $i++) {
+            $match = $matches[$i]
+            $row = [int]$match.Groups[1].Value
+            $col = [int]$match.Groups[2].Value
+
+            # Convert to 0-based coordinates
+            $x = $col - 1
+            $y = $row - 1
+
+            # Get content after this position marker until next position marker
+            $startIndex = $match.Index + $match.Length
+
+            if ($i + 1 -lt $matches.Count) {
+                # There's another position marker - content goes until there
+                $endIndex = $matches[$i + 1].Index
+            } else {
+                # Last marker - content goes to end
+                $endIndex = $ansiOutput.Length
+            }
+
+            $content = $ansiOutput.Substring($startIndex, $endIndex - $startIndex)
+
+            if ($global:PmcTuiLogFile) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] _ParseAnsiAndWrite: Match $i - pos($x,$y) content_length=$($content.Length)"
+            }
+
+            if ($content) {
+                $engine.WriteAt($x, $y, $content)
+            }
+        }
+    }
+
+    <#
+    .SYNOPSIS
+    Render content area directly to engine
+
+    .PARAMETER engine
+    RenderEngine instance
+
+    .DESCRIPTION
+    Override in subclass to render screen-specific content directly
+    to the engine without ANSI string building.
+    #>
+    [void] RenderContentToEngine([object]$engine) {
+        # Override in subclass for direct engine rendering
+        # This is the new high-performance path
     }
 
     # === Input Handling ===
