@@ -366,6 +366,7 @@ class ThemeEditorScreen : PmcScreen {
     }
 
     [bool] HandleInput([ConsoleKeyInfo]$keyInfo) {
+        $keyChar = [char]::ToLower($keyInfo.KeyChar)
         switch ($keyInfo.Key) {
             'UpArrow' {
                 if ($this.SelectedIndex -gt 0) {
@@ -383,14 +384,17 @@ class ThemeEditorScreen : PmcScreen {
                 $this._ApplyTheme()
                 return $true
             }
-            'T' {
-                $this._TestTheme()
-                return $true
-            }
             'Escape' {
                 if ($global:PmcApp) {
                     $global:PmcApp.PopScreen()
                 }
+                return $true
+            }
+        }
+
+        switch ($keyChar) {
+            't' {
+                $this._TestTheme()
                 return $true
             }
         }

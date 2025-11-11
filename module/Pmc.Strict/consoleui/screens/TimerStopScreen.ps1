@@ -146,16 +146,20 @@ class TimerStopScreen : PmcScreen {
     }
 
     [bool] HandleKeyPress([ConsoleKeyInfo]$keyInfo) {
+        $keyChar = [char]::ToLower($keyInfo.KeyChar)
         switch ($keyInfo.Key) {
-            'S' {
+            'Escape' {
+                $this.App.PopScreen()
+                return $true
+            }
+        }
+
+        switch ($keyChar) {
+            's' {
                 if ($this.TimerStatus -and $this.TimerStatus.Running) {
                     $this._StopTimer()
                     return $true
                 }
-            }
-            'Escape' {
-                $this.App.PopScreen()
-                return $true
             }
         }
 

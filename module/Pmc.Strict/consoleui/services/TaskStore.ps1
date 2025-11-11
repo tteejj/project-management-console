@@ -106,6 +106,12 @@ class TaskStore {
     [bool]$IsLoaded = $false
     [bool]$IsSaving = $false
     [string]$LastError = ""
+    [bool]$AutoSave = $false  # Set to $true for immediate saves (old behavior), $false for batched saves
+    [bool]$HasPendingChanges = $false  # True when changes need to be saved
+
+    # === Cached Statistics ===
+    hidden [hashtable]$_cachedStats = $null
+    hidden [bool]$_statsNeedUpdate = $true
 
     # === Validation Rules ===
     hidden [hashtable]$_validationRules = @{
@@ -515,12 +521,18 @@ class TaskStore {
             $this._data.tasks.Add($task)
             Write-PmcTuiLog "AddTask: Added to collection, total tasks=$($this._data.tasks.Count)" "DEBUG"
 
-            # Persist
-            if (-not $this.SaveData()) {
-                Write-PmcTuiLog "AddTask: SaveData FAILED" "ERROR"
-                return $false
+            # Mark pending changes and invalidate stats cache
+            $this.HasPendingChanges = $true
+            $this._statsNeedUpdate = $true
+
+            # Persist only if AutoSave is enabled
+            if ($this.AutoSave) {
+                if (-not $this.SaveData()) {
+                    Write-PmcTuiLog "AddTask: SaveData FAILED" "ERROR"
+                    return $false
+                }
+                Write-PmcTuiLog "AddTask: SaveData succeeded" "DEBUG"
             }
-            Write-PmcTuiLog "AddTask: SaveData succeeded" "DEBUG"
 
             # Capture data for callbacks BEFORE releasing lock
             $capturedTask = $task.Clone()
@@ -600,9 +612,15 @@ class TaskStore {
                 return $false
             }
 
-            # Persist
-            if (-not $this.SaveData()) {
-                return $false
+            # Mark pending changes and invalidate stats cache
+            $this.HasPendingChanges = $true
+            $this._statsNeedUpdate = $true
+
+            # Persist only if AutoSave is enabled
+            if ($this.AutoSave) {
+                if (-not $this.SaveData()) {
+                    return $false
+                }
             }
 
             # Capture data for callbacks BEFORE releasing lock
@@ -662,9 +680,15 @@ class TaskStore {
             # Remove task
             $this._data.tasks.RemoveAt($index)
 
-            # Persist
-            if (-not $this.SaveData()) {
-                return $false
+            # Mark pending changes and invalidate stats cache
+            $this.HasPendingChanges = $true
+            $this._statsNeedUpdate = $true
+
+            # Persist only if AutoSave is enabled
+            if ($this.AutoSave) {
+                if (-not $this.SaveData()) {
+                    return $false
+                }
             }
 
             # Capture data for callbacks BEFORE releasing lock
@@ -765,9 +789,14 @@ class TaskStore {
             # Add to collection
             $this._data.projects.Add($project)
 
-            # Persist
-            if (-not $this.SaveData()) {
-                return $false
+            # Mark pending changes
+            $this.HasPendingChanges = $true
+
+            # Persist only if AutoSave is enabled
+            if ($this.AutoSave) {
+                if (-not $this.SaveData()) {
+                    return $false
+                }
             }
 
             # Fire events
@@ -833,9 +862,14 @@ class TaskStore {
                 return $false
             }
 
-            # Persist
-            if (-not $this.SaveData()) {
-                return $false
+            # Mark pending changes
+            $this.HasPendingChanges = $true
+
+            # Persist only if AutoSave is enabled
+            if ($this.AutoSave) {
+                if (-not $this.SaveData()) {
+                    return $false
+                }
             }
 
             # Fire events
@@ -883,9 +917,14 @@ class TaskStore {
             # Remove project
             $this._data.projects.RemoveAt($index)
 
-            # Persist
-            if (-not $this.SaveData()) {
-                return $false
+            # Mark pending changes
+            $this.HasPendingChanges = $true
+
+            # Persist only if AutoSave is enabled
+            if ($this.AutoSave) {
+                if (-not $this.SaveData()) {
+                    return $false
+                }
             }
 
             # Fire events
@@ -976,9 +1015,14 @@ class TaskStore {
             # Add to collection
             $this._data.timelogs.Add($timelog)
 
-            # Persist
-            if (-not $this.SaveData()) {
-                return $false
+            # Mark pending changes
+            $this.HasPendingChanges = $true
+
+            # Persist only if AutoSave is enabled
+            if ($this.AutoSave) {
+                if (-not $this.SaveData()) {
+                    return $false
+                }
             }
 
             # Fire events
@@ -1026,9 +1070,14 @@ class TaskStore {
             # Remove time log
             $this._data.timelogs.RemoveAt($index)
 
-            # Persist
-            if (-not $this.SaveData()) {
-                return $false
+            # Mark pending changes
+            $this.HasPendingChanges = $true
+
+            # Persist only if AutoSave is enabled
+            if ($this.AutoSave) {
+                if (-not $this.SaveData()) {
+                    return $false
+                }
             }
 
             # Fire events
@@ -1087,15 +1136,20 @@ class TaskStore {
             $timelog.modified = [DateTime]::Now
 
             # Validate
-            $validationErrors = $this._ValidateEntity('timelog', $timelog)
+            $validationErrors = $this._ValidateEntity($timelog, 'timelog')
             if ($validationErrors.Count -gt 0) {
                 $this.LastError = "Validation failed: $($validationErrors -join ', ')"
                 return $false
             }
 
-            # Persist
-            if (-not $this.SaveData()) {
-                return $false
+            # Mark pending changes
+            $this.HasPendingChanges = $true
+
+            # Persist only if AutoSave is enabled
+            if ($this.AutoSave) {
+                if (-not $this.SaveData()) {
+                    return $false
+                }
             }
 
             # Fire events
@@ -1148,7 +1202,7 @@ class TaskStore {
         try {
             $searchLower = $searchText.ToLower()
             $tasks = $this._data.tasks | Where-Object {
-                $_.text.ToLower().Contains($searchLower)
+                $null -ne $_.text -and $_.text.ToLower().Contains($searchLower)
             }
             return if ($tasks) { $tasks } else { @() }
         }
@@ -1342,19 +1396,77 @@ class TaskStore {
     [hashtable] GetStatistics() {
         [Monitor]::Enter($this._dataLock)
         try {
-            $stats = @{
+            # Return cached stats if available and not dirty
+            if (-not $this._statsNeedUpdate -and $null -ne $this._cachedStats) {
+                return $this._cachedStats
+            }
+
+            # Compute statistics (only when cache is dirty)
+            $completedCount = 0
+            $pendingCount = 0
+            foreach ($task in $this._data.tasks) {
+                if (Get-SafeProperty $task 'completed') {
+                    $completedCount++
+                } else {
+                    $pendingCount++
+                }
+            }
+
+            $this._cachedStats = @{
                 taskCount = $this._data.tasks.Count
                 projectCount = $this._data.projects.Count
                 timeLogCount = $this._data.timelogs.Count
-                completedTaskCount = ($this._data.tasks | Where-Object { $_.completed }).Count
-                pendingTaskCount = ($this._data.tasks | Where-Object { -not $_.completed }).Count
+                completedTaskCount = $completedCount
+                pendingTaskCount = $pendingCount
                 lastLoaded = $this._data.metadata.lastLoaded
                 lastSaved = $this._data.metadata.lastSaved
             }
-            return $stats
+
+            $this._statsNeedUpdate = $false
+            return $this._cachedStats
         }
         finally {
             [Monitor]::Exit($this._dataLock)
         }
+    }
+
+    <#
+    .SYNOPSIS
+    Flush pending changes to disk
+
+    .DESCRIPTION
+    When AutoSave is disabled, changes accumulate in memory.
+    Call this method to persist all pending changes to disk.
+
+    .OUTPUTS
+    True if flush succeeded, False otherwise
+    #>
+    [bool] Flush() {
+        if (-not $this.HasPendingChanges) {
+            return $true  # Nothing to save
+        }
+
+        if ($this.SaveData()) {
+            $this.HasPendingChanges = $false
+            return $true
+        }
+
+        return $false
+    }
+
+    <#
+    .SYNOPSIS
+    Enable automatic saving after each operation
+    #>
+    [void] EnableAutoSave() {
+        $this.AutoSave = $true
+    }
+
+    <#
+    .SYNOPSIS
+    Disable automatic saving (batch mode)
+    #>
+    [void] DisableAutoSave() {
+        $this.AutoSave = $false
     }
 }

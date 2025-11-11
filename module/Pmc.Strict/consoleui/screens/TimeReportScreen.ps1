@@ -150,10 +150,8 @@ class TimeReportScreen : PmcScreen {
         $this.ShowStatus("Loading time report...")
 
         try {
-            $data = Get-PmcAllData
-
-            # Get time logs
-            $timelogs = if ($data.PSObject.Properties['timelogs']) { $data.timelogs } else { @() }
+            # Use TaskStore singleton instead of loading from disk
+            $timelogs = $this.Store.GetAllTimeLogs()
 
             if ($timelogs.Count -eq 0) {
                 $this.ProjectSummaries = @()
@@ -361,14 +359,34 @@ class TimeReportScreen : PmcScreen {
     }
 
     [bool] HandleKeyPress([ConsoleKeyInfo]$keyInfo) {
+        # F10 - Menu
+        if ($keyInfo.Key -eq ([ConsoleKey]::F10)) {
+            if ($this.MenuBar) {
+                $this.MenuBar.Activate()
+                return $true
+            }
+        }
+
+        # Escape - Go back
+        if ($keyInfo.Key -eq ([ConsoleKey]::Escape)) {
+            $global:PmcApp.PopScreen()
+            return $true
+        }
+
+        # Ctrl+Q - Quit
+        if ($keyInfo.Modifiers -band [ConsoleModifiers]::Control -and $keyInfo.Key -eq ([ConsoleKey]::Q)) {
+            $global:PmcApp.Quit()
+            return $true
+        }
+
         # Refresh on R key
-        if ($keyInfo.Key -eq 'R') {
+        if ($keyInfo.Key -eq ([ConsoleKey]::R)) {
             $this.LoadData()
             return $true
         }
 
         # Weekly report on W key
-        if ($keyInfo.Key -eq 'W') {
+        if ($keyInfo.Key -eq ([ConsoleKey]::W)) {
             . "$PSScriptRoot/WeeklyTimeReportScreen.ps1"
             $screen = Invoke-Expression '[WeeklyTimeReportScreen]::new()'
             $global:PmcApp.PushScreen($screen)

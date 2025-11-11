@@ -350,6 +350,7 @@ class KanbanScreen : PmcScreen {
     }
 
     [bool] HandleKeyPress([ConsoleKeyInfo]$keyInfo) {
+        $keyChar = [char]::ToLower($keyInfo.KeyChar)
         switch ($keyInfo.Key) {
             'LeftArrow' {
                 if ($this.SelectedColumn -gt 0) {
@@ -375,11 +376,14 @@ class KanbanScreen : PmcScreen {
                 $this._ShowTaskDetail()
                 return $true
             }
-            'M' {
+        }
+
+        switch ($keyChar) {
+            'm' {
                 $this._MoveTask()
                 return $true
             }
-            'R' {
+            'r' {
                 $this.LoadData()
                 return $true
             }

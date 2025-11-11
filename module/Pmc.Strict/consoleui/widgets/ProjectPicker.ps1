@@ -487,10 +487,12 @@ class ProjectPicker : PmcWidget {
     #>
     hidden [void] _LoadProjects() {
         try {
-            $data = Get-PmcData
-            if ($null -ne $data -and $null -ne $data.projects) {
+            . "$PSScriptRoot/../services/TaskStore.ps1"
+            $store = [TaskStore]::GetInstance()
+            $projectsData = $store.GetAllProjects()
+            if ($null -ne $projectsData -and $projectsData.Count -gt 0) {
                 $projects = @()
-                foreach ($proj in $data.projects) {
+                foreach ($proj in $projectsData) {
                     if ($null -ne $proj.name -and -not [string]::IsNullOrWhiteSpace($proj.name)) {
                         $projects += $proj.name.ToString()
                     }

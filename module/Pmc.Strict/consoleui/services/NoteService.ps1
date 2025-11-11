@@ -79,6 +79,8 @@ class NoteService {
                         tags = $note.tags
                         word_count = $note.word_count
                         line_count = $note.line_count
+                        owner_type = if ($note.PSObject.Properties['owner_type']) { $note.owner_type } else { "global" }
+                        owner_id = if ($note.PSObject.Properties['owner_id']) { $note.owner_id } else { $null }
                     }
                 }
                 $this._cacheLoadTime = [datetime]::Now
@@ -101,6 +103,8 @@ class NoteService {
                     tags = $_.tags
                     word_count = $_.word_count
                     line_count = $_.line_count
+                    owner_type = if ($_.ContainsKey('owner_type')) { $_.owner_type } else { "global" }
+                    owner_id = if ($_.ContainsKey('owner_id')) { $_.owner_id } else { $null }
                 }
             }
 
@@ -130,7 +134,15 @@ class NoteService {
     # === CRUD Operations ===
 
     [array] GetAllNotes() {
-        return $this._notesCache.Values | Sort-Object -Property modified -Descending
+        $notes = @($this._notesCache.Values | Sort-Object -Property modified -Descending)
+        return $notes
+    }
+
+    [array] GetNotesByOwner([string]$ownerType, [string]$ownerId) {
+        $notes = @($this._notesCache.Values | Where-Object {
+            $_.owner_type -eq $ownerType -and $_.owner_id -eq $ownerId
+        } | Sort-Object -Property modified -Descending)
+        return $notes
     }
 
     [object] GetNote([string]$noteId) {
@@ -145,6 +157,10 @@ class NoteService {
     }
 
     [object] CreateNote([string]$title, [array]$tags) {
+        return $this.CreateNote($title, $tags, "global", $null)
+    }
+
+    [object] CreateNote([string]$title, [array]$tags, [string]$ownerType, [string]$ownerId) {
         # Generate unique ID
         $noteId = [guid]::NewGuid().ToString()
 
@@ -163,6 +179,8 @@ class NoteService {
             created = [datetime]::Now
             modified = [datetime]::Now
             tags = $tags
+            owner_type = $ownerType
+            owner_id = $ownerId
             word_count = 0
             line_count = 0
         }
@@ -283,10 +301,15 @@ class NoteService {
             Move-Item -Path $tempFile -Destination $note.file -Force
 
             # Calculate stats
-            $lines = $content -split "`n"
-            $lineCount = $lines.Count
-            $words = ($content -split '\s+' | Where-Object { $_ -ne '' })
-            $wordCount = $words.Count
+            if ([string]::IsNullOrEmpty($content)) {
+                $lineCount = 0
+                $wordCount = 0
+            } else {
+                $lineArray = @($content -split "`n")
+                $lineCount = $lineArray.Count
+                $wordArray = @($content -split '\s+' | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+                $wordCount = if ($wordArray) { $wordArray.Count } else { 0 }
+            }
 
             # Update metadata
             $this.UpdateNoteStats($noteId, $wordCount, $lineCount)

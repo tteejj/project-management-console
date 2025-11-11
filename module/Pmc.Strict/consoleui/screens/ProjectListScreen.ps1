@@ -105,10 +105,16 @@ class ProjectListScreen : StandardListScreen {
             # Existing project - populate from item
             $tagsStr = if ($item.tags -and $item.tags.Count -gt 0) { $item.tags -join ', ' } else { '' }
 
-            # Parse dates
-            $assignedDate = if ($item.AssignedDate) { [DateTime]::Parse($item.AssignedDate) } else { $null }
-            $dueDate = if ($item.DueDate) { [DateTime]::Parse($item.DueDate) } else { $null }
-            $bfDate = if ($item.BFDate) { [DateTime]::Parse($item.BFDate) } else { $null }
+            # Parse dates with error handling
+            $assignedDate = if ($item.AssignedDate) {
+                try { [DateTime]::Parse($item.AssignedDate) } catch { $null }
+            } else { $null }
+            $dueDate = if ($item.DueDate) {
+                try { [DateTime]::Parse($item.DueDate) } catch { $null }
+            } else { $null }
+            $bfDate = if ($item.BFDate) {
+                try { [DateTime]::Parse($item.BFDate) } catch { $null }
+            } else { $null }
 
             return @(
                 @{ Name='name'; Type='text'; Label='Project Name'; Required=$true; Value=$item.name }
@@ -227,10 +233,10 @@ class ProjectListScreen : StandardListScreen {
 
             # Show file picker for Excel file selection
             . "$PSScriptRoot/../widgets/PmcFilePicker.ps1"
-            $filePicker = [PmcFilePicker]::new($this.App)
+            $filePicker = New-Object PmcFilePicker -ArgumentList $this.App
             $filePicker.Title = "Select Excel File to Import"
             $filePicker.Filter = "*.xlsx;*.xls"
-            $filePicker.InitialDirectory = $HOME
+            $filePicker.InitialDirectory = $global:HOME
 
             $excelPath = $filePicker.Show()
             if ([string]::IsNullOrWhiteSpace($excelPath)) {
@@ -368,9 +374,9 @@ class ProjectListScreen : StandardListScreen {
         }
 
         try {
-            if ($IsLinux) {
+            if ($global:IsLinux) {
                 Start-Process "xdg-open" -ArgumentList $folderPath
-            } elseif ($IsMacOS) {
+            } elseif ($global:IsMacOS) {
                 Start-Process "open" -ArgumentList $folderPath
             } else {
                 Start-Process "explorer.exe" -ArgumentList $folderPath
@@ -383,11 +389,27 @@ class ProjectListScreen : StandardListScreen {
 
     # Get custom actions for footer display
     [array] GetCustomActions() {
+        $self = $this
         return @(
-            @{ Key='r'; Label='Archive'; Callback={ } }
-            @{ Key='v'; Label='View'; Callback={ } }
-            @{ Key='o'; Label='Open Folder'; Callback={ } }
-            @{ Key='i'; Label='Import Excel'; Callback={ } }
+            @{ Key='r'; Label='Archive'; Callback={
+                $selected = $self.List.GetSelectedItem()
+                $self.ToggleProjectArchive($selected)
+            }.GetNewClosure() }
+            @{ Key='v'; Label='View'; Callback={
+                $selected = $self.List.GetSelectedItem()
+                if ($selected) {
+                    . "$PSScriptRoot/ProjectInfoScreen.ps1"
+                    $screen = New-Object ProjectInfoScreen -ArgumentList $selected.name
+                    $self.App.PushScreen($screen)
+                }
+            }.GetNewClosure() }
+            @{ Key='o'; Label='Open Folder'; Callback={
+                $selected = $self.List.GetSelectedItem()
+                $self.OpenProjectFolder($selected)
+            }.GetNewClosure() }
+            @{ Key='i'; Label='Import Excel'; Callback={
+                $self.ImportFromExcel()
+            }.GetNewClosure() }
         )
     }
 
@@ -397,31 +419,32 @@ class ProjectListScreen : StandardListScreen {
         if ($handled) { return $true }
 
         # Custom key: R = Archive/Unarchive
-        if ($keyInfo.Key -eq 'R') {
+        if ($keyInfo.KeyChar -eq 'r' -or $keyInfo.KeyChar -eq 'R') {
             $selected = $this.List.GetSelectedItem()
             $this.ToggleProjectArchive($selected)
             return $true
         }
 
         # Custom key: V = View project details/stats
-        if ($keyInfo.Key -eq 'V') {
+        if ($keyInfo.KeyChar -eq 'v' -or $keyInfo.KeyChar -eq 'V') {
             $selected = $this.List.GetSelectedItem()
             if ($selected) {
                 . "$PSScriptRoot/ProjectInfoScreen.ps1"
-                $this.App.PushScreen([ProjectInfoScreen]::new($selected.name))
+                $screen = New-Object ProjectInfoScreen -ArgumentList $selected.name
+                $this.App.PushScreen($screen)
             }
             return $true
         }
 
         # Custom key: O = Open project folder
-        if ($keyInfo.Key -eq 'O') {
+        if ($keyInfo.KeyChar -eq 'o' -or $keyInfo.KeyChar -eq 'O') {
             $selected = $this.List.GetSelectedItem()
             $this.OpenProjectFolder($selected)
             return $true
         }
 
         # Custom key: I = Import from Excel
-        if ($keyInfo.Key -eq 'I') {
+        if ($keyInfo.KeyChar -eq 'i' -or $keyInfo.KeyChar -eq 'I') {
             $this.ImportFromExcel()
             return $true
         }

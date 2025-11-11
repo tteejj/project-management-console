@@ -282,12 +282,13 @@ class TimeDeleteFormScreen : PmcScreen {
     }
 
     [bool] HandleKeyPress([ConsoleKeyInfo]$keyInfo) {
-        switch ($keyInfo.Key) {
-            'Y' {
+        $keyChar = [char]::ToLower($keyInfo.KeyChar)
+        switch ($keyChar) {
+            'y' {
                 $this._ConfirmDelete()
                 return $true
             }
-            'N' {
+            'n' {
                 $this._Cancel()
                 return $true
             }

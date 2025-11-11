@@ -774,12 +774,12 @@ class StandardListScreen : PmcScreen {
                 return $true
             }
 
-            if ($keyInfo.Key -eq 'F' -and $this.AllowFilter) {
+            if (($keyInfo.KeyChar -eq 'f' -or $keyInfo.KeyChar -eq 'F') -and $this.AllowFilter) {
                 $this.ToggleFilterPanel()
                 return $true
             }
 
-            if ($keyInfo.Key -eq 'R') {
+            if ($keyInfo.KeyChar -eq 'r' -or $keyInfo.KeyChar -eq 'R') {
                 # Refresh
                 $this.RefreshList()
                 return $true

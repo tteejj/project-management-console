@@ -374,6 +374,7 @@ class TimerStartScreen : PmcScreen {
             return $false
         }
 
+        $keyChar = [char]::ToLower($keyInfo.KeyChar)
         switch ($keyInfo.Key) {
             'UpArrow' {
                 if ($this.SelectedIndex -gt 0) {
@@ -391,7 +392,10 @@ class TimerStartScreen : PmcScreen {
                 $this._StartTimer()
                 return $true
             }
-            'S' {
+        }
+
+        switch ($keyChar) {
+            's' {
                 $this._StartTimer()
                 return $true
             }

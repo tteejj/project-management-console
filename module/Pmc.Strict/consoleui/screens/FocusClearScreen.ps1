@@ -122,14 +122,15 @@ class FocusClearScreen : PmcScreen {
     }
 
     [bool] HandleKeyPress([ConsoleKeyInfo]$keyInfo) {
-        switch ($keyInfo.Key) {
-            'Y' {
+        $keyChar = [char]::ToLower($keyInfo.KeyChar)
+        switch ($keyChar) {
+            'y' {
                 if ($this.CurrentFocus -ne 'inbox') {
                     $this._ClearFocus()
                 }
                 return $true
             }
-            'N' {
+            'n' {
                 $this.ShowStatus("Cancelled")
                 Start-Sleep -Milliseconds 300
                 $this.RequestExit()

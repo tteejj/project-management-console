@@ -339,12 +339,13 @@ class BurndownChartScreen : PmcScreen {
     [bool] HandleKeyPress([ConsoleKeyInfo]$keyInfo) {
         # This is a chart screen with no navigation
         # Only handle refresh and filter commands
-        switch ($keyInfo.Key) {
-            'R' {
+        $keyChar = [char]::ToLower($keyInfo.KeyChar)
+        switch ($keyChar) {
+            'r' {
                 $this.LoadData()
                 return $true
             }
-            'F' {
+            'f' {
                 # Show project list for filtering
                 $allData = Get-PmcAllData
                 $projects = $allData.projects | Where-Object { -not $_.archived }

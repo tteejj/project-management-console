@@ -372,20 +372,22 @@ class ProjectInfoScreen : PmcScreen {
     }
 
     [bool] HandleKeyPress([ConsoleKeyInfo]$keyInfo) {
-        switch ($keyInfo.Key) {
-            'E' {
+        $keyChar = [char]::ToLower($keyInfo.KeyChar)
+
+        switch ($keyChar) {
+            'e' {
                 $this._EditProject()
                 return $true
             }
-            'D' {
+            'd' {
                 $this._DeleteProject()
                 return $true
             }
-            'T' {
+            't' {
                 $this._ViewTasks()
                 return $true
             }
-            'R' {
+            'r' {
                 $this.LoadData()
                 return $true
             }

@@ -721,8 +721,13 @@ class FilterPanel : PmcWidget {
 
                 'DueDate' {
                     if ($null -ne $item.due) {
-                        $itemDate = if ($item.due -is [DateTime]) { $item.due } else { [DateTime]::Parse($item.due) }
-                        $match = $this._CompareDates($itemDate, $op, $value)
+                        try {
+                            $itemDate = if ($item.due -is [DateTime]) { $item.due } else { [DateTime]::Parse($item.due) }
+                            $match = $this._CompareDates($itemDate, $op, $value)
+                        } catch {
+                            # Invalid date format - treat as non-matching
+                            $match = $false
+                        }
                     }
                 }
 

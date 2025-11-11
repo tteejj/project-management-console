@@ -405,6 +405,13 @@ class PmcApplication {
     #>
     [void] Stop() {
         $this.Running = $false
+
+        # Flush any pending TaskStore changes before exit
+        . "$PSScriptRoot/services/TaskStore.ps1"
+        $store = [TaskStore]::GetInstance()
+        if ($store.HasPendingChanges) {
+            $store.Flush()
+        }
     }
 
     # === Terminal Management ===

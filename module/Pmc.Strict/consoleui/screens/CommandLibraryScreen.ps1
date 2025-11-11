@@ -2,24 +2,26 @@ using namespace System.Collections.Generic
 using namespace System.Text
 
 # CommandLibraryScreen - Command library management using StandardListScreen
-# Allows users to save, manage, and execute frequently used PowerShell commands
+# Allows users to save, manage, and copy frequently used commands
 
 Set-StrictMode -Version Latest
 
 . "$PSScriptRoot/../base/StandardListScreen.ps1"
+. "$PSScriptRoot/../services/CommandService.ps1"
 
 <#
 .SYNOPSIS
 Command library management screen
 
 .DESCRIPTION
-Manage a library of saved PowerShell commands:
+Manage a library of saved commands:
 - Add/Edit/Delete commands
-- Execute saved commands
+- Copy commands to clipboard
 - Track usage statistics
 - Search and filter commands
 #>
 class CommandLibraryScreen : StandardListScreen {
+    hidden [CommandService]$_commandService = $null
 
     # Static: Register menu items
     static [void] RegisterMenuItems([object]$registry) {
@@ -31,6 +33,9 @@ class CommandLibraryScreen : StandardListScreen {
 
     # Constructor
     CommandLibraryScreen() : base("CommandLibrary", "Command Library") {
+        # Initialize service
+        $this._commandService = [CommandService]::GetInstance()
+
         # Configure capabilities
         $this.AllowAdd = $true
         $this.AllowEdit = $true
@@ -39,6 +44,14 @@ class CommandLibraryScreen : StandardListScreen {
 
         # Configure header
         $this.Header.SetBreadcrumb(@("Home", "Tools", "Command Library"))
+
+        # Setup event handlers
+        $self = $this
+        $this._commandService.OnCommandsChanged = {
+            if ($null -ne $self -and $self.IsActive) {
+                $self.LoadData()
+            }
+        }.GetNewClosure()
     }
 
     # === Abstract Method Implementations ===
@@ -67,9 +80,7 @@ class CommandLibraryScreen : StandardListScreen {
 
     # Load items from data store
     [array] LoadItems() {
-        # For now, return empty array - will be implemented with command storage
-        # TODO: Implement Get-PmcCommands or similar
-        $commands = @()
+        $commands = @($this._commandService.GetAllCommands())
 
         # Format for display
         foreach ($cmd in $commands) {
@@ -77,13 +88,73 @@ class CommandLibraryScreen : StandardListScreen {
                 $cmd['usage_count'] = 0
             }
             if ($cmd.ContainsKey('last_used') -and $cmd.last_used -is [DateTime]) {
-                $cmd['last_used_display'] = $cmd.last_used.ToString('yyyy-MM-dd')
+                $cmd['last_used'] = $cmd.last_used.ToString('yyyy-MM-dd')
+            } elseif ($cmd.ContainsKey('last_used') -and $cmd.last_used) {
+                # Already a string, keep it
             } else {
-                $cmd['last_used_display'] = 'Never'
+                $cmd['last_used'] = 'Never'
+            }
+
+            # Format tags for display
+            if ($cmd.ContainsKey('tags') -and $cmd.tags -is [array]) {
+                $cmd['tags_display'] = $cmd.tags -join ', '
+            } else {
+                $cmd['tags_display'] = ''
             }
         }
 
-        return $commands | Sort-Object -Property last_used -Descending
+        return $commands
+    }
+
+    # Define filter fields for StandardListScreen
+    [array] GetFilterFields() {
+        return @(
+            @{ Name='category'; Label='Category'; Type='text' }
+            @{ Name='tags'; Label='Tags (comma-separated)'; Type='text' }
+        )
+    }
+
+    # Apply filters to items
+    [array] ApplyFilters([array]$items, [hashtable]$filters) {
+        if ($null -eq $filters -or $filters.Count -eq 0) {
+            return $items
+        }
+
+        $filtered = $items
+
+        # Filter by category
+        if ($filters.ContainsKey('category') -and -not [string]::IsNullOrWhiteSpace($filters.category)) {
+            $categoryFilter = $filters.category.Trim()
+            $filtered = @($filtered | Where-Object {
+                $itemCategory = if ($_ -is [hashtable]) { $_['category'] } else { $_.category }
+                $itemCategory -like "*$categoryFilter*"
+            })
+        }
+
+        # Filter by tags
+        if ($filters.ContainsKey('tags') -and -not [string]::IsNullOrWhiteSpace($filters.tags)) {
+            $tagFilters = @($filters.tags -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+            $filtered = @($filtered | Where-Object {
+                $itemTags = if ($_ -is [hashtable]) { $_['tags'] } else { $_.tags }
+                if ($null -eq $itemTags -or $itemTags.Count -eq 0) {
+                    return $false
+                }
+                # Check if item has any of the specified tags
+                $hasTag = $false
+                foreach ($filterTag in $tagFilters) {
+                    foreach ($itemTag in $itemTags) {
+                        if ($itemTag -like "*$filterTag*") {
+                            $hasTag = $true
+                            break
+                        }
+                    }
+                    if ($hasTag) { break }
+                }
+                return $hasTag
+            })
+        }
+
+        return $filtered
     }
 
     # Define edit fields for InlineEditor
@@ -93,7 +164,7 @@ class CommandLibraryScreen : StandardListScreen {
             return @(
                 @{ Name='name'; Type='text'; Label='Command Name'; Required=$true; Value='' }
                 @{ Name='category'; Type='text'; Label='Category'; Value='General' }
-                @{ Name='command_text'; Type='text'; Label='PowerShell Command'; Required=$true; Value=''; MaxLength=500 }
+                @{ Name='command_text'; Type='text'; Label='Command'; Required=$true; Value=''; MaxLength=500 }
                 @{ Name='description'; Type='text'; Label='Description'; Value='' }
                 @{ Name='tags'; Type='tags'; Label='Tags'; Value='' }
             )
@@ -102,7 +173,7 @@ class CommandLibraryScreen : StandardListScreen {
             return @(
                 @{ Name='name'; Type='text'; Label='Command Name'; Required=$true; Value=$item.name }
                 @{ Name='category'; Type='text'; Label='Category'; Value=$item.category }
-                @{ Name='command_text'; Type='text'; Label='PowerShell Command'; Required=$true; Value=$item.command_text; MaxLength=500 }
+                @{ Name='command_text'; Type='text'; Label='Command'; Required=$true; Value=$item.command_text; MaxLength=500 }
                 @{ Name='description'; Type='text'; Label='Description'; Value=$item.description }
                 @{ Name='tags'; Type='tags'; Label='Tags'; Value=$item.tags }
             )
@@ -111,78 +182,101 @@ class CommandLibraryScreen : StandardListScreen {
 
     # Handle item creation
     [void] OnItemCreated([hashtable]$values) {
-        $commandData = @{
-            name = $values.name
-            category = $values.category
-            command_text = $values.command_text
-            description = $values.description
-            tags = $values.tags
-            usage_count = 0
-            created = [DateTime]::Now
-        }
+        try {
+            $tags = if ($values.ContainsKey('tags') -and -not [string]::IsNullOrWhiteSpace($values.tags)) {
+                @($values.tags -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+            } else {
+                @()
+            }
 
-        # TODO: Store.AddCommand($commandData)
-        $this.SetStatusMessage("Command '$($values.name)' saved", "success")
+            $this._commandService.CreateCommand(
+                $values.name,
+                $values.command_text,
+                $values.category,
+                $values.description,
+                $tags
+            )
+
+            $this.SetStatusMessage("Command '$($values.name)' saved", "success")
+        } catch {
+            $this.SetStatusMessage("Error creating command: $($_.Exception.Message)", "error")
+        }
     }
 
     # Handle item update
     [void] OnItemUpdated([object]$item, [hashtable]$values) {
-        $changes = @{
-            name = $values.name
-            category = $values.category
-            command_text = $values.command_text
-            description = $values.description
-            tags = $values.tags
-            modified = [DateTime]::Now
-        }
+        try {
+            $itemId = if ($item -is [hashtable]) { $item['id'] } else { $item.id }
 
-        # TODO: Store.UpdateCommand($item.id, $changes)
-        $this.SetStatusMessage("Command '$($values.name)' updated", "success")
+            $tags = if ($values.ContainsKey('tags') -and -not [string]::IsNullOrWhiteSpace($values.tags)) {
+                @($values.tags -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+            } else {
+                @()
+            }
+
+            $changes = @{
+                name = $values.name
+                category = $values.category
+                command_text = $values.command_text
+                description = $values.description
+                tags = $tags
+            }
+
+            $this._commandService.UpdateCommand($itemId, $changes)
+            $this.SetStatusMessage("Command '$($values.name)' updated", "success")
+        } catch {
+            $this.SetStatusMessage("Error updating command: $($_.Exception.Message)", "error")
+        }
     }
 
     # Handle item deletion
     [void] OnItemDeleted([object]$item) {
-        if ($item.ContainsKey('id')) {
-            # TODO: Store.DeleteCommand($item.id)
-            $this.SetStatusMessage("Command '$($item.name)' deleted", "success")
-        } else {
-            $this.SetStatusMessage("Cannot delete command without ID", "error")
+        try {
+            $itemId = if ($item -is [hashtable]) { $item['id'] } else { $item.id }
+            $itemName = if ($item -is [hashtable]) { $item['name'] } else { $item.name }
+
+            if ($itemId) {
+                $this._commandService.DeleteCommand($itemId)
+                $this.SetStatusMessage("Command '$itemName' deleted", "success")
+            } else {
+                $this.SetStatusMessage("Cannot delete command without ID", "error")
+            }
+        } catch {
+            $this.SetStatusMessage("Error deleting command: $($_.Exception.Message)", "error")
         }
     }
 
     # === Custom Actions ===
 
-    # Execute the selected command
-    [void] ExecuteCommand() {
+    # Copy the selected command to clipboard
+    [void] CopyCommand() {
         $selectedItem = $this.List.GetSelectedItem()
         if ($null -eq $selectedItem) {
             $this.SetStatusMessage("No command selected", "error")
             return
         }
 
-        if (-not $selectedItem.ContainsKey('command_text')) {
-            $this.SetStatusMessage("Command has no command_text", "error")
+        $commandText = if ($selectedItem -is [hashtable]) { $selectedItem['command_text'] } else { $selectedItem.command_text }
+        $commandName = if ($selectedItem -is [hashtable]) { $selectedItem['name'] } else { $selectedItem.name }
+        $commandId = if ($selectedItem -is [hashtable]) { $selectedItem['id'] } else { $selectedItem.id }
+
+        if ([string]::IsNullOrEmpty($commandText)) {
+            $this.SetStatusMessage("Command has no text", "error")
             return
         }
 
         try {
-            # Execute the command
-            $result = Invoke-Expression $selectedItem.command_text
+            # Copy to clipboard
+            Set-Clipboard -Value $commandText
 
             # Update usage statistics
-            # TODO: Update usage_count and last_used in store
-
-            $this.SetStatusMessage("Command executed successfully", "success")
-
-            # Show result if any
-            if ($null -ne $result) {
-                Write-Host "`nCommand Output:" -ForegroundColor Cyan
-                Write-Host $result
-                Write-Host "`nPress any key to continue..." -ForegroundColor Yellow
-                $null = [Console]::ReadKey($true)
+            if ($commandId) {
+                $this._commandService.IncrementUsageCount($commandId)
             }
+
+            $this.SetStatusMessage("Command '$commandName' copied to clipboard", "success")
         } catch {
-            $this.SetStatusMessage("Error executing command: $($_.Exception.Message)", "error")
+            $this.SetStatusMessage("Error copying command: $($_.Exception.Message)", "error")
         }
     }
 
@@ -193,9 +287,15 @@ class CommandLibraryScreen : StandardListScreen {
         $handled = ([StandardListScreen]$this).HandleKeyPress($keyInfo)
         if ($handled) { return $true }
 
-        # Custom key: X = Execute command
-        if ($keyInfo.Key -eq 'X') {
-            $this.ExecuteCommand()
+        # Custom key: C = Copy command to clipboard
+        if ($keyInfo.Key -eq ([ConsoleKey]::C)) {
+            $this.CopyCommand()
+            return $true
+        }
+
+        # Custom key: Enter = Copy command to clipboard (activate)
+        if ($keyInfo.Key -eq ([ConsoleKey]::Enter)) {
+            $this.CopyCommand()
             return $true
         }
 

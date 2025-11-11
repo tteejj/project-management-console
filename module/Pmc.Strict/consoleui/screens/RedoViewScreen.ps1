@@ -112,16 +112,20 @@ class RedoViewScreen : PmcScreen {
     }
 
     [bool] HandleKeyPress([ConsoleKeyInfo]$keyInfo) {
+        $keyChar = [char]::ToLower($keyInfo.KeyChar)
         switch ($keyInfo.Key) {
-            'R' {
+            'Escape' {
+                $this.App.PopScreen()
+                return $true
+            }
+        }
+
+        switch ($keyChar) {
+            'r' {
                 if ($this.UndoStatus -and $this.UndoStatus.RedoAvailable) {
                     $this._PerformRedo()
                     return $true
                 }
-            }
-            'Escape' {
-                $this.App.PopScreen()
-                return $true
             }
         }
 

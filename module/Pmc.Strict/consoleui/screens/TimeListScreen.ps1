@@ -276,10 +276,20 @@ class TimeListScreen : StandardListScreen {
 
     # Get custom actions for footer display
     [array] GetCustomActions() {
+        $self = $this
         return @(
-            @{ Key='Enter'; Label='Details'; Callback={ } }  # Handled in HandleKeyPress
-            @{ Key='w'; Label='Week Report'; Callback={ } }  # Handled in HandleKeyPress
-            @{ Key='g'; Label='Generate'; Callback={ } }     # Handled in HandleKeyPress
+            @{ Key='Enter'; Label='Details'; Callback={
+                # Enter is handled by StandardListScreen's OnItemActivated
+                # which TimeListScreen doesn't override, so no action needed
+            }.GetNewClosure() }
+            @{ Key='w'; Label='Week Report'; Callback={
+                . "$PSScriptRoot/WeeklyTimeReportScreen.ps1"
+                $screen = Invoke-Expression '[WeeklyTimeReportScreen]::new()'
+                $self.App.PushScreen($screen)
+            }.GetNewClosure() }
+            @{ Key='g'; Label='Generate'; Callback={
+                $self.GenerateReport()
+            }.GetNewClosure() }
         )
     }
 
@@ -351,13 +361,13 @@ class TimeListScreen : StandardListScreen {
         if ($handled) { return $true }
 
         # Custom key: G = Generate report
-        if ($keyInfo.Key -eq 'G') {
+        if ($keyInfo.KeyChar -eq 'g' -or $keyInfo.KeyChar -eq 'G') {
             $this.GenerateReport()
             return $true
         }
 
         # Custom key: W = Weekly time report
-        if ($keyInfo.Key -eq 'W') {
+        if ($keyInfo.KeyChar -eq 'w' -or $keyInfo.KeyChar -eq 'W') {
             . "$PSScriptRoot/WeeklyTimeReportScreen.ps1"
             $screen = Invoke-Expression '[WeeklyTimeReportScreen]::new()'
             $this.App.PushScreen($screen)

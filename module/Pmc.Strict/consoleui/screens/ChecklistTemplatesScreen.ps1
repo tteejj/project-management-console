@@ -1,0 +1,198 @@
+using namespace System.Collections.Generic
+using namespace System.Text
+
+# ChecklistTemplatesScreen - Manage checklist templates
+# Templates are reusable checklist definitions
+
+Set-StrictMode -Version Latest
+
+. "$PSScriptRoot/../base/StandardListScreen.ps1"
+. "$PSScriptRoot/../services/ChecklistService.ps1"
+
+<#
+.SYNOPSIS
+Checklist template management screen
+
+.DESCRIPTION
+Manage reusable checklist templates:
+- Add/Edit/Delete templates
+- View template items
+- Create instances from templates
+- Category organization
+#>
+class ChecklistTemplatesScreen : StandardListScreen {
+    hidden [ChecklistService]$_checklistService = $null
+
+    # Static: Register menu items
+    static [void] RegisterMenuItems([object]$registry) {
+        $registry.AddMenuItem('Tools', 'Checklist Templates', 'H', {
+            . "$PSScriptRoot/ChecklistTemplatesScreen.ps1"
+            $global:PmcApp.PushScreen([ChecklistTemplatesScreen]::new())
+        }, 30)
+    }
+
+    # Constructor
+    ChecklistTemplatesScreen() : base("ChecklistTemplates", "Checklist Templates") {
+        # Initialize service
+        $this._checklistService = [ChecklistService]::GetInstance()
+
+        # Configure capabilities
+        $this.AllowAdd = $true
+        $this.AllowEdit = $true
+        $this.AllowDelete = $true
+        $this.AllowFilter = $false
+
+        # Configure header
+        $this.Header.SetBreadcrumb(@("Home", "Tools", "Checklist Templates"))
+
+        # Setup event handlers
+        $self = $this
+        $this._checklistService.OnChecklistsChanged = {
+            if ($null -ne $self -and $self.IsActive) {
+                $self.LoadData()
+            }
+        }.GetNewClosure()
+    }
+
+    # === Abstract Method Implementations ===
+
+    [string] GetEntityType() {
+        return 'checklist_template'
+    }
+
+    [array] GetColumns() {
+        return @(
+            @{ Name='name'; Label='Template Name'; Width=30 }
+            @{ Name='category'; Label='Category'; Width=20 }
+            @{ Name='item_count'; Label='Items'; Width=8 }
+            @{ Name='description'; Label='Description'; Width=50 }
+        )
+    }
+
+    [void] LoadData() {
+        $items = $this.LoadItems()
+        $this.List.SetData($items)
+    }
+
+    [array] LoadItems() {
+        $templates = @($this._checklistService.GetAllTemplates())
+
+        # Format for display
+        foreach ($template in $templates) {
+            if ($template.ContainsKey('items')) {
+                $template['item_count'] = $template.items.Count
+            } else {
+                $template['item_count'] = 0
+            }
+        }
+
+        return $templates
+    }
+
+    [array] GetEditFields([object]$item) {
+        if ($null -eq $item -or $item.Count -eq 0) {
+            # New template - empty fields
+            return @(
+                @{ Name='name'; Type='text'; Label='Template Name'; Required=$true; Value='' }
+                @{ Name='category'; Type='text'; Label='Category'; Value='General' }
+                @{ Name='description'; Type='text'; Label='Description'; Value='' }
+                @{ Name='items'; Type='text'; Label='Items (one per line, comma-separated)'; Value=''; MaxLength=1000 }
+            )
+        } else {
+            # Existing template - populate from item
+            $itemsText = ''
+            if ($item.ContainsKey('items') -and $item.items) {
+                $itemTexts = @($item.items | ForEach-Object { $_.text })
+                $itemsText = $itemTexts -join ', '
+            }
+
+            return @(
+                @{ Name='name'; Type='text'; Label='Template Name'; Required=$true; Value=$item.name }
+                @{ Name='category'; Type='text'; Label='Category'; Value=$item.category }
+                @{ Name='description'; Type='text'; Label='Description'; Value=$item.description }
+                @{ Name='items'; Type='text'; Label='Items (one per line, comma-separated)'; Value=$itemsText; MaxLength=1000 }
+            )
+        }
+    }
+
+    [void] OnItemCreated([hashtable]$values) {
+        try {
+            # Parse items
+            $itemTexts = @()
+            if ($values.ContainsKey('items') -and -not [string]::IsNullOrWhiteSpace($values.items)) {
+                $itemTexts = @($values.items -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+            }
+
+            if ($itemTexts.Count -eq 0) {
+                $this.SetStatusMessage("Template must have at least one item", "error")
+                return
+            }
+
+            $this._checklistService.CreateTemplate(
+                $values.name,
+                $values.description,
+                $values.category,
+                $itemTexts
+            )
+
+            $this.SetStatusMessage("Template '$($values.name)' created", "success")
+        } catch {
+            $this.SetStatusMessage("Error creating template: $($_.Exception.Message)", "error")
+        }
+    }
+
+    [void] OnItemUpdated([object]$item, [hashtable]$values) {
+        try {
+            $itemId = if ($item -is [hashtable]) { $item['id'] } else { $item.id }
+
+            # Parse items
+            $itemTexts = @()
+            if ($values.ContainsKey('items') -and -not [string]::IsNullOrWhiteSpace($values.items)) {
+                $itemTexts = @($values.items -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+            }
+
+            if ($itemTexts.Count -eq 0) {
+                $this.SetStatusMessage("Template must have at least one item", "error")
+                return
+            }
+
+            # Convert to item objects
+            $items = @()
+            $order = 1
+            foreach ($text in $itemTexts) {
+                $items += @{
+                    text = $text
+                    order = $order++
+                }
+            }
+
+            $changes = @{
+                name = $values.name
+                category = $values.category
+                description = $values.description
+                items = $items
+            }
+
+            $this._checklistService.UpdateTemplate($itemId, $changes)
+            $this.SetStatusMessage("Template '$($values.name)' updated", "success")
+        } catch {
+            $this.SetStatusMessage("Error updating template: $($_.Exception.Message)", "error")
+        }
+    }
+
+    [void] OnItemDeleted([object]$item) {
+        try {
+            $itemId = if ($item -is [hashtable]) { $item['id'] } else { $item.id }
+            $itemName = if ($item -is [hashtable]) { $item['name'] } else { $item.name }
+
+            if ($itemId) {
+                $this._checklistService.DeleteTemplate($itemId)
+                $this.SetStatusMessage("Template '$itemName' deleted", "success")
+            } else {
+                $this.SetStatusMessage("Cannot delete template without ID", "error")
+            }
+        } catch {
+            $this.SetStatusMessage("Error deleting template: $($_.Exception.Message)", "error")
+        }
+    }
+}

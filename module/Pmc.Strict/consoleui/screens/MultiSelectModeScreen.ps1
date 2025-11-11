@@ -192,6 +192,7 @@ class MultiSelectModeScreen : PmcScreen {
     }
 
     [bool] HandleKeyPress([ConsoleKeyInfo]$keyInfo) {
+        $keyChar = [char]::ToLower($keyInfo.KeyChar)
         switch ($keyInfo.Key) {
             'UpArrow' {
                 if ($this.SelectedIndex -gt 0) {
@@ -221,27 +222,30 @@ class MultiSelectModeScreen : PmcScreen {
                     return $true
                 }
             }
-            'A' {
+        }
+
+        switch ($keyChar) {
+            'a' {
                 foreach ($task in $this.Tasks) {
                     $this.MultiSelect[$task.id] = $true
                 }
                 $this._UpdateStatus()
                 return $true
             }
-            'N' {
+            'n' {
                 $this.MultiSelect.Clear()
                 $this._UpdateStatus()
                 return $true
             }
-            'B' {
+            'b' {
                 $this._BulkComplete()
                 return $true
             }
-            'D' {
+            'd' {
                 $this._BulkDelete()
                 return $true
             }
-            'P' {
+            'p' {
                 $this._BulkSetPriority()
                 return $true
             }

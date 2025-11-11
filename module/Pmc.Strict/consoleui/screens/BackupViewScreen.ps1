@@ -329,6 +329,7 @@ class BackupViewScreen : PmcScreen {
     }
 
     [bool] HandleKeyPress([ConsoleKeyInfo]$keyInfo) {
+        $keyChar = [char]::ToLower($keyInfo.KeyChar)
         switch ($keyInfo.Key) {
             'UpArrow' {
                 if ($this.SelectedIndex -gt 0) {
@@ -342,15 +343,18 @@ class BackupViewScreen : PmcScreen {
                     return $true
                 }
             }
-            'C' {
+        }
+
+        switch ($keyChar) {
+            'c' {
                 $this._CreateBackup()
                 return $true
             }
-            'R' {
+            'r' {
                 $this._RestoreBackup()
                 return $true
             }
-            'D' {
+            'd' {
                 $this._DeleteBackup()
                 return $true
             }

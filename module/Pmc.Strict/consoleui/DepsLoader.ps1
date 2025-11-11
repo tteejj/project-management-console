@@ -15,50 +15,20 @@ if (-not (Test-Path $depsDir)) {
     throw "Deps directory not found: $depsDir"
 }
 
+# NOTE: Most dependencies are already loaded by Pmc.Strict.psm1 module
+# Only load ConsoleUI-specific files here to avoid duplicate loading
+
 # Neutralize Export-ModuleMember calls in copied files
 function Export-ModuleMember { param([Parameter(ValueFromRemainingArguments=$true)]$args) }
 
-# Load core primitives and rendering helpers first (from src/)
-. (Join-Path $srcDir 'PraxisVT.ps1')
-. (Join-Path $srcDir 'PraxisStringBuilder.ps1')
-. (Join-Path $srcDir 'TerminalDimensions.ps1')
-. (Join-Path $srcDir 'PraxisFrameRenderer.ps1')
-
-# Core types/config/state/security/ui/storage/time (from src/)
-. (Join-Path $srcDir 'Types.ps1')
-. (Join-Path $srcDir 'Config.ps1')
-. (Join-Path $srcDir 'Debug.ps1')
-. (Join-Path $srcDir 'Security.ps1')
-. (Join-Path $srcDir 'State.ps1')
-. (Join-Path $srcDir 'UI.ps1')
-. (Join-Path $srcDir 'Storage.ps1')
-. (Join-Path $srcDir 'Time.ps1')
-
-# Schema support (from src/)
-. (Join-Path $srcDir 'FieldSchemas.ps1')
-
-# Template system (from src/)
-. (Join-Path $srcDir 'TemplateDisplay.ps1')
-
-# Type normalization helpers (helpers/)
+# Type normalization helpers (helpers/ - ConsoleUI-specific)
 . (Join-Path $PSScriptRoot 'helpers/TypeNormalization.ps1')
 
 # ConsoleUI-specific PmcTemplate class (UNIQUE to deps/)
 . (Join-Path $depsDir 'PmcTemplate.ps1')
 
-# Display systems (from src/)
-. (Join-Path $srcDir 'DataDisplay.ps1')
-. (Join-Path $srcDir 'UniversalDisplay.ps1')
-
 # Help content (UNIQUE to deps/ - curated for ConsoleUI)
 . (Join-Path $depsDir 'HelpContent.ps1')
-
-# Help UI (from src/)
-. (Join-Path $srcDir 'HelpUI.ps1')
-
-# Analytics + Theme (from src/)
-. (Join-Path $srcDir 'Analytics.ps1')
-. (Join-Path $srcDir 'Theme.ps1')
 
 # Project utility function (UNIQUE to deps/)
 . (Join-Path $depsDir 'Project.ps1')

@@ -160,6 +160,125 @@ class TextAreaEditor {
         return $lineStart + $actualCol
     }
 
+    # Cell-based rendering for OptimizedRenderEngine
+    [void] RenderToEngine([object]$engine) {
+        $lineCount = $this.GetLineCount()
+
+        if ($global:PmcTuiLogFile) {
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] TextAreaEditor.RenderToEngine: Start - X=$($this.X) Y=$($this.Y) W=$($this.Width) H=$($this.Height) Lines=$lineCount ScrollY=$($this.ScrollOffsetY)"
+        }
+
+        # Render each visible line
+        for ($i = 0; $i -lt $this.Height; $i++) {
+            $lineIndex = $this.ScrollOffsetY + $i
+            $screenY = $this.Y + $i
+
+            if ($global:PmcTuiLogFile -and $i -lt 3) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] TextAreaEditor.RenderToEngine: Line $i - lineIndex=$lineIndex screenY=$screenY"
+            }
+
+            if ($lineIndex -lt $lineCount) {
+                $line = $this.GetLine($lineIndex)
+
+                if ($global:PmcTuiLogFile -and $i -lt 3) {
+                    $linePreview = if ($line.Length -gt 20) { $line.Substring(0, 20) + "..." } else { $line }
+                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] TextAreaEditor.RenderToEngine: Line content: '$linePreview' (len=$($line.Length))"
+                }
+
+                # Handle horizontal scrolling
+                $startCol = $this.ScrollOffsetX
+                $endCol = [Math]::Min($startCol + $this.Width, $line.Length)
+
+                # Render visible portion of line
+                for ($col = $startCol; $col -lt $endCol; $col++) {
+                    $screenX = $this.X + ($col - $startCol)
+                    $char = $line[$col]
+
+                    # Check if this character is in selection
+                    if ($this.SelectionMode -ne [SelectionMode]::None -and
+                        $this.IsCharInSelection($lineIndex, $col)) {
+                        # Write with selection background
+                        $engine.WriteAt($screenX, $screenY, $char, [ConsoleColor]::White, [ConsoleColor]::DarkBlue)
+                    } else {
+                        # Write normal character
+                        $engine.WriteAt($screenX, $screenY, $char)
+                    }
+                }
+
+                # Clear rest of line with spaces
+                for ($xOffset = ($endCol - $startCol); $xOffset -lt $this.Width; $xOffset++) {
+                    $engine.WriteAt($this.X + $xOffset, $screenY, ' ')
+                }
+            } else {
+                # Clear empty lines
+                for ($xOffset = 0; $xOffset -lt $this.Width; $xOffset++) {
+                    $engine.WriteAt($this.X + $xOffset, $screenY, ' ')
+                }
+            }
+        }
+
+        # Position cursor by writing at cursor location
+        # This ensures the engine's last WriteAt call is at the cursor position
+        $cursorScreenX = $this.X + $this.CursorX - $this.ScrollOffsetX
+        $cursorScreenY = $this.Y + $this.CursorY - $this.ScrollOffsetY
+
+        if ($cursorScreenX -ge $this.X -and $cursorScreenX -lt ($this.X + $this.Width) -and
+            $cursorScreenY -ge $this.Y -and $cursorScreenY -lt ($this.Y + $this.Height)) {
+            # Get the character at cursor position to re-write it
+            $cursorLineIndex = $this.CursorY
+            if ($cursorLineIndex -lt $this.GetLineCount()) {
+                $line = $this.GetLine($cursorLineIndex)
+                if ($this.CursorX -lt $line.Length) {
+                    $charAtCursor = $line[$this.CursorX]
+                } else {
+                    $charAtCursor = ' '
+                }
+            } else {
+                $charAtCursor = ' '
+            }
+
+            # Write the character at cursor position with reverse video for block cursor effect
+            # Use ANSI escape codes for black text on white background
+            $blockCursor = "`e[30;47m$charAtCursor`e[0m"
+            $engine.WriteAt($cursorScreenX, $cursorScreenY, $blockCursor)
+        }
+    }
+
+    # Helper to check if a character is in selection
+    hidden [bool] IsCharInSelection([int]$line, [int]$col) {
+        if ($this.SelectionMode -eq [SelectionMode]::None) {
+            return $false
+        }
+
+        $startLine = [Math]::Min($this.SelectionAnchorY, $this.SelectionEndY)
+        $endLine = [Math]::Max($this.SelectionAnchorY, $this.SelectionEndY)
+        $startCol = [Math]::Min($this.SelectionAnchorX, $this.SelectionEndX)
+        $endCol = [Math]::Max($this.SelectionAnchorX, $this.SelectionEndX)
+
+        if ($line -lt $startLine -or $line -gt $endLine) {
+            return $false
+        }
+
+        if ($this.SelectionMode -eq [SelectionMode]::Stream) {
+            # Stream selection
+            if ($line -eq $startLine -and $line -eq $endLine) {
+                return $col -ge $startCol -and $col -lt $endCol
+            } elseif ($line -eq $startLine) {
+                return $col -ge $startCol
+            } elseif ($line -eq $endLine) {
+                return $col -lt $endCol
+            } else {
+                return $true
+            }
+        } elseif ($this.SelectionMode -eq [SelectionMode]::Block) {
+            # Block selection
+            return $col -ge $startCol -and $col -lt $endCol
+        }
+
+        return $false
+    }
+
+    # Legacy ANSI string-based rendering (kept for compatibility)
     [string] Render() {
         $sb = [System.Text.StringBuilder]::new()
 
@@ -570,6 +689,11 @@ class TextAreaEditor {
 
     # Editing methods using gap buffer
     [void] InsertChar([char]$char) {
+        # If there's a selection, delete it first
+        if ($this.SelectionMode -ne [SelectionMode]::None) {
+            $this.DeleteSelection()
+        }
+
         $position = $this.GetPositionFromLineCol($this.CursorY, $this.CursorX)
         $this._gapBuffer.Insert($position, $char.ToString())
         $this._lineIndexDirty = $true
@@ -579,6 +703,11 @@ class TextAreaEditor {
     }
 
     [void] InsertNewLine() {
+        # If there's a selection, delete it first
+        if ($this.SelectionMode -ne [SelectionMode]::None) {
+            $this.DeleteSelection()
+        }
+
         $position = $this.GetPositionFromLineCol($this.CursorY, $this.CursorX)
         $this._gapBuffer.Insert($position, "`n")
         $this._lineIndexDirty = $true
@@ -589,6 +718,11 @@ class TextAreaEditor {
     }
 
     [void] InsertTab() {
+        # If there's a selection, delete it first
+        if ($this.SelectionMode -ne [SelectionMode]::None) {
+            $this.DeleteSelection()
+        }
+
         $spaces = " " * $this.TabWidth
         $position = $this.GetPositionFromLineCol($this.CursorY, $this.CursorX)
         $this._gapBuffer.Insert($position, $spaces)
@@ -599,6 +733,12 @@ class TextAreaEditor {
     }
 
     [void] Backspace() {
+        # If there's a selection, delete it instead
+        if ($this.SelectionMode -ne [SelectionMode]::None) {
+            $this.DeleteSelection()
+            return
+        }
+
         if ($this.CursorX -gt 0) {
             $position = $this.GetPositionFromLineCol($this.CursorY, $this.CursorX - 1)
             $this._gapBuffer.Delete($position, 1)
@@ -618,6 +758,12 @@ class TextAreaEditor {
     }
 
     [void] Delete() {
+        # If there's a selection, delete it instead
+        if ($this.SelectionMode -ne [SelectionMode]::None) {
+            $this.DeleteSelection()
+            return
+        }
+
         $lineLength = $this.GetLine($this.CursorY).Length
         if ($this.CursorX -lt $lineLength) {
             $position = $this.GetPositionFromLineCol($this.CursorY, $this.CursorX)

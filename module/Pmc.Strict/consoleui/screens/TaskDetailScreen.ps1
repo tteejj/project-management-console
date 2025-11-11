@@ -497,20 +497,22 @@ class TaskDetailScreen : PmcScreen {
             return $false
         }
 
-        switch ($keyInfo.Key) {
-            'E' {
+        $keyChar = [char]::ToLower($keyInfo.KeyChar)
+
+        switch ($keyChar) {
+            'e' {
                 $this._EditTask()
                 return $true
             }
-            'C' {
+            'c' {
                 $this._CompleteTask()
                 return $true
             }
-            'D' {
+            'd' {
                 $this._DeleteTask()
                 return $true
             }
-            'R' {
+            'r' {
                 $this.LoadData()
                 return $true
             }

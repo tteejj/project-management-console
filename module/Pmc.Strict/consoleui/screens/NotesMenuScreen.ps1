@@ -15,15 +15,34 @@ Set-StrictMode -Version Latest
 class NotesMenuScreen : StandardListScreen {
     # === Configuration ===
     hidden [NoteService]$_noteService = $null
+    hidden [string]$_ownerType = "global"
+    hidden [string]$_ownerId = $null
+    hidden [string]$_ownerName = ""
 
     # === Constructor ===
     NotesMenuScreen() : base("NotesList", "Notes") {
+        $this._InitializeScreen("global", $null, "")
+    }
+
+    NotesMenuScreen([string]$ownerType, [string]$ownerId, [string]$ownerName) : base("NotesList", "Notes") {
+        $this._InitializeScreen($ownerType, $ownerId, $ownerName)
+    }
+
+    hidden [void] _InitializeScreen([string]$ownerType, [string]$ownerId, [string]$ownerName) {
+        $this._ownerType = $ownerType
+        $this._ownerId = $ownerId
+        $this._ownerName = $ownerName
+
         # Get note service instance
         $this._noteService = [NoteService]::GetInstance()
 
         # Subscribe to note changes
+        # Note: Callback may be invoked when screen is not active, so check first
+        $self = $this
         $this._noteService.OnNotesChanged = {
-            $this.LoadData()
+            if ($null -ne $self -and $self.IsActive) {
+                $self.LoadData()
+            }
         }.GetNewClosure()
 
         # Configure screen
@@ -32,6 +51,13 @@ class NotesMenuScreen : StandardListScreen {
         $this.AllowDelete = $true
         $this.AllowFilter = $true
         $this.AllowSearch = $true
+
+        # Update screen title and breadcrumb based on owner
+        if ($this._ownerType -ne "global") {
+            $ownerLabel = if ($ownerType -eq "project") { "Project" } elseif ($ownerType -eq "task") { "Task" } else { "Global" }
+            $this.ScreenTitle = "Notes - $ownerName"
+            $this.Header.SetBreadcrumb(@($ownerLabel, $ownerName, "Notes"))
+        }
     }
 
     # === Abstract Methods Implementation ===
@@ -41,11 +67,22 @@ class NotesMenuScreen : StandardListScreen {
     Load notes data into the list
     #>
     [void] LoadData() {
-        Write-PmcTuiLog "NotesMenuScreen.LoadData: Loading notes" "DEBUG"
+        Write-PmcTuiLog "NotesMenuScreen.LoadData: Loading notes for owner=$($this._ownerType):$($this._ownerId)" "DEBUG"
 
         try {
-            # Get all notes from service
-            $notes = $this._noteService.GetAllNotes()
+            # Get notes from service (filtered by owner if specified)
+            if ($this._ownerType -eq "global" -or $null -eq $this._ownerId) {
+                $notes = $this._noteService.GetAllNotes()
+            } else {
+                $notes = $this._noteService.GetNotesByOwner($this._ownerType, $this._ownerId)
+            }
+
+            # Ensure we have an array
+            if ($null -eq $notes) {
+                $notes = @()
+            } elseif ($notes -isnot [array]) {
+                $notes = @($notes)
+            }
 
             Write-PmcTuiLog "NotesMenuScreen.LoadData: Loaded $($notes.Count) notes" "DEBUG"
 
@@ -118,8 +155,18 @@ class NotesMenuScreen : StandardListScreen {
     Define fields for the add/edit inline editor
     #>
     [array] GetEditFields($item) {
-        $title = if ($item) { $item.title } else { "" }
-        $tags = if ($item -and $item.tags) { ($item.tags -join ", ") } else { "" }
+        $title = ""
+        $tags = ""
+
+        if ($item) {
+            if ($item -is [hashtable]) {
+                $title = if ($item.ContainsKey('title')) { $item['title'] } else { "" }
+                $tags = if ($item.ContainsKey('tags') -and $item['tags']) { ($item['tags'] -join ", ") } else { "" }
+            } else {
+                $title = if ($item.title) { $item.title } else { "" }
+                $tags = if ($item.tags) { ($item.tags -join ", ") } else { "" }
+            }
+        }
 
         return @(
             @{
@@ -148,19 +195,48 @@ class NotesMenuScreen : StandardListScreen {
     Handle item activation (Enter key) - open note editor
     #>
     [void] OnItemActivated($item) {
-        if ($item -and $item.id) {
-            Write-PmcTuiLog "NotesMenuScreen.OnItemActivated: Opening note $($item.id)" "DEBUG"
+        # Get ID from item (handle both hashtable and object)
+        $noteId = $null
+        if ($item) {
+            if ($item -is [hashtable]) {
+                $noteId = $item['id']
+            } else {
+                $noteId = $item.id
+            }
+        }
+
+        if ($noteId) {
+            Write-PmcTuiLog "NotesMenuScreen.OnItemActivated: Opening note $noteId" "INFO"
 
             # Load NoteEditorScreen
             $editorScreenPath = Join-Path $PSScriptRoot "NoteEditorScreen.ps1"
+            Write-PmcTuiLog "NotesMenuScreen.OnItemActivated: Editor path: $editorScreenPath" "DEBUG"
+
             if (Test-Path $editorScreenPath) {
+                Write-PmcTuiLog "NotesMenuScreen.OnItemActivated: Loading NoteEditorScreen.ps1" "DEBUG"
                 . $editorScreenPath
-                $editorScreen = [NoteEditorScreen]::new($item.id)
+
+                Write-PmcTuiLog "NotesMenuScreen.OnItemActivated: Creating NoteEditorScreen instance" "DEBUG"
+                $editorScreen = New-Object NoteEditorScreen -ArgumentList $noteId
+
+                Write-PmcTuiLog "NotesMenuScreen.OnItemActivated: Pushing screen to app" "DEBUG"
                 $global:PmcApp.PushScreen($editorScreen)
+
+                Write-PmcTuiLog "NotesMenuScreen.OnItemActivated: Screen pushed successfully" "INFO"
             } else {
-                Write-PmcTuiLog "NotesMenuScreen.OnItemActivated: NoteEditorScreen.ps1 not found" "ERROR"
+                Write-PmcTuiLog "NotesMenuScreen.OnItemActivated: NoteEditorScreen.ps1 not found at $editorScreenPath" "ERROR"
             }
+        } else {
+            Write-PmcTuiLog "NotesMenuScreen.OnItemActivated: No noteId found in item" "ERROR"
         }
+    }
+
+    <#
+    .SYNOPSIS
+    Handle add new note (called by StandardListScreen)
+    #>
+    [void] OnItemCreated([hashtable]$data) {
+        $this.OnAddItem($data)
     }
 
     <#
@@ -173,14 +249,22 @@ class NotesMenuScreen : StandardListScreen {
         try {
             # Parse tags
             $tags = @()
-            if ($data.tags -and $data.tags.Trim() -ne "") {
+            if ($data.ContainsKey('tags') -and -not [string]::IsNullOrWhiteSpace($data.tags)) {
                 $tags = $data.tags -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ -ne "" }
             }
 
-            # Create note
-            $note = $this._noteService.CreateNote($data.title, $tags)
+            # Create note with owner info
+            Write-PmcTuiLog "NotesMenuScreen.OnAddItem: Calling CreateNote with title='$($data.title)' tags=$($tags.Count) owner=$($this._ownerType):$($this._ownerId)" "DEBUG"
+            $note = $this._noteService.CreateNote($data.title, $tags, $this._ownerType, $this._ownerId)
 
-            Write-PmcTuiLog "NotesMenuScreen.OnAddItem: Created note $($note.id)" "INFO"
+            if ($null -eq $note) {
+                Write-PmcTuiLog "NotesMenuScreen.OnAddItem: CreateNote returned null!" "ERROR"
+                return
+            }
+
+            Write-PmcTuiLog "NotesMenuScreen.OnAddItem: Created note, checking for id..." "DEBUG"
+            $noteId = if ($note -is [hashtable]) { $note['id'] } else { $note.id }
+            Write-PmcTuiLog "NotesMenuScreen.OnAddItem: Note ID = $noteId" "INFO"
 
             # Refresh list (will happen automatically via event callback)
             # Open the new note in editor
@@ -188,8 +272,16 @@ class NotesMenuScreen : StandardListScreen {
 
         } catch {
             Write-PmcTuiLog "NotesMenuScreen.OnAddItem: Error - $_" "ERROR"
-            # TODO: Show error message to user
+            Write-PmcTuiLog "NotesMenuScreen.OnAddItem: Stack trace - $($_.ScriptStackTrace)" "ERROR"
         }
+    }
+
+    <#
+    .SYNOPSIS
+    Handle edit note metadata (called by StandardListScreen)
+    #>
+    [void] OnItemUpdated($item, [hashtable]$data) {
+        $this.OnEditItem($item, $data)
     }
 
     <#
@@ -226,6 +318,14 @@ class NotesMenuScreen : StandardListScreen {
 
     <#
     .SYNOPSIS
+    Handle delete note (called by StandardListScreen)
+    #>
+    [void] OnItemDeleted($item) {
+        $this.OnDeleteItem($item)
+    }
+
+    <#
+    .SYNOPSIS
     Handle delete note
     #>
     [void] OnDeleteItem($item) {
@@ -255,13 +355,12 @@ class NotesMenuScreen : StandardListScreen {
             @{
                 Key = 'O'
                 Label = 'Open'
-                Description = 'Open selected note in editor'
-                Handler = {
+                Callback = {
                     $selected = $this.List.GetSelectedItem()
                     if ($selected) {
                         $this.OnItemActivated($selected)
                     }
-                }
+                }.GetNewClosure()
             }
         )
     }
@@ -272,17 +371,10 @@ class NotesMenuScreen : StandardListScreen {
     .SYNOPSIS
     Register menu items for this screen
     #>
-    static [void] RegisterMenuItems() {
-        $registry = [MenuRegistry]::GetInstance()
-
+    static [void] RegisterMenuItems([object]$registry) {
         $registry.AddMenuItem('Tools', 'Notes', 'N', {
-            # Load and push screen
-            $screenPath = Join-Path $PSScriptRoot "NotesMenuScreen.ps1"
-            if (Test-Path $screenPath) {
-                . $screenPath
-                $screen = [NotesMenuScreen]::new()
-                $global:PmcApp.PushScreen($screen)
-            }
-        })
+            . "$PSScriptRoot/NotesMenuScreen.ps1"
+            $global:PmcApp.PushScreen([NotesMenuScreen]::new())
+        }, 20)
     }
 }

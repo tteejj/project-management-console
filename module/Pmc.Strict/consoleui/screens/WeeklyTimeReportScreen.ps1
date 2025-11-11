@@ -134,9 +134,8 @@ class WeeklyTimeReportScreen : PmcScreen {
                 $this.WeekIndicator = " ($($this.WeekOffset) week$plural from now)"
             }
 
-            # Load PMC data
-            $data = Get-PmcAllData
-            $logs = if ($data.PSObject.Properties['timelogs']) { $data.timelogs } else { @() }
+            # Use TaskStore singleton instead of loading from disk
+            $logs = $this.Store.GetAllTimeLogs()
 
             # Filter logs for the week (Monday-Friday)
             $weekLogs = @()
@@ -404,7 +403,7 @@ class WeeklyTimeReportScreen : PmcScreen {
         }
 
         # Refresh
-        if ($keyInfo.Key -eq 'R') {
+        if ($keyInfo.KeyChar -eq 'r' -or $keyInfo.KeyChar -eq 'R') {
             $this.LoadData()
             return $true
         }

@@ -25,19 +25,25 @@ class NoteEditorScreen : PmcScreen {
 
     # === Constructor ===
     NoteEditorScreen([string]$noteId) : base("NoteEditor", "Note Editor") {
+        Write-PmcTuiLog "NoteEditorScreen: Constructor called for noteId=$noteId" "INFO"
+
         $this._noteId = $noteId
         $this._noteService = [NoteService]::GetInstance()
 
         # Load note metadata
+        Write-PmcTuiLog "NoteEditorScreen: Loading note metadata" "DEBUG"
         $this._note = $this._noteService.GetNote($noteId)
         if (-not $this._note) {
+            Write-PmcTuiLog "NoteEditorScreen: Note not found: $noteId" "ERROR"
             throw "Note not found: $noteId"
         }
 
         # Update screen title
         $this.ScreenTitle = $this._note.title
+        Write-PmcTuiLog "NoteEditorScreen: Title set to '$($this._note.title)'" "DEBUG"
 
         # Create TextAreaEditor widget
+        Write-PmcTuiLog "NoteEditorScreen: Creating TextAreaEditor" "DEBUG"
         $this._editor = [TextAreaEditor]::new()
 
         # Configure footer shortcuts
@@ -46,36 +52,49 @@ class NoteEditorScreen : PmcScreen {
         $this.Footer.AddShortcut("Esc", "Back (Save)")
         $this.Footer.AddShortcut("Ctrl+Z", "Undo")
         $this.Footer.AddShortcut("Ctrl+Y", "Redo")
+
+        Write-PmcTuiLog "NoteEditorScreen: Constructor complete" "INFO"
     }
 
     # === Lifecycle Methods ===
 
     [void] Initialize([object]$renderEngine) {
+        Write-PmcTuiLog "NoteEditorScreen.Initialize: Called" "INFO"
+
         $this.RenderEngine = $renderEngine
 
         # Get terminal size
         $this.TermWidth = $renderEngine.Width
         $this.TermHeight = $renderEngine.Height
+        Write-PmcTuiLog "NoteEditorScreen.Initialize: Terminal size $($this.TermWidth)x$($this.TermHeight)" "DEBUG"
 
-        # Update header breadcrumb
+        # Update header breadcrumb and position
+        Write-PmcTuiLog "NoteEditorScreen.Initialize: Setting Header.Y to 1 (was $($this.Header.Y))" "DEBUG"
+        $this.Header.Y = 1  # Header starts at row 1 (after MenuBar at row 0)
+        Write-PmcTuiLog "NoteEditorScreen.Initialize: Header.Y is now $($this.Header.Y)" "DEBUG"
         $this.Header.SetBreadcrumb(@("Notes", $this._note.title))
+        Write-PmcTuiLog "NoteEditorScreen.Initialize: After SetBreadcrumb, Header.Y is $($this.Header.Y)" "DEBUG"
 
         # Initialize layout manager
         if (-not $this.LayoutManager) {
-            $this.LayoutManager = [PmcLayoutManager]::new($this.TermWidth, $this.TermHeight)
+            $this.LayoutManager = [PmcLayoutManager]::new()
         }
 
         # Calculate editor bounds
-        # Layout: MenuBar (1) + Header (3) + Editor (remaining) + Footer (1)
-        $editorY = 4  # After menubar (1) and header (3)
-        $editorHeight = $this.TermHeight - 5  # Subtract menubar, header, footer
+        # Layout: MenuBar (row 0) + Header (rows 1-5: title, blank, breadcrumb, blank, separator) + Editor + Footer + StatusBar
+        # Header actually uses 5 rows: Y, Y+1(blank), Y+2(breadcrumb), Y+3(blank), Y+4(separator)
+        $editorY = 6  # After menubar (row 0) and header (rows 1-5)
+        $editorHeight = $this.TermHeight - 8  # Subtract menubar(1), header(5), footer(1), statusbar(1)
         $editorX = 0
         $editorWidth = $this.TermWidth
 
+        Write-PmcTuiLog "NoteEditorScreen.Initialize: Setting editor bounds X=$editorX Y=$editorY W=$editorWidth H=$editorHeight" "DEBUG"
         $this._editor.SetBounds($editorX, $editorY, $editorWidth, $editorHeight)
 
         # Load note content
         $this.LoadData()
+
+        Write-PmcTuiLog "NoteEditorScreen.Initialize: Complete" "INFO"
     }
 
     [void] LoadData() {
@@ -100,6 +119,8 @@ class NoteEditorScreen : PmcScreen {
         $this.IsActive = $true
         $this.LoadData()
         $this.UpdateStatusBar()
+        # Force full screen clear for editor
+        $this.NeedsClear = $true
     }
 
     [void] OnExit() {
@@ -113,37 +134,60 @@ class NoteEditorScreen : PmcScreen {
 
     # === Rendering ===
 
-    [string] Render() {
-        $output = [System.Text.StringBuilder]::new()
+    [void] RenderToEngine([object]$engine) {
+        Write-PmcTuiLog "NoteEditorScreen.RenderToEngine: Called - Header.Y=$($this.Header.Y)" "DEBUG"
+
+        # FORCE Header.Y back to 1 since something keeps resetting it
+        $this.Header.Y = 1
+        Write-PmcTuiLog "NoteEditorScreen.RenderToEngine: Forced Header.Y to 1" "DEBUG"
 
         # Render MenuBar
         if ($this.MenuBar) {
-            $menuOutput = $this.MenuBar.Render($this.TermWidth)
-            [void]$output.Append($menuOutput)
+            $output = $this.MenuBar.Render()
+            if ($output) {
+                $this._ParseAnsiAndWrite($engine, $output)
+            }
         }
 
         # Render Header
         if ($this.Header) {
-            $headerOutput = $this.Header.Render($this.TermWidth)
-            [void]$output.Append($headerOutput)
+            Write-PmcTuiLog "NoteEditorScreen.RenderToEngine: Header.Y=$($this.Header.Y) Header.X=$($this.Header.X)" "DEBUG"
+            $output = $this.Header.Render()
+            Write-PmcTuiLog "NoteEditorScreen.RenderToEngine: Header output length=$($output.Length)" "DEBUG"
+            $preview = if ($output.Length -gt 100) { $output.Substring(0, 100) } else { $output }
+            Write-PmcTuiLog "NoteEditorScreen.RenderToEngine: Header preview: $preview" "DEBUG"
+            if ($output) {
+                $this._ParseAnsiAndWrite($engine, $output)
+            }
         }
 
-        # Render Editor
-        $editorOutput = $this._editor.Render()
-        [void]$output.Append($editorOutput)
+        # Render TextAreaEditor directly to engine (cell-based)
+        $this._editor.RenderToEngine($engine)
 
         # Render Footer
         if ($this.Footer) {
-            $footerOutput = $this.Footer.Render($this.TermWidth)
-            [void]$output.Append($footerOutput)
+            $output = $this.Footer.Render()
+            if ($output) {
+                $this._ParseAnsiAndWrite($engine, $output)
+            }
         }
 
-        return $output.ToString()
+        # Render StatusBar
+        if ($this.StatusBar) {
+            $output = $this.StatusBar.Render()
+            if ($output) {
+                $this._ParseAnsiAndWrite($engine, $output)
+            }
+        }
+
+        Write-PmcTuiLog "NoteEditorScreen.RenderToEngine: Complete" "DEBUG"
     }
 
     # === Input Handling ===
 
     [bool] HandleKeyPress([ConsoleKeyInfo]$key) {
+        Write-PmcTuiLog "NoteEditorScreen.HandleKeyPress: Key=$($key.Key) Char=$($key.KeyChar)" "DEBUG"
+
         # Handle screen-level shortcuts first
         $ctrl = $key.Modifiers -band [ConsoleModifiers]::Control
 
@@ -173,7 +217,9 @@ class NoteEditorScreen : PmcScreen {
         }
 
         # Delegate to editor
-        $handled = $this._editor.HandleKeyPress($key)
+        Write-PmcTuiLog "NoteEditorScreen.HandleKeyPress: Delegating to editor" "DEBUG"
+        $handled = $this._editor.HandleInput($key)
+        Write-PmcTuiLog "NoteEditorScreen.HandleKeyPress: Editor returned handled=$handled" "DEBUG"
 
         # Update status bar after editor handles input
         if ($handled) {
@@ -189,7 +235,12 @@ class NoteEditorScreen : PmcScreen {
         Write-PmcTuiLog "NoteEditorScreen.SaveNote: Saving note $($this._noteId)" "DEBUG"
 
         try {
+            Write-PmcTuiLog "NoteEditorScreen.SaveNote: Getting text from editor" "DEBUG"
             $content = $this._editor.GetText()
+            $contentLen = if ($null -eq $content) { "NULL" } else { $content.Length }
+            Write-PmcTuiLog "NoteEditorScreen.SaveNote: Got content, length=$contentLen" "DEBUG"
+
+            Write-PmcTuiLog "NoteEditorScreen.SaveNote: Calling SaveNoteContent" "DEBUG"
             $this._noteService.SaveNoteContent($this._noteId, $content)
 
             # Mark as not modified
@@ -202,6 +253,7 @@ class NoteEditorScreen : PmcScreen {
 
         } catch {
             Write-PmcTuiLog "NoteEditorScreen.SaveNote: Error - $_" "ERROR"
+            Write-PmcTuiLog "NoteEditorScreen.SaveNote: Stack - $($_.ScriptStackTrace)" "ERROR"
             # TODO: Show error to user
         }
     }
@@ -211,18 +263,40 @@ class NoteEditorScreen : PmcScreen {
             return
         }
 
-        # Get editor stats
-        $text = $this._editor.GetText()
-        $lines = ($text -split "`n").Count
-        $words = ($text -split '\s+' | Where-Object { $_ -ne '' }).Count
-        $chars = $text.Length
+        try {
+            # Get editor stats
+            $text = $this._editor.GetText()
+            if ($null -eq $text) {
+                $text = ""
+            }
 
-        # Build status message
-        $modifiedFlag = if ($this._editor.Modified) { "*" } else { "" }
-        $cursorPos = "Ln $($this._editor.CursorY + 1), Col $($this._editor.CursorX + 1)"
-        $stats = "$lines lines, $words words, $chars chars"
+            # Count lines
+            if ([string]::IsNullOrEmpty($text)) {
+                $lines = 1
+                $words = 0
+                $chars = 0
+            } else {
+                $lineArray = @($text -split "`n")
+                $lines = $lineArray.Count
 
-        $this.StatusBar.SetLeftText("$modifiedFlag$cursorPos")
-        $this.StatusBar.SetRightText($stats)
+                $wordArray = @($text -split '\s+' | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+                $words = if ($wordArray) { $wordArray.Count } else { 0 }
+
+                $chars = $text.Length
+            }
+
+            # Build status message
+            $modifiedFlag = if ($this._editor.Modified) { "*" } else { "" }
+            $cursorPos = "Ln $($this._editor.CursorY + 1), Col $($this._editor.CursorX + 1)"
+            $stats = "$lines lines, $words words, $chars chars"
+
+            $this.StatusBar.SetLeftText("$modifiedFlag$cursorPos")
+            $this.StatusBar.SetRightText($stats)
+        } catch {
+            Write-PmcTuiLog "NoteEditorScreen.UpdateStatusBar: Error - $_" "ERROR"
+            # Set fallback status
+            $this.StatusBar.SetLeftText("Ln 1, Col 1")
+            $this.StatusBar.SetRightText("Ready")
+        }
     }
 }

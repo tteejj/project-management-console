@@ -119,16 +119,20 @@ class UndoViewScreen : PmcScreen {
     }
 
     [bool] HandleKeyPress([ConsoleKeyInfo]$keyInfo) {
+        $keyChar = [char]::ToLower($keyInfo.KeyChar)
         switch ($keyInfo.Key) {
-            'U' {
+            'Escape' {
+                $this.App.PopScreen()
+                return $true
+            }
+        }
+
+        switch ($keyChar) {
+            'u' {
                 if ($this.UndoStatus -and $this.UndoStatus.UndoAvailable) {
                     $this._PerformUndo()
                     return $true
                 }
-            }
-            'Escape' {
-                $this.App.PopScreen()
-                return $true
             }
         }
 

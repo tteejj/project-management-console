@@ -48,6 +48,17 @@ try {
     throw
 }
 
+Write-PmcTuiLog "Loading PraxisVT (ANSI/VT100 helpers)..." "INFO"
+
+try {
+    . "$PSScriptRoot/../src/PraxisVT.ps1"
+    Write-PmcTuiLog "PraxisVT loaded" "INFO"
+} catch {
+    Write-PmcTuiLog "Failed to load PraxisVT: $_" "ERROR"
+    Write-PmcTuiLog $_.ScriptStackTrace "ERROR"
+    throw
+}
+
 Write-PmcTuiLog "Loading helpers..." "INFO"
 
 try {

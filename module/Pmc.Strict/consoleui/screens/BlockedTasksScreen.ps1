@@ -414,6 +414,7 @@ class BlockedTasksScreen : PmcScreen {
             return $false
         }
 
+        $keyChar = [char]::ToLower($keyInfo.KeyChar)
         switch ($keyInfo.Key) {
             'UpArrow' {
                 if ($this.SelectedIndex -gt 0) {
@@ -427,15 +428,18 @@ class BlockedTasksScreen : PmcScreen {
                     return $true
                 }
             }
-            'E' {
+        }
+
+        switch ($keyChar) {
+            'e' {
                 $this._StartEditField()
                 return $true
             }
-            'D' {
+            'd' {
                 $this._ToggleStatus()
                 return $true
             }
-            'R' {
+            'r' {
                 $this.LoadData()
                 return $true
             }

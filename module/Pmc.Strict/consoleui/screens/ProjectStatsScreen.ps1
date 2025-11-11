@@ -322,6 +322,7 @@ class ProjectStatsScreen : PmcScreen {
     }
 
     [bool] HandleKeyPress([ConsoleKeyInfo]$keyInfo) {
+        $keyChar = [char]::ToLower($keyInfo.KeyChar)
         switch ($keyInfo.Key) {
             'UpArrow' {
                 if ($this.SelectedIndex -gt 0) {
@@ -339,7 +340,10 @@ class ProjectStatsScreen : PmcScreen {
                 $this._ViewDetails()
                 return $true
             }
-            'R' {
+        }
+
+        switch ($keyChar) {
+            'r' {
                 $this.LoadData()
                 return $true
             }

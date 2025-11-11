@@ -83,6 +83,7 @@ class PmcScreen {
             $this.MenuBar.AddMenu("Tasks", 'T', @())
             $this.MenuBar.AddMenu("Projects", 'P', @())
             $this.MenuBar.AddMenu("Time", 'M', @())
+            $this.MenuBar.AddMenu("Tools", 'L', @())
             $this.MenuBar.AddMenu("Options", 'O', @())
             $this.MenuBar.AddMenu("Help", '?', @())
         }

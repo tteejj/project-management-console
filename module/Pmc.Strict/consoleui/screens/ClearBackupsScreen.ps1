@@ -206,20 +206,21 @@ class ClearBackupsScreen : PmcScreen {
     }
 
     [bool] HandleKeyPress([ConsoleKeyInfo]$keyInfo) {
-        switch ($keyInfo.Key) {
-            'A' {
+        $keyChar = [char]::ToLower($keyInfo.KeyChar)
+        switch ($keyChar) {
+            'a' {
                 $this._ClearAutoBackups()
                 return $true
             }
-            'M' {
+            'm' {
                 $this._ClearManualBackups()
                 return $true
             }
-            'B' {
+            'b' {
                 $this._ClearBothBackups()
                 return $true
             }
-            'N' {
+            'n' {
                 $this._Cancel()
                 return $true
             }

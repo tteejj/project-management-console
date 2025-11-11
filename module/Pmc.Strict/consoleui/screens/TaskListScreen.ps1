@@ -80,6 +80,10 @@ class TaskListScreen : StandardListScreen {
     [bool]$_sortAscending = $true
     [hashtable]$_stats = @{}
 
+    # Caching for performance
+    hidden [array]$_cachedFilteredTasks = $null
+    hidden [string]$_cacheKey = ""  # viewMode:sortColumn:sortAsc:showCompleted
+
     # Constructor with optional view mode
     TaskListScreen() : base("TaskList", "Task List") {
         $this._viewMode = 'active'
@@ -129,8 +133,9 @@ class TaskListScreen : StandardListScreen {
             'Tasks' = 0
             'Projects' = 1
             'Time' = 2
-            'Options' = 3
-            'Help' = 4
+            'Tools' = 3
+            'Options' = 4
+            'Help' = 5
         }
 
         foreach ($menuName in $menuMapping.Keys) {
@@ -160,29 +165,28 @@ class TaskListScreen : StandardListScreen {
 
     # Implement abstract method: Load data from TaskStore
     [void] LoadData() {
+        # Build cache key from current filter/sort settings
+        $currentKey = "$($this._viewMode):$($this._sortColumn):$($this._sortAscending):$($this._showCompleted)"
+
+        # Return cached result if nothing changed
+        if ($this._cacheKey -eq $currentKey -and $null -ne $this._cachedFilteredTasks) {
+            $this.List.SetData($this._cachedFilteredTasks)
+            return
+        }
+
         $allTasks = $this.Store.GetAllTasks()
 
         # Null check to prevent crashes
         if ($null -eq $allTasks -or $allTasks.Count -eq 0) {
             $this.Data = @()
             $this.List.SetData(@())
+            $this._cachedFilteredTasks = @()
+            $this._cacheKey = $currentKey
             return
         }
 
-        # Normalize all tasks to hashtables for consistent access
-        # This ensures all formatters can use $task['key'] syntax instead of type-checking
-        $allTasks = $allTasks | ForEach-Object {
-            if ($_ -is [hashtable]) {
-                $_
-            } else {
-                # Convert PSCustomObject to hashtable
-                $hashtable = @{}
-                $_.PSObject.Properties | ForEach-Object {
-                    $hashtable[$_.Name] = $_.Value
-                }
-                $hashtable
-            }
-        }
+        # NOTE: TaskStore already converts to hashtables in LoadData (TaskStore.ps1:233-242)
+        # No need for redundant type conversion here - removed for performance
 
         # Apply view mode filter
         $filteredTasks = switch ($this._viewMode) {
@@ -224,7 +228,7 @@ class TaskListScreen : StandardListScreen {
                 # Tasks with no dependencies or all dependencies completed
                 $allTasks | Where-Object {
                     -not $_.completed -and
-                    (-not $_.depends_on -or $_.depends_on.Count -eq 0)
+                    (-not $_.PSObject.Properties['depends_on'] -or -not $_.depends_on -or $_.depends_on.Count -eq 0)
                 }
             }
             'noduedate' {
@@ -283,15 +287,28 @@ class TaskListScreen : StandardListScreen {
             default { $filteredTasks }
         }
 
-        # Reorganize to group subtasks with parents
+        # Reorganize to group subtasks with parents - OPTIMIZED O(n) using hashtable index
         $organized = [System.Collections.ArrayList]::new()
         $processedIds = @{}
 
+        # Build hashtable index of children by parent_id - O(n)
+        $childrenByParent = @{}
+        foreach ($task in $sortedTasks) {
+            $parentId = Get-SafeProperty $task 'parent_id'
+            if ($parentId) {
+                if (-not $childrenByParent.ContainsKey($parentId)) {
+                    $childrenByParent[$parentId] = [System.Collections.ArrayList]::new()
+                }
+                [void]$childrenByParent[$parentId].Add($task)
+            }
+        }
+
+        # Process all parent tasks and their children - O(n)
         foreach ($task in $sortedTasks) {
             $taskId = Get-SafeProperty $task 'id'
             $parentId = Get-SafeProperty $task 'parent_id'
 
-            # Skip if already processed (will be added as subtask)
+            # Skip if already processed (was added as subtask)
             if ($processedIds.ContainsKey($taskId)) { continue }
 
             # Add parent task only if it has no parent
@@ -299,14 +316,14 @@ class TaskListScreen : StandardListScreen {
                 [void]$organized.Add($task)
                 $processedIds[$taskId] = $true
 
-                # Add all subtasks immediately after parent
-                foreach ($subtask in $sortedTasks) {
-                    $subId = Get-SafeProperty $subtask 'id'
-                    $subParentId = Get-SafeProperty $subtask 'parent_id'
-
-                    if ($subParentId -eq $taskId -and -not $processedIds.ContainsKey($subId)) {
-                        [void]$organized.Add($subtask)
-                        $processedIds[$subId] = $true
+                # Add all children immediately after parent using hashtable lookup - O(1)
+                if ($childrenByParent.ContainsKey($taskId)) {
+                    foreach ($subtask in $childrenByParent[$taskId]) {
+                        $subId = Get-SafeProperty $subtask 'id'
+                        if (-not $processedIds.ContainsKey($subId)) {
+                            [void]$organized.Add($subtask)
+                            $processedIds[$subId] = $true
+                        }
                     }
                 }
             }
@@ -317,8 +334,18 @@ class TaskListScreen : StandardListScreen {
         # Update stats
         $this._UpdateStats($allTasks)
 
+        # Cache the filtered/sorted result
+        $this._cachedFilteredTasks = $sortedTasks
+        $this._cacheKey = $currentKey
+
         # Set data to list
         $this.List.SetData($sortedTasks)
+    }
+
+    # Override to invalidate cache when data changes
+    hidden [void] _OnTaskStoreDataChanged() {
+        $this._cachedFilteredTasks = $null
+        $this._cacheKey = ""
     }
 
     # Implement abstract method: Define columns for UniversalList
@@ -727,7 +754,7 @@ class TaskListScreen : StandardListScreen {
             }).Count
             NextActions = @($allTasks | Where-Object {
                 -not $_.completed -and
-                (-not $_.depends_on -or $_.depends_on.Count -eq 0)
+                (-not $_.PSObject.Properties['depends_on'] -or -not $_.depends_on -or $_.depends_on.Count -eq 0)
             }).Count
             NoDueDate = @($allTasks | Where-Object {
                 -not $_.completed -and -not $_.due
@@ -740,17 +767,43 @@ class TaskListScreen : StandardListScreen {
 
     # Get custom actions for footer display
     [array] GetCustomActions() {
+        $self = $this
         return @(
-            @{ Key='c'; Label='Complete'; Callback={ } }
-            @{ Key='x'; Label='Clone'; Callback={ } }
-            @{ Key='s'; Label='Subtask'; Callback={ } }
-            @{ Key='h'; Label='Hide Done'; Callback={ } }
-            @{ Key='1'; Label='All'; Callback={ } }
-            @{ Key='2'; Label='Active'; Callback={ } }
-            @{ Key='3'; Label='Done'; Callback={ } }
-            @{ Key='4'; Label='Overdue'; Callback={ } }
-            @{ Key='5'; Label='Today'; Callback={ } }
-            @{ Key='6'; Label='Week'; Callback={ } }
+            @{ Key='c'; Label='Complete'; Callback={
+                $selected = $self.List.GetSelectedItem()
+                $self.CompleteTask($selected)
+            }.GetNewClosure() }
+            @{ Key='x'; Label='Clone'; Callback={
+                $selected = $self.List.GetSelectedItem()
+                $self.CloneTask($selected)
+            }.GetNewClosure() }
+            @{ Key='s'; Label='Subtask'; Callback={
+                $selected = $self.List.GetSelectedItem()
+                if ($selected) {
+                    $self.AddSubtask($selected)
+                }
+            }.GetNewClosure() }
+            @{ Key='h'; Label='Hide Done'; Callback={
+                $self.ToggleShowCompleted()
+            }.GetNewClosure() }
+            @{ Key='1'; Label='All'; Callback={
+                $self.SetViewMode('all')
+            }.GetNewClosure() }
+            @{ Key='2'; Label='Active'; Callback={
+                $self.SetViewMode('active')
+            }.GetNewClosure() }
+            @{ Key='3'; Label='Done'; Callback={
+                $self.SetViewMode('completed')
+            }.GetNewClosure() }
+            @{ Key='4'; Label='Overdue'; Callback={
+                $self.SetViewMode('overdue')
+            }.GetNewClosure() }
+            @{ Key='5'; Label='Today'; Callback={
+                $self.SetViewMode('today')
+            }.GetNewClosure() }
+            @{ Key='6'; Label='Week'; Callback={
+                $self.SetViewMode('week')
+            }.GetNewClosure() }
         )
     }
 

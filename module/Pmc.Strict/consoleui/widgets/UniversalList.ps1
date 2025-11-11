@@ -109,6 +109,10 @@ class UniversalList : PmcWidget {
     hidden [bool]$_showInlineEditor = $false                             # Show inline editor overlay
     hidden [string]$_lastRenderedContent = ""                            # Last rendered content (for diff)
 
+    # === Row-Level Caching for Performance ===
+    hidden [hashtable]$_rowCache = @{}                                   # Cache of rendered rows by index
+    hidden [int]$_cacheGeneration = 0                                    # Increment to invalidate all cache
+
     # === Constructor ===
     UniversalList() : base("UniversalList") {
         $this.Width = 120
@@ -183,6 +187,10 @@ class UniversalList : PmcWidget {
         $this._selectedIndex = 0
         $this._scrollOffset = 0
         $this._selectedIndices.Clear()
+
+        # Invalidate row cache when data changes
+        $this._cacheGeneration++
+        $this._rowCache.Clear()
 
         # Apply any active filters/search
         $this._ApplyFilters()
@@ -657,22 +665,35 @@ class UniversalList : PmcWidget {
             $isSelected = ($i -eq $this._selectedIndex)
             $isMultiSelected = $this._selectedIndices.Contains($i)
 
+            # Check row cache - cache key includes generation and selection state
+            $cacheKey = "$($this._cacheGeneration)_${i}_${isSelected}_${isMultiSelected}"
+            $cachedRow = $null
+            if ($this._rowCache.ContainsKey($cacheKey)) {
+                $cachedRow = $this._rowCache[$cacheKey]
+                $sb.Append($cachedRow)
+                $currentRow++
+                continue
+            }
+
+            # Build row content (not in cache)
+            $rowBuilder = [Text.StringBuilder]::new(256)
+
             # Row border
-            $sb.Append($this.BuildMoveTo($this.X, $rowY))
-            $sb.Append($borderColor)
-            $sb.Append($this.GetBoxChar('single_vertical'))
+            $rowBuilder.Append($this.BuildMoveTo($this.X, $rowY))
+            $rowBuilder.Append($borderColor)
+            $rowBuilder.Append($this.GetBoxChar('single_vertical'))
 
             # Row content
-            $sb.Append($this.BuildMoveTo($this.X + 2, $rowY))
+            $rowBuilder.Append($this.BuildMoveTo($this.X + 2, $rowY))
 
             # Highlight selected row
             if ($isSelected) {
-                $sb.Append($highlightBg)
-                $sb.Append("`e[30m")
+                $rowBuilder.Append($highlightBg)
+                $rowBuilder.Append("`e[30m")
             } elseif ($isMultiSelected) {
-                $sb.Append($successColor)
+                $rowBuilder.Append($successColor)
             } else {
-                $sb.Append($textColor)
+                $rowBuilder.Append($textColor)
             }
 
             # Render columns
@@ -696,29 +717,34 @@ class UniversalList : PmcWidget {
 
                 # Truncate and pad
                 $displayValue = $this.PadText($this.TruncateText($valueStr, $width), $width, $col.Align)
-                $sb.Append($displayValue)
-                $sb.Append("  ")
+                $rowBuilder.Append($displayValue)
+                $rowBuilder.Append("  ")
 
                 $currentX += $width + 2
             }
 
-            $sb.Append($reset)
+            $rowBuilder.Append($reset)
 
             # Padding to fill row
             $contentWidth = $currentX - 2
             $padding = $this.Width - $contentWidth - 2
             if ($padding -gt 0) {
                 if ($isSelected) {
-                    $sb.Append($highlightBg)
+                    $rowBuilder.Append($highlightBg)
                 }
-                $sb.Append(" " * $padding)
-                $sb.Append($reset)
+                $rowBuilder.Append(" " * $padding)
+                $rowBuilder.Append($reset)
             }
 
             # Right border
-            $sb.Append($this.BuildMoveTo($this.X + $this.Width - 1, $rowY))
-            $sb.Append($borderColor)
-            $sb.Append($this.GetBoxChar('single_vertical'))
+            $rowBuilder.Append($this.BuildMoveTo($this.X + $this.Width - 1, $rowY))
+            $rowBuilder.Append($borderColor)
+            $rowBuilder.Append($this.GetBoxChar('single_vertical'))
+
+            # Cache the built row
+            $builtRow = $rowBuilder.ToString()
+            $this._rowCache[$cacheKey] = $builtRow
+            $sb.Append($builtRow)
 
             $currentRow++
         }
