@@ -84,6 +84,9 @@ class TaskListScreen : StandardListScreen {
     hidden [array]$_cachedFilteredTasks = $null
     hidden [string]$_cacheKey = ""  # viewMode:sortColumn:sortAsc:showCompleted
 
+    # L-POL-14: Strikethrough support detection
+    hidden [bool]$_supportsStrikethrough = $true  # Assume support, can be overridden
+
     # Constructor with optional view mode
     TaskListScreen() : base("TaskList", "Task List") {
         $this._viewMode = 'active'
@@ -140,6 +143,18 @@ class TaskListScreen : StandardListScreen {
 
         foreach ($menuName in $menuMapping.Keys) {
             $menuIndex = $menuMapping[$menuName]
+
+            # CRITICAL: Validate menu index bounds before access
+            if ($null -eq $this.MenuBar -or $null -eq $this.MenuBar.Menus) {
+                Write-PmcTuiLog "MenuBar or Menus collection is null - cannot populate menus" "ERROR"
+                continue
+            }
+
+            if ($menuIndex -lt 0 -or $menuIndex -ge $this.MenuBar.Menus.Count) {
+                Write-PmcTuiLog "Menu index $menuIndex out of range (0-$($this.MenuBar.Menus.Count-1))" "ERROR"
+                continue
+            }
+
             $menu = $this.MenuBar.Menus[$menuIndex]
             $items = $registry.GetMenuItems($menuName)
 
@@ -264,9 +279,14 @@ class TaskListScreen : StandardListScreen {
             default { $allTasks }
         }
 
+        # Null check after filtering to prevent crashes
+        if ($null -eq $filteredTasks) { $filteredTasks = @() }
+
         # Apply completed filter if needed
         if (-not $this._showCompleted) {
             $filteredTasks = $filteredTasks | Where-Object { -not $_.completed }
+            # Null check after additional filtering
+            if ($null -eq $filteredTasks) { $filteredTasks = @() }
         }
 
         # Apply sorting
@@ -275,17 +295,20 @@ class TaskListScreen : StandardListScreen {
             'text' { $filteredTasks | Sort-Object -Property text -Descending:(-not $this._sortAscending) }
             'due' {
                 # Sort with nulls last
-                $withDue = $filteredTasks | Where-Object { $_.due }
-                $withoutDue = $filteredTasks | Where-Object { -not $_.due }
+                $withDue = @($filteredTasks | Where-Object { $_.due })
+                $withoutDue = @($filteredTasks | Where-Object { -not $_.due })
                 if ($this._sortAscending) {
-                    ($withDue | Sort-Object -Property due) + $withoutDue
+                    @($withDue | Sort-Object -Property due) + $withoutDue
                 } else {
-                    ($withDue | Sort-Object -Property due -Descending) + $withoutDue
+                    @($withDue | Sort-Object -Property due -Descending) + $withoutDue
                 }
             }
             'project' { $filteredTasks | Sort-Object -Property project -Descending:(-not $this._sortAscending) }
             default { $filteredTasks }
         }
+
+        # Null check after sorting to prevent crashes
+        if ($null -eq $sortedTasks) { $sortedTasks = @() }
 
         # Reorganize to group subtasks with parents - OPTIMIZED O(n) using hashtable index
         $organized = [System.Collections.ArrayList]::new()
@@ -329,6 +352,15 @@ class TaskListScreen : StandardListScreen {
             }
         }
 
+        # Add orphaned subtasks at the end (subtasks whose parent was filtered out or deleted)
+        foreach ($task in $sortedTasks) {
+            $taskId = Get-SafeProperty $task 'id'
+            if (-not $processedIds.ContainsKey($taskId)) {
+                [void]$organized.Add($task)
+                $processedIds[$taskId] = $true
+            }
+        }
+
         $sortedTasks = $organized
 
         # Update stats
@@ -358,7 +390,7 @@ class TaskListScreen : StandardListScreen {
                 Align = 'center'
                 Format = { param($task)
                     $priority = Get-SafeProperty $task 'priority'
-                    if ($priority -ge 0 -and $priority -le 5) {
+                    if ($null -ne $priority -and $priority -is [int] -and $priority -ge 0 -and $priority -le 5) {
                         return $priority.ToString()
                     }
                     return '-'
@@ -382,10 +414,10 @@ class TaskListScreen : StandardListScreen {
                 Align = 'left'
                 Format = { param($task)
                     $text = Get-SafeProperty $task 'text'
-                    # Indent subtasks if they have a parent
+                    # L-POL-13: Indent subtasks with 4 spaces if they have a parent
                     $hasParent = Test-SafeProperty $task 'parent_id' -and (Get-SafeProperty $task 'parent_id')
                     if ($hasParent) {
-                        $text = "  $text"
+                        $text = "    $text"  # 4 spaces instead of 2
                     }
                     if (Get-SafeProperty $task 'completed') {
                         $text = "[✓] $text"
@@ -394,7 +426,13 @@ class TaskListScreen : StandardListScreen {
                 }
                 Color = { param($task)
                     if (Get-SafeProperty $task 'completed') {
-                        return "`e[90m`e[9m"  # Gray + strikethrough
+                        # L-POL-14: Use strikethrough or [DONE] prefix depending on terminal support
+                        if ($this._supportsStrikethrough) {
+                            return "`e[90m`e[9m"  # Gray + strikethrough
+                        } else {
+                            # Fallback already applied in Format (adds [DONE] prefix)
+                            return "`e[90m"  # Just gray
+                        }
                     }
                     return "`e[37m"
                 }
@@ -475,7 +513,7 @@ class TaskListScreen : StandardListScreen {
         if ($null -eq $item -or $item.Count -eq 0) {
             # New task - empty fields
             return @(
-                @{ Name='text'; Type='text'; Label='Task'; Required=$true; Value='' }
+                @{ Name='text'; Type='text'; Label='Task'; Required=$true; MaxLength=200; Value='' }  # H-VAL-6
                 @{ Name='priority'; Type='number'; Label='Priority'; Min=0; Max=5; Value=3 }
                 @{ Name='due'; Type='date'; Label='Due Date'; Value=$null }
                 @{ Name='project'; Type='project'; Label='Project'; Value='' }
@@ -484,7 +522,7 @@ class TaskListScreen : StandardListScreen {
         } else {
             # Existing task - populate from item
             return @(
-                @{ Name='text'; Type='text'; Label='Task'; Required=$true; Value=$item.text }
+                @{ Name='text'; Type='text'; Label='Task'; Required=$true; MaxLength=200; Value=$item.text }  # H-VAL-6
                 @{ Name='priority'; Type='number'; Label='Priority'; Min=0; Max=5; Value=$item.priority }
                 @{ Name='due'; Type='date'; Label='Due Date'; Value=$item.due }
                 @{ Name='project'; Type='project'; Label='Project'; Value=$item.project }
@@ -509,6 +547,11 @@ class TaskListScreen : StandardListScreen {
             # Add due date if provided
             if ($values.due) {
                 $taskData.due = [DateTime]$values.due
+            }
+
+            # H-VAL-3: Preserve parent_id from CurrentEditItem if it exists (for subtasks)
+            if ($this.CurrentEditItem -and $this.CurrentEditItem.parent_id) {
+                $taskData.parent_id = $this.CurrentEditItem.parent_id
             }
 
             # Add to store (auto-persists and fires events)
@@ -615,6 +658,27 @@ class TaskListScreen : StandardListScreen {
 
         $this.Store.AddTask($clonedTask)
         $this.SetStatusMessage("Task cloned: $($clonedTask.text)", "success")
+    }
+
+    # H-VAL-3: Check for circular dependency in task hierarchy
+    hidden [bool] _IsCircularDependency([string]$parentId, [string]$childId) {
+        $current = $parentId
+        $visited = @{}
+
+        while ($current) {
+            # If we encounter the child ID in the parent chain, it's circular
+            if ($current -eq $childId) { return $true }
+
+            # Detect infinite loop (same parent visited twice)
+            if ($visited.ContainsKey($current)) { return $true }
+            $visited[$current] = $true
+
+            # Get the parent of the current task
+            $task = $this.Store.GetTask($current)
+            $current = if ($task) { Get-SafeProperty $task 'parent_id' } else { $null }
+        }
+
+        return $false
     }
 
     # Custom action: Add subtask

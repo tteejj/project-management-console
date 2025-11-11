@@ -61,34 +61,35 @@ class KanbanScreen : PmcScreen {
             . "$PSScriptRoot/TaskListScreen.ps1"
             $global:PmcApp.PushScreen((New-Object TaskListScreen))
         }))
-        $tasksMenu.Items.Add([PmcMenuItem]::new("Today", 'Y', {
-            . "$PSScriptRoot/TodayViewScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object TodayViewScreen))
-        }))
-        $tasksMenu.Items.Add([PmcMenuItem]::new("Tomorrow", 'T', {
-            . "$PSScriptRoot/TomorrowViewScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object TomorrowViewScreen))
-        }))
-        $tasksMenu.Items.Add([PmcMenuItem]::new("Week View", 'W', {
-            . "$PSScriptRoot/WeekViewScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object WeekViewScreen))
-        }))
-        $tasksMenu.Items.Add([PmcMenuItem]::new("Upcoming", 'U', {
-            . "$PSScriptRoot/UpcomingViewScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object UpcomingViewScreen))
-        }))
-        $tasksMenu.Items.Add([PmcMenuItem]::new("Overdue", 'V', {
-            . "$PSScriptRoot/OverdueViewScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object OverdueViewScreen))
-        }))
-        $tasksMenu.Items.Add([PmcMenuItem]::new("Next Actions", 'N', {
-            . "$PSScriptRoot/NextActionsViewScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object NextActionsViewScreen))
-        }))
-        $tasksMenu.Items.Add([PmcMenuItem]::new("No Due Date", 'D', {
-            . "$PSScriptRoot/NoDueDateViewScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object NoDueDateViewScreen))
-        }))
+        # Archived view screens - these were consolidated/removed
+        # $tasksMenu.Items.Add([PmcMenuItem]::new("Today", 'Y', {
+        #     . "$PSScriptRoot/TodayViewScreen.ps1"
+        #     $global:PmcApp.PushScreen((New-Object TodayViewScreen))
+        # }))
+        # $tasksMenu.Items.Add([PmcMenuItem]::new("Tomorrow", 'T', {
+        #     . "$PSScriptRoot/TomorrowViewScreen.ps1"
+        #     $global:PmcApp.PushScreen((New-Object TomorrowViewScreen))
+        # }))
+        # $tasksMenu.Items.Add([PmcMenuItem]::new("Week View", 'W', {
+        #     . "$PSScriptRoot/WeekViewScreen.ps1"
+        #     $global:PmcApp.PushScreen((New-Object WeekViewScreen))
+        # }))
+        # $tasksMenu.Items.Add([PmcMenuItem]::new("Upcoming", 'U', {
+        #     . "$PSScriptRoot/UpcomingViewScreen.ps1"
+        #     $global:PmcApp.PushScreen((New-Object UpcomingViewScreen))
+        # }))
+        # $tasksMenu.Items.Add([PmcMenuItem]::new("Overdue", 'V', {
+        #     . "$PSScriptRoot/OverdueViewScreen.ps1"
+        #     $global:PmcApp.PushScreen((New-Object OverdueViewScreen))
+        # }))
+        # $tasksMenu.Items.Add([PmcMenuItem]::new("Next Actions", 'N', {
+        #     . "$PSScriptRoot/NextActionsViewScreen.ps1"
+        #     $global:PmcApp.PushScreen((New-Object NextActionsViewScreen))
+        # }))
+        # $tasksMenu.Items.Add([PmcMenuItem]::new("No Due Date", 'D', {
+        #     . "$PSScriptRoot/NoDueDateViewScreen.ps1"
+        #     $global:PmcApp.PushScreen((New-Object NoDueDateViewScreen))
+        # }))
         $tasksMenu.Items.Add([PmcMenuItem]::new("Blocked Tasks", 'B', {
             . "$PSScriptRoot/BlockedTasksScreen.ps1"
             $global:PmcApp.PushScreen((New-Object BlockedTasksScreen))
@@ -98,14 +99,14 @@ class KanbanScreen : PmcScreen {
             . "$PSScriptRoot/KanbanScreen.ps1"
             $global:PmcApp.PushScreen((New-Object KanbanScreen))
         }))
-        $tasksMenu.Items.Add([PmcMenuItem]::new("Month View", 'M', {
-            . "$PSScriptRoot/MonthViewScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object MonthViewScreen))
-        }))
-        $tasksMenu.Items.Add([PmcMenuItem]::new("Agenda View", 'A', {
-            . "$PSScriptRoot/AgendaViewScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object AgendaViewScreen))
-        }))
+        # $tasksMenu.Items.Add([PmcMenuItem]::new("Month View", 'M', {
+        #     . "$PSScriptRoot/MonthViewScreen.ps1"
+        #     $global:PmcApp.PushScreen((New-Object MonthViewScreen))
+        # }))
+        # $tasksMenu.Items.Add([PmcMenuItem]::new("Agenda View", 'A', {
+        #     . "$PSScriptRoot/AgendaViewScreen.ps1"
+        #     $global:PmcApp.PushScreen((New-Object AgendaViewScreen))
+        # }))
         $tasksMenu.Items.Add([PmcMenuItem]::new("Burndown Chart", 'C', {
             . "$PSScriptRoot/BurndownChartScreen.ps1"
             $global:PmcApp.PushScreen((New-Object BurndownChartScreen))

@@ -51,8 +51,16 @@ class PmcApplication {
     # === Constructor ===
     PmcApplication() {
         # Initialize render engine (OptimizedRenderEngine with cell buffering)
-        $this.RenderEngine = New-Object OptimizedRenderEngine
-        $this.RenderEngine.Initialize()
+        try {
+            $this.RenderEngine = New-Object OptimizedRenderEngine
+            if ($null -eq $this.RenderEngine) {
+                throw "Failed to create OptimizedRenderEngine instance"
+            }
+            $this.RenderEngine.Initialize()
+        } catch {
+            Write-Host "FATAL: Failed to initialize RenderEngine: $($_.Exception.Message)" -ForegroundColor Red
+            throw
+        }
 
         # Initialize layout manager
         $this.LayoutManager = New-Object PmcLayoutManager
@@ -393,6 +401,19 @@ class PmcApplication {
             }
 
         } finally {
+            # CRITICAL: Flush pending changes before exit
+            try {
+                . "$PSScriptRoot/services/TaskStore.ps1"
+                $store = [TaskStore]::GetInstance()
+                if ($store.HasPendingChanges) {
+                    Write-PmcTuiLog "Flushing pending changes on exit..." "INFO"
+                    $store.Flush()
+                }
+            } catch {
+                Write-PmcTuiLog "Failed to flush data on exit: $_" "ERROR"
+                # Continue with cleanup even if flush fails
+            }
+
             # Cleanup
             [Console]::CursorVisible = $true
             [Console]::Clear()
@@ -407,10 +428,16 @@ class PmcApplication {
         $this.Running = $false
 
         # Flush any pending TaskStore changes before exit
-        . "$PSScriptRoot/services/TaskStore.ps1"
-        $store = [TaskStore]::GetInstance()
-        if ($store.HasPendingChanges) {
-            $store.Flush()
+        try {
+            $store = [TaskStore]::GetInstance()
+            if ($null -ne $store -and $store.HasPendingChanges) {
+                $store.Flush()
+            }
+        } catch {
+            # TaskStore might not be available during shutdown - safe to ignore
+            if (Get-Command Write-PmcTuiLog -ErrorAction SilentlyContinue) {
+                Write-PmcTuiLog "Stop: Could not flush TaskStore: $($_.Exception.Message)" "WARNING"
+            }
         }
     }
 

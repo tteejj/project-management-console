@@ -156,16 +156,21 @@ class ExcelComReader {
 
         $cellData = @{}
         $range = $null
+        $cells = $null  # CRITICAL FIX #2: Track Cells collection COM object
         $cellsToRelease = [System.Collections.ArrayList]::new()
 
         try {
             $range = $this._worksheet.Range("$startCell`:$endCell")
 
-            if ($null -ne $range -and $null -ne $range.Cells) {
-                foreach ($cell in $range.Cells) {
-                    $address = $cell.Address($false, $false)  # Get address like "W3"
-                    $cellData[$address] = $cell.Value2
-                    [void]$cellsToRelease.Add($cell)
+            if ($null -ne $range) {
+                # CRITICAL FIX #2: Get Cells collection explicitly for proper COM cleanup
+                $cells = $range.Cells
+                if ($null -ne $cells) {
+                    foreach ($cell in $cells) {
+                        $address = $cell.Address($false, $false)  # Get address like "W3"
+                        $cellData[$address] = $cell.Value2
+                        [void]$cellsToRelease.Add($cell)
+                    }
                 }
             }
 
@@ -179,13 +184,25 @@ class ExcelComReader {
             foreach ($cell in $cellsToRelease) {
                 try {
                     [Marshal]::ReleaseComObject($cell) | Out-Null
-                } catch { }
+                } catch {
+                    Write-PmcTuiLog "Failed to release COM object (cell): $($_.Exception.Message)" "WARNING"
+                }
+            }
+            # CRITICAL FIX #2: Release Cells collection COM object
+            if ($null -ne $cells) {
+                try {
+                    [Marshal]::ReleaseComObject($cells) | Out-Null
+                } catch {
+                    Write-PmcTuiLog "Failed to release COM object (cells collection): $($_.Exception.Message)" "WARNING"
+                }
             }
             # Release range COM object
             if ($null -ne $range) {
                 try {
                     [Marshal]::ReleaseComObject($range) | Out-Null
-                } catch { }
+                } catch {
+                    Write-PmcTuiLog "Failed to release COM object (range): $($_.Exception.Message)" "WARNING"
+                }
             }
         }
     }
@@ -225,13 +242,17 @@ class ExcelComReader {
                 $names += $sheet.Name
                 try {
                     [Marshal]::ReleaseComObject($sheet) | Out-Null
-                } catch { }
+                } catch {
+                    Write-PmcTuiLog "Failed to release COM object (sheet): $($_.Exception.Message)" "WARNING"
+                }
             }
         } finally {
             if ($null -ne $sheets) {
                 try {
                     [Marshal]::ReleaseComObject($sheets) | Out-Null
-                } catch { }
+                } catch {
+                    Write-PmcTuiLog "Failed to release COM object (sheets collection): $($_.Exception.Message)" "WARNING"
+                }
             }
         }
         return $names

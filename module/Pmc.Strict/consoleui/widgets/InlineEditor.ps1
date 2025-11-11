@@ -98,6 +98,7 @@ class InlineEditor : PmcWidget {
     hidden [hashtable]$_datePickerWidgets = @{}                      # DatePicker instances for date fields (kept separate from TextInput)
     hidden [int]$_currentFieldIndex = 0                              # Currently focused field
     hidden [string[]]$_validationErrors = @()                        # Current validation errors
+    hidden [hashtable]$_fieldErrors = @{}                            # H-UI-3: Per-field validation errors for real-time display
     hidden [bool]$_showFieldWidgets = $false                         # Whether to show expanded field widget
     hidden [string]$_expandedFieldName = ""                          # Name of currently expanded field
     hidden [bool]$_datePickerMode = $false                           # True when DatePicker is active (not TextInput)
@@ -128,6 +129,8 @@ class InlineEditor : PmcWidget {
     #>
     [void] SetFields([hashtable[]]$fields) {
         $this._fields.Clear()
+        # Note: Old widget references cleared from dictionaries
+        # PowerShell GC will clean up. Widgets don't register external event handlers.
         $this._fieldWidgets.Clear()
         $this._datePickerWidgets.Clear()
         $this._currentFieldIndex = 0
@@ -502,7 +505,14 @@ class InlineEditor : PmcWidget {
                 $widget = $this._fieldWidgets[$currentField.Name]
                 # Only handle input if it's a TextInput (not DatePicker when expanded)
                 if ($widget.GetType().Name -eq 'TextInput') {
-                    return $widget.HandleInput($keyInfo)
+                    $handled = $widget.HandleInput($keyInfo)
+
+                    # H-UI-3: Real-time validation - validate after each keystroke
+                    if ($handled -and $keyInfo.Key -ne 'Enter' -and $keyInfo.Key -ne 'Escape') {
+                        $this._ValidateFieldRealtime($currentField)
+                    }
+
+                    return $handled
                 }
                 return $false
             }
@@ -618,7 +628,13 @@ class InlineEditor : PmcWidget {
 
             # Label row
             $sb.Append($this.BuildMoveTo($this.X, $rowY))
-            $sb.Append($borderColor)
+            # H-UI-3: Show red border if field has validation error
+            $hasError = $this._fieldErrors.ContainsKey($field.Name)
+            if ($hasError) {
+                $sb.Append($errorColor)
+            } else {
+                $sb.Append($borderColor)
+            }
             $sb.Append($this.GetBoxChar('single_vertical'))
 
             # Label
@@ -629,7 +645,10 @@ class InlineEditor : PmcWidget {
             }
 
             $sb.Append($this.BuildMoveTo($this.X + 2, $rowY))
-            if ($isFocused) {
+            if ($hasError) {
+                # H-UI-3: Red text for invalid field label
+                $sb.Append($errorColor)
+            } elseif ($isFocused) {
                 $sb.Append($primaryColor)
             } else {
                 $sb.Append($mutedColor)
@@ -697,16 +716,40 @@ class InlineEditor : PmcWidget {
 
             # Right border
             $sb.Append($this.BuildMoveTo($this.X + $this.Width - 1, $rowY))
-            $sb.Append($borderColor)
+            if ($hasError) {
+                $sb.Append($errorColor)
+            } else {
+                $sb.Append($borderColor)
+            }
             $sb.Append($this.GetBoxChar('single_vertical'))
 
             $currentRow++
 
-            # Spacing row
+            # Spacing row (H-UI-3: show error message below field if invalid)
             $sb.Append($this.BuildMoveTo($this.X, $this.Y + $currentRow))
-            $sb.Append($borderColor)
+            if ($hasError) {
+                $sb.Append($errorColor)
+            } else {
+                $sb.Append($borderColor)
+            }
             $sb.Append($this.GetBoxChar('single_vertical'))
-            $sb.Append(" " * ($this.Width - 2))
+
+            # H-UI-3: Display per-field error message
+            if ($hasError) {
+                $errorMsg = $this._fieldErrors[$field.Name]
+                $sb.Append($this.BuildMoveTo($this.X + 2, $this.Y + $currentRow))
+                $sb.Append($errorColor)
+                $sb.Append($this.TruncateText($errorMsg, $this.Width - 4))
+            } else {
+                $sb.Append(" " * ($this.Width - 2))
+            }
+
+            $sb.Append($this.BuildMoveTo($this.X + $this.Width - 1, $this.Y + $currentRow))
+            if ($hasError) {
+                $sb.Append($errorColor)
+            } else {
+                $sb.Append($borderColor)
+            }
             $sb.Append($this.GetBoxChar('single_vertical'))
 
             $currentRow++
@@ -1006,7 +1049,19 @@ class InlineEditor : PmcWidget {
 
                 # Split by comma and trim
                 $tags = $tagsText -split ',' | ForEach-Object { $_.Trim() } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
-                return @($tags)
+
+                # H-VAL-5: Validate tags match pattern ^[a-zA-Z0-9_-]+$
+                $validTags = @()
+                foreach ($tag in $tags) {
+                    if ($tag -match '^[a-zA-Z0-9_-]+$') {
+                        $validTags += $tag
+                    }
+                    else {
+                        Write-PmcTuiLog "InlineEditor: Invalid tag '$tag' - must contain only letters, numbers, underscore, or hyphen" "WARNING"
+                    }
+                }
+
+                return @($validTags)
             }
 
             'folder' {
@@ -1322,6 +1377,66 @@ class InlineEditor : PmcWidget {
         }
 
         return $this._validationErrors.Count -eq 0
+    }
+
+    <#
+    .SYNOPSIS
+    H-UI-3: Validate a single field in real-time (as user types)
+    #>
+    hidden [void] _ValidateFieldRealtime([hashtable]$field) {
+        $fieldName = $field.Name
+        $fieldType = $field.Type
+        $isRequired = if ($field.ContainsKey('Required')) { $field.Required } else { $false }
+
+        # Get current value
+        $value = $this._GetFieldValue($fieldName, $fieldType)
+
+        # Check required fields
+        if ($isRequired) {
+            $isEmpty = $false
+
+            switch ($fieldType) {
+                'text' {
+                    $isEmpty = [string]::IsNullOrWhiteSpace($value)
+                }
+                'date' {
+                    $isEmpty = ($null -eq $value)
+                }
+                'project' {
+                    $isEmpty = [string]::IsNullOrWhiteSpace($value)
+                }
+                'tags' {
+                    $isEmpty = ($null -eq $value -or $value.Count -eq 0)
+                }
+                'number' {
+                    $isEmpty = ($null -eq $value)
+                }
+            }
+
+            if ($isEmpty) {
+                $this._fieldErrors[$fieldName] = "$($field.Label) is required"
+                return
+            }
+        }
+
+        # Type-specific validation
+        if ($fieldType -eq 'number' -and $null -ne $value) {
+            $min = if ($field.ContainsKey('Min')) { $field.Min } else { [int]::MinValue }
+            $max = if ($field.ContainsKey('Max')) { $field.Max } else { [int]::MaxValue }
+
+            if ($value -lt $min) {
+                $this._fieldErrors[$fieldName] = "$($field.Label) must be >= $min"
+                return
+            }
+
+            if ($value -gt $max) {
+                $this._fieldErrors[$fieldName] = "$($field.Label) must be <= $max"
+                return
+            }
+        }
+
+        # Field is valid - remove error
+        $this._fieldErrors.Remove($fieldName)
     }
 
     <#

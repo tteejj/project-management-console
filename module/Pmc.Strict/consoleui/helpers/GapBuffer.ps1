@@ -81,6 +81,11 @@ class GapBuffer {
             $sourceStart = $position
             $destStart = $this._gapEnd - $moveSize
 
+            # Validate destination index
+            if ($destStart -lt 0 -or ($destStart + $moveSize) -gt $this._buffer.Length) {
+                throw "Invalid gap buffer state: destStart=$destStart, moveSize=$moveSize, bufferLength=$($this._buffer.Length)"
+            }
+
             [array]::Copy($this._buffer, $sourceStart, $this._buffer, $destStart, $moveSize)
 
             $this._gapStart = $position

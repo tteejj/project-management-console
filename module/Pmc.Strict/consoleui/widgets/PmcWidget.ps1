@@ -537,6 +537,38 @@ class PmcWidget : Component {
         }
         return $result
     }
+
+    <#
+    .SYNOPSIS
+    L-POL-1: Truncate help text to fit narrow terminals
+
+    .PARAMETER text
+    Help text to truncate
+
+    .PARAMETER maxWidth
+    Maximum width (defaults to terminal width - 10)
+
+    .OUTPUTS
+    Truncated string with ellipsis if needed
+    #>
+    [string] TruncateHelpText([string]$text, [int]$maxWidth = -1) {
+        if ($maxWidth -lt 0) {
+            # L-POL-1: Detect terminal width and reserve space for borders
+            $termWidth = if ([Console]::WindowWidth -gt 0) {
+                [Console]::WindowWidth
+            } else {
+                80  # Fallback to standard width
+            }
+            $maxWidth = $termWidth - 10
+        }
+
+        if ($text.Length -le $maxWidth) {
+            return $text
+        }
+
+        # Truncate with ellipsis
+        return $text.Substring(0, $maxWidth - 3) + "..."
+    }
 }
 
 # Classes and functions are exported automatically in PowerShell 5.1+

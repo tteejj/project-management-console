@@ -106,7 +106,7 @@ class TaskStore {
     [bool]$IsLoaded = $false
     [bool]$IsSaving = $false
     [string]$LastError = ""
-    [bool]$AutoSave = $false  # Set to $true for immediate saves (old behavior), $false for batched saves
+    [bool]$AutoSave = $true  # CRITICAL: Enable by default to prevent data loss
     [bool]$HasPendingChanges = $false  # True when changes need to be saved
 
     # === Cached Statistics ===
@@ -334,14 +334,16 @@ class TaskStore {
     True if save succeeded, False otherwise
     #>
     [bool] SaveData() {
-        if ($this.IsSaving) {
-            $this.LastError = "Save already in progress"
-            Write-PmcTuiLog "SaveData: Already saving, returning false" "ERROR"
-            return $false
-        }
-
+        # CRITICAL FIX #3: Acquire lock BEFORE checking IsSaving to prevent race condition
         [Monitor]::Enter($this._dataLock)
         try {
+            # Check IsSaving INSIDE the lock to ensure thread safety
+            if ($this.IsSaving) {
+                $this.LastError = "Save already in progress"
+                Write-PmcTuiLog "SaveData: Already saving, returning false" "ERROR"
+                return $false
+            }
+
             $this.IsSaving = $true
 
             try {
@@ -502,6 +504,14 @@ class TaskStore {
                 $task.id = [Guid]::NewGuid().ToString()
             }
 
+            # H-VAL-7: Check for duplicate ID before insert
+            $existingTask = $this._data.tasks | Where-Object { $_.id -eq $task.id } | Select-Object -First 1
+            if ($existingTask) {
+                $this.LastError = "Task with ID '$($task.id)' already exists"
+                Write-PmcTuiLog "AddTask: Duplicate ID detected: $($task.id)" "ERROR"
+                return $false
+            }
+
             # Add default status fields if not present
             if (-not $task.ContainsKey('completed')) {
                 $task.completed = $false
@@ -535,7 +545,8 @@ class TaskStore {
             }
 
             # Capture data for callbacks BEFORE releasing lock
-            $capturedTask = $task.Clone()
+            # Clone creates shallow copy - sufficient for callback isolation
+            $capturedTask = if ($task -is [hashtable]) { $task.Clone() } else { $task.PSObject.Copy() }
             $capturedTasks = $this._data.tasks.ToArray()
             $success = $true
 
@@ -624,6 +635,7 @@ class TaskStore {
             }
 
             # Capture data for callbacks BEFORE releasing lock
+            # Clone creates shallow copy - sufficient for callback isolation
             $capturedTask = if ($task -is [hashtable]) { $task.Clone() } else { $task.PSObject.Copy() }
             $capturedTasks = $this._data.tasks.ToArray()
             $success = $true

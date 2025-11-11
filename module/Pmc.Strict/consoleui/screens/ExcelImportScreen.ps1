@@ -29,6 +29,7 @@ class ExcelImportScreen : PmcScreen {
     hidden [int]$_step = 1
     hidden [int]$_selectedOption = 0
     hidden [string]$_errorMessage = ""
+    [TaskStore]$Store = $null  # CRITICAL FIX #1: Add Store property for AddProject() call
 
     # Static: Register menu items
     static [void] RegisterMenuItems([object]$registry) {
@@ -42,6 +43,9 @@ class ExcelImportScreen : PmcScreen {
     ExcelImportScreen() : base("ExcelImport", "Import from Excel") {
         $this._reader = [ExcelComReader]::new()
         $this._mappingService = [ExcelMappingService]::GetInstance()
+
+        # CRITICAL FIX #1: Initialize TaskStore for AddProject() call at line 379
+        $this.Store = [TaskStore]::GetInstance()
 
         # Configure header
         $this.Header.SetBreadcrumb(@("Projects", "Import from Excel"))
@@ -372,6 +376,11 @@ class ExcelImportScreen : PmcScreen {
             }
 
             $projectData[$mapping['project_property']] = $convertedValue
+        }
+
+        # CRITICAL FIX #4: Validate project name exists before import
+        if (-not $projectData.ContainsKey('name') -or [string]::IsNullOrWhiteSpace($projectData['name'])) {
+            throw "Project name is required but not mapped or empty. Please configure a mapping for the 'name' field."
         }
 
         # Use TaskStore to add project (no Get-PmcAllData bypass!)

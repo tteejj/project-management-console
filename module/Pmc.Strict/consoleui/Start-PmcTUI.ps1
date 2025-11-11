@@ -2,7 +2,9 @@
 # Replaces old ConsoleUI.Core.ps1 monolithic approach
 
 # Setup logging
-$global:PmcTuiLogFile = "/tmp/pmc-tui-$(Get-Date -Format 'yyyyMMdd-HHmmss').log"
+# M-CFG-1: Configurable Log Path - uses environment variable or default from Constants
+$logPath = if ($env:PMC_LOG_PATH) { $env:PMC_LOG_PATH } else { "/tmp" }
+$global:PmcTuiLogFile = Join-Path $logPath "pmc-tui-$(Get-Date -Format 'yyyyMMdd-HHmmss').log"
 
 function Write-PmcTuiLog {
     param([string]$Message, [string]$Level = "INFO")

@@ -143,6 +143,14 @@ class ProjectListScreen : StandardListScreen {
         $dueDate = if ($values.DueDate -is [DateTime]) { $values.DueDate.ToString('yyyy-MM-dd') } else { '' }
         $bfDate = if ($values.BFDate -is [DateTime]) { $values.BFDate.ToString('yyyy-MM-dd') } else { '' }
 
+        # H-VAL-9: Check for duplicate project name before creating
+        $existingProjects = $this.Store.GetAllProjects()
+        $duplicate = $existingProjects | Where-Object { $_.name -eq $values.name } | Select-Object -First 1
+        if ($duplicate) {
+            $this.SetStatusMessage("Project with name '$($values.name)' already exists", "error")
+            return
+        }
+
         $projectData = @{
             id = [guid]::NewGuid().ToString()
             name = $values.name
@@ -205,7 +213,8 @@ class ProjectListScreen : StandardListScreen {
         $taskCount = ($this.Store.GetAllTasks() | Where-Object { $_.project -eq $item.name }).Count
 
         if ($taskCount -gt 0) {
-            $this.SetStatusMessage("Cannot delete project with $taskCount tasks", "error")
+            # H-UI-8: Better error message with actionable guidance
+            $this.SetStatusMessage("Cannot delete project with $taskCount tasks. Reassign or delete tasks first.", "error")
             return
         }
 
@@ -244,8 +253,15 @@ class ProjectListScreen : StandardListScreen {
                 return
             }
 
-            if (-not (Test-Path $excelPath)) {
-                $this.SetStatusMessage("File not found: $excelPath", "error")
+            # H-ERR-2: Wrap file operations in try-catch for proper error handling
+            try {
+                if (-not (Test-Path $excelPath)) {
+                    $this.SetStatusMessage("File not found: $excelPath", "error")
+                    return
+                }
+            }
+            catch {
+                $this.SetStatusMessage("Error checking file path: $($_.Exception.Message)", "error")
                 return
             }
 
@@ -287,12 +303,19 @@ class ProjectListScreen : StandardListScreen {
                         $cellValue = $null
                     }
 
-                    # Process value based on type
+                    # H-SEC-2: Sanitize Excel cell values before use
                     if ($null -ne $cellValue -and -not [string]::IsNullOrWhiteSpace($cellValue)) {
+                        # Convert to string and sanitize
+                        $sanitized = $cellValue.ToString().Trim()
+
+                        # Remove potentially dangerous characters for field names/descriptions
+                        # Allow alphanumeric, spaces, common punctuation but block control chars
+                        $sanitized = $sanitized -replace '[\x00-\x1F\x7F]', ''
+
                         switch ($mapping.type) {
                             'date' {
                                 try {
-                                    $date = [DateTime]::Parse($cellValue)
+                                    $date = [DateTime]::Parse($sanitized)
                                     $projectData[$mapping.field] = $date.ToString('yyyy-MM-dd')
                                 } catch {
                                     $projectData[$mapping.field] = ''
@@ -300,18 +323,22 @@ class ProjectListScreen : StandardListScreen {
                             }
                             'number' {
                                 try {
-                                    $projectData[$mapping.field] = [double]$cellValue
+                                    $projectData[$mapping.field] = [double]$sanitized
                                 } catch {
                                     $projectData[$mapping.field] = 0
                                 }
                             }
                             'array' {
-                                # Split on comma or semicolon
-                                $items = $cellValue -split '[,;]' | ForEach-Object { $_.Trim() } | Where-Object { $_ }
+                                # Split on comma or semicolon and sanitize each item
+                                $items = $sanitized -split '[,;]' | ForEach-Object {
+                                    $item = $_.Trim()
+                                    # Remove control characters from array items
+                                    $item -replace '[\x00-\x1F\x7F]', ''
+                                } | Where-Object { $_ }
                                 $projectData[$mapping.field] = $items
                             }
                             default {
-                                $projectData[$mapping.field] = $cellValue.ToString().Trim()
+                                $projectData[$mapping.field] = $sanitized
                             }
                         }
                     }
@@ -368,18 +395,29 @@ class ProjectListScreen : StandardListScreen {
             return
         }
 
-        if (-not (Test-Path $folderPath)) {
-            $this.SetStatusMessage("Folder not found: $folderPath", "error")
+        # H-SEC-1: Sanitize and validate file path before use
+        try {
+            # Resolve to absolute path and validate it's a directory
+            $resolvedPath = Resolve-Path -Path $folderPath -ErrorAction Stop
+            if (-not (Test-Path -Path $resolvedPath -PathType Container)) {
+                $this.SetStatusMessage("Path is not a directory: $folderPath", "error")
+                return
+            }
+            $folderPath = $resolvedPath.Path
+        }
+        catch {
+            $this.SetStatusMessage("Invalid or inaccessible folder path: $folderPath", "error")
             return
         }
 
         try {
+            # Use proper Start-Process parameters with validated path
             if ($global:IsLinux) {
-                Start-Process "xdg-open" -ArgumentList $folderPath
+                Start-Process -FilePath "xdg-open" -ArgumentList @($folderPath)
             } elseif ($global:IsMacOS) {
-                Start-Process "open" -ArgumentList $folderPath
+                Start-Process -FilePath "open" -ArgumentList @($folderPath)
             } else {
-                Start-Process "explorer.exe" -ArgumentList $folderPath
+                Start-Process -FilePath "explorer.exe" -ArgumentList @($folderPath)
             }
             $this.SetStatusMessage("Opened folder: $folderPath", "success")
         } catch {

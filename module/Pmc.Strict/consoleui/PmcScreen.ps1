@@ -59,6 +59,10 @@ class PmcScreen {
     [object]$RenderEngine = $null
     [bool]$NeedsClear = $false  # Request full screen clear before next render
 
+    # H-UI-4: Message queue for persistent status messages
+    [System.Collections.Queue]$_messageQueue = [System.Collections.Queue]::new()
+    [DateTime]$_lastMessageTime = [DateTime]::MinValue
+
     # === Event Handlers ===
     [scriptblock]$OnEnterHandler = $null
     [scriptblock]$OnExitHandler = $null
@@ -294,20 +298,29 @@ class PmcScreen {
             }
         }
 
-        # Render content (override in subclass)
+        # Render content (override in subclass) - wrap in try-catch to prevent rendering crashes
         if ($global:PmcTuiLogFile) {
             Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcScreen.Render: Calling RenderContent()"
         }
-        $contentOutput = $this.RenderContent()
-        if ($contentOutput) {
-            $sb.Append($contentOutput)
-            if ($global:PmcTuiLogFile) {
-                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcScreen.Render: Content output length=$($contentOutput.Length)"
+        try {
+            $contentOutput = $this.RenderContent()
+            if ($contentOutput) {
+                $sb.Append($contentOutput)
+                if ($global:PmcTuiLogFile) {
+                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcScreen.Render: Content output length=$($contentOutput.Length)"
+                }
+            } else {
+                if ($global:PmcTuiLogFile) {
+                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcScreen.Render: RenderContent() returned null/empty"
+                }
             }
-        } else {
+        } catch {
+            $errorMsg = "RenderContent() crashed: $($_.Exception.Message)"
             if ($global:PmcTuiLogFile) {
-                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcScreen.Render: RenderContent() returned null/empty"
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcScreen.Render: $errorMsg"
             }
+            # Append error message to output so user sees something instead of blank screen
+            $sb.Append("`e[1;31mERROR: $errorMsg`e[0m`n")
         }
 
         # Render content widgets
@@ -324,6 +337,11 @@ class PmcScreen {
             if ($output) {
                 $sb.Append($output)
             }
+        }
+
+        # H-UI-4: Check if message expired (3 seconds) and clear status
+        if ($this.StatusBar -and ([DateTime]::Now - $this._lastMessageTime).TotalSeconds -gt 3) {
+            $this.StatusBar.SetLeftText("")
         }
 
         # Render StatusBar
@@ -391,10 +409,19 @@ class PmcScreen {
             }
         }
 
-        # Render content
-        $contentOutput = $this.RenderContent()
-        if ($contentOutput) {
-            $this._ParseAnsiAndWrite($engine, $contentOutput)
+        # Render content - wrap in try-catch to prevent rendering crashes
+        try {
+            $contentOutput = $this.RenderContent()
+            if ($contentOutput) {
+                $this._ParseAnsiAndWrite($engine, $contentOutput)
+            }
+        } catch {
+            $errorMsg = "RenderContent() crashed in RenderToEngine: $($_.Exception.Message)"
+            if ($global:PmcTuiLogFile) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcScreen.RenderToEngine: $errorMsg"
+            }
+            # Write error message to engine so user sees something
+            $engine.WriteAt(0, 5, "`e[1;31mERROR: $errorMsg`e[0m")
         }
 
         # Render content widgets
@@ -523,20 +550,22 @@ class PmcScreen {
             return $true
         }
 
-        # Alt+letter hotkeys activate menu bar (even when not active)
-        if ($this.MenuBar -and ($keyInfo.Modifiers -band [ConsoleModifiers]::Alt)) {
-            if ($this.MenuBar.HandleKeyPress($keyInfo)) {
-                return $true
-            }
-        }
-
-        # Pass to content widgets (in reverse order for z-index)
+        # Pass to content widgets FIRST (in reverse order for z-index)
+        # CRITICAL FIX #5: Check widgets before menu Alt-keys to prevent conflicts with focused editors
         for ($i = $this.ContentWidgets.Count - 1; $i -ge 0; $i--) {
             $widget = $this.ContentWidgets[$i]
             if ($widget.PSObject.Methods['HandleKeyPress']) {
                 if ($widget.HandleKeyPress($keyInfo)) {
                     return $true
                 }
+            }
+        }
+
+        # Alt+letter hotkeys activate menu bar (only if no widget handled it)
+        # CRITICAL FIX #5: Moved AFTER widget handling to prevent conflicts
+        if ($this.MenuBar -and ($keyInfo.Modifiers -band [ConsoleModifiers]::Alt)) {
+            if ($this.MenuBar.HandleKeyPress($keyInfo)) {
+                return $true
             }
         }
 
@@ -602,6 +631,9 @@ class PmcScreen {
     #>
     [void] ShowStatus([string]$message) {
         if ($this.StatusBar) {
+            # H-UI-4: Queue message with timestamp for persistence
+            $this._messageQueue.Enqueue(@{ Message=$message; Type='info'; Time=[DateTime]::Now })
+            $this._lastMessageTime = [DateTime]::Now
             $this.StatusBar.SetLeftText($message)
         }
     }
@@ -625,11 +657,61 @@ class PmcScreen {
 
     .PARAMETER message
     Success message
+
+    .PARAMETER autoSaved
+    L-POL-6: If true, append "Saved." to indicate auto-save occurred
     #>
-    [void] ShowSuccess([string]$message) {
+    [void] ShowSuccess([string]$message, [bool]$autoSaved = $false) {
         if ($this.StatusBar) {
-            $this.StatusBar.ShowSuccess($message)
+            # L-POL-6: Append "Saved." indicator when auto-save is active
+            $displayMessage = if ($autoSaved) {
+                "$message Saved."
+            } else {
+                $message
+            }
+            $this.StatusBar.ShowSuccess($displayMessage)
         }
+    }
+
+    <#
+    .SYNOPSIS
+    L-POL-3: Show loading message with consistent format
+
+    .PARAMETER itemType
+    Type of items being loaded (e.g., "tasks", "projects", "notes")
+    #>
+    [void] ShowLoading([string]$itemType) {
+        $this.ShowStatus("Loading $itemType...")
+    }
+
+    <#
+    .SYNOPSIS
+    L-POL-3: Show loaded message with count
+
+    .PARAMETER itemType
+    Type of items loaded (e.g., "tasks", "projects", "notes")
+
+    .PARAMETER count
+    Number of items loaded
+    #>
+    [void] ShowLoaded([string]$itemType, [int]$count) {
+        $this.ShowStatus("Loaded $count $itemType")
+    }
+
+    <#
+    .SYNOPSIS
+    L-POL-3: Show ready message after loading complete
+
+    .PARAMETER itemType
+    Optional type of items ready (defaults to "Ready")
+    #>
+    [void] ShowReady([string]$itemType = "") {
+        $message = if ([string]::IsNullOrWhiteSpace($itemType)) {
+            "Ready"
+        } else {
+            "$itemType ready"
+        }
+        $this.ShowStatus($message)
     }
 }
 

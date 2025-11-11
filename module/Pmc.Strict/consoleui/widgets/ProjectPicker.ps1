@@ -415,8 +415,16 @@ class ProjectPicker : PmcWidget {
                         $sb.Append($textColor)
                     }
 
+                    # L-POL-8: Show task count after project name
+                    $taskCount = $this._GetTaskCountForProject($projectName)
+                    $displayName = if ($taskCount -ge 0) {
+                        "$projectName ($taskCount)"
+                    } else {
+                        $projectName
+                    }
+
                     $sb.Append(" ")
-                    $sb.Append($this.TruncateText($projectName, $this.Width - 4))
+                    $sb.Append($this.TruncateText($displayName, $this.Width - 4))
                     $sb.Append($reset)
 
                     # Padding
@@ -800,6 +808,41 @@ class ProjectPicker : PmcWidget {
         }
 
         return $false
+    }
+
+    <#
+    .SYNOPSIS
+    L-POL-8: Get task count for a project
+
+    .PARAMETER projectName
+    Name of the project
+
+    .OUTPUTS
+    Number of tasks in project, or -1 if count unavailable
+    #>
+    hidden [int] _GetTaskCountForProject([string]$projectName) {
+        try {
+            . "$PSScriptRoot/../services/TaskStore.ps1"
+            $store = [TaskStore]::GetInstance()
+            $allTasks = $store.GetAllTasks()
+
+            if ($null -eq $allTasks) {
+                return -1
+            }
+
+            $count = 0
+            foreach ($task in $allTasks) {
+                $taskProject = Get-SafeProperty $task 'project'
+                if ($taskProject -eq $projectName -and -not (Get-SafeProperty $task 'completed')) {
+                    $count++
+                }
+            }
+
+            return $count
+        } catch {
+            # Failed to get count - return -1 to skip displaying count
+            return -1
+        }
     }
 
     <#

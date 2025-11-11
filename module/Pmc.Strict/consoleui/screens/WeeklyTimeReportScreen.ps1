@@ -77,14 +77,15 @@ class WeeklyTimeReportScreen : PmcScreen {
             . "$PSScriptRoot/TaskListScreen.ps1"
             $global:PmcApp.PushScreen((New-Object TaskListScreen))
         }))
-        $tasksMenu.Items.Add([PmcMenuItem]::new("Today", 'Y', {
-            . "$PSScriptRoot/TodayViewScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object TodayViewScreen))
-        }))
-        $tasksMenu.Items.Add([PmcMenuItem]::new("Week View", 'W', {
-            . "$PSScriptRoot/WeekViewScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object WeekViewScreen))
-        }))
+        # Archived view screens - these were consolidated/removed
+        # $tasksMenu.Items.Add([PmcMenuItem]::new("Today", 'Y', {
+        #     . "$PSScriptRoot/TodayViewScreen.ps1"
+        #     $global:PmcApp.PushScreen((New-Object TodayViewScreen))
+        # }))
+        # $tasksMenu.Items.Add([PmcMenuItem]::new("Week View", 'W', {
+        #     . "$PSScriptRoot/WeekViewScreen.ps1"
+        #     $global:PmcApp.PushScreen((New-Object WeekViewScreen))
+        # }))
 
         # Projects menu
         $projectsMenu = $this.MenuBar.Menus[1]

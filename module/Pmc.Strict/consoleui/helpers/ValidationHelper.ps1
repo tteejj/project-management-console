@@ -106,6 +106,14 @@ function Test-TaskValid {
         if ($task.due -isnot [DateTime]) {
             $result.AddFieldError('due', 'Due date must be a DateTime')
         }
+        else {
+            # H-VAL-1: Date range validation - must be within reasonable range
+            $minDate = [DateTime]::new(1900, 1, 1)
+            $maxDate = [DateTime]::Now.AddYears(100)
+            if ($task.due -lt $minDate -or $task.due -gt $maxDate) {
+                $result.AddFieldError('due', 'Due date must be between 1900-01-01 and 100 years from now')
+            }
+        }
     }
 
     # Optional: tags (array)
@@ -238,6 +246,10 @@ function Test-TimeLogValid {
     }
     elseif ($timelog.duration -le 0) {
         $result.AddFieldError('duration', 'Duration must be greater than 0')
+    }
+    # H-VAL-8: Add maximum duration check (1440 minutes = 24 hours)
+    elseif ($timelog.duration -gt 1440) {
+        $result.AddFieldError('duration', 'Duration must not exceed 1440 minutes (24 hours)')
     }
 
     # Optional: timestamp (DateTime)

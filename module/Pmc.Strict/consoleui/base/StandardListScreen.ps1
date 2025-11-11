@@ -283,28 +283,25 @@ class StandardListScreen : PmcScreen {
         }
 
         # Wire up list events using GetNewClosure()
+        $self = $this
         $this.List.OnSelectionChanged = {
             param($item)
-            $currentScreen = $global:PmcApp.CurrentScreen
-            $currentScreen.OnItemSelected($item)
+            $self.OnItemSelected($item)
         }.GetNewClosure()
 
         $this.List.OnItemEdit = {
             param($item)
-            $currentScreen = $global:PmcApp.CurrentScreen
-            $currentScreen.EditItem($item)
+            $self.EditItem($item)
         }.GetNewClosure()
 
         $this.List.OnItemDelete = {
             param($item)
-            $currentScreen = $global:PmcApp.CurrentScreen
-            $currentScreen.DeleteItem($item)
+            $self.DeleteItem($item)
         }.GetNewClosure()
 
         $this.List.OnItemActivated = {
             param($item)
-            $currentScreen = $global:PmcApp.CurrentScreen
-            $currentScreen.OnItemActivated($item)
+            $self.OnItemActivated($item)
         }.GetNewClosure()
 
         # Initialize FilterPanel
@@ -333,32 +330,32 @@ class StandardListScreen : PmcScreen {
         }.GetNewClosure()
 
         # Wire up store events for auto-refresh
+        # Use $self to capture THIS screen instance, not global current screen
+        $self = $this
         $entityType = $this.GetEntityType()
         switch ($entityType) {
             'task' {
                 $this.Store.OnTasksChanged = {
                     param($tasks)
-                    $currentScreen = $global:PmcApp.CurrentScreen
-                    if ($currentScreen.GetType().Name -eq 'TaskListScreen') {
-                        $currentScreen.RefreshList()
+                    if ($self.IsActive) {
+                        $self.RefreshList()
                     }
                 }.GetNewClosure()
             }
             'project' {
                 $this.Store.OnProjectsChanged = {
                     param($projects)
-                    $currentScreen = $global:PmcApp.CurrentScreen
-                    if ($currentScreen.GetType().Name -eq 'ProjectListScreen') {
-                        $currentScreen.RefreshList()
+                    if ($self.IsActive) {
+                        $self.RefreshList()
                     }
                 }.GetNewClosure()
             }
             'timelog' {
                 $this.Store.OnTimeLogsChanged = {
                     param($logs)
-                    $currentScreen = $global:PmcApp.CurrentScreen
-                    # Check if current screen cares about time logs
-                    $currentScreen.RefreshList()
+                    if ($self.IsActive) {
+                        $self.RefreshList()
+                    }
                 }.GetNewClosure()
             }
         }
@@ -441,7 +438,7 @@ class StandardListScreen : PmcScreen {
 
         # Update status bar
         if ($this.StatusBar) {
-            $itemCount = $this.List._filteredData.Count
+            $itemCount = $this.List.GetItemCount()
             $this.StatusBar.SetLeftText("$itemCount items")
         }
     }

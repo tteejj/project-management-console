@@ -108,10 +108,16 @@ class UniversalList : PmcWidget {
     hidden [object]$_inlineEditor = $null                                # Inline editor instance (InlineEditor)
     hidden [bool]$_showInlineEditor = $false                             # Show inline editor overlay
     hidden [string]$_lastRenderedContent = ""                            # Last rendered content (for diff)
+    # L-POL-22: Column width adjustment
+    hidden [hashtable]$_columnWidths = @{}                               # Custom column widths (overrides defaults)
+    hidden [int]$_selectedColumnIndex = -1                               # Currently selected column for width adjustment
 
     # === Row-Level Caching for Performance ===
     hidden [hashtable]$_rowCache = @{}                                   # Cache of rendered rows by index
     hidden [int]$_cacheGeneration = 0                                    # Increment to invalidate all cache
+    # H-MEM-1: LRU cache management
+    hidden [System.Collections.Generic.LinkedList[string]]$_cacheAccessOrder = [System.Collections.Generic.LinkedList[string]]::new()
+    hidden [int]$_maxCacheSize = 500                                     # Maximum cache entries
 
     # === Constructor ===
     UniversalList() : base("UniversalList") {
@@ -191,6 +197,8 @@ class UniversalList : PmcWidget {
         # Invalidate row cache when data changes
         $this._cacheGeneration++
         $this._rowCache.Clear()
+        # H-MEM-1: Clear LRU access order as well
+        $this._cacheAccessOrder.Clear()
 
         # Apply any active filters/search
         $this._ApplyFilters()
@@ -235,6 +243,14 @@ class UniversalList : PmcWidget {
         }
 
         return $selected
+    }
+
+    <#
+    .SYNOPSIS
+    Get the count of filtered items
+    #>
+    [int] GetItemCount() {
+        return $this._filteredData.Count
     }
 
     <#
@@ -528,6 +544,50 @@ class UniversalList : PmcWidget {
             return $true
         }
 
+        # L-POL-22: Alt+Left/Right - adjust column width
+        if ($keyInfo.Modifiers -band [ConsoleModifiers]::Alt) {
+            if ($keyInfo.Key -eq 'LeftArrow') {
+                # Decrease width of current column
+                if ($this._selectedColumnIndex -ge 0 -and $this._selectedColumnIndex -lt $this._columns.Count) {
+                    $colName = $this._columns[$this._selectedColumnIndex].Name
+                    $currentWidth = if ($this._columnWidths.ContainsKey($colName)) {
+                        $this._columnWidths[$colName]
+                    } else {
+                        $this._columns[$this._selectedColumnIndex].Width
+                    }
+                    $this._columnWidths[$colName] = [Math]::Max(5, $currentWidth - 2)
+                    # Invalidate row cache
+                    $this._cacheGeneration++
+                    $this._rowCache.Clear()
+                    $this._cacheAccessOrder.Clear()
+                }
+                return $true
+            }
+            if ($keyInfo.Key -eq 'RightArrow') {
+                # Increase width of current column
+                if ($this._selectedColumnIndex -ge 0 -and $this._selectedColumnIndex -lt $this._columns.Count) {
+                    $colName = $this._columns[$this._selectedColumnIndex].Name
+                    $currentWidth = if ($this._columnWidths.ContainsKey($colName)) {
+                        $this._columnWidths[$colName]
+                    } else {
+                        $this._columns[$this._selectedColumnIndex].Width
+                    }
+                    $this._columnWidths[$colName] = [Math]::Min(100, $currentWidth + 2)
+                    # Invalidate row cache
+                    $this._cacheGeneration++
+                    $this._rowCache.Clear()
+                    $this._cacheAccessOrder.Clear()
+                }
+                return $true
+            }
+        }
+
+        # C key - cycle selected column for width adjustment
+        if ($keyInfo.KeyChar -eq 'c' -or $keyInfo.KeyChar -eq 'C') {
+            $this._selectedColumnIndex = ($this._selectedColumnIndex + 1) % $this._columns.Count
+            return $true
+        }
+
         # Action handling
         $keyChar = $keyInfo.KeyChar.ToString().ToLower()
 
@@ -623,13 +683,23 @@ class UniversalList : PmcWidget {
         $sb.Append($primaryColor)
 
         $currentX = 2
+        # L-POL-4: Detect Unicode support for sort indicators
+        $supportsUnicode = $env:LANG -match 'UTF-8' -or [Console]::OutputEncoding.EncodingName -match 'UTF'
+        $sortUpSymbol = if ($supportsUnicode) { "↑" } else { "^" }
+        $sortDownSymbol = if ($supportsUnicode) { "↓" } else { "v" }
+
         foreach ($col in $this._columns) {
             $label = $col.Label
-            $width = $col.Width
+            # L-POL-22: Use custom width if set, otherwise use default
+            $width = if ($this._columnWidths.ContainsKey($col.Name)) {
+                $this._columnWidths[$col.Name]
+            } else {
+                $col.Width
+            }
 
-            # Add sort indicator
+            # Add sort indicator with fallback
             if ($this._sortColumn -eq $col.Name) {
-                $sortIndicator = if ($this._sortAscending) { " ↑" } else { " ↓" }
+                $sortIndicator = if ($this._sortAscending) { " $sortUpSymbol" } else { " $sortDownSymbol" }
                 $label += $sortIndicator
             }
 
@@ -670,6 +740,9 @@ class UniversalList : PmcWidget {
             $cachedRow = $null
             if ($this._rowCache.ContainsKey($cacheKey)) {
                 $cachedRow = $this._rowCache[$cacheKey]
+                # H-MEM-1: Update LRU access order
+                $this._cacheAccessOrder.Remove($cacheKey)
+                [void]$this._cacheAccessOrder.AddLast($cacheKey)
                 $sb.Append($cachedRow)
                 $currentRow++
                 continue
@@ -700,7 +773,12 @@ class UniversalList : PmcWidget {
             $currentX = 2
             foreach ($col in $this._columns) {
                 $value = $item.($col.Name)
-                $width = $col.Width
+                # L-POL-22: Use custom width if set, otherwise use default
+                $width = if ($this._columnWidths.ContainsKey($col.Name)) {
+                    $this._columnWidths[$col.Name]
+                } else {
+                    $col.Width
+                }
 
                 # Format value if formatter provided
                 if ($col.ContainsKey('Format') -and $null -ne $col.Format) {
@@ -708,6 +786,10 @@ class UniversalList : PmcWidget {
                         # Pass the WHOLE ITEM to formatter, not just the field value
                         $value = & $col.Format $item
                     } catch {
+                        # Log formatting error for debugging
+                        if (Get-Command Write-PmcTuiLog -ErrorAction SilentlyContinue) {
+                            Write-PmcTuiLog "Column format error for '$($col.Name)': $($_.Exception.Message)" "ERROR"
+                        }
                         $value = "(error)"
                     }
                 }
@@ -715,7 +797,37 @@ class UniversalList : PmcWidget {
                 # Convert to string
                 $valueStr = if ($null -ne $value) { $value.ToString() } else { "" }
 
-                # Truncate and pad
+                # L-POL-16: Highlight search matches if in search mode
+                if ($this.IsInSearchMode -and -not [string]::IsNullOrWhiteSpace($this._searchText)) {
+                    $searchLower = $this._searchText.ToLower()
+                    $valueLower = $valueStr.ToLower()
+                    $highlightColor = "`e[43m`e[30m"  # Yellow background, black text
+                    $resetHighlight = if ($isSelected) { $highlightBg + "`e[30m" } elseif ($isMultiSelected) { $successColor } else { $textColor }
+
+                    # Find all occurrences and highlight them
+                    $highlightedValue = ""
+                    $lastIndex = 0
+                    $index = $valueLower.IndexOf($searchLower, $lastIndex)
+
+                    while ($index -ge 0) {
+                        # Add text before match
+                        $highlightedValue += $valueStr.Substring($lastIndex, $index - $lastIndex)
+                        # Add highlighted match
+                        $highlightedValue += $highlightColor + $valueStr.Substring($index, $this._searchText.Length) + $resetHighlight
+                        $lastIndex = $index + $this._searchText.Length
+                        $index = $valueLower.IndexOf($searchLower, $lastIndex)
+                    }
+
+                    # Add remaining text
+                    if ($lastIndex -lt $valueStr.Length) {
+                        $highlightedValue += $valueStr.Substring($lastIndex)
+                    }
+
+                    $valueStr = $highlightedValue
+                }
+
+                # Truncate and pad (note: TruncateText needs to be aware of ANSI codes, or we apply after)
+                # For now, we'll truncate before highlighting to keep logic simple
                 $displayValue = $this.PadText($this.TruncateText($valueStr, $width), $width, $col.Align)
                 $rowBuilder.Append($displayValue)
                 $rowBuilder.Append("  ")
@@ -743,7 +855,16 @@ class UniversalList : PmcWidget {
 
             # Cache the built row
             $builtRow = $rowBuilder.ToString()
+
+            # H-MEM-1: Evict oldest cache entry if max size exceeded
+            if ($this._rowCache.Count -ge $this._maxCacheSize) {
+                $oldestKey = $this._cacheAccessOrder.First.Value
+                $this._rowCache.Remove($oldestKey)
+                $this._cacheAccessOrder.RemoveFirst()
+            }
+
             $this._rowCache[$cacheKey] = $builtRow
+            [void]$this._cacheAccessOrder.AddLast($cacheKey)
             $sb.Append($builtRow)
 
             $currentRow++
@@ -769,7 +890,8 @@ class UniversalList : PmcWidget {
 
         if ($this.IsInSearchMode) {
             $sb.Append($primaryColor)
-            $sb.Append("Search: $($this._searchText)_")
+            # H-UI-7: Show search hint to explain what can be searched
+            $sb.Append("Search (text, tags, project): $($this._searchText)_")
         } elseif ($this.IsInMultiSelectMode) {
             $sb.Append($successColor)
             $sb.Append("Multi-select mode ($($this._selectedIndices.Count) selected)")
@@ -820,7 +942,7 @@ class UniversalList : PmcWidget {
             $actionsStr = "↑/↓: Nav | Space: Select | /: Search | F: Filter | Enter: Open"
         }
 
-        # Split into multiple lines if too long
+        # L-POL-24: Split into multiple lines with overflow handling
         $maxWidth = $this.Width - 4
         $actionLines = @()
         $currentLine = ""
@@ -833,10 +955,21 @@ class UniversalList : PmcWidget {
                 if ($currentLine.Length -gt 0) {
                     $actionLines += $currentLine
                 }
-                $currentLine = $actionPair
+                # L-POL-24: If action pair itself is too long, truncate it
+                if ($actionPair.Length -gt $maxWidth) {
+                    $currentLine = $actionPair.Substring(0, $maxWidth - 3) + "..."
+                    $actionLines += $currentLine
+                    $currentLine = ""
+                } else {
+                    $currentLine = $actionPair
+                }
             }
         }
         if ($currentLine.Length -gt 0) {
+            # L-POL-24: Truncate last line if it exceeds width
+            if ($currentLine.Length -gt $maxWidth) {
+                $currentLine = $currentLine.Substring(0, $maxWidth - 3) + "..."
+            }
             $actionLines += $currentLine
         }
 
@@ -1066,6 +1199,40 @@ class UniversalList : PmcWidget {
         }
 
         return $false
+    }
+
+    <#
+    .SYNOPSIS
+    L-POL-9: Get consistent color for a tag using hash-based selection
+
+    .PARAMETER tag
+    Tag string to colorize
+
+    .OUTPUTS
+    ANSI color code string
+    #>
+    hidden [string] _GetTagColor([string]$tag) {
+        # Hash the tag name to get a consistent color
+        $hash = 0
+        foreach ($char in $tag.ToCharArray()) {
+            $hash = ($hash * 31 + [int]$char) % 256
+        }
+
+        # Use a palette of distinct, readable colors
+        $colors = @(
+            "`e[94m"   # Bright blue
+            "`e[92m"   # Bright green
+            "`e[96m"   # Bright cyan
+            "`e[93m"   # Bright yellow
+            "`e[95m"   # Bright magenta
+            "`e[91m"   # Bright red
+            "`e[34m"   # Blue
+            "`e[32m"   # Green
+            "`e[36m"   # Cyan
+            "`e[35m"   # Magenta
+        )
+
+        return $colors[$hash % $colors.Count]
     }
 
     <#

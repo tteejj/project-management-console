@@ -241,6 +241,50 @@ class TextInput : PmcWidget {
             return $true
         }
 
+        # L-POL-11: Ctrl+C - copy to clipboard
+        if ($keyInfo.Modifiers -band [ConsoleModifiers]::Control -and $keyInfo.Key -eq 'C') {
+            if ($PSVersionTable.PSVersion.Major -ge 7 -and -not [string]::IsNullOrEmpty($this.Text)) {
+                try {
+                    Set-Clipboard -Value $this.Text
+                } catch {
+                    # Clipboard access may fail - silently ignore
+                }
+            }
+            return $true
+        }
+
+        # L-POL-11: Ctrl+V - paste from clipboard
+        if ($keyInfo.Modifiers -band [ConsoleModifiers]::Control -and $keyInfo.Key -eq 'V') {
+            if ($PSVersionTable.PSVersion.Major -ge 7) {
+                try {
+                    $clipText = Get-Clipboard -Raw
+                    if (-not [string]::IsNullOrEmpty($clipText)) {
+                        # Remove newlines from pasted text (single-line input)
+                        $clipText = $clipText -replace '[\r\n]+', ' '
+
+                        # Insert at cursor position
+                        $before = $this.Text.Substring(0, $this._cursorPosition)
+                        $after = $this.Text.Substring($this._cursorPosition)
+                        $newText = $before + $clipText + $after
+
+                        # Enforce max length
+                        if ($newText.Length -gt $this.MaxLength) {
+                            $newText = $newText.Substring(0, $this.MaxLength)
+                        }
+
+                        $this.Text = $newText
+                        $this._cursorPosition = [Math]::Min($this._cursorPosition + $clipText.Length, $this.Text.Length)
+                        $this._AdjustScrollOffset()
+                        $this._ValidateText()
+                        $this._InvokeCallback($this.OnTextChanged, $this.Text)
+                    }
+                } catch {
+                    # Clipboard access may fail - silently ignore
+                }
+            }
+            return $true
+        }
+
         # Regular character input
         if ($keyInfo.KeyChar -ge 32 -and $keyInfo.KeyChar -le 126) {
             $this._InsertChar($keyInfo.KeyChar)

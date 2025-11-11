@@ -367,6 +367,19 @@ class NotesMenuScreen : StandardListScreen {
 
     # === Menu Registration ===
 
+    # H-MEM-2: Cleanup event subscriptions when screen exits
+    <#
+    .SYNOPSIS
+    Called when the screen is about to be exited
+    #>
+    [void] OnExit() {
+        # Unsubscribe from note service events to prevent memory leaks
+        if ($this._noteService) {
+            $this._noteService.OnNotesChanged = $null
+        }
+        Write-PmcTuiLog "NotesMenuScreen.OnExit: Cleaned up event subscriptions" "DEBUG"
+    }
+
     <#
     .SYNOPSIS
     Register menu items for this screen
