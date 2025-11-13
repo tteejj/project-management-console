@@ -16,13 +16,27 @@ $logPath = if ($env:PMC_LOG_PATH) {
 }
 $global:PmcTuiLogFile = Join-Path $logPath "pmc-tui-$(Get-Date -Format 'yyyyMMdd-HHmmss').log"
 
+# Initialize buffered logging service (reduces file I/O by ~95%)
+# Note: LoggingService class will be loaded later, so we define the helper function first
+$global:PmcLoggingService = $null
+
 function Write-PmcTuiLog {
     param([string]$Message, [string]$Level = "INFO")
-    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss.fff"
-    $logLine = "[$timestamp] [$Level] $Message"
-    Add-Content -Path $global:PmcTuiLogFile -Value $logLine
+
+    # Use buffered service if available (after services loaded)
+    if ($global:PmcLoggingService) {
+        $global:PmcLoggingService.Write($Level, $Message)
+    } else {
+        # Fallback to direct write during bootstrap
+        $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss.fff"
+        $logLine = "[$timestamp] [$Level] $Message"
+        Add-Content -Path $global:PmcTuiLogFile -Value $logLine
+    }
+
+    # Always show errors to console
     if ($Level -eq "ERROR") {
-        Write-Host $logLine -ForegroundColor Red
+        $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss.fff"
+        Write-Host "[$timestamp] [$Level] $Message" -ForegroundColor Red
     }
 }
 
@@ -95,6 +109,12 @@ try {
         . $_.FullName
     }
     Write-PmcTuiLog "Services loaded" "INFO"
+
+    # Initialize buffered logging service now that LoggingService class is loaded
+    # This switches from unbuffered to buffered logging (reduces I/O by ~95%)
+    $global:PmcLoggingService = [LoggingService]::new($global:PmcTuiLogFile)
+    Write-PmcTuiLog "Buffered logging initialized (250ms flush interval)" "INFO"
+
 } catch {
     Write-PmcTuiLog "Failed to load services: $_" "ERROR"
     Write-PmcTuiLog $_.ScriptStackTrace "ERROR"

@@ -384,9 +384,6 @@ class PmcApplication {
                     }
                 }
 
-                # Capture dirty state before rendering
-                $wasActive = $this.IsDirty
-
                 # Only render when dirty (state changed)
                 if ($this.IsDirty) {
                     if ($global:PmcTuiLogFile) {
@@ -396,12 +393,12 @@ class PmcApplication {
                     $iteration = 0  # Reset counter after render
                 }
 
-                # Sleep longer when idle (no render) vs active
-                if ($wasActive) {
-                    Start-Sleep -Milliseconds 16  # ~60 FPS when actively rendering
-                } else {
-                    Start-Sleep -Milliseconds 100  # ~10 FPS when idle, 50% less CPU
+                # Only sleep when no input is pending (prevents lag on input)
+                # Don't sleep at all if KeyAvailable - immediate response to user input
+                if (-not [Console]::KeyAvailable) {
+                    Start-Sleep -Milliseconds 10  # Small sleep when idle to prevent CPU spinning
                 }
+                # If KeyAvailable, loop immediately for instant response
             }
 
         } finally {
@@ -416,6 +413,15 @@ class PmcApplication {
             } catch {
                 Write-PmcTuiLog "Failed to flush data on exit: $_" "ERROR"
                 # Continue with cleanup even if flush fails
+            }
+
+            # Flush buffered logs before exit
+            if ($global:PmcLoggingService) {
+                try {
+                    $global:PmcLoggingService.Flush()
+                } catch {
+                    # Ignore flush errors on exit
+                }
             }
 
             # Cleanup
