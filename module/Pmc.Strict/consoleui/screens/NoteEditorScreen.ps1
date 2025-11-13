@@ -28,7 +28,7 @@ class NoteEditorScreen : PmcScreen {
         Write-PmcTuiLog "NoteEditorScreen: Constructor called for noteId=$noteId" "INFO"
 
         $this._noteId = $noteId
-        $this._noteService = [NoteService]::GetInstance()
+        $this._noteService = $global:Pmc.Container.Resolve('NoteService')
 
         # Load note metadata
         Write-PmcTuiLog "NoteEditorScreen: Loading note metadata" "DEBUG"
@@ -55,7 +55,7 @@ class NoteEditorScreen : PmcScreen {
         Write-PmcTuiLog "NoteEditorScreen: Constructor called for noteId=$noteId" "INFO"
 
         $this._noteId = $noteId
-        $this._noteService = [NoteService]::GetInstance()
+        $this._noteService = $container.Resolve('NoteService')
 
         # Load note metadata
         Write-PmcTuiLog "NoteEditorScreen: Loading note metadata" "DEBUG"
@@ -323,8 +323,11 @@ class NoteEditorScreen : PmcScreen {
             }
 
             # Create checklist using ChecklistService
-            . "$PSScriptRoot/../services/ChecklistService.ps1"
-            $checklistService = [ChecklistService]::GetInstance()
+            if ($this.Container) {
+                $checklistService = $this.Container.Resolve('ChecklistService')
+            } else {
+                $checklistService = $global:Pmc.Container.Resolve('ChecklistService')
+            }
 
             # Create checklist instance from note
             $title = $this._note.title + " (Checklist)"

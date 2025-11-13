@@ -41,8 +41,12 @@ class ExcelProfileManagerScreen : StandardListScreen {
     }
 
     hidden [void] _InitializeScreen() {
-        # Initialize service
-        $this._mappingService = [ExcelMappingService]::GetInstance()
+        # Initialize service from DI container
+        if ($this.Container) {
+            $this._mappingService = $this.Container.Resolve('ExcelMappingService')
+        } else {
+            $this._mappingService = $global:Pmc.Container.Resolve('ExcelMappingService')
+        }
 
         # Configure capabilities
         $this.AllowAdd = $true

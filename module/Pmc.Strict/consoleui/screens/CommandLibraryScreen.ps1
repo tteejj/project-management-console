@@ -42,8 +42,12 @@ class CommandLibraryScreen : StandardListScreen {
     }
 
     hidden [void] _InitializeScreen() {
-        # Initialize service
-        $this._commandService = [CommandService]::GetInstance()
+        # Initialize service from DI container
+        if ($this.Container) {
+            $this._commandService = $this.Container.Resolve('CommandService')
+        } else {
+            $this._commandService = $global:Pmc.Container.Resolve('CommandService')
+        }
 
         # Configure capabilities
         $this.AllowAdd = $true

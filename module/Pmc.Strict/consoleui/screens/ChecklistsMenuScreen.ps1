@@ -32,7 +32,7 @@ class ChecklistsMenuScreen : StandardListScreen {
         $this._ownerType = $ownerType
         $this._ownerId = $ownerId
         $this._ownerName = $ownerName
-        $this._checklistService = [ChecklistService]::GetInstance()
+        $this._checklistService = $global:Pmc.Container.Resolve('ChecklistService')
 
         # Configure capabilities
         $this.AllowAdd = $true
@@ -60,7 +60,7 @@ class ChecklistsMenuScreen : StandardListScreen {
         $this._ownerType = $ownerType
         $this._ownerId = $ownerId
         $this._ownerName = $ownerName
-        $this._checklistService = [ChecklistService]::GetInstance()
+        $this._checklistService = $container.Resolve('ChecklistService')
 
         # Configure capabilities
         $this.AllowAdd = $true

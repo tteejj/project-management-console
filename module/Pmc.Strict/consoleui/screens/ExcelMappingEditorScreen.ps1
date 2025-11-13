@@ -29,7 +29,7 @@ class ExcelMappingEditorScreen : StandardListScreen {
     ExcelMappingEditorScreen([string]$profileId, [string]$profileName) : base("ExcelMappings", "Field Mappings") {
         $this._profileId = $profileId
         $this._profileName = $profileName
-        $this._mappingService = [ExcelMappingService]::GetInstance()
+        $this._mappingService = $global:Pmc.Container.Resolve('ExcelMappingService')
 
         # Configure capabilities
         $this.AllowAdd = $true
@@ -53,7 +53,7 @@ class ExcelMappingEditorScreen : StandardListScreen {
     ExcelMappingEditorScreen([string]$profileId, [string]$profileName, [object]$container) : base("ExcelMappings", "Field Mappings", $container) {
         $this._profileId = $profileId
         $this._profileName = $profileName
-        $this._mappingService = [ExcelMappingService]::GetInstance()
+        $this._mappingService = $container.Resolve('ExcelMappingService')
 
         # Configure capabilities
         $this.AllowAdd = $true

@@ -42,8 +42,12 @@ class ChecklistTemplatesScreen : StandardListScreen {
     }
 
     hidden [void] _InitializeScreen() {
-        # Initialize service
-        $this._checklistService = [ChecklistService]::GetInstance()
+        # Initialize service from DI container
+        if ($this.Container) {
+            $this._checklistService = $this.Container.Resolve('ChecklistService')
+        } else {
+            $this._checklistService = $global:Pmc.Container.Resolve('ChecklistService')
+        }
 
         # Configure capabilities
         $this.AllowAdd = $true

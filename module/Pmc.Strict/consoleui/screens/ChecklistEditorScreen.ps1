@@ -39,7 +39,13 @@ class ChecklistEditorScreen : PmcScreen {
 
     hidden [void] _InitializeScreen([string]$instanceId) {
         $this._instanceId = $instanceId
-        $this._checklistService = [ChecklistService]::GetInstance()
+
+        # Get service from DI container
+        if ($this.Container) {
+            $this._checklistService = $this.Container.Resolve('ChecklistService')
+        } else {
+            $this._checklistService = $global:Pmc.Container.Resolve('ChecklistService')
+        }
 
         # Load instance
         $this._instance = $this._checklistService.GetInstance($instanceId)

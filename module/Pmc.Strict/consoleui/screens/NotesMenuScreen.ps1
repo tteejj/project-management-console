@@ -45,8 +45,12 @@ class NotesMenuScreen : StandardListScreen {
         $this._ownerId = $ownerId
         $this._ownerName = $ownerName
 
-        # Get note service instance
-        $this._noteService = [NoteService]::GetInstance()
+        # Get note service instance from DI container
+        if ($this.Container) {
+            $this._noteService = $this.Container.Resolve('NoteService')
+        } else {
+            $this._noteService = $global:Pmc.Container.Resolve('NoteService')
+        }
 
         # Subscribe to note changes
         # Note: Callback may be invoked when screen is not active, so check first
