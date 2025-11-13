@@ -311,7 +311,7 @@ function Start-PmcTUI {
             Write-PmcTuiLog "Resolving TaskStore..." "INFO"
             # Ensure theme is initialized first
             $null = $container.Resolve('Theme')
-            return [TaskStore]::GetInstance()
+            return [TaskStore]::new()
         }, $true)
 
         # 4. MenuRegistry (depends on Theme)
@@ -339,7 +339,7 @@ function Start-PmcTUI {
         $global:PmcContainer.Register('CommandService', {
             param($container)
             Write-PmcTuiLog "Resolving CommandService..." "INFO"
-            return [CommandService]::GetInstance()
+            return [CommandService]::new()
         }, $true)
 
         # 7. ChecklistService (no dependencies)
@@ -347,7 +347,7 @@ function Start-PmcTUI {
         $global:PmcContainer.Register('ChecklistService', {
             param($container)
             Write-PmcTuiLog "Resolving ChecklistService..." "INFO"
-            return [ChecklistService]::GetInstance()
+            return [ChecklistService]::new()
         }, $true)
 
         # 8. NoteService (no dependencies)
@@ -355,7 +355,7 @@ function Start-PmcTUI {
         $global:PmcContainer.Register('NoteService', {
             param($container)
             Write-PmcTuiLog "Resolving NoteService..." "INFO"
-            return [NoteService]::GetInstance()
+            return [NoteService]::new()
         }, $true)
 
         # 9. ExcelMappingService (no dependencies)
@@ -363,7 +363,7 @@ function Start-PmcTUI {
         $global:PmcContainer.Register('ExcelMappingService', {
             param($container)
             Write-PmcTuiLog "Resolving ExcelMappingService..." "INFO"
-            return [ExcelMappingService]::GetInstance()
+            return [ExcelMappingService]::new()
         }, $true)
 
         # 10. PreferencesService (no dependencies)
@@ -371,7 +371,7 @@ function Start-PmcTUI {
         $global:PmcContainer.Register('PreferencesService', {
             param($container)
             Write-PmcTuiLog "Resolving PreferencesService..." "INFO"
-            return [PreferencesService]::GetInstance()
+            return [PreferencesService]::new()
         }, $true)
 
         # 11. Screen factories (depend on Application, TaskStore, etc.)
