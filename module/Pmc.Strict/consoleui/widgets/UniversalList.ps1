@@ -637,6 +637,76 @@ class UniversalList : PmcWidget {
         return $this._RenderList()
     }
 
+    <#
+    .SYNOPSIS
+    Render directly to engine (optimized path)
+
+    .PARAMETER engine
+    RenderEngine instance to write to
+
+    .DESCRIPTION
+    Optimized rendering that writes directly to engine.
+    Handles inline editor and filter panel delegation.
+    #>
+    [void] RenderToEngine([object]$engine) {
+        # If inline editor is shown, delegate to it
+        if ($this._showInlineEditor) {
+            if ($this._inlineEditor.PSObject.Methods['RenderToEngine']) {
+                $this._inlineEditor.RenderToEngine($engine)
+            } else {
+                # Fall back to ANSI parsing for child widget
+                $output = $this._inlineEditor.Render()
+                if ($output) {
+                    # Parse and write (temporary until InlineEditor migrated)
+                    $this._ParseAndWriteToEngine($engine, $output)
+                }
+            }
+            return
+        }
+
+        # Render main list content
+        $this._RenderListToEngine($engine)
+
+        # If filter panel is shown, render it as overlay
+        if ($this.IsInFilterMode) {
+            if ($this._filterPanel.PSObject.Methods['RenderToEngine']) {
+                $this._filterPanel.RenderToEngine($engine)
+            } else {
+                # Fall back to ANSI parsing for child widget
+                $output = $this._filterPanel.Render()
+                if ($output) {
+                    $this._ParseAndWriteToEngine($engine, $output)
+                }
+            }
+        }
+    }
+
+    hidden [void] _ParseAndWriteToEngine([object]$engine, [string]$ansiOutput) {
+        # Simple ANSI parser for fallback (matches PmcScreen._ParseAnsiAndWrite logic)
+        $lines = $ansiOutput -split "`n"
+        $currentY = 0
+        foreach ($line in $lines) {
+            if ($line -match '\x1b\[(\d+);(\d+)H') {
+                $row = [int]$matches[1] - 1
+                $col = [int]$matches[2] - 1
+                $currentY = $row
+                # Remove positioning codes and write
+                $cleanLine = $line -replace '\x1b\[\d+;\d+H', ''
+                if ($cleanLine) {
+                    $engine.WriteAt($col, $row, $cleanLine)
+                }
+            }
+        }
+    }
+
+    hidden [void] _RenderListToEngine([object]$engine) {
+        # TODO: Full engine-optimized rendering (currently falls back to ANSI for complex logic)
+        # For now, use the string-based approach and parse it
+        # This can be optimized later by converting _RenderList() logic to direct engine.WriteAt() calls
+        $listContent = $this._RenderList()
+        $this._ParseAndWriteToEngine($engine, $listContent)
+    }
+
     # === Private Helper Methods ===
 
     <#
