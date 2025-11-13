@@ -1,0 +1,145 @@
+ Event Loop Performance Disaster
+
+  # PmcApplication.ps1:355-402
+  while ($this.Running) {
+      if ([Console]::KeyAvailable) { ... }
+      if ($this.IsDirty) { _RenderCurrentScreen() }
+      Start-Sleep -Milliseconds 16  # ALWAYS sleeps!
+      Start-Sleep -Milliseconds 50  # When idle!
+  }
+  Problems:
+  - Sleeps 16-50ms EVERY iteration, even with pending input
+  - No proper event-driven architecture
+  - CPU spinning constantly checking KeyAvailable
+  - Fix: Use async/await or event callbacks, not polling
+
+  2. Excessive Logging I/O
+
+  # Every operation does:
+  Add-Content -Path $global:PmcTuiLogFile -Value "..."
+  Problems:
+  - File I/O on EVERY operation (100s per second)
+  - No buffering, no async writes
+  - Blocks main thread
+  - Fix: Buffer logs in memory, flush periodically
+
+  3. ServiceContainer Memory Leak
+
+  # ServiceContainer.ps1:121
+  $this._resolutionStack.Add($name)
+  # If exception thrown, stack never cleaned in some paths
+  Problems:
+  - Resolution stack not cleared on all error paths
+  - Non-singleton screens accumulate indefinitely
+  - Fix: Use try/finally properly, implement disposal
+
+  🟡 ARCHITECTURAL PROBLEMS
+
+  4. Widget Rendering Inefficiency
+
+  - Every widget re-renders entire content on ANY change
+  - No dirty region tracking
+  - No differential rendering
+  - Builds massive strings with StringBuilder repeatedly
+
+  5. Theme System Over-Engineering
+
+  - Initialize-PmcThemeSystem called multiple times
+  - Theme cached in multiple places (widgets, state, container)
+  - No single source of truth
+  - Hex-to-RGB conversion happens on EVERY render
+
+  6. DI Container Anti-Patterns
+
+  # Mixed patterns everywhere:
+  [TaskStore]::GetInstance()  # Singleton pattern
+  $container.Resolve('TaskStore')  # DI pattern
+  $global:PmcApp  # Global variable
+  - Three different ways to access services
+  - Global variables defeat purpose of DI
+  - No interface abstraction
+
+  🟠 PERFORMANCE BOTTLENECKS
+
+  7. String Operations
+
+  # Everywhere:
+  $sb = [StringBuilder]::new(4096)
+  $sb.Append($this.BuildMoveTo(...))
+  $sb.Append($color)
+  # Thousands of Append calls per render
+  - StringBuilder helps but still inefficient
+  - ANSI escape sequences built repeatedly
+  - Should cache static portions
+
+  8. Config File I/O
+
+  - Reads config.json on EVERY theme check
+  - No caching of config values
+  - Multiple file system hits per operation
+
+  9. Terminal Size Polling
+
+  if ($iteration % 20 -eq 0) {
+      $currentWidth = [Console]::WindowWidth
+  - Polls console size constantly
+  - Should use resize events
+
+  🔵 CODE QUALITY ISSUES
+
+  10. Error Handling Chaos
+
+  try {
+      Initialize-PmcThemeSystem
+  } catch {
+      # Silently continues with broken state!
+  }
+  - Exceptions swallowed everywhere
+  - No recovery strategy
+  - Silent failures lead to corrupt state
+
+  11. PowerShell Class Limitations Fighting
+
+  - Dual constructors everywhere for DI
+  - Method overloading workarounds
+  - Should have used functions, not classes
+
+  12. State Management Mess
+
+  - Global variables: $global:PmcApp, $global:PmcContainer, $global:PmcTuiLogFile
+  - State scattered across services, widgets, screens
+  - No clear data flow
+
+  💡 RECOMMENDATIONS FOR IMPROVEMENT
+
+  Immediate Fixes (Performance):
+
+  1. Remove Sleep from event loop - Use event-driven model
+  2. Buffer logging - Write to memory, flush periodically
+  3. Cache theme conversions - Convert hex to RGB once
+  4. Implement dirty region tracking - Only re-render changed areas
+
+  Architectural Refactoring:
+
+  1. Single state store - Redux-like pattern
+  2. Pure rendering functions - No side effects in render
+  3. Proper async/await - PowerShell 7 supports it
+  4. Interface-based DI - Define contracts, not implementations
+
+  Code Quality:
+
+  1. Proper error handling - Result types, not exceptions
+  2. Remove global variables - Pass dependencies explicitly
+  3. Functional approach - Use pipelines, not classes
+  4. Testing - No tests exist currently
+
+  🚨 MOST CRITICAL TO FIX
+
+  1. Event loop with Sleep - Kills responsiveness
+  2. Unbuffered logging - Massive I/O overhead
+  3. Full re-renders - Should diff and patch
+  4. Config file reads - Cache aggressively
+  5. Memory leaks - Implement IDisposable pattern
+
+  The application works but has severe performance and architectural issues that compound at scale.
+  The DI implementation helped but didn't address fundamental design problems.
