@@ -450,7 +450,8 @@ class TextInput : PmcWidget {
     [void] RenderToEngine([object]$engine) {
         # Parse OnRender/Render output and write to engine
         # TODO: Convert to direct engine.WriteAt() calls for optimal performance
-        $output = $this.OnRender()
+        # Render to string then parse to engine
+        $output = $this.Render()
         if ([string]::IsNullOrEmpty($output)) {
             $output = $this.Render()
         }

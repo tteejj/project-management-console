@@ -94,49 +94,6 @@ class PmcStatusBar : PmcWidget {
 
     # === Rendering ===
 
-    [string] OnRender() {
-        $sb = [System.Text.StringBuilder]::new(256)
-
-        # Colors
-        $bgColor = $this.GetThemedAnsi('Border', $true)
-        $fgColor = $this.GetThemedAnsi('Text', $false)
-        $mutedColor = $this.GetThemedAnsi('Muted', $false)
-        $reset = "`e[0m"
-
-        # Position
-        $sb.Append($this.BuildMoveTo($this.X, $this.Y))
-
-        # Background
-        if ($this.UseBackground) {
-            $sb.Append($bgColor)
-            $sb.Append($fgColor)
-        }
-
-        # Calculate section widths
-        $leftWidth = [Math]::Floor($this.Width * 0.4)
-        $centerWidth = [Math]::Floor($this.Width * 0.2)
-        $rightWidth = $this.Width - $leftWidth - $centerWidth
-
-        # Left section
-        $leftDisplay = $this.PadText($this.LeftText, $leftWidth, 'left')
-        $sb.Append($leftDisplay)
-
-        # Center section
-        $centerDisplay = $this.PadText($this.CenterText, $centerWidth, 'center')
-        $sb.Append($mutedColor)
-        $sb.Append($centerDisplay)
-        $sb.Append($fgColor)
-
-        # Right section
-        $rightDisplay = $this.PadText($this.RightText, $rightWidth, 'right')
-        $sb.Append($rightDisplay)
-
-        $sb.Append($reset)
-
-        $result = $sb.ToString()
-
-        return $result
-    }
 
     <#
     .SYNOPSIS

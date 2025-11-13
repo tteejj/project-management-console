@@ -91,45 +91,6 @@ class PmcFooter : PmcWidget {
 
     # === Rendering ===
 
-    [string] OnRender() {
-        if ($this.Shortcuts.Count -eq 0) {
-            return ""
-        }
-
-        $sb = [System.Text.StringBuilder]::new(512)
-
-        # Colors
-        $keyColor = $this.GetThemedAnsi('Highlight', $false)
-        $textColor = $this.GetThemedAnsi('Muted', $false)
-        $separatorColor = $this.GetThemedAnsi('Border', $false)
-        $reset = "`e[0m"
-
-        # Position
-        $sb.Append($this.BuildMoveTo($this.X, $this.Y))
-
-        # Build shortcut string
-        $shortcutParts = [List[string]]::new()
-        foreach ($shortcut in $this.Shortcuts) {
-            $key = $shortcut.Key
-            $desc = $shortcut.Description
-
-            $part = "${keyColor}${key}${reset}${textColor}: ${desc}${reset}"
-            $shortcutParts.Add($part)
-        }
-
-        # Join with separator
-        $separator = " ${separatorColor}|${reset} "
-        $footerText = $shortcutParts -join $separator
-
-        # Note: This includes ANSI codes, so actual display width will be shorter
-        # For now, just output it (proper width calculation would need ANSI stripping)
-        $sb.Append($footerText)
-        $sb.Append($reset)
-
-        $result = $sb.ToString()
-
-        return $result
-    }
 
     <#
     .SYNOPSIS

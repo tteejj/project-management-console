@@ -115,42 +115,6 @@ class PmcPanel : PmcWidget {
 
     # === Rendering ===
 
-    [string] OnRender() {
-        $sb = [System.Text.StringBuilder]::new(1024)
-
-        # Colors
-        $borderColor = $this.GetThemedAnsi('Border', $false)
-        $titleColor = $this.GetThemedAnsi('Header', $false)
-        $textColor = $this.GetThemedAnsi('Text', $false)
-        $reset = "`e[0m"
-
-        if ($this.ShowBorder) {
-            # Top border with title
-            $sb.Append($this._RenderTopBorder($borderColor, $titleColor, $reset))
-
-            # Side borders (if height > 2)
-            if ($this.Height -gt 2) {
-                for ($row = 1; $row -lt ($this.Height - 1); $row++) {
-                    $sb.Append($this._RenderMiddleLine($row, $borderColor, $textColor, $reset))
-                }
-            }
-
-            # Bottom border
-            if ($this.Height -gt 1) {
-                $sb.Append($this._RenderBottomBorder($borderColor, $reset))
-            }
-        } else {
-            # No border - just render content
-            $sb.Append($this._RenderContentNoBorder($textColor, $reset))
-        }
-
-        # Render children (offset by border + padding)
-        # Children handled by base Component.Render()
-
-        $result = $sb.ToString()
-        
-        return $result
-    }
 
     <#
     .SYNOPSIS
@@ -253,120 +217,9 @@ class PmcPanel : PmcWidget {
         }
     }
 
-    hidden [string] _RenderTopBorder([string]$borderColor, [string]$titleColor, [string]$reset) {
-        $sb = [System.Text.StringBuilder]::new(256)
 
-        $sb.Append($this.BuildMoveTo($this.X, $this.Y))
-        $sb.Append($borderColor)
 
-        if ($this.ShowTitle -and $this.PanelTitle) {
-            # Title in border: ┌─ Title ─────┐
-            $leftCorner = $this.GetBoxChar("$($this.BorderStyle)_topleft")
-            $rightCorner = $this.GetBoxChar("$($this.BorderStyle)_topright")
-            $horizChar = $this.GetBoxChar("$($this.BorderStyle)_horizontal")
 
-            $titleText = " $($this.PanelTitle) "
-            $remainingWidth = $this.Width - 2 - $titleText.Length
-
-            if ($remainingWidth -gt 0) {
-                $sb.Append($leftCorner)
-                $sb.Append($horizChar)
-                $sb.Append($titleColor)
-                $sb.Append($titleText)
-                $sb.Append($borderColor)
-                $sb.Append($horizChar * $remainingWidth)
-                $sb.Append($rightCorner)
-            } else {
-                # Title too long, just draw border
-                $sb.Append($this.BuildBoxBorder($this.Width, 'top', $this.BorderStyle))
-            }
-        } else {
-            # No title, simple top border
-            $sb.Append($this.BuildBoxBorder($this.Width, 'top', $this.BorderStyle))
-        }
-
-        $sb.Append($reset)
-
-        $result = $sb.ToString()
-        
-        return $result
-    }
-
-    hidden [string] _RenderMiddleLine([int]$row, [string]$borderColor, [string]$textColor, [string]$reset) {
-        $sb = [System.Text.StringBuilder]::new(256)
-
-        $sb.Append($this.BuildMoveTo($this.X, $this.Y + $row))
-        $sb.Append($borderColor)
-
-        $vertChar = $this.GetBoxChar("$($this.BorderStyle)_vertical")
-
-        # Left border
-        $sb.Append($vertChar)
-
-        # Content area
-        $contentWidth = $this.Width - 2  # Minus left and right borders
-
-        # Check if this row should show content
-        if ($this.ContentText) {
-            $contentRow = $row - $this.PaddingTop
-            $lines = $this.ContentText -split "`n"
-            if ($contentRow -ge 0 -and $contentRow -lt $lines.Count) {
-                $line = $lines[$contentRow]
-                $innerWidth = $contentWidth - $this.PaddingLeft - $this.PaddingRight
-
-                $sb.Append($textColor)
-                $sb.Append($this.GetSpaces($this.PaddingLeft))
-                $sb.Append($this.PadText($line, $innerWidth, $this.ContentAlign))
-                $sb.Append($this.GetSpaces($this.PaddingRight))
-                $sb.Append($borderColor)
-            } else {
-                # Empty line
-                $sb.Append($this.GetSpaces($contentWidth))
-            }
-        } else {
-            # No content
-            $sb.Append($this.GetSpaces($contentWidth))
-        }
-
-        # Right border
-        $sb.Append($vertChar)
-        $sb.Append($reset)
-
-        $result = $sb.ToString()
-        
-        return $result
-    }
-
-    hidden [string] _RenderBottomBorder([string]$borderColor, [string]$reset) {
-        $sb = [System.Text.StringBuilder]::new(256)
-
-        $sb.Append($this.BuildMoveTo($this.X, $this.Y + $this.Height - 1))
-        $sb.Append($borderColor)
-        $sb.Append($this.BuildBoxBorder($this.Width, 'bottom', $this.BorderStyle))
-        $sb.Append($reset)
-
-        $result = $sb.ToString()
-        
-        return $result
-    }
-
-    hidden [string] _RenderContentNoBorder([string]$textColor, [string]$reset) {
-        if (-not $this.ContentText) { return "" }
-
-        $sb = [System.Text.StringBuilder]::new(512)
-
-        $lines = $this.ContentText -split "`n"
-        for ($i = 0; $i -lt [Math]::Min($lines.Count, $this.Height); $i++) {
-            $sb.Append($this.BuildMoveTo($this.X, $this.Y + $i))
-            $sb.Append($textColor)
-            $sb.Append($this.PadText($lines[$i], $this.Width, $this.ContentAlign))
-            $sb.Append($reset)
-        }
-
-        $result = $sb.ToString()
-        
-        return $result
-    }
 
     # === Helper Methods ===
 
