@@ -178,7 +178,7 @@ class MenuRegistry {
     [void] LoadFromManifest([string]$manifestPath, [object]$container) {
         if (-not (Test-Path $manifestPath)) {
             if ($global:PmcTuiLogFile) {
-                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [ERROR] MenuRegistry: Manifest not found at '$manifestPath'"
+                Write-PmcTuiLog "MenuRegistry: Manifest not found at '$manifestPath'" "ERROR"
             }
             Write-Host "ERROR: Menu manifest not found at '$manifestPath'" -ForegroundColor Red
             return
@@ -189,7 +189,7 @@ class MenuRegistry {
             $manifest = Import-PowerShellDataFile -Path $manifestPath
 
             if ($global:PmcTuiLogFile) {
-                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] MenuRegistry: Loaded manifest with $($manifest.Count) entries"
+                Write-PmcTuiLog "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] MenuRegistry: Loaded manifest with $($manifest.Count) entries" "INFO"
             }
 
             $screensDir = Split-Path $manifestPath -Parent
@@ -230,7 +230,7 @@ class MenuRegistry {
                     }.GetNewClosure(), $false)  # Non-singleton: create new instance each time
 
                     if ($global:PmcTuiLogFile) {
-                        Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] MenuRegistry: Registered screen factory '$screenName' in container (viewMode=$viewMode)"
+                        Write-PmcTuiLog "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] MenuRegistry: Registered screen factory '$screenName' in container (viewMode=$viewMode)" "INFO"
                     }
                 }
 
@@ -244,15 +244,15 @@ class MenuRegistry {
                 $this.AddMenuItem($menu, $label, $hotkey, $scriptblock, $order)
 
                 if ($global:PmcTuiLogFile) {
-                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] MenuRegistry: Registered '$label' in '$menu' menu (hotkey=$hotkey order=$order)"
+                    Write-PmcTuiLog "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] MenuRegistry: Registered '$label' in '$menu' menu (hotkey=$hotkey order=$order)" "INFO"
                 }
             }
 
         } catch {
             $errorMsg = "MenuRegistry: Error loading manifest: $($_.Exception.Message)"
             if ($global:PmcTuiLogFile) {
-                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [ERROR] $errorMsg"
-                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] Stack trace: $($_.ScriptStackTrace)"
+                Write-PmcTuiLog "$errorMsg" "ERROR"
+                Write-PmcTuiLog "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] Stack trace: $($_.ScriptStackTrace)" "INFO"
             }
             Write-Host "ERROR: $errorMsg" -ForegroundColor Red
         }
@@ -274,7 +274,7 @@ class MenuRegistry {
         # - Circular dependencies between screens
 
         if ($global:PmcTuiLogFile) {
-            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [WARN] MenuRegistry.DiscoverScreens() is deprecated - use LoadFromManifest() instead"
+            Write-PmcTuiLog "MenuRegistry.DiscoverScreens() is deprecated - use LoadFromManifest() instead" "WARN"
         }
     }
 }

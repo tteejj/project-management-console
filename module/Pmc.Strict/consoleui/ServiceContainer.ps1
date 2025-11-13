@@ -66,7 +66,7 @@ class ServiceContainer {
     [void] Register([string]$name, [scriptblock]$factory, [bool]$singleton = $true) {
         if ($this._factories.ContainsKey($name)) {
             if ($global:PmcTuiLogFile) {
-                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [WARN] ServiceContainer: Re-registering service '$name'"
+                Write-PmcTuiLog "ServiceContainer: Re-registering service '$name'" "WARN"
             }
         }
 
@@ -74,7 +74,7 @@ class ServiceContainer {
         $this._isSingleton[$name] = $singleton
 
         if ($global:PmcTuiLogFile) {
-            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ServiceContainer: Registered '$name' (singleton=$singleton)"
+            Write-PmcTuiLog "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ServiceContainer: Registered '$name' (singleton=$singleton)" "INFO"
         }
     }
 
@@ -102,7 +102,7 @@ class ServiceContainer {
         if (-not $this._factories.ContainsKey($name)) {
             $error = "Service '$name' not registered in container"
             if ($global:PmcTuiLogFile) {
-                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [ERROR] ServiceContainer: $error"
+                Write-PmcTuiLog "ServiceContainer: $error" "ERROR"
             }
             throw $error
         }
@@ -112,7 +112,7 @@ class ServiceContainer {
             $chain = ($this._resolutionStack -join ' -> ') + " -> $name"
             $error = "Circular dependency detected: $chain"
             if ($global:PmcTuiLogFile) {
-                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [ERROR] ServiceContainer: $error"
+                Write-PmcTuiLog "ServiceContainer: $error" "ERROR"
             }
             throw $error
         }
@@ -122,7 +122,7 @@ class ServiceContainer {
 
         try {
             if ($global:PmcTuiLogFile) {
-                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ServiceContainer: Resolving '$name'..."
+                Write-PmcTuiLog "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ServiceContainer: Resolving '$name'..." "INFO"
             }
 
             # Invoke factory (pass container for nested resolution)
@@ -135,15 +135,15 @@ class ServiceContainer {
             }
 
             if ($global:PmcTuiLogFile) {
-                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ServiceContainer: Resolved '$name' successfully"
+                Write-PmcTuiLog "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ServiceContainer: Resolved '$name' successfully" "INFO"
             }
 
             return $instance
 
         } catch {
             if ($global:PmcTuiLogFile) {
-                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [ERROR] ServiceContainer: Failed to resolve '$name': $_"
-                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] Stack trace: $($_.ScriptStackTrace)"
+                Write-PmcTuiLog "ServiceContainer: Failed to resolve '$name': $_" "ERROR"
+                Write-PmcTuiLog "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] Stack trace: $($_.ScriptStackTrace)" "INFO"
             }
             throw
         } finally {
@@ -184,7 +184,7 @@ class ServiceContainer {
     [void] ClearResolved() {
         $this._singletons.Clear()
         if ($global:PmcTuiLogFile) {
-            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ServiceContainer: Cleared all resolved singletons"
+            Write-PmcTuiLog "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ServiceContainer: Cleared all resolved singletons" "INFO"
         }
     }
 }

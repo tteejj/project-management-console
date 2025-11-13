@@ -592,19 +592,16 @@ class UniversalList : PmcWidget {
         }
 
         # Action handling
-        $keyChar = $keyInfo.KeyChar.ToString().ToLower()
-
         # DEBUG: Write directly to log file for troubleshooting
-        $debugMsg = "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] UniversalList HandleInput: char='$keyChar' Key=$($keyInfo.Key) Actions=$($this._actions.Keys -join ',')"
         if ($global:PmcTuiLogFile) {
-            Add-Content -Path $global:PmcTuiLogFile -Value $debugMsg
+            $keyChar = $keyInfo.KeyChar.ToString().ToLower()
+            Write-PmcTuiLog "UniversalList HandleInput: char='$keyChar' Key=$($keyInfo.Key) Actions=$($this._actions.Keys -join ',')" "DEBUG"
         }
 
         if ($this._actions.ContainsKey($keyChar)) {
             $action = $this._actions[$keyChar]
-            $actionMsg = "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] UniversalList: Triggering action '$keyChar' - $($action.Label)"
             if ($global:PmcTuiLogFile) {
-                Add-Content -Path $global:PmcTuiLogFile -Value $actionMsg
+                Write-PmcTuiLog "UniversalList: Triggering action '$keyChar' - $($action.Label)" "DEBUG"
             }
             $this._InvokeCallback($action.Callback, $this)
             return $true
@@ -816,11 +813,11 @@ class UniversalList : PmcWidget {
         if ($global:PmcTuiLogFile) {
             $dataCount = if ($null -eq $this._data) { "NULL" } elseif ($this._data -is [array]) { $this._data.Count } else { "NOT_ARRAY:$($this._data.GetType().Name)" }
             $filteredCount = if ($null -eq $this._filteredData) { "NULL" } elseif ($this._filteredData -is [array]) { $this._filteredData.Count } else { "NOT_ARRAY:$($this._filteredData.GetType().Name)" }
-            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] UniversalList._RenderList: _data=$dataCount _filteredData=$filteredCount maxVisible=$maxVisibleRows visibleStart=$visibleStartIndex visibleEnd=$visibleEndIndex"
+            Write-PmcTuiLog "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] UniversalList._RenderList: _data=$dataCount _filteredData=$filteredCount maxVisible=$maxVisibleRows visibleStart=$visibleStartIndex visibleEnd=$visibleEndIndex" "INFO"
         }
 
         if ($global:PmcTuiLogFile) {
-            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] UniversalList._RenderList LOOP: visibleStartIndex=$visibleStartIndex visibleEndIndex=$visibleEndIndex"
+            Write-PmcTuiLog "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] UniversalList._RenderList LOOP: visibleStartIndex=$visibleStartIndex visibleEndIndex=$visibleEndIndex" "INFO"
         }
 
         for ($i = $visibleStartIndex; $i -lt $visibleEndIndex; $i++) {
@@ -836,7 +833,7 @@ class UniversalList : PmcWidget {
                 if (-not $itemDesc) { $itemDesc = Get-SafeProperty $item 'name' }
                 if (-not $itemDesc) { $itemDesc = Get-SafeProperty $item 'id' }
                 if (-not $itemDesc) { $itemDesc = "unknown" }
-                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] UniversalList._RenderList LOOP iteration $i - item=$itemDesc"
+                Write-PmcTuiLog "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] UniversalList._RenderList LOOP iteration $i - item=$itemDesc" "INFO"
             }
 
             $rowY = $this.Y + $currentRow
@@ -1044,7 +1041,7 @@ class UniversalList : PmcWidget {
         }
 
         if ($global:PmcTuiLogFile) {
-            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] UniversalList._RenderList: actionsStr='$actionsStr' (Keys=$($this._actions.Keys.Count))"
+            Write-PmcTuiLog "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] UniversalList._RenderList: actionsStr='$actionsStr' (Keys=$($this._actions.Keys.Count))" "INFO"
         }
 
         if ($actionsStr.Length -eq 0) {

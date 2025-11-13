@@ -39,7 +39,7 @@ class PmcFilePicker : PmcWidget {
         $this.SelectedIndex = 0
 
         if ($global:PmcTuiLogFile) {
-            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcFilePicker._LoadItems: CurrentPath='$($this.CurrentPath)'"
+            Write-PmcTuiLog "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcFilePicker._LoadItems: CurrentPath='$($this.CurrentPath)'" "INFO"
         }
 
         try {
@@ -56,7 +56,7 @@ class PmcFilePicker : PmcWidget {
             # Get directories
             $dirs = Get-ChildItem -Path $this.CurrentPath -Directory -ErrorAction SilentlyContinue | Sort-Object Name
             if ($global:PmcTuiLogFile) {
-                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcFilePicker: Found $($dirs.Count) directories"
+                Write-PmcTuiLog "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcFilePicker: Found $($dirs.Count) directories" "INFO"
             }
             foreach ($dir in $dirs) {
                 $this.Items += @{
@@ -79,11 +79,11 @@ class PmcFilePicker : PmcWidget {
             }
 
             if ($global:PmcTuiLogFile) {
-                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcFilePicker: Total items loaded: $($this.Items.Count)"
+                Write-PmcTuiLog "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcFilePicker: Total items loaded: $($this.Items.Count)" "INFO"
             }
         } catch {
             if ($global:PmcTuiLogFile) {
-                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcFilePicker: ERROR loading items: $_"
+                Write-PmcTuiLog "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcFilePicker: ERROR loading items: $_" "INFO"
             }
             # If can't read directory, go to home
             $this.CurrentPath = [Environment]::GetFolderPath('UserProfile')
@@ -99,7 +99,7 @@ class PmcFilePicker : PmcWidget {
         $y = 2
 
         if ($global:PmcTuiLogFile) {
-            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcFilePicker.Render: termWidth=$termWidth, termHeight=$termHeight, x=$x, y=$y, Width=$($this.Width), Height=$($this.Height)"
+            Write-PmcTuiLog "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcFilePicker.Render: termWidth=$termWidth, termHeight=$termHeight, x=$x, y=$y, Width=$($this.Width), Height=$($this.Height)" "INFO"
         }
 
         # Colors - MAXIMUM CONTRAST for visibility testing
@@ -164,7 +164,7 @@ class PmcFilePicker : PmcWidget {
         $maxItems = $this.Height - 7
 
         if ($global:PmcTuiLogFile) {
-            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcFilePicker.Render: About to render items (Count=$($this.Items.Count), maxItems=$maxItems, x=$x, y=$y, listStartY=$listStartY)"
+            Write-PmcTuiLog "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcFilePicker.Render: About to render items (Count=$($this.Items.Count), maxItems=$maxItems, x=$x, y=$y, listStartY=$listStartY)" "INFO"
         }
 
         # Render ALL lines to ensure background fills properly
@@ -176,7 +176,7 @@ class PmcFilePicker : PmcWidget {
                 $isSelected = ($i -eq $this.SelectedIndex)
 
                 if ($global:PmcTuiLogFile -and $i -lt 3) {
-                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcFilePicker: Rendering item ${i} '$($item.Name)' at y=$itemY"
+                    Write-PmcTuiLog "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcFilePicker: Rendering item ${i} '$($item.Name)' at y=$itemY" "INFO"
                 }
 
                 # Selection indicator
@@ -225,7 +225,7 @@ class PmcFilePicker : PmcWidget {
                     # Get last 200 chars of sb to see what was just added
                     $sbStr = $sb.ToString()
                     $tail = if ($sbStr.Length -gt 200) { $sbStr.Substring($sbStr.Length - 200) } else { $sbStr }
-                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcFilePicker: Item 0 - Last 200 chars: $($tail -replace "`e", '<ESC>')"
+                    Write-PmcTuiLog "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcFilePicker: Item 0 - Last 200 chars: $($tail -replace " "INFO"`e", '<ESC>')"
                 }
             } else {
                 # Empty line - fill with background
@@ -248,44 +248,44 @@ class PmcFilePicker : PmcWidget {
         $output = $sb.ToString()
 
         if ($global:PmcTuiLogFile) {
-            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcFilePicker.Render: Generated output length=$($output.Length)"
+            Write-PmcTuiLog "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcFilePicker.Render: Generated output length=$($output.Length)" "INFO"
 
             # COMPREHENSIVE DEBUG OUTPUT
-            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] === FULL RENDER DEBUG ==="
-            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] Items.Count=$($this.Items.Count)"
-            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] SelectedIndex=$($this.SelectedIndex)"
-            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] Position: x=$x y=$y Width=$($this.Width) Height=$($this.Height)"
-            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] Terminal: ${termWidth}x${termHeight}"
+            Write-PmcTuiLog "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] === FULL RENDER DEBUG ===" "INFO"
+            Write-PmcTuiLog "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] Items.Count=$($this.Items.Count)" "INFO"
+            Write-PmcTuiLog "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] SelectedIndex=$($this.SelectedIndex)" "INFO"
+            Write-PmcTuiLog "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] Position: x=$x y=$y Width=$($this.Width) Height=$($this.Height)" "INFO"
+            Write-PmcTuiLog "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] Terminal: ${termWidth}x${termHeight}" "INFO"
 
             # Show color codes being used
-            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] Colors:"
-            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')]   bgColor: $($bgColor -replace "`e", '<ESC>')"
-            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')]   dirColor: $($dirColor -replace "`e", '<ESC>')"
-            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')]   highlightBg: $($highlightBg -replace "`e", '<ESC>')"
-            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')]   highlightFg: $($highlightFg -replace "`e", '<ESC>')"
+            Write-PmcTuiLog "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] Colors:" "INFO"
+            Write-PmcTuiLog "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')]   bgColor: $($bgColor -replace " "INFO"`e", '<ESC>')"
+            Write-PmcTuiLog "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')]   dirColor: $($dirColor -replace " "INFO"`e", '<ESC>')"
+            Write-PmcTuiLog "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')]   highlightBg: $($highlightBg -replace " "INFO"`e", '<ESC>')"
+            Write-PmcTuiLog "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')]   highlightFg: $($highlightFg -replace " "INFO"`e", '<ESC>')"
 
             # Show first 3 items
-            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] First 3 items:"
+            Write-PmcTuiLog "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] First 3 items:" "INFO"
             for ($i = 0; $i -lt [Math]::Min(3, $this.Items.Count); $i++) {
                 $item = $this.Items[$i]
-                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')]   [$i] Name='$($item.Name)' IsDir=$($item.IsDirectory)"
+                Write-PmcTuiLog "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')]   [$i] Name='$($item.Name)' IsDir=$($item.IsDirectory)" "INFO"
             }
 
             # Find emoji in output
             $emojiPos = $output.IndexOf("📁")
             if ($emojiPos -gt 0) {
-                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] EMOJI FOUND at position $emojiPos"
+                Write-PmcTuiLog "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] EMOJI FOUND at position $emojiPos" "INFO"
                 $start = [Math]::Max(0, $emojiPos - 100)
                 $len = [Math]::Min(300, $output.Length - $start)
                 $sample = $output.Substring($start, $len)
-                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] Output around emoji:"
-                Add-Content -Path $global:PmcTuiLogFile -Value "    $($sample -replace "`e", '<ESC>')"
+                Write-PmcTuiLog "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] Output around emoji:" "INFO"
+                Write-PmcTuiLog "    $($sample -replace " "INFO"`e", '<ESC>')"
             } else {
-                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] !!! NO EMOJI FOUND IN OUTPUT !!!"
+                Write-PmcTuiLog "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] !!! NO EMOJI FOUND IN OUTPUT !!!" "INFO"
                 # Show first 500 chars
                 $sample = $output.Substring(0, [Math]::Min(500, $output.Length))
-                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] First 500 chars of output:"
-                Add-Content -Path $global:PmcTuiLogFile -Value "    $($sample -replace "`e", '<ESC>')"
+                Write-PmcTuiLog "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] First 500 chars of output:" "INFO"
+                Write-PmcTuiLog "    $($sample -replace " "INFO"`e", '<ESC>')"
             }
 
             # Search for item names in output
@@ -293,13 +293,13 @@ class PmcFilePicker : PmcWidget {
                 $firstItemName = $this.Items[0].Name
                 $namePos = $output.IndexOf($firstItemName)
                 if ($namePos -gt 0) {
-                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] First item name '$firstItemName' FOUND at position $namePos"
+                    Write-PmcTuiLog "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] First item name '$firstItemName' FOUND at position $namePos" "INFO"
                 } else {
-                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] !!! First item name '$firstItemName' NOT FOUND in output !!!"
+                    Write-PmcTuiLog "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] !!! First item name '$firstItemName' NOT FOUND in output !!!" "INFO"
                 }
             }
 
-            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] === END RENDER DEBUG ==="
+            Write-PmcTuiLog "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] === END RENDER DEBUG ===" "INFO"
         }
 
         return $output
@@ -307,7 +307,7 @@ class PmcFilePicker : PmcWidget {
 
     [bool] HandleInput([ConsoleKeyInfo]$keyInfo) {
         if ($global:PmcTuiLogFile) {
-            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcFilePicker.HandleInput: Key=$($keyInfo.Key) SelectedIndex=$($this.SelectedIndex) ItemCount=$($this.Items.Count)"
+            Write-PmcTuiLog "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcFilePicker.HandleInput: Key=$($keyInfo.Key) SelectedIndex=$($this.SelectedIndex) ItemCount=$($this.Items.Count)" "INFO"
         }
 
         switch ($keyInfo.Key) {
@@ -349,14 +349,14 @@ class PmcFilePicker : PmcWidget {
             'Spacebar' {
                 # Space selects current directory
                 if ($global:PmcTuiLogFile) {
-                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcFilePicker: SPACE pressed - selecting CurrentPath='$($this.CurrentPath)'"
+                    Write-PmcTuiLog "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcFilePicker: SPACE pressed - selecting CurrentPath='$($this.CurrentPath)'" "INFO"
                 }
                 $this.SelectedPath = $this.CurrentPath
                 $this.Result = $true
                 $this.IsComplete = $true
 
                 if ($global:PmcTuiLogFile) {
-                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcFilePicker: After SPACE - SelectedPath='$($this.SelectedPath)' Result=$($this.Result) IsComplete=$($this.IsComplete)"
+                    Write-PmcTuiLog "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcFilePicker: After SPACE - SelectedPath='$($this.SelectedPath)' Result=$($this.Result) IsComplete=$($this.IsComplete)" "INFO"
                 }
                 return $true
             }

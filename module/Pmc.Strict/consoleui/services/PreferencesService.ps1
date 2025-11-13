@@ -147,7 +147,7 @@ class PreferencesService {
         $this._preferencesPath = Join-Path $configPath "preferences.json"
 
         if ((Get-Variable -Name 'PmcTuiLogFile' -Scope Global -ErrorAction SilentlyContinue) -and $global:PmcTuiLogFile) {
-            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PreferencesService: Preferences path: $($this._preferencesPath)"
+            Write-PmcTuiLog "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PreferencesService: Preferences path: $($this._preferencesPath)" "INFO"
         }
     }
 
@@ -165,7 +165,7 @@ class PreferencesService {
                 $loaded = $json | ConvertFrom-Json -AsHashtable
 
                 if ((Get-Variable -Name 'PmcTuiLogFile' -Scope Global -ErrorAction SilentlyContinue) -and $global:PmcTuiLogFile) {
-                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PreferencesService: Loaded preferences from file"
+                    Write-PmcTuiLog "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PreferencesService: Loaded preferences from file" "INFO"
                 }
 
                 # M-CFG-6: Config Validation - validate loaded preferences
@@ -176,7 +176,7 @@ class PreferencesService {
                 $this._isDirty = $false
             } else {
                 if ((Get-Variable -Name 'PmcTuiLogFile' -Scope Global -ErrorAction SilentlyContinue) -and $global:PmcTuiLogFile) {
-                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PreferencesService: No preferences file found, using defaults"
+                    Write-PmcTuiLog "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PreferencesService: No preferences file found, using defaults" "INFO"
                 }
 
                 # Use defaults
@@ -185,8 +185,8 @@ class PreferencesService {
             }
         } catch {
             if ((Get-Variable -Name 'PmcTuiLogFile' -Scope Global -ErrorAction SilentlyContinue) -and $global:PmcTuiLogFile) {
-                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PreferencesService: Error loading preferences: $_"
-                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PreferencesService: Using defaults"
+                Write-PmcTuiLog "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PreferencesService: Error loading preferences: $_" "INFO"
+                Write-PmcTuiLog "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PreferencesService: Using defaults" "INFO"
             }
 
             # On error, use defaults
@@ -366,7 +366,7 @@ class PreferencesService {
         $this._isDirty = $true
 
         if ((Get-Variable -Name 'PmcTuiLogFile' -Scope Global -ErrorAction SilentlyContinue) -and $global:PmcTuiLogFile) {
-            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PreferencesService: Set preference '$key' = '$value'"
+            Write-PmcTuiLog "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PreferencesService: Set preference '$key' = '$value'" "INFO"
         }
     }
 
@@ -393,7 +393,7 @@ class PreferencesService {
         $this._isDirty = $true
 
         if ((Get-Variable -Name 'PmcTuiLogFile' -Scope Global -ErrorAction SilentlyContinue) -and $global:PmcTuiLogFile) {
-            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PreferencesService: Reset all preferences to defaults"
+            Write-PmcTuiLog "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PreferencesService: Reset all preferences to defaults" "INFO"
         }
     }
 
@@ -413,7 +413,7 @@ class PreferencesService {
             $this._isDirty = $true
 
             if ((Get-Variable -Name 'PmcTuiLogFile' -Scope Global -ErrorAction SilentlyContinue) -and $global:PmcTuiLogFile) {
-                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PreferencesService: Reset preference '$key' to default"
+                Write-PmcTuiLog "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PreferencesService: Reset preference '$key' to default" "INFO"
             }
         }
     }
@@ -436,11 +436,11 @@ class PreferencesService {
             $this._isDirty = $false
 
             if ((Get-Variable -Name 'PmcTuiLogFile' -Scope Global -ErrorAction SilentlyContinue) -and $global:PmcTuiLogFile) {
-                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PreferencesService: Saved preferences to $($this._preferencesPath)"
+                Write-PmcTuiLog "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PreferencesService: Saved preferences to $($this._preferencesPath)" "INFO"
             }
         } catch {
             if ((Get-Variable -Name 'PmcTuiLogFile' -Scope Global -ErrorAction SilentlyContinue) -and $global:PmcTuiLogFile) {
-                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PreferencesService: Error saving preferences: $_"
+                Write-PmcTuiLog "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PreferencesService: Error saving preferences: $_" "INFO"
             }
             throw
         }

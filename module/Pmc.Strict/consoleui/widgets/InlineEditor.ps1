@@ -575,7 +575,7 @@ class InlineEditor : PmcWidget {
                     }
 
                     if ($global:PmcTuiLogFile) {
-                        Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] InlineEditor: Rendering PmcFilePicker with termWidth=$termWidth, termHeight=$termHeight"
+                        Write-PmcTuiLog "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] InlineEditor: Rendering PmcFilePicker with termWidth=$termWidth, termHeight=$termHeight" "INFO"
                     }
 
                     # Force full redraw for FilePicker every frame to avoid diff issues
@@ -584,7 +584,7 @@ class InlineEditor : PmcWidget {
                     $output = $widget.Render($termWidth, $termHeight)
 
                     if ($global:PmcTuiLogFile) {
-                        Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] InlineEditor: PmcFilePicker render returned length=$($output.Length)"
+                        Write-PmcTuiLog "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] InlineEditor: PmcFilePicker render returned length=$($output.Length)" "INFO"
                     }
 
                     return $output

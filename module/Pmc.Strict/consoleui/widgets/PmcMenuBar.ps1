@@ -184,7 +184,7 @@ class PmcMenuBar : PmcWidget {
     #>
     [void] ShowDropdown() {
         if ($global:PmcTuiLogFile) {
-            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ShowDropdown called: SelectedMenuIndex=$($this.SelectedMenuIndex) MenuCount=$($this.Menus.Count)"
+            Write-PmcTuiLog "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ShowDropdown called: SelectedMenuIndex=$($this.SelectedMenuIndex) MenuCount=$($this.Menus.Count)" "INFO"
         }
         if ($this.SelectedMenuIndex -ge 0 -and $this.SelectedMenuIndex -lt $this.Menus.Count) {
             $menu = $this.Menus[$this.SelectedMenuIndex]
@@ -192,7 +192,7 @@ class PmcMenuBar : PmcWidget {
             # Don't show dropdown if menu has no items
             if ($null -eq $menu.Items -or $menu.Items.Count -eq 0) {
                 if ($global:PmcTuiLogFile) {
-                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ShowDropdown: Menu '$($menu.Title)' has no items (type=$($menu.GetType().Name) Items=$($menu.Items)), not showing dropdown"
+                    Write-PmcTuiLog "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ShowDropdown: Menu '$($menu.Title)' has no items (type=$($menu.GetType().Name) Items=$($menu.Items)), not showing dropdown" "INFO"
                 }
                 return
             }
@@ -203,7 +203,7 @@ class PmcMenuBar : PmcWidget {
             $this._SelectNextEnabledItem()
             $this.Invalidate()
             if ($global:PmcTuiLogFile) {
-                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ShowDropdown: DropdownVisible=true, Menu='$($menu.Title)' ItemCount=$($menu.Items.Count)"
+                Write-PmcTuiLog "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ShowDropdown: DropdownVisible=true, Menu='$($menu.Title)' ItemCount=$($menu.Items.Count)" "INFO"
             }
         }
     }
@@ -315,12 +315,12 @@ class PmcMenuBar : PmcWidget {
     #>
     [bool] ExecuteSelectedItem() {
         if ($global:PmcTuiLogFile) {
-            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ExecuteSelectedItem: DropdownVisible=$($this.DropdownVisible) MenuIndex=$($this.SelectedMenuIndex) ItemIndex=$($this.SelectedItemIndex)"
+            Write-PmcTuiLog "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ExecuteSelectedItem: DropdownVisible=$($this.DropdownVisible) MenuIndex=$($this.SelectedMenuIndex) ItemIndex=$($this.SelectedItemIndex)" "INFO"
         }
 
         if (-not $this.DropdownVisible -or $this.SelectedMenuIndex -lt 0 -or $this.SelectedItemIndex -lt 0) {
             if ($global:PmcTuiLogFile) {
-                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ExecuteSelectedItem: Conditions not met, returning false"
+                Write-PmcTuiLog "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ExecuteSelectedItem: Conditions not met, returning false" "INFO"
             }
             return $false
         }
@@ -328,7 +328,7 @@ class PmcMenuBar : PmcWidget {
         $menu = $this.Menus[$this.SelectedMenuIndex]
         if ($this.SelectedItemIndex -ge $menu.Items.Count) {
             if ($global:PmcTuiLogFile) {
-                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ExecuteSelectedItem: ItemIndex ($($this.SelectedItemIndex)) >= ItemCount ($($menu.Items.Count)), returning false"
+                Write-PmcTuiLog "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ExecuteSelectedItem: ItemIndex ($($this.SelectedItemIndex)) >= ItemCount ($($menu.Items.Count)), returning false" "INFO"
             }
             return $false
         }
@@ -336,13 +336,13 @@ class PmcMenuBar : PmcWidget {
         $item = $menu.Items[$this.SelectedItemIndex]
         if ($item.IsSeparator -or -not $item.Enabled) {
             if ($global:PmcTuiLogFile) {
-                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ExecuteSelectedItem: Item is separator or disabled, returning false"
+                Write-PmcTuiLog "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ExecuteSelectedItem: Item is separator or disabled, returning false" "INFO"
             }
             return $false
         }
 
         if ($global:PmcTuiLogFile) {
-            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ExecuteSelectedItem: Executing item='$($item.Label)' from menu='$($menu.Title)'"
+            Write-PmcTuiLog "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ExecuteSelectedItem: Executing item='$($item.Label)' from menu='$($menu.Title)'" "INFO"
         }
 
         # Close dropdown BEFORE executing action
@@ -593,25 +593,25 @@ class PmcMenuBar : PmcWidget {
         $char = $keyInfo.KeyChar
 
         if ($global:PmcTuiLogFile) {
-            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] MenuBar.HandleKeyPress: Key=$key Char='$char' Alt=$($keyInfo.Modifiers -band [ConsoleModifiers]::Alt) IsActive=$($this.IsActive)"
+            Write-PmcTuiLog "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] MenuBar.HandleKeyPress: Key=$key Char='$char' Alt=$($keyInfo.Modifiers -band [ConsoleModifiers]::Alt) IsActive=$($this.IsActive)" "INFO"
         }
 
         # Handle Alt+hotkey even when not active (to activate menu)
         if ($keyInfo.Modifiers -band [ConsoleModifiers]::Alt) {
             if ($global:PmcTuiLogFile) {
-                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] MenuBar: Alt key detected, calling _HandleMenuHotkey('$char')"
+                Write-PmcTuiLog "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] MenuBar: Alt key detected, calling _HandleMenuHotkey('$char')" "INFO"
             }
             if ($this._HandleMenuHotkey($char)) {
                 # Menu hotkey handler already set SelectedMenuIndex and showed dropdown
                 # Just ensure IsActive is set (don't call Activate() which resets index to 0)
                 $this.IsActive = $true
                 if ($global:PmcTuiLogFile) {
-                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] MenuBar: Hotkey matched, menu activated"
+                    Write-PmcTuiLog "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] MenuBar: Hotkey matched, menu activated" "INFO"
                 }
                 return $true
             }
             if ($global:PmcTuiLogFile) {
-                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] MenuBar: Hotkey '$char' not matched"
+                Write-PmcTuiLog "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] MenuBar: Hotkey '$char' not matched" "INFO"
             }
         }
 

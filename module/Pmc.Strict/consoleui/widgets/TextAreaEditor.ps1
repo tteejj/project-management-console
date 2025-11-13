@@ -165,7 +165,7 @@ class TextAreaEditor {
         $lineCount = $this.GetLineCount()
 
         if ($global:PmcTuiLogFile) {
-            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] TextAreaEditor.RenderToEngine: Start - X=$($this.X) Y=$($this.Y) W=$($this.Width) H=$($this.Height) Lines=$lineCount ScrollY=$($this.ScrollOffsetY)"
+            Write-PmcTuiLog "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] TextAreaEditor.RenderToEngine: Start - X=$($this.X) Y=$($this.Y) W=$($this.Width) H=$($this.Height) Lines=$lineCount ScrollY=$($this.ScrollOffsetY)" "INFO"
         }
 
         # Render each visible line
@@ -174,7 +174,7 @@ class TextAreaEditor {
             $screenY = $this.Y + $i
 
             if ($global:PmcTuiLogFile -and $i -lt 3) {
-                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] TextAreaEditor.RenderToEngine: Line $i - lineIndex=$lineIndex screenY=$screenY"
+                Write-PmcTuiLog "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] TextAreaEditor.RenderToEngine: Line $i - lineIndex=$lineIndex screenY=$screenY" "INFO"
             }
 
             if ($lineIndex -lt $lineCount) {
@@ -182,7 +182,7 @@ class TextAreaEditor {
 
                 if ($global:PmcTuiLogFile -and $i -lt 3) {
                     $linePreview = if ($line.Length -gt 20) { $line.Substring(0, 20) + "..." } else { $line }
-                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] TextAreaEditor.RenderToEngine: Line content: '$linePreview' (len=$($line.Length))"
+                    Write-PmcTuiLog "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] TextAreaEditor.RenderToEngine: Line content: '$linePreview' (len=$($line.Length))" "INFO"
                 }
 
                 # Handle horizontal scrolling
