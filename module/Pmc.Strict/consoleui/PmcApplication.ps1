@@ -268,20 +268,39 @@ class PmcApplication {
             }
 
         } catch {
-            # Render error - log if Write-PmcTuiLog available
+            # CRITICAL RENDER ERROR - Fail fast instead of silently continuing
+            $errorMsg = "FATAL RENDER ERROR: $_"
+            $errorLocation = "$($_.InvocationInfo.ScriptName):$($_.InvocationInfo.ScriptLineNumber)"
+
+            # Log to file if available
             if ($global:PmcTuiLogFile) {
-                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] _RenderCurrentScreen: EXCEPTION CAUGHT - $_"
-                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] _RenderCurrentScreen: Exception at: $($_.InvocationInfo.ScriptName):$($_.InvocationInfo.ScriptLineNumber)"
-                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] _RenderCurrentScreen: Exception line: $($_.InvocationInfo.Line)"
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [FATAL] $errorMsg"
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [FATAL] Location: $errorLocation"
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [FATAL] Line: $($_.InvocationInfo.Line)"
             }
-            if (Get-Command Write-PmcTuiLog -ErrorAction SilentlyContinue) {
-                Write-PmcTuiLog "Render error: $_" "ERROR"
-                Write-PmcTuiLog "Error at: $($_.InvocationInfo.ScriptName):$($_.InvocationInfo.ScriptLineNumber)" "ERROR"
-                Write-PmcTuiLog "Error line: $($_.InvocationInfo.Line)" "ERROR"
-            }
+
+            # Show error to user
+            [Console]::Clear()
+            [Console]::CursorVisible = $true
+            [Console]::SetCursorPosition(0, 0)
+            Write-Host "`n========================================" -ForegroundColor Red
+            Write-Host "  FATAL ERROR - APPLICATION CRASHED" -ForegroundColor Red
+            Write-Host "========================================`n" -ForegroundColor Red
+            Write-Host "Error: $errorMsg" -ForegroundColor Red
+            Write-Host "Location: $errorLocation" -ForegroundColor Yellow
+            Write-Host "`nThe application cannot continue safely." -ForegroundColor Yellow
+            Write-Host "Press any key to exit..." -ForegroundColor Gray
+
+            # Call error handler if registered
             if ($this.OnError) {
                 & $this.OnError $_
             }
+
+            # Wait for user acknowledgment
+            [Console]::ReadKey($true) | Out-Null
+
+            # Stop application
+            $this.Stop()
         }
     }
 
@@ -353,39 +372,50 @@ class PmcApplication {
             }
 
             while ($this.Running -and $this.ScreenStack.Count -gt 0) {
-                # Check for terminal resize every 20th iteration (not every loop)
-                if ($iteration % 20 -eq 0) {
+                $hadInput = $false
+
+                # OPTIMIZATION: Drain ALL available input before rendering
+                # This eliminates input lag from sleep delays
+                while ([Console]::KeyAvailable) {
+                    $key = [Console]::ReadKey($true)
+
+                    # Global keys - Ctrl+Q to exit
+                    if ($key.Modifiers -eq [ConsoleModifiers]::Control -and $key.Key -eq 'Q') {
+                        $this.Stop()
+                        break
+                    }
+
+                    # Pass to current screen (screen handles its own menu)
+                    if ($this.CurrentScreen -and $this.CurrentScreen.PSObject.Methods['HandleKeyPress']) {
+                        $handled = $this.CurrentScreen.HandleKeyPress($key)
+                        if ($handled) {
+                            $hadInput = $true
+                        }
+                    }
+                }
+
+                # Mark dirty if we processed input
+                if ($hadInput) {
+                    $this.IsDirty = $true
+                }
+
+                # Capture dirty state before rendering
+                $wasActive = $this.IsDirty
+
+                # OPTIMIZATION: Check terminal resize only when idle (reduces console API calls)
+                if (-not $this.IsDirty) {
                     $currentWidth = [Console]::WindowWidth
                     $currentHeight = [Console]::WindowHeight
 
                     if ($currentWidth -ne $this.TermWidth -or $currentHeight -ne $this.TermHeight) {
                         $this._HandleTerminalResize($currentWidth, $currentHeight)
                     }
+                } else {
+                    # Reset iteration counter when rendering
+                    $iteration = 0
                 }
+
                 $iteration++
-
-                # Check for input
-                if ([Console]::KeyAvailable) {
-                    $key = [Console]::ReadKey($true)
-
-                    # Global keys - Ctrl+Q to exit
-                    if ($key.Modifiers -eq [ConsoleModifiers]::Control -and $key.Key -eq 'Q') {
-                        $this.Stop()
-                        continue
-                    }
-
-                    # Pass to current screen (screen handles its own menu)
-                    if ($this.CurrentScreen -and $this.CurrentScreen.PSObject.Methods['HandleKeyPress']) {
-                        $handled = $this.CurrentScreen.HandleKeyPress($key)
-                        # Mark dirty if screen handled the key (likely changed state)
-                        if ($handled) {
-                            $this.IsDirty = $true
-                        }
-                    }
-                }
-
-                # Capture dirty state before rendering
-                $wasActive = $this.IsDirty
 
                 # Only render when dirty (state changed)
                 if ($this.IsDirty) {
