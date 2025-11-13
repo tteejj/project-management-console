@@ -14,10 +14,6 @@ using namespace System.Collections.Generic
 Set-StrictMode -Version Latest
 
 class ExcelMappingService {
-    # === Singleton Instance ===
-    static hidden [ExcelMappingService]$_instance = $null
-    static hidden [object]$_instanceLock = [object]::new()
-
     # === Configuration ===
     hidden [string]$_profilesFile
     hidden [string]$_activeProfileId = $null
@@ -32,22 +28,7 @@ class ExcelMappingService {
     [scriptblock]$OnProfileDeleted = {}
     [scriptblock]$OnProfilesChanged = {}
 
-    # === Singleton Access ===
-    static [ExcelMappingService] GetInstance() {
-        if ([ExcelMappingService]::_instance -eq $null) {
-            [System.Threading.Monitor]::Enter([ExcelMappingService]::_instanceLock)
-            try {
-                if ([ExcelMappingService]::_instance -eq $null) {
-                    [ExcelMappingService]::_instance = [ExcelMappingService]::new()
-                }
-            } finally {
-                [System.Threading.Monitor]::Exit([ExcelMappingService]::_instanceLock)
-            }
-        }
-        return [ExcelMappingService]::_instance
-    }
-
-    # === Constructor (Private - use GetInstance) ===
+    # === Constructor ===
     ExcelMappingService() {
         # Determine profiles file location relative to PMC root
         $pmcRoot = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))

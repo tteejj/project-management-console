@@ -15,10 +15,6 @@ using namespace System.Collections.Generic
 Set-StrictMode -Version Latest
 
 class CommandService {
-    # === Singleton Instance ===
-    static hidden [CommandService]$_instance = $null
-    static hidden [object]$_instanceLock = [object]::new()
-
     # === Configuration ===
     hidden [string]$_commandsDir
     hidden [string]$_metadataFile
@@ -33,22 +29,7 @@ class CommandService {
     [scriptblock]$OnCommandDeleted = {}
     [scriptblock]$OnCommandsChanged = {}
 
-    # === Singleton Access ===
-    static [CommandService] GetInstance() {
-        if ([CommandService]::_instance -eq $null) {
-            [System.Threading.Monitor]::Enter([CommandService]::_instanceLock)
-            try {
-                if ([CommandService]::_instance -eq $null) {
-                    [CommandService]::_instance = [CommandService]::new()
-                }
-            } finally {
-                [System.Threading.Monitor]::Exit([CommandService]::_instanceLock)
-            }
-        }
-        return [CommandService]::_instance
-    }
-
-    # === Constructor (Private - use GetInstance) ===
+    # === Constructor ===
     CommandService() {
         # Determine commands directory relative to PMC root
         $pmcRoot = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))

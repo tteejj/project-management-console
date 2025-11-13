@@ -15,10 +15,6 @@ using namespace System.Collections.Generic
 Set-StrictMode -Version Latest
 
 class NoteService {
-    # === Singleton Instance ===
-    static hidden [NoteService]$_instance = $null
-    static hidden [object]$_instanceLock = [object]::new()
-
     # === Configuration ===
     hidden [string]$_notesDir
     hidden [string]$_metadataFile
@@ -33,22 +29,7 @@ class NoteService {
     [scriptblock]$OnNoteDeleted = {}
     [scriptblock]$OnNotesChanged = {}
 
-    # === Singleton Access ===
-    static [NoteService] GetInstance() {
-        if ([NoteService]::_instance -eq $null) {
-            [System.Threading.Monitor]::Enter([NoteService]::_instanceLock)
-            try {
-                if ([NoteService]::_instance -eq $null) {
-                    [NoteService]::_instance = [NoteService]::new()
-                }
-            } finally {
-                [System.Threading.Monitor]::Exit([NoteService]::_instanceLock)
-            }
-        }
-        return [NoteService]::_instance
-    }
-
-    # === Constructor (Private - use GetInstance) ===
+    # === Constructor ===
     NoteService() {
         # Determine notes directory relative to PMC root
         $pmcRoot = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))

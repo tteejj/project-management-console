@@ -42,9 +42,6 @@ $prefs.SetPreference('defaultViewMode', 'active')
 $prefs.SavePreferences()
 #>
 class PreferencesService {
-    # Singleton instance
-    static [PreferencesService]$_instance = $null
-
     # Preferences storage
     hidden [hashtable]$_preferences = @{}
 
@@ -107,15 +104,8 @@ class PreferencesService {
     .OUTPUTS
     PreferencesService singleton instance
     #>
-    static [PreferencesService] GetInstance() {
-        if ($null -eq [PreferencesService]::_instance) {
-            [PreferencesService]::_instance = [PreferencesService]::new()
-        }
-        return [PreferencesService]::_instance
-    }
-
-    # Private constructor for singleton
-    hidden PreferencesService() {
+    # Constructor
+    PreferencesService() {
         $this._InitializePreferencesPath()
         $this._LoadPreferences()
     }

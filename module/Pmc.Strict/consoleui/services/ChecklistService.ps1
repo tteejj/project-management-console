@@ -15,10 +15,6 @@ using namespace System.Collections.Generic
 Set-StrictMode -Version Latest
 
 class ChecklistService {
-    # === Singleton Instance ===
-    static hidden [ChecklistService]$_instance = $null
-    static hidden [object]$_instanceLock = [object]::new()
-
     # === Configuration ===
     hidden [string]$_checklistsDir
     hidden [string]$_templatesFile
@@ -38,22 +34,7 @@ class ChecklistService {
     [scriptblock]$OnInstanceDeleted = {}
     [scriptblock]$OnChecklistsChanged = {}
 
-    # === Singleton Access ===
-    static [ChecklistService] GetInstance() {
-        if ([ChecklistService]::_instance -eq $null) {
-            [System.Threading.Monitor]::Enter([ChecklistService]::_instanceLock)
-            try {
-                if ([ChecklistService]::_instance -eq $null) {
-                    [ChecklistService]::_instance = [ChecklistService]::new()
-                }
-            } finally {
-                [System.Threading.Monitor]::Exit([ChecklistService]::_instanceLock)
-            }
-        }
-        return [ChecklistService]::_instance
-    }
-
-    # === Constructor (Private - use GetInstance) ===
+    # === Constructor ===
     ChecklistService() {
         # Determine checklists directory relative to PMC root
         $pmcRoot = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))

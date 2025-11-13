@@ -56,10 +56,6 @@ $store.OnTaskAdded = { param($task) Write-Host "New task: $($task.text)" }
 $store.AddTask(@{ text='Buy milk'; project='personal'; priority=3 })
 #>
 class TaskStore {
-    # === Singleton Instance ===
-    static hidden [TaskStore]$_instance = $null
-    static hidden [object]$_instanceLock = [object]::new()
-
     # === Data Storage ===
     hidden [hashtable]$_data = @{
         tasks = @()
@@ -148,50 +144,10 @@ class TaskStore {
         }
     }
 
-    # === Constructor (Private) ===
+    # === Constructor ===
     TaskStore() {
-        # Private constructor for singleton
         $this._InitializeStore()
-    }
-
-    # === Singleton Pattern ===
-
-    <#
-    .SYNOPSIS
-    Get the singleton instance of TaskStore
-
-    .OUTPUTS
-    TaskStore singleton instance
-    #>
-    static [TaskStore] GetInstance() {
-        if ($null -eq [TaskStore]::_instance) {
-            [Monitor]::Enter([TaskStore]::_instanceLock)
-            try {
-                if ($null -eq [TaskStore]::_instance) {
-                    [TaskStore]::_instance = [TaskStore]::new()
-                    [TaskStore]::_instance.LoadData()
-                }
-            }
-            finally {
-                [Monitor]::Exit([TaskStore]::_instanceLock)
-            }
-        }
-
-        return [TaskStore]::_instance
-    }
-
-    <#
-    .SYNOPSIS
-    Reset the singleton instance (for testing)
-    #>
-    static [void] ResetInstance() {
-        [Monitor]::Enter([TaskStore]::_instanceLock)
-        try {
-            [TaskStore]::_instance = $null
-        }
-        finally {
-            [Monitor]::Exit([TaskStore]::_instanceLock)
-        }
+        $this.LoadData()
     }
 
     # === Data Loading ===

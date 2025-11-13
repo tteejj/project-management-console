@@ -39,9 +39,6 @@ $registry.AddMenuItem('Tasks', 'Today', 'Y', { Show-TodayView })
 $menuItems = $registry.GetMenuItems('Tasks')
 #>
 class MenuRegistry {
-    # Singleton instance
-    static [MenuRegistry]$_instance = $null
-
     # Menu structure: @{ 'Tasks' = @( @{ Label='Today'; Hotkey='Y'; Action={...} }, ... ) }
     [hashtable]$_menuItems = @{
         'Tasks' = [List[hashtable]]::new()
@@ -52,24 +49,8 @@ class MenuRegistry {
         'Help' = [List[hashtable]]::new()
     }
 
-    # === Singleton Pattern ===
-
-    <#
-    .SYNOPSIS
-    Get the singleton instance of MenuRegistry
-
-    .OUTPUTS
-    MenuRegistry singleton instance
-    #>
-    static [MenuRegistry] GetInstance() {
-        if ($null -eq [MenuRegistry]::_instance) {
-            [MenuRegistry]::_instance = [MenuRegistry]::new()
-        }
-        return [MenuRegistry]::_instance
-    }
-
-    # Private constructor for singleton
-    hidden MenuRegistry() {
+    # Constructor
+    MenuRegistry() {
         # Initialize menu structure
     }
 
