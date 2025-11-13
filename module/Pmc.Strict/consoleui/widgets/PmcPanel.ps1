@@ -152,6 +152,107 @@ class PmcPanel : PmcWidget {
         return $result
     }
 
+    <#
+    .SYNOPSIS
+    Render directly to engine (optimized path)
+
+    .PARAMETER engine
+    RenderEngine instance to write to
+    #>
+    [void] RenderToEngine([object]$engine) {
+        # Colors
+        $borderColor = $this.GetThemedAnsi('Border', $false)
+        $titleColor = $this.GetThemedAnsi('Header', $false)
+        $textColor = $this.GetThemedAnsi('Text', $false)
+        $reset = "`e[0m"
+
+        if ($this.ShowBorder) {
+            # Top border with title
+            $topLine = [System.Text.StringBuilder]::new(256)
+            $topLine.Append($borderColor)
+
+            if ($this.ShowTitle -and $this.PanelTitle) {
+                $leftCorner = $this.GetBoxChar("$($this.BorderStyle)_topleft")
+                $rightCorner = $this.GetBoxChar("$($this.BorderStyle)_topright")
+                $horizChar = $this.GetBoxChar("$($this.BorderStyle)_horizontal")
+                $titleText = " $($this.PanelTitle) "
+                $remainingWidth = $this.Width - 2 - $titleText.Length
+
+                if ($remainingWidth -gt 0) {
+                    $topLine.Append($leftCorner)
+                    $topLine.Append($horizChar)
+                    $topLine.Append($titleColor)
+                    $topLine.Append($titleText)
+                    $topLine.Append($borderColor)
+                    $topLine.Append($horizChar * $remainingWidth)
+                    $topLine.Append($rightCorner)
+                } else {
+                    $topLine.Append($this.BuildBoxBorder($this.Width, 'top', $this.BorderStyle))
+                }
+            } else {
+                $topLine.Append($this.BuildBoxBorder($this.Width, 'top', $this.BorderStyle))
+            }
+            $topLine.Append($reset)
+            $engine.WriteAt($this.X, $this.Y, $topLine.ToString())
+
+            # Middle lines
+            if ($this.Height -gt 2) {
+                $vertChar = $this.GetBoxChar("$($this.BorderStyle)_vertical")
+                $contentWidth = $this.Width - 2
+
+                for ($row = 1; $row -lt ($this.Height - 1); $row++) {
+                    $line = [System.Text.StringBuilder]::new(256)
+                    $line.Append($borderColor)
+                    $line.Append($vertChar)
+
+                    # Content area
+                    if ($this.ContentText) {
+                        $contentRow = $row - $this.PaddingTop
+                        $lines = $this.ContentText -split "`n"
+                        if ($contentRow -ge 0 -and $contentRow -lt $lines.Count) {
+                            $textLine = $lines[$contentRow]
+                            $innerWidth = $contentWidth - $this.PaddingLeft - $this.PaddingRight
+                            $line.Append($textColor)
+                            $line.Append($this.GetSpaces($this.PaddingLeft))
+                            $line.Append($this.PadText($textLine, $innerWidth, $this.ContentAlign))
+                            $line.Append($this.GetSpaces($this.PaddingRight))
+                            $line.Append($borderColor)
+                        } else {
+                            $line.Append($this.GetSpaces($contentWidth))
+                        }
+                    } else {
+                        $line.Append($this.GetSpaces($contentWidth))
+                    }
+
+                    $line.Append($vertChar)
+                    $line.Append($reset)
+                    $engine.WriteAt($this.X, $this.Y + $row, $line.ToString())
+                }
+            }
+
+            # Bottom border
+            if ($this.Height -gt 1) {
+                $bottomLine = [System.Text.StringBuilder]::new(256)
+                $bottomLine.Append($borderColor)
+                $bottomLine.Append($this.BuildBoxBorder($this.Width, 'bottom', $this.BorderStyle))
+                $bottomLine.Append($reset)
+                $engine.WriteAt($this.X, $this.Y + $this.Height - 1, $bottomLine.ToString())
+            }
+        } else {
+            # No border - just render content
+            if ($this.ContentText) {
+                $lines = $this.ContentText -split "`n"
+                for ($i = 0; $i -lt [Math]::Min($lines.Count, $this.Height); $i++) {
+                    $line = [System.Text.StringBuilder]::new(256)
+                    $line.Append($textColor)
+                    $line.Append($this.PadText($lines[$i], $this.Width, $this.ContentAlign))
+                    $line.Append($reset)
+                    $engine.WriteAt($this.X, $this.Y + $i, $line.ToString())
+                }
+            }
+        }
+    }
+
     hidden [string] _RenderTopBorder([string]$borderColor, [string]$titleColor, [string]$reset) {
         $sb = [System.Text.StringBuilder]::new(256)
 
