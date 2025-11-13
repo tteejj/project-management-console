@@ -43,8 +43,12 @@ class BlockedTasksScreen : PmcScreen {
     }
 
     hidden [void] _InitializeScreen() {
-        # Get TaskStore singleton
-        $this.Store = [TaskStore]::GetInstance()
+        # Get TaskStore from DI container
+        if ($this.Container) {
+            $this.Store = $this.Container.Resolve('TaskStore')
+        } else {
+            $this.Store = $global:Pmc.Container.Resolve('TaskStore')
+        }
 
         # Subscribe to data changes for auto-refresh
         $screen = $this

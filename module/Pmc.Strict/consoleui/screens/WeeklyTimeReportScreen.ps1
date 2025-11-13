@@ -44,8 +44,8 @@ class WeeklyTimeReportScreen : PmcScreen {
 
     # Constructor
     WeeklyTimeReportScreen() : base("WeeklyTimeReport", "Weekly Time Report") {
-        # Initialize TaskStore
-        $this.Store = [TaskStore]::GetInstance()
+        # Initialize TaskStore from global DI container
+        $this.Store = $global:Pmc.Container.Resolve('TaskStore')
 
         # Configure header
         $this.Header.SetBreadcrumb(@("Home", "Time Entries", "Weekly Report"))
@@ -64,8 +64,8 @@ class WeeklyTimeReportScreen : PmcScreen {
 
     # Constructor with container (DI-enabled)
     WeeklyTimeReportScreen([object]$container) : base("WeeklyTimeReport", "Weekly Time Report", $container) {
-        # Initialize TaskStore
-        $this.Store = [TaskStore]::GetInstance()
+        # Initialize TaskStore from DI container
+        $this.Store = $container.Resolve('TaskStore')
 
         # Configure header
         $this.Header.SetBreadcrumb(@("Home", "Time Entries", "Weekly Report"))

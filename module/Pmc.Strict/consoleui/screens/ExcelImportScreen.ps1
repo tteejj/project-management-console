@@ -51,10 +51,15 @@ class ExcelImportScreen : PmcScreen {
 
     hidden [void] _InitializeScreen() {
         $this._reader = [ExcelComReader]::new()
-        $this._mappingService = [ExcelMappingService]::GetInstance()
 
-        # CRITICAL FIX #1: Initialize TaskStore for AddProject() call at line 379
-        $this.Store = [TaskStore]::GetInstance()
+        # Get services from DI container
+        if ($this.Container) {
+            $this._mappingService = $this.Container.Resolve('ExcelMappingService')
+            $this.Store = $this.Container.Resolve('TaskStore')
+        } else {
+            $this._mappingService = $global:Pmc.Container.Resolve('ExcelMappingService')
+            $this.Store = $global:Pmc.Container.Resolve('TaskStore')
+        }
 
         # Configure header
         $this.Header.SetBreadcrumb(@("Projects", "Import from Excel"))
