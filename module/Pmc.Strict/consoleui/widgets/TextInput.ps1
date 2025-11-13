@@ -448,12 +448,143 @@ class TextInput : PmcWidget {
     RenderEngine instance to write to
     #>
     [void] RenderToEngine([object]$engine) {
-        # Parse OnRender/Render output and write to engine
-        # TODO: Convert to direct engine.WriteAt() calls for optimal performance
-        # Render to string then parse to engine
-        $output = $this.Render()
-        if ([string]::IsNullOrEmpty($output)) {
-            $output = $this.Render()
+        # Update cursor blink
+        $elapsed = ([DateTime]::Now - $this._lastBlinkTime).TotalMilliseconds
+        if ($elapsed -ge $this._blinkIntervalMs) {
+            $this._showCursor = -not $this._showCursor
+            $this._lastBlinkTime = [DateTime]::Now
+        }
+
+        # Colors from theme
+        $borderColor = $this.GetThemedAnsi('Border', $false)
+        $textColor = $this.GetThemedAnsi('Text', $false)
+        $primaryColor = $this.GetThemedAnsi('Primary', $false)
+        $mutedColor = $this.GetThemedAnsi('Muted', $false)
+        $errorColor = $this.GetThemedAnsi('Error', $false)
+        $reset = "`e[0m"
+
+        # Choose border color based on validation state
+        $activeBorderColor = if (-not $this.IsValid) { $errorColor } elseif ($this.HasFocus) { $primaryColor } else { $borderColor }
+
+        # Top border
+        $topLine = [System.Text.StringBuilder]::new(256)
+        $topLine.Append($activeBorderColor)
+        $topLine.Append($this.BuildBoxBorder($this.Width, 'top', 'single'))
+
+        # Label in top border if provided
+        if (-not [string]::IsNullOrWhiteSpace($this.Label)) {
+            $labelText = " $($this.Label) "
+            $topLine.Append($reset)
+            $engine.WriteAt($this.X, $this.Y, $topLine.ToString())
+            $engine.WriteAt($this.X + 2, $this.Y, $primaryColor + $labelText)
+        } else {
+            $topLine.Append($reset)
+            $engine.WriteAt($this.X, $this.Y, $topLine.ToString())
+        }
+
+        # Middle row (text input area)
+        $rowY = $this.Y + 1
+        $middleLine = [System.Text.StringBuilder]::new(256)
+        $middleLine.Append($activeBorderColor)
+        $middleLine.Append($this.GetBoxChar('single_vertical'))
+        $middleLine.Append($reset)
+
+        # Calculate visible text area
+        $innerWidth = $this.Width - 4
+        $displayText = ""
+
+        if ([string]::IsNullOrEmpty($this.Text)) {
+            # Show placeholder
+            $displayText = $this.Placeholder
+            $middleLine.Append($this.GetSpaces(1))
+            $middleLine.Append($mutedColor)
+            $middleLine.Append($this.TruncateText($displayText, $innerWidth))
+            $middleLine.Append($this.GetSpaces([Math]::Max(0, $innerWidth - $displayText.Length + 1)))
+
+            # Cursor at beginning if focused
+            if ($this.HasFocus -and $this._showCursor) {
+                $middleLine.Append($reset)
+                $middleLine.Append($activeBorderColor)
+                $middleLine.Append($this.GetBoxChar('single_vertical'))
+                $middleLine.Append($reset)
+                $engine.WriteAt($this.X, $rowY, $middleLine.ToString())
+                # Write inverted space for cursor
+                $engine.WriteAt($this.X + 2, $rowY, "`e[7m `e[27m")
+            } else {
+                $middleLine.Append($reset)
+                $middleLine.Append($activeBorderColor)
+                $middleLine.Append($this.GetBoxChar('single_vertical'))
+                $middleLine.Append($reset)
+                $engine.WriteAt($this.X, $rowY, $middleLine.ToString())
+            }
+        } else {
+            # Show actual text with scroll offset
+            $visibleText = $this.Text.Substring($this._scrollOffset)
+            if ($visibleText.Length -gt $innerWidth) {
+                $visibleText = $visibleText.Substring(0, $innerWidth)
+            }
+
+            $displayText = $visibleText
+            $cursorOffsetPos = $this._cursorPosition - $this._scrollOffset
+
+            $middleLine.Append($this.GetSpaces(1))
+            $middleLine.Append($textColor)
+
+            # Render text with cursor highlighting
+            if ($this.HasFocus -and $cursorOffsetPos -ge 0 -and $cursorOffsetPos -le $displayText.Length -and $this._showCursor) {
+                # Text before cursor
+                if ($cursorOffsetPos -gt 0) {
+                    $middleLine.Append($displayText.Substring(0, $cursorOffsetPos))
+                }
+
+                # Cursor character (inverted)
+                $cursorChar = if ($cursorOffsetPos -lt $displayText.Length) {
+                    $displayText[$cursorOffsetPos]
+                } else {
+                    ' '
+                }
+                $middleLine.Append("`e[7m$cursorChar`e[27m")
+
+                # Text after cursor
+                if ($cursorOffsetPos + 1 -lt $displayText.Length) {
+                    $middleLine.Append($displayText.Substring($cursorOffsetPos + 1))
+                }
+            } else {
+                # No cursor, just render text
+                $middleLine.Append($displayText)
+            }
+
+            # Pad remaining space
+            $textLen = if ($displayText) { $displayText.Length } else { 0 }
+            $padding = $innerWidth - $textLen
+            if ($padding -gt 0) {
+                $middleLine.Append($this.GetSpaces($padding + 1))
+            } else {
+                $middleLine.Append(" ")
+            }
+
+            $middleLine.Append($reset)
+            $middleLine.Append($activeBorderColor)
+            $middleLine.Append($this.GetBoxChar('single_vertical'))
+            $middleLine.Append($reset)
+            $engine.WriteAt($this.X, $rowY, $middleLine.ToString())
+        }
+
+        # Bottom border
+        $bottomLine = [System.Text.StringBuilder]::new(256)
+        $bottomLine.Append($activeBorderColor)
+        $bottomLine.Append($this.BuildBoxBorder($this.Width, 'bottom', 'single'))
+
+        # Validation error message in bottom border
+        if (-not $this.IsValid -and -not [string]::IsNullOrWhiteSpace($this._validationError)) {
+            $bottomLine.Append($reset)
+            $engine.WriteAt($this.X, $this.Y + 2, $bottomLine.ToString())
+            $errorMsg = " $($this._validationError) "
+            $engine.WriteAt($this.X + 2, $this.Y + 2, $errorColor + $this.TruncateText($errorMsg, $this.Width - 4))
+        } else {
+            $bottomLine.Append($reset)
+            $engine.WriteAt($this.X, $this.Y + 2, $bottomLine.ToString())
+        }
         }
         if ($output) {
             $lines = $output -split "\n"

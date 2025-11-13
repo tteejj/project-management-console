@@ -221,32 +221,13 @@ class PmcApplication {
                 Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] _RenderCurrentScreen: BeginFrame completed, checking for RenderToEngine method"
             }
 
-            # Get screen output (ANSI strings with position info)
-            if ($this.CurrentScreen.PSObject.Methods['RenderToEngine']) {
-                if ($global:PmcTuiLogFile) {
-                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] _RenderCurrentScreen: Has RenderToEngine, calling it"
-                }
-                # New method: screen writes directly to engine
-                $this.CurrentScreen.RenderToEngine($this.RenderEngine)
-                if ($global:PmcTuiLogFile) {
-                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] _RenderCurrentScreen: RenderToEngine completed"
-                }
-            } else {
-                if ($global:PmcTuiLogFile) {
-                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] _RenderCurrentScreen: No RenderToEngine, calling Render()"
-                }
-                # Fallback: screen returns ANSI string, we parse and WriteAt
-                $output = $this.CurrentScreen.Render()
-                if ($global:PmcTuiLogFile) {
-                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] _RenderCurrentScreen: Render() completed, output length=$($output.Length)"
-                }
-                if ($output) {
-                    # Parse ANSI positioning and write to engine
-                    $this._WriteAnsiToEngine($output)
-                    if ($global:PmcTuiLogFile) {
-                        Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] _RenderCurrentScreen: _WriteAnsiToEngine completed"
-                    }
-                }
+            # All screens now use RenderToEngine - single rendering path
+            if ($global:PmcTuiLogFile) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] _RenderCurrentScreen: Calling RenderToEngine"
+            }
+            $this.CurrentScreen.RenderToEngine($this.RenderEngine)
+            if ($global:PmcTuiLogFile) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] _RenderCurrentScreen: RenderToEngine completed"
             }
 
             if ($global:PmcTuiLogFile) {

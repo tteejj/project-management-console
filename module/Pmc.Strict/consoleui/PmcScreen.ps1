@@ -313,98 +313,6 @@ class PmcScreen {
 
     .OUTPUTS
     String containing ANSI-formatted screen output
-    #>
-    [string] Render() {
-        $sb = [System.Text.StringBuilder]::new(4096)
-
-        # DEBUG
-        if ($global:PmcTuiLogFile) {
-            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcScreen.Render: Starting (MenuBar=$($null -ne $this.MenuBar), Header=$($null -ne $this.Header))"
-        }
-
-        # Render MenuBar (if present)
-        if ($this.MenuBar) {
-            if ($global:PmcTuiLogFile) {
-                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcScreen.Render: Rendering MenuBar"
-            }
-            $output = $this.MenuBar.Render()
-            if ($output) {
-                $sb.Append($output)
-                if ($global:PmcTuiLogFile) {
-                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcScreen.Render: MenuBar output length=$($output.Length)"
-                }
-            } else {
-                if ($global:PmcTuiLogFile) {
-                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcScreen.Render: MenuBar returned null/empty"
-                }
-            }
-        }
-
-        # Render Header
-        if ($this.Header) {
-            $output = $this.Header.Render()
-            if ($output) {
-                $sb.Append($output)
-            }
-        }
-
-        # Render content (override in subclass) - wrap in try-catch to prevent rendering crashes
-        if ($global:PmcTuiLogFile) {
-            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcScreen.Render: Calling RenderContent()"
-        }
-        try {
-            $contentOutput = $this.RenderContent()
-            if ($contentOutput) {
-                $sb.Append($contentOutput)
-                if ($global:PmcTuiLogFile) {
-                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcScreen.Render: Content output length=$($contentOutput.Length)"
-                }
-            } else {
-                if ($global:PmcTuiLogFile) {
-                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcScreen.Render: RenderContent() returned null/empty"
-                }
-            }
-        } catch {
-            $errorMsg = "RenderContent() crashed: $($_.Exception.Message)"
-            if ($global:PmcTuiLogFile) {
-                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcScreen.Render: $errorMsg"
-            }
-            # Append error message to output so user sees something instead of blank screen
-            $sb.Append("`e[1;31mERROR: $errorMsg`e[0m`n")
-        }
-
-        # Render content widgets
-        foreach ($widget in $this.ContentWidgets) {
-            $output = $widget.Render()
-            if ($output) {
-                $sb.Append($output)
-            }
-        }
-
-        # Render Footer
-        if ($this.Footer) {
-            $output = $this.Footer.Render()
-            if ($output) {
-                $sb.Append($output)
-            }
-        }
-
-        # H-UI-4: Check if message expired (3 seconds) and clear status
-        if ($this.StatusBar -and ([DateTime]::Now - $this._lastMessageTime).TotalSeconds -gt 3) {
-            $this.StatusBar.SetLeftText("")
-        }
-
-        # Render StatusBar
-        if ($this.StatusBar) {
-            $output = $this.StatusBar.Render()
-            if ($output) {
-                $sb.Append($output)
-            }
-        }
-
-        $result = $sb.ToString()
-        return $result
-    }
 
     <#
     .SYNOPSIS
@@ -415,11 +323,6 @@ class PmcScreen {
 
     .OUTPUTS
     String containing ANSI-formatted content
-    #>
-    [string] RenderContent() {
-        # Override in subclass
-        return ""
-    }
 
     <#
     .SYNOPSIS
