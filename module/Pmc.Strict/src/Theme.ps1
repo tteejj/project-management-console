@@ -1,6 +1,17 @@
 # Theme and Preferences management
 
 function Initialize-PmcThemeSystem {
+    # OPTIMIZATION: Initialization guard - skip if already initialized
+    # (unless force flag is set)
+    param([switch]$Force)
+
+    $existingTheme = Get-PmcState -Section 'Display' -Key 'Theme' -ErrorAction SilentlyContinue
+    if ($existingTheme -and -not $Force) {
+        # Already initialized, skip redundant work
+        Write-PmcDebug -Level 3 -Category 'Theme' -Message "Theme system already initialized (use -Force to re-initialize)"
+        return
+    }
+
     # Force VT/ANSI capabilities; no fallbacks
     $caps = @{ AnsiSupport=$true; TrueColorSupport=$true; IsTTY=$true; NoColor=$false; Platform='forced' }
     Set-PmcState -Section 'Display' -Key 'Capabilities' -Value $caps

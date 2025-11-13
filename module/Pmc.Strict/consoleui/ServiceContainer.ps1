@@ -147,8 +147,16 @@ class ServiceContainer {
             }
             throw
         } finally {
-            # Remove from resolution stack
-            $this._resolutionStack.Remove($name)
+            # CRITICAL: Remove from resolution stack (cleanup on all paths)
+            # Extra safety: wrap in try-catch to prevent double-fault
+            try {
+                $this._resolutionStack.Remove($name) | Out-Null
+            } catch {
+                # Resolution stack cleanup failed - log but don't throw
+                if ($global:PmcTuiLogFile) {
+                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [ERROR] ServiceContainer: Failed to clean resolution stack: $_"
+                }
+            }
         }
     }
 
