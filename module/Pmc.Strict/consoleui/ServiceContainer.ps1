@@ -21,7 +21,7 @@ Solves initialization order, circular dependencies, and timing issues.
 .EXAMPLE
 $container = [ServiceContainer]::new()
 $container.Register('Theme', { Initialize-PmcThemeSystem; return $global:PmcTheme })
-$container.Register('TaskStore', { param($c) return [TaskStore]::GetInstance() })
+$container.Register('TaskStore', { param($c) return [TaskStore]::new() })
 $theme = $container.Resolve('Theme')
 #>
 class ServiceContainer {
@@ -60,7 +60,7 @@ class ServiceContainer {
     $container.Register('TaskStore', {
         param($container)
         $theme = $container.Resolve('Theme')  # Depend on theme
-        return [TaskStore]::GetInstance()
+        return [TaskStore]::new()
     })
     #>
     [void] Register([string]$name, [scriptblock]$factory, [bool]$singleton = $true) {

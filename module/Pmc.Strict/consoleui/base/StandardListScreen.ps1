@@ -275,8 +275,13 @@ class StandardListScreen : PmcScreen {
         $this.TermWidth = $termSize.Width
         $this.TermHeight = $termSize.Height
 
-        # Initialize TaskStore singleton
-        $this.Store = [TaskStore]::GetInstance()
+        # Initialize TaskStore from DI container
+        if ($this.Container) {
+            $this.Store = $this.Container.Resolve('TaskStore')
+        } else {
+            # Fallback for backward compatibility (screens without container)
+            $this.Store = $global:Pmc.Container.Resolve('TaskStore')
+        }
 
         # Initialize UniversalList
         $this.List = [UniversalList]::new()

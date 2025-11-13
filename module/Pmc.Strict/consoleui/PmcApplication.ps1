@@ -404,8 +404,7 @@ class PmcApplication {
         } finally {
             # CRITICAL: Flush pending changes before exit
             try {
-                . "$PSScriptRoot/services/TaskStore.ps1"
-                $store = [TaskStore]::GetInstance()
+                $store = $this.Container.Resolve('TaskStore')
                 if ($store.HasPendingChanges) {
                     Write-PmcTuiLog "Flushing pending changes on exit..." "INFO"
                     $store.Flush()
@@ -439,7 +438,7 @@ class PmcApplication {
 
         # Flush any pending TaskStore changes before exit
         try {
-            $store = [TaskStore]::GetInstance()
+            $store = $this.Container.Resolve('TaskStore')
             if ($null -ne $store -and $store.HasPendingChanges) {
                 $store.Flush()
             }
