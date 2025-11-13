@@ -16,7 +16,7 @@ PmcThemeManager provides a single interface for theme management:
 - Singleton pattern for global access
 
 .EXAMPLE
-$theme = [PmcThemeManager]::GetInstance()
+$theme = $global:Pmc.Theme
 $color = $theme.GetColor('Primary')
 $ansi = $theme.GetAnsiSequence('Primary', $false)
 #>

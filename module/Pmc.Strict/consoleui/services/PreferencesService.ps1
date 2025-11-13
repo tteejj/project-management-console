@@ -4,8 +4,13 @@
 # Saves and loads user preferences like sort order, view modes, column widths,
 # theme settings, and other user-specific configuration.
 #
-# Usage:
-#   $prefs = [PreferencesService]::GetInstance()
+# Usage (via DI container):
+#   # In classes with container:
+#   $prefs = $container.Resolve('PreferencesService')
+#
+#   # In standalone scripts:
+#   $prefs = $global:Pmc.Container.Resolve('PreferencesService')
+#
 #   $prefs.SetPreference('defaultViewMode', 'active')
 #   $viewMode = $prefs.GetPreference('defaultViewMode', 'all')
 #   $prefs.SavePreferences()
@@ -37,7 +42,7 @@ Supported preferences:
 - timeFormat: Preferred time format
 
 .EXAMPLE
-$prefs = [PreferencesService]::GetInstance()
+$prefs = $global:Pmc.Container.Resolve('PreferencesService')
 $prefs.SetPreference('defaultViewMode', 'active')
 $prefs.SavePreferences()
 #>

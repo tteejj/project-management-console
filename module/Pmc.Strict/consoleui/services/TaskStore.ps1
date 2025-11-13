@@ -10,8 +10,12 @@
 # - Validation and error handling
 # - Rollback on save failure
 #
-# Usage:
-#   $store = [TaskStore]::GetInstance()
+# Usage (via DI container):
+#   # In classes with container:
+#   $store = $container.Resolve('TaskStore')
+#
+#   # In standalone scripts:
+#   $store = $global:Pmc.Container.Resolve('TaskStore')
 #
 #   # CRUD operations
 #   $task = $store.GetTask($id)
@@ -51,7 +55,7 @@ TaskStore provides:
 - Batch operations for performance
 
 .EXAMPLE
-$store = [TaskStore]::GetInstance()
+$store = $global:Pmc.Container.Resolve('TaskStore')
 $store.OnTaskAdded = { param($task) Write-Host "New task: $($task.text)" }
 $store.AddTask(@{ text='Buy milk'; project='personal'; priority=3 })
 #>
