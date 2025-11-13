@@ -437,25 +437,29 @@ class PmcScreen {
         # Render MenuBar (if present)
         if ($this.MenuBar) {
             if ($global:PmcTuiLogFile) {
-                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcScreen.RenderToEngine: Calling MenuBar.Render()"
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcScreen.RenderToEngine: Rendering MenuBar"
             }
-            $output = $this.MenuBar.Render()
-            if ($global:PmcTuiLogFile) {
-                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcScreen.RenderToEngine: MenuBar.Render() returned length=$($output.Length)"
-            }
-            if ($output) {
-                $this._ParseAnsiAndWrite($engine, $output)
-                if ($global:PmcTuiLogFile) {
-                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcScreen.RenderToEngine: MenuBar ANSI parsed and written to engine"
+            # Check if widget has optimized RenderToEngine method
+            if ($this.MenuBar.PSObject.Methods['RenderToEngine']) {
+                $this.MenuBar.RenderToEngine($engine)
+            } else {
+                # Fall back to old ANSI parsing path
+                $output = $this.MenuBar.Render()
+                if ($output) {
+                    $this._ParseAnsiAndWrite($engine, $output)
                 }
             }
         }
 
         # Render Header
         if ($this.Header) {
-            $output = $this.Header.Render()
-            if ($output) {
-                $this._ParseAnsiAndWrite($engine, $output)
+            if ($this.Header.PSObject.Methods['RenderToEngine']) {
+                $this.Header.RenderToEngine($engine)
+            } else {
+                $output = $this.Header.Render()
+                if ($output) {
+                    $this._ParseAnsiAndWrite($engine, $output)
+                }
             }
         }
 
@@ -481,25 +485,37 @@ class PmcScreen {
 
         # Render content widgets
         foreach ($widget in $this.ContentWidgets) {
-            $output = $widget.Render()
-            if ($output) {
-                $this._ParseAnsiAndWrite($engine, $output)
+            if ($widget.PSObject.Methods['RenderToEngine']) {
+                $widget.RenderToEngine($engine)
+            } else {
+                $output = $widget.Render()
+                if ($output) {
+                    $this._ParseAnsiAndWrite($engine, $output)
+                }
             }
         }
 
         # Render Footer
         if ($this.Footer) {
-            $output = $this.Footer.Render()
-            if ($output) {
-                $this._ParseAnsiAndWrite($engine, $output)
+            if ($this.Footer.PSObject.Methods['RenderToEngine']) {
+                $this.Footer.RenderToEngine($engine)
+            } else {
+                $output = $this.Footer.Render()
+                if ($output) {
+                    $this._ParseAnsiAndWrite($engine, $output)
+                }
             }
         }
 
         # Render StatusBar
         if ($this.StatusBar) {
-            $output = $this.StatusBar.Render()
-            if ($output) {
-                $this._ParseAnsiAndWrite($engine, $output)
+            if ($this.StatusBar.PSObject.Methods['RenderToEngine']) {
+                $this.StatusBar.RenderToEngine($engine)
+            } else {
+                $output = $this.StatusBar.Render()
+                if ($output) {
+                    $this._ParseAnsiAndWrite($engine, $output)
+                }
             }
         }
     }
