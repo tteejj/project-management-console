@@ -416,6 +416,206 @@ class PmcMenuBar : PmcWidget {
         return $result
     }
 
+    <#
+    .SYNOPSIS
+    Render directly to engine (optimized path - no ANSI string building/parsing)
+
+    .PARAMETER engine
+    RenderEngine instance to write to
+    #>
+    [void] RenderToEngine([object]$engine) {
+        # Clear old dropdown if needed
+        $needsClear = $false
+        if ($this._prevDropdownHeight -gt 0) {
+            if (-not $this.DropdownVisible) {
+                $needsClear = $true
+            } elseif ($this.SelectedMenuIndex -ge 0 -and $this.SelectedMenuIndex -lt $this._menuXPositions.Count) {
+                $currentDropdownX = $this.X + $this._menuXPositions[$this.SelectedMenuIndex]
+                if ($currentDropdownX -ne $this._prevDropdownX) {
+                    $needsClear = $true
+                }
+            }
+        }
+
+        if ($needsClear) {
+            # Clear previous dropdown area
+            for ($i = 0; $i -lt $this._prevDropdownHeight; $i++) {
+                $engine.ClearLine($this._prevDropdownY + $i)
+            }
+        }
+
+        # Render menu bar
+        $this._RenderMenuBarToEngine($engine)
+
+        # Render dropdown if visible
+        if ($this.DropdownVisible -and $this.SelectedMenuIndex -ge 0) {
+            $this._RenderDropdownToEngine($engine)
+        } else {
+            $this._prevDropdownHeight = 0
+        }
+    }
+
+    hidden [void] _RenderMenuBarToEngine([object]$engine) {
+        # Get colors
+        $bgColor = $this.GetThemedAnsi('Border', $true)
+        $fgColor = $this.GetThemedAnsi('Text', $false)
+        $highlightBg = $this.GetThemedAnsi('Primary', $true)
+        $highlightFg = $this.GetThemedAnsi('Text', $false)
+        $reset = "`e[0m"
+
+        # Build menu bar line
+        $sb = [System.Text.StringBuilder]::new(512)
+        $sb.Append($bgColor)
+
+        $this._menuXPositions.Clear()
+        $currentX = 1
+
+        for ($i = 0; $i -lt $this.Menus.Count; $i++) {
+            $menu = $this.Menus[$i]
+            $this._menuXPositions.Add($currentX)
+
+            # Highlight if selected
+            if ($i -eq $this.SelectedMenuIndex -and $this.IsActive) {
+                $sb.Append($highlightBg)
+                $sb.Append($highlightFg)
+            } else {
+                $sb.Append($fgColor)
+            }
+
+            # Format: " File(F) "
+            $menuText = " $($menu.Title)"
+            if ($menu.Hotkey -ne [char]0) {
+                $menuText += "($($menu.Hotkey))"
+            }
+            $menuText += " "
+
+            $sb.Append($menuText)
+            $currentX += $menuText.Length
+
+            # Reset to normal bar color
+            if ($i -eq $this.SelectedMenuIndex -and $this.IsActive) {
+                $sb.Append($bgColor)
+            }
+        }
+
+        # Pad remainder with background color
+        $remaining = $this.Width - $currentX + 1
+        if ($remaining -gt 0) {
+            $sb.Append($this.GetSpaces($remaining))
+        }
+        $sb.Append($reset)
+
+        # Write to engine
+        $engine.WriteAt($this.X, $this.Y, $sb.ToString())
+    }
+
+    hidden [void] _RenderDropdownToEngine([object]$engine) {
+        if ($this.SelectedMenuIndex -lt 0 -or $this.SelectedMenuIndex -ge $this.Menus.Count) {
+            return
+        }
+
+        $menu = $this.Menus[$this.SelectedMenuIndex]
+        if ($menu.Items.Count -eq 0) {
+            return
+        }
+
+        # Calculate dropdown position
+        $dropdownX = $this.X + $this._menuXPositions[$this.SelectedMenuIndex]
+        $dropdownY = $this.Y + 1
+
+        # Calculate dropdown width
+        $maxWidth = 10
+        foreach ($item in $menu.Items) {
+            if (-not $item.IsSeparator) {
+                $itemWidth = $item.Label.Length + 6
+                if ($itemWidth -gt $maxWidth) {
+                    $maxWidth = $itemWidth
+                }
+            }
+        }
+        $this._dropdownWidth = [Math]::Min($maxWidth, $this.Width - $dropdownX - 2)
+
+        # Colors
+        $bgColor = $this.GetThemedAnsi('Border', $true)
+        $fgColor = $this.GetThemedAnsi('Text', $false)
+        $borderColor = $this.GetThemedAnsi('Border', $false)
+        $selectedBg = $this.GetThemedAnsi('Primary', $true)
+        $selectedFg = $this.GetThemedAnsi('Text', $false)
+        $reset = "`e[0m"
+
+        # Top border
+        $topLine = [System.Text.StringBuilder]::new()
+        $topLine.Append($borderColor)
+        $topLine.Append($this.BuildBoxBorder($this._dropdownWidth, 'top', 'single'))
+        $topLine.Append($reset)
+        $engine.WriteAt($dropdownX, $dropdownY, $topLine.ToString())
+
+        # Items
+        $currentY = $dropdownY + 1
+        for ($i = 0; $i -lt $menu.Items.Count; $i++) {
+            $item = $menu.Items[$i]
+            $line = [System.Text.StringBuilder]::new()
+
+            if ($item.IsSeparator) {
+                # Separator line
+                $line.Append($borderColor)
+                $vertChar = $this.GetBoxChar('single_vertical')
+                $horizChar = $this.GetBoxChar('single_horizontal')
+                $line.Append($vertChar)
+                $line.Append($horizChar * ($this._dropdownWidth - 2))
+                $line.Append($vertChar)
+                $line.Append($reset)
+            } else {
+                # Regular item
+                $isSelected = ($i -eq $this.SelectedItemIndex)
+
+                # Border + background
+                $line.Append($borderColor)
+                $line.Append($this.GetBoxChar('single_vertical'))
+                $line.Append($reset)
+
+                if ($isSelected) {
+                    $line.Append($selectedBg)
+                    $line.Append($selectedFg)
+                } else {
+                    $line.Append($bgColor)
+                    $line.Append($fgColor)
+                }
+
+                # Item text
+                $itemText = " $($item.Label)"
+                if ($item.Hotkey -ne [char]0) {
+                    $itemText += " ($($item.Hotkey))"
+                }
+
+                # Pad to dropdown width
+                $innerWidth = $this._dropdownWidth - 2
+                $itemText = $this.PadText($itemText, $innerWidth, 'left')
+
+                $line.Append($itemText)
+                $line.Append($reset)
+                $line.Append($borderColor)
+                $line.Append($this.GetBoxChar('single_vertical'))
+                $line.Append($reset)
+            }
+
+            $engine.WriteAt($dropdownX, $currentY, $line.ToString())
+            $currentY++
+        }
+
+        # Bottom border
+        $bottomLine = [System.Text.StringBuilder]::new()
+        $bottomLine.Append($borderColor)
+        $bottomLine.Append($this.BuildBoxBorder($this._dropdownWidth, 'bottom', 'single'))
+        $bottomLine.Append($reset)
+        $engine.WriteAt($dropdownX, $currentY, $bottomLine.ToString())
+
+        # Update tracking
+        $this._prevDropdownX = $dropdownX
+        $this._prevDropdownY = $dropdownY
+        $this._prevDropdownHeight = $menu.Items.Count + 2
+    }
+
     hidden [string] _RenderMenuBar() {
         $sb = [System.Text.StringBuilder]::new(512)
 
