@@ -20,15 +20,18 @@ PmcScreen provides:
 - Screen lifecycle (OnEnter, OnExit, LoadData)
 - Input handling delegation
 - Rendering orchestration
+- ServiceContainer dependency injection
 
 .EXAMPLE
-# Example: Custom screen implementation
+# Example: Custom screen implementation with ServiceContainer
 # class MyCustomScreen : PmcScreen {
-#     MyCustomScreen() : base("MyScreen", "My Screen Title") {
+#     MyCustomScreen([object]$container) : base("MyScreen", "My Screen Title", $container) {
 #         $this.Header.SetBreadcrumb(@("Home", "My Screen"))
 #     }
 #
 #     [void] LoadData() {
+#         # Access services via container
+#         $taskStore = $this.Container.Get('TaskStore')
 #         # Load your data...
 #     }
 #
@@ -36,11 +39,21 @@ PmcScreen provides:
 #         # Render your content...
 #     }
 # }
+#
+# Example: Legacy constructor (backward compatible)
+# class MyLegacyScreen : PmcScreen {
+#     MyLegacyScreen() : base("MyScreen", "My Screen Title") {
+#         # Works without container for backward compatibility
+#     }
+# }
 #>
 class PmcScreen {
     # === Core Properties ===
     [string]$ScreenKey = ""
     [string]$ScreenTitle = ""
+
+    # === Service Container ===
+    [object]$Container = $null
 
     # === Standard Widgets ===
     [object]$MenuBar = $null
@@ -67,11 +80,34 @@ class PmcScreen {
     [scriptblock]$OnEnterHandler = $null
     [scriptblock]$OnExitHandler = $null
 
-    # === Constructor ===
+    # === Constructor (backward compatible - no container) ===
     PmcScreen([string]$key, [string]$title) {
+        if ($global:PmcTuiLogFile) {
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcScreen: Legacy constructor called (key=$key, title=$title)"
+        }
+
         $this.ScreenKey = $key
         $this.ScreenTitle = $title
         $this.ContentWidgets = New-Object 'System.Collections.Generic.List[object]'
+
+        # Create default widgets
+        $this._CreateDefaultWidgets()
+    }
+
+    # === Constructor (with ServiceContainer) ===
+    PmcScreen([string]$key, [string]$title, [object]$container) {
+        if ($global:PmcTuiLogFile) {
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcScreen: Constructor called with ServiceContainer (key=$key, title=$title, container=$($null -ne $container))"
+        }
+
+        $this.ScreenKey = $key
+        $this.ScreenTitle = $title
+        $this.Container = $container
+        $this.ContentWidgets = New-Object 'System.Collections.Generic.List[object]'
+
+        if ($global:PmcTuiLogFile) {
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcScreen: ServiceContainer stored (available=$($null -ne $this.Container))"
+        }
 
         # Create default widgets
         $this._CreateDefaultWidgets()
@@ -234,8 +270,22 @@ class PmcScreen {
     .PARAMETER renderEngine
     SpeedTUI render engine instance
     #>
+    # Initialize with render engine only (backward compatible)
     [void] Initialize([object]$renderEngine) {
+        $this.Initialize($renderEngine, $null)
+    }
+
+    # Initialize with render engine and container (new pattern)
+    [void] Initialize([object]$renderEngine, [object]$container) {
         $this.RenderEngine = $renderEngine
+
+        # Store container if provided
+        if ($container) {
+            $this.Container = $container
+            if ($global:PmcTuiLogFile) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcScreen.Initialize: Container set for screen '$($this.ScreenKey)'"
+            }
+        }
 
         # Initialize standard widgets
         if ($this.MenuBar) {
@@ -417,11 +467,16 @@ class PmcScreen {
             }
         } catch {
             $errorMsg = "RenderContent() crashed in RenderToEngine: $($_.Exception.Message)"
+            $stackTrace = $_.ScriptStackTrace
             if ($global:PmcTuiLogFile) {
                 Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcScreen.RenderToEngine: $errorMsg"
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] Stack: $stackTrace"
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] TargetObject: $($_.TargetObject)"
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] InvocationInfo: $($_.InvocationInfo.Line)"
             }
             # Write error message to engine so user sees something
             $engine.WriteAt(0, 5, "`e[1;31mERROR: $errorMsg`e[0m")
+            $engine.WriteAt(0, 6, "`e[1;33mStack: $($stackTrace -split "`n" | Select-Object -First 1)`e[0m")
         }
 
         # Render content widgets
@@ -620,6 +675,71 @@ class PmcScreen {
         $this.ContentWidgets.Remove($widget)
     }
 
+    # === Service Container Methods ===
+
+    <#
+    .SYNOPSIS
+    Get a service from the container
+
+    .PARAMETER serviceName
+    Name of the service to retrieve
+
+    .OUTPUTS
+    Service instance or $null if container not available or service not found
+
+    .EXAMPLE
+    $taskStore = $this.GetService('TaskStore')
+    #>
+    [object] GetService([string]$serviceName) {
+        if ($null -eq $this.Container) {
+            if ($global:PmcTuiLogFile) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcScreen.GetService: Container not available (service=$serviceName)"
+            }
+            return $null
+        }
+
+        try {
+            $service = $this.Container.Get($serviceName)
+            if ($global:PmcTuiLogFile) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcScreen.GetService: Retrieved service (name=$serviceName, found=$($null -ne $service))"
+            }
+            return $service
+        } catch {
+            if ($global:PmcTuiLogFile) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcScreen.GetService: Error retrieving service (name=$serviceName, error=$($_.Exception.Message))"
+            }
+            return $null
+        }
+    }
+
+    <#
+    .SYNOPSIS
+    Check if a service is available in the container
+
+    .PARAMETER serviceName
+    Name of the service to check
+
+    .OUTPUTS
+    Boolean indicating if service is available
+
+    .EXAMPLE
+    if ($this.HasService('TaskStore')) { ... }
+    #>
+    [bool] HasService([string]$serviceName) {
+        if ($null -eq $this.Container) {
+            return $false
+        }
+
+        try {
+            return $this.Container.Has($serviceName)
+        } catch {
+            if ($global:PmcTuiLogFile) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcScreen.HasService: Error checking service (name=$serviceName, error=$($_.Exception.Message))"
+            }
+            return $false
+        }
+    }
+
     # === Utility Methods ===
 
     <#
@@ -661,7 +781,11 @@ class PmcScreen {
     .PARAMETER autoSaved
     L-POL-6: If true, append "Saved." to indicate auto-save occurred
     #>
-    [void] ShowSuccess([string]$message, [bool]$autoSaved = $false) {
+    [void] ShowSuccess([string]$message) {
+        $this.ShowSuccess($message, $false)
+    }
+
+    [void] ShowSuccess([string]$message, [bool]$autoSaved) {
         if ($this.StatusBar) {
             # L-POL-6: Append "Saved." indicator when auto-save is active
             $displayMessage = if ($autoSaved) {
@@ -705,7 +829,11 @@ class PmcScreen {
     .PARAMETER itemType
     Optional type of items ready (defaults to "Ready")
     #>
-    [void] ShowReady([string]$itemType = "") {
+    [void] ShowReady() {
+        $this.ShowReady("")
+    }
+
+    [void] ShowReady([string]$itemType) {
         $message = if ([string]::IsNullOrWhiteSpace($itemType)) {
             "Ready"
         } else {

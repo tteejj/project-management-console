@@ -27,8 +27,20 @@ class DepShowFormScreen : PmcScreen {
     [object]$Task = $null
     [array]$Dependencies = @()
 
-    # Constructor
+    # Backward compatible constructor
     DepShowFormScreen() : base("DepShow", "Show Dependencies") {
+        # Configure header
+        $this.Header.SetBreadcrumb(@("Home", "Dependencies", "View"))
+
+        # Configure footer with shortcuts
+        $this.Footer.ClearShortcuts()
+        $this.Footer.AddShortcut("Enter", "Submit")
+        $this.Footer.AddShortcut("Esc", "Back")
+        $this.Footer.AddShortcut("Ctrl+Q", "Quit")
+    }
+
+    # Container constructor
+    DepShowFormScreen([object]$container) : base("DepShow", "Show Dependencies", $container) {
         # Configure header
         $this.Header.SetBreadcrumb(@("Home", "Dependencies", "View"))
 
@@ -102,7 +114,7 @@ class DepShowFormScreen : PmcScreen {
                 $sb.Append("Task:")
                 $sb.Append($reset)
 
-                $taskText = $this.Task.text
+                $taskText = Get-SafeProperty $this.Task 'text'
                 if ($taskText.Length -gt 60) {
                     $taskText = $taskText.Substring(0, 60) + "..."
                 }
@@ -130,8 +142,9 @@ class DepShowFormScreen : PmcScreen {
                         $dep = $this.Dependencies[$i]
 
                         # Status icon
-                        $statusIcon = if ($dep.status -eq 'completed') { 'X' } else { 'o' }
-                        $statusColor = if ($dep.status -eq 'completed') { $successColor } else { $errorColor }
+                        $depStatus = Get-SafeProperty $dep 'status'
+                        $statusIcon = if ($depStatus -eq 'completed') { 'X' } else { 'o' }
+                        $statusColor = if ($depStatus -eq 'completed') { $successColor } else { $errorColor }
 
                         $sb.Append($this.Header.BuildMoveTo($x + 2, $y))
                         $sb.Append($statusColor)
@@ -139,13 +152,14 @@ class DepShowFormScreen : PmcScreen {
                         $sb.Append($reset)
 
                         # Task ID
+                        $depId = Get-SafeProperty $dep 'id'
                         $sb.Append($this.Header.BuildMoveTo($x + 4, $y))
                         $sb.Append($mutedColor)
-                        $sb.Append("#$($dep.id)")
+                        $sb.Append("#$depId")
                         $sb.Append($reset)
 
                         # Task text
-                        $depText = $dep.text
+                        $depText = Get-SafeProperty $dep 'text'
                         if ($depText.Length -gt 50) {
                             $depText = $depText.Substring(0, 50) + "..."
                         }
@@ -160,7 +174,7 @@ class DepShowFormScreen : PmcScreen {
 
                 # Show blocked status
                 $y += 2
-                $isBlocked = $this.Task.PSObject.Properties['blocked'] -and $this.Task.blocked
+                $isBlocked = Get-SafeProperty $this.Task 'blocked'
                 if ($isBlocked) {
                     $sb.Append($this.Header.BuildMoveTo($x, $y))
                     $sb.Append($errorColor)
@@ -222,8 +236,8 @@ class DepShowFormScreen : PmcScreen {
                 return
             }
 
-            $data = Get-PmcAllData
-            $this.Task = $data.tasks | Where-Object { $_.id -eq $taskId } | Select-Object -First 1
+            $data = Get-PmcData
+            $this.Task = $data.tasks | Where-Object { (Get-SafeProperty $_ 'id') -eq $taskId } | Select-Object -First 1
 
             if (-not $this.Task) {
                 $this.ShowError("Task $taskId not found")
@@ -231,11 +245,12 @@ class DepShowFormScreen : PmcScreen {
             }
 
             # Load dependencies
-            $depends = if ($this.Task.PSObject.Properties['depends'] -and $this.Task.depends) { $this.Task.depends } else { @() }
+            $depends = Get-SafeProperty $this.Task 'depends'
+            $depends = if ($depends) { $depends } else { @() }
             $this.Dependencies = @()
 
             foreach ($depId in $depends) {
-                $depTask = $data.tasks | Where-Object { $_.id -eq $depId } | Select-Object -First 1
+                $depTask = $data.tasks | Where-Object { (Get-SafeProperty $_ 'id') -eq $depId } | Select-Object -First 1
                 if ($depTask) {
                     $this.Dependencies += $depTask
                 }

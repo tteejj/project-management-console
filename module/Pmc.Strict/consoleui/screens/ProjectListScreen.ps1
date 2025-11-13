@@ -19,8 +19,13 @@ Shows all projects with:
 - Archive/Unarchive projects
 - View project statistics
 - Filter and search projects
+
+NOTE: Uses lazy-loaded PmcFilePicker widget for folder browsing
 #>
 class ProjectListScreen : StandardListScreen {
+    # File picker for folder browsing (lazy-loaded)
+    [object]$FilePicker = $null
+    [bool]$ShowFilePicker = $false
 
     # Static: Register menu items
     static [void] RegisterMenuItems([object]$registry) {
@@ -32,6 +37,21 @@ class ProjectListScreen : StandardListScreen {
 
     # Constructor
     ProjectListScreen() : base("ProjectList", "Projects") {
+        # Configure capabilities
+        $this.AllowAdd = $true
+        $this.AllowEdit = $true
+        $this.AllowDelete = $true
+        $this.AllowFilter = $true
+
+        # Configure header
+        $this.Header.SetBreadcrumb(@("Home", "Projects"))
+
+        # TODO: Column configuration - StandardListScreen doesn't implement ConfigureColumns yet
+        # Will use default columns from UniversalList
+    }
+
+    # Constructor with container (DI-enabled)
+    ProjectListScreen([object]$container) : base("ProjectList", "Projects", $container) {
         # Configure capabilities
         $this.AllowAdd = $true
         $this.AllowEdit = $true
@@ -65,7 +85,7 @@ class ProjectListScreen : StandardListScreen {
         # Add computed fields
         foreach ($project in $projects) {
             # Count tasks in this project
-            $project['task_count'] = @($this.Store.GetAllTasks() | Where-Object { $_.project -eq $project.name }).Count
+            $project['task_count'] = @($this.Store.GetAllTasks() | Where-Object { (Get-SafeProperty $_ 'project') -eq (Get-SafeProperty $project 'name') }).Count
 
             # Ensure status field exists
             if (-not $project.ContainsKey('status')) {
@@ -103,25 +123,29 @@ class ProjectListScreen : StandardListScreen {
             )
         } else {
             # Existing project - populate from item
-            $tagsStr = if ($item.tags -and $item.tags.Count -gt 0) { $item.tags -join ', ' } else { '' }
+            $tags = Get-SafeProperty $item 'tags'
+            $tagsStr = if ($tags -and $tags.Count -gt 0) { $tags -join ', ' } else { '' }
 
             # Parse dates with error handling
-            $assignedDate = if ($item.AssignedDate) {
-                try { [DateTime]::Parse($item.AssignedDate) } catch { $null }
+            $assignedDateValue = Get-SafeProperty $item 'AssignedDate'
+            $assignedDate = if ($assignedDateValue) {
+                try { [DateTime]::Parse($assignedDateValue) } catch { $null }
             } else { $null }
-            $dueDate = if ($item.DueDate) {
-                try { [DateTime]::Parse($item.DueDate) } catch { $null }
+            $dueDateValue = Get-SafeProperty $item 'DueDate'
+            $dueDate = if ($dueDateValue) {
+                try { [DateTime]::Parse($dueDateValue) } catch { $null }
             } else { $null }
-            $bfDate = if ($item.BFDate) {
-                try { [DateTime]::Parse($item.BFDate) } catch { $null }
+            $bfDateValue = Get-SafeProperty $item 'BFDate'
+            $bfDate = if ($bfDateValue) {
+                try { [DateTime]::Parse($bfDateValue) } catch { $null }
             } else { $null }
 
             return @(
-                @{ Name='name'; Type='text'; Label='Project Name'; Required=$true; Value=$item.name }
-                @{ Name='description'; Type='text'; Label='Description'; Value=$item.description }
-                @{ Name='ID1'; Type='text'; Label='ID1'; Value=$item.ID1 }
-                @{ Name='ID2'; Type='text'; Label='ID2'; Value=$item.ID2 }
-                @{ Name='ProjFolder'; Type='folder'; Label='Project Folder'; Value=$item.ProjFolder }
+                @{ Name='name'; Type='text'; Label='Project Name'; Required=$true; Value=(Get-SafeProperty $item 'name') }
+                @{ Name='description'; Type='text'; Label='Description'; Value=(Get-SafeProperty $item 'description') }
+                @{ Name='ID1'; Type='text'; Label='ID1'; Value=(Get-SafeProperty $item 'ID1') }
+                @{ Name='ID2'; Type='text'; Label='ID2'; Value=(Get-SafeProperty $item 'ID2') }
+                @{ Name='ProjFolder'; Type='folder'; Label='Project Folder'; Value=(Get-SafeProperty $item 'ProjFolder') }
                 @{ Name='AssignedDate'; Type='date'; Label='Assigned Date'; Value=$assignedDate }
                 @{ Name='DueDate'; Type='date'; Label='Due Date'; Value=$dueDate }
                 @{ Name='BFDate'; Type='date'; Label='BF Date'; Value=$bfDate }
@@ -132,85 +156,130 @@ class ProjectListScreen : StandardListScreen {
 
     # Handle item creation
     [void] OnItemCreated([hashtable]$values) {
-        # Parse tags from comma-separated string
-        $tags = @()
-        if ($values.tags -and $values.tags.Trim()) {
-            $tags = $values.tags -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ }
-        }
+        try {
+            # ENDEMIC FIX: Validate required field
+            if (-not $values.ContainsKey('name') -or [string]::IsNullOrWhiteSpace($values.name)) {
+                $this.SetStatusMessage("Project name is required", "error")
+                return
+            }
 
-        # Format dates to ISO string
-        $assignedDate = if ($values.AssignedDate -is [DateTime]) { $values.AssignedDate.ToString('yyyy-MM-dd') } else { '' }
-        $dueDate = if ($values.DueDate -is [DateTime]) { $values.DueDate.ToString('yyyy-MM-dd') } else { '' }
-        $bfDate = if ($values.BFDate -is [DateTime]) { $values.BFDate.ToString('yyyy-MM-dd') } else { '' }
+            # Parse tags from comma-separated string
+            $tags = @()
+            if ($values.ContainsKey('tags') -and $values.tags -and $values.tags.Trim()) {
+                $tags = $values.tags -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ }
+            }
 
-        # H-VAL-9: Check for duplicate project name before creating
-        $existingProjects = $this.Store.GetAllProjects()
-        $duplicate = $existingProjects | Where-Object { $_.name -eq $values.name } | Select-Object -First 1
-        if ($duplicate) {
-            $this.SetStatusMessage("Project with name '$($values.name)' already exists", "error")
-            return
-        }
+            # Format dates to ISO string with safe access
+            $assignedDate = ''
+            if ($values.ContainsKey('AssignedDate') -and $values.AssignedDate -is [DateTime]) {
+                $assignedDate = $values.AssignedDate.ToString('yyyy-MM-dd')
+            }
 
-        $projectData = @{
-            id = [guid]::NewGuid().ToString()
-            name = $values.name
-            description = $values.description
-            created = (Get-Date).ToString('yyyy-MM-dd HH:mm:ss')
-            status = 'active'
-            tags = $tags
-            ID1 = $values.ID1
-            ID2 = $values.ID2
-            ProjFolder = $values.ProjFolder
-            AssignedDate = $assignedDate
-            DueDate = $dueDate
-            BFDate = $bfDate
-        }
+            $dueDate = ''
+            if ($values.ContainsKey('DueDate') -and $values.DueDate -is [DateTime]) {
+                $dueDate = $values.DueDate.ToString('yyyy-MM-dd')
+            }
 
-        $success = $this.Store.AddProject($projectData)
-        if ($success) {
-            $this.SetStatusMessage("Project created: $($projectData.name)", "success")
-        } else {
-            $this.SetStatusMessage("Failed to create project: $($this.Store.LastError)", "error")
+            $bfDate = ''
+            if ($values.ContainsKey('BFDate') -and $values.BFDate -is [DateTime]) {
+                $bfDate = $values.BFDate.ToString('yyyy-MM-dd')
+            }
+
+            # H-VAL-9: Check for duplicate project name before creating
+            $existingProjects = $this.Store.GetAllProjects()
+            $duplicate = $existingProjects | Where-Object { (Get-SafeProperty $_ 'name') -eq $values.name } | Select-Object -First 1
+            if ($duplicate) {
+                $this.SetStatusMessage("Project with name '$($values.name)' already exists", "error")
+                return
+            }
+
+            $projectData = @{
+                id = [guid]::NewGuid().ToString()
+                name = $values.name
+                description = if ($values.ContainsKey('description')) { $values.description } else { '' }
+                created = (Get-Date).ToString('yyyy-MM-dd HH:mm:ss')
+                status = 'active'
+                tags = $tags
+                ID1 = if ($values.ContainsKey('ID1')) { $values.ID1 } else { '' }
+                ID2 = if ($values.ContainsKey('ID2')) { $values.ID2 } else { '' }
+                ProjFolder = if ($values.ContainsKey('ProjFolder')) { $values.ProjFolder } else { '' }
+                AssignedDate = $assignedDate
+                DueDate = $dueDate
+                BFDate = $bfDate
+            }
+
+            $success = $this.Store.AddProject($projectData)
+            if ($success) {
+                $this.SetStatusMessage("Project created: $($projectData.name)", "success")
+            } else {
+                $this.SetStatusMessage("Failed to create project: $($this.Store.LastError)", "error")
+            }
+        } catch {
+            Write-PmcTuiLog "OnItemCreated exception: $_" "ERROR"
+            $this.SetStatusMessage("Unexpected error: $($_.Exception.Message)", "error")
         }
     }
 
     # Handle item update
     [void] OnItemUpdated([object]$item, [hashtable]$values) {
-        # Parse tags from comma-separated string
-        $tags = @()
-        if ($values.tags -and $values.tags.Trim()) {
-            $tags = $values.tags -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ }
-        }
+        try {
+            # ENDEMIC FIX: Validate required field
+            if (-not $values.ContainsKey('name') -or [string]::IsNullOrWhiteSpace($values.name)) {
+                $this.SetStatusMessage("Project name is required", "error")
+                return
+            }
 
-        # Format dates to ISO string
-        $assignedDate = if ($values.AssignedDate -is [DateTime]) { $values.AssignedDate.ToString('yyyy-MM-dd') } else { '' }
-        $dueDate = if ($values.DueDate -is [DateTime]) { $values.DueDate.ToString('yyyy-MM-dd') } else { '' }
-        $bfDate = if ($values.BFDate -is [DateTime]) { $values.BFDate.ToString('yyyy-MM-dd') } else { '' }
+            # Parse tags from comma-separated string
+            $tags = @()
+            if ($values.ContainsKey('tags') -and $values.tags -and $values.tags.Trim()) {
+                $tags = $values.tags -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ }
+            }
 
-        $changes = @{
-            name = $values.name
-            description = $values.description
-            tags = $tags
-            ID1 = $values.ID1
-            ID2 = $values.ID2
-            ProjFolder = $values.ProjFolder
-            AssignedDate = $assignedDate
-            DueDate = $dueDate
-            BFDate = $bfDate
-        }
+            # Format dates to ISO string with safe access
+            $assignedDate = ''
+            if ($values.ContainsKey('AssignedDate') -and $values.AssignedDate -is [DateTime]) {
+                $assignedDate = $values.AssignedDate.ToString('yyyy-MM-dd')
+            }
 
-        $success = $this.Store.UpdateProject($item.name, $changes)
-        if ($success) {
-            $this.SetStatusMessage("Project updated: $($values.name)", "success")
-        } else {
-            $this.SetStatusMessage("Failed to update project: $($this.Store.LastError)", "error")
+            $dueDate = ''
+            if ($values.ContainsKey('DueDate') -and $values.DueDate -is [DateTime]) {
+                $dueDate = $values.DueDate.ToString('yyyy-MM-dd')
+            }
+
+            $bfDate = ''
+            if ($values.ContainsKey('BFDate') -and $values.BFDate -is [DateTime]) {
+                $bfDate = $values.BFDate.ToString('yyyy-MM-dd')
+            }
+
+            $changes = @{
+                name = $values.name
+                description = if ($values.ContainsKey('description')) { $values.description } else { '' }
+                tags = $tags
+                ID1 = if ($values.ContainsKey('ID1')) { $values.ID1 } else { '' }
+                ID2 = if ($values.ContainsKey('ID2')) { $values.ID2 } else { '' }
+                ProjFolder = if ($values.ContainsKey('ProjFolder')) { $values.ProjFolder } else { '' }
+                AssignedDate = $assignedDate
+                DueDate = $dueDate
+                BFDate = $bfDate
+            }
+
+            $success = $this.Store.UpdateProject((Get-SafeProperty $item 'name'), $changes)
+            if ($success) {
+                $this.SetStatusMessage("Project updated: $($values.name)", "success")
+            } else {
+                $this.SetStatusMessage("Failed to update project: $($this.Store.LastError)", "error")
+            }
+        } catch {
+            Write-PmcTuiLog "OnItemUpdated exception: $_" "ERROR"
+            $this.SetStatusMessage("Unexpected error: $($_.Exception.Message)", "error")
         }
     }
 
     # Handle item deletion
     [void] OnItemDeleted([object]$item) {
         # Check if project has tasks
-        $taskCount = ($this.Store.GetAllTasks() | Where-Object { $_.project -eq $item.name }).Count
+        $itemName = Get-SafeProperty $item 'name'
+        $taskCount = ($this.Store.GetAllTasks() | Where-Object { (Get-SafeProperty $_ 'project') -eq $itemName }).Count
 
         if ($taskCount -gt 0) {
             # H-UI-8: Better error message with actionable guidance
@@ -218,9 +287,9 @@ class ProjectListScreen : StandardListScreen {
             return
         }
 
-        $success = $this.Store.DeleteProject($item.name)
+        $success = $this.Store.DeleteProject($itemName)
         if ($success) {
-            $this.SetStatusMessage("Project deleted: $($item.name)", "success")
+            $this.SetStatusMessage("Project deleted: $itemName", "success")
         } else {
             $this.SetStatusMessage("Failed to delete project: $($this.Store.LastError)", "error")
         }
@@ -228,8 +297,17 @@ class ProjectListScreen : StandardListScreen {
 
     # === Custom Actions ===
 
+    # Ensure PmcFilePicker is loaded (lazy loading pattern)
+    hidden [void] EnsureFilePicker() {
+        if ($null -eq ([Type]'PmcFilePicker' -as [Type])) {
+            Write-PmcTuiLog "ProjectListScreen: Lazy-loading PmcFilePicker widget" "DEBUG"
+            . "$PSScriptRoot/../widgets/PmcFilePicker.ps1"
+        }
+    }
+
     # Import projects from Excel spreadsheet
     [void] ImportFromExcel() {
+        $this.EnsureFilePicker()
         try {
             # Check if ImportExcel module is available
             if (-not (Get-Module -ListAvailable -Name ImportExcel)) {
@@ -240,18 +318,17 @@ class ProjectListScreen : StandardListScreen {
             # Import the module
             Import-Module ImportExcel -ErrorAction Stop
 
-            # Show file picker for Excel file selection
-            . "$PSScriptRoot/../widgets/PmcFilePicker.ps1"
-            $filePicker = New-Object PmcFilePicker -ArgumentList $this.App
-            $filePicker.Title = "Select Excel File to Import"
-            $filePicker.Filter = "*.xlsx;*.xls"
-            $filePicker.InitialDirectory = $global:HOME
+            # Show file picker for Excel file selection - use integrated file picker
+            $startPath = if (Test-Path $global:HOME) { $global:HOME } else { (Get-Location).Path }
+            $this.FilePicker = [PmcFilePicker]::new($startPath, $false)  # false = allow files
+            $this.ShowFilePicker = $true
+            $this.SetStatusMessage("Select Excel file (*.xlsx, *.xls)", "info")
 
-            $excelPath = $filePicker.Show()
-            if ([string]::IsNullOrWhiteSpace($excelPath)) {
-                $this.SetStatusMessage("Import cancelled", "warning")
-                return
-            }
+            # Wait for file picker to complete
+            # Note: This blocks - in real implementation this should be async
+            # For now, just show message that this needs implementation
+            $this.SetStatusMessage("Excel import file picker needs async implementation - use file path directly for now", "warning")
+            return
 
             # H-ERR-2: Wrap file operations in try-catch for proper error handling
             try {
@@ -352,7 +429,7 @@ class ProjectListScreen : StandardListScreen {
             }
 
             # Check if project already exists
-            $existing = $this.Store.GetAllProjects() | Where-Object { $_.name -eq $projectData['name'] }
+            $existing = $this.Store.GetAllProjects() | Where-Object { (Get-SafeProperty $_ 'name') -eq $projectData['name'] }
             if ($existing) {
                 $this.SetStatusMessage("Project '$($projectData['name'])' already exists. Use edit to update.", "warning")
                 return
@@ -376,20 +453,24 @@ class ProjectListScreen : StandardListScreen {
     [void] ToggleProjectArchive([object]$project) {
         if ($null -eq $project) { return }
 
-        $newStatus = if ($project.status -eq 'archived') { 'active' } else { 'archived' }
-        $this.Store.UpdateProject($project.name, @{ status = $newStatus })
+        $projectStatus = Get-SafeProperty $project 'status'
+        $projectName = Get-SafeProperty $project 'name'
+        $newStatus = if ($projectStatus -eq 'archived') { 'active' } else { 'archived' }
+        $this.Store.UpdateProject($projectName, @{ status = $newStatus })
 
         $action = if ($newStatus -eq 'archived') { "archived" } else { "activated" }
-        $this.SetStatusMessage("Project ${action}: $($project.name)", "success")
+        $this.SetStatusMessage("Project ${action}: $projectName", "success")
     }
 
     # === Input Handling ===
 
     # Open project folder
     [void] OpenProjectFolder([object]$project) {
+        $this.EnsureFilePicker()
+
         if ($null -eq $project) { return }
 
-        $folderPath = $project.ProjFolder
+        $folderPath = Get-SafeProperty $project 'ProjFolder'
         if ([string]::IsNullOrWhiteSpace($folderPath)) {
             $this.SetStatusMessage("Project has no folder path set", "warning")
             return
@@ -411,17 +492,12 @@ class ProjectListScreen : StandardListScreen {
         }
 
         try {
-            # Use proper Start-Process parameters with validated path
-            if ($global:IsLinux) {
-                Start-Process -FilePath "xdg-open" -ArgumentList @($folderPath)
-            } elseif ($global:IsMacOS) {
-                Start-Process -FilePath "open" -ArgumentList @($folderPath)
-            } else {
-                Start-Process -FilePath "explorer.exe" -ArgumentList @($folderPath)
-            }
-            $this.SetStatusMessage("Opened folder: $folderPath", "success")
+            # Show integrated file picker to browse the project folder
+            $this.FilePicker = [PmcFilePicker]::new($folderPath, $true)
+            $this.ShowFilePicker = $true
+            $this.SetStatusMessage("Browsing folder: $folderPath", "info")
         } catch {
-            $this.SetStatusMessage("Failed to open folder: $($_.Exception.Message)", "error")
+            $this.SetStatusMessage("Failed to open file picker: $($_.Exception.Message)", "error")
         }
     }
 
@@ -437,8 +513,9 @@ class ProjectListScreen : StandardListScreen {
                 $selected = $self.List.GetSelectedItem()
                 if ($selected) {
                     . "$PSScriptRoot/ProjectInfoScreen.ps1"
-                    $screen = New-Object ProjectInfoScreen -ArgumentList $selected.name
-                    $self.App.PushScreen($screen)
+                    $screen = New-Object ProjectInfoScreen
+                    $screen.SetProject((Get-SafeProperty $selected 'name'))
+                    $global:PmcApp.PushScreen($screen)
                 }
             }.GetNewClosure() }
             @{ Key='o'; Label='Open Folder'; Callback={
@@ -451,7 +528,46 @@ class ProjectListScreen : StandardListScreen {
         )
     }
 
+    # Override Render to show file picker overlay
+    [string] RenderContent() {
+        $output = ([StandardListScreen]$this).RenderContent()
+
+        # Render file picker overlay if showing
+        if ($this.ShowFilePicker -and $null -ne $this.FilePicker) {
+            $output += $this.FilePicker.Render($this.TermWidth, $this.TermHeight)
+        }
+
+        return $output
+    }
+
     [bool] HandleKeyPress([ConsoleKeyInfo]$keyInfo) {
+        # CRITICAL: Call parent FIRST for MenuBar, F10, Alt+keys, content widgets
+        $handled = ([PmcScreen]$this).HandleKeyPress($keyInfo)
+        if ($handled) { return $true }
+
+        # If file picker is showing, route input to it
+        if ($this.ShowFilePicker -and $null -ne $this.FilePicker) {
+            $handled = $this.FilePicker.HandleInput($keyInfo)
+
+            # Check if file picker completed
+            if ($this.FilePicker.IsComplete) {
+                if ($this.FilePicker.Result) {
+                    # User selected a folder
+                    $selectedPath = $this.FilePicker.SelectedPath
+                    $this.SetStatusMessage("Selected: $selectedPath", "success")
+                    # Could potentially open the selected folder in system file manager
+                    # Or just show the selected path
+                } else {
+                    $this.SetStatusMessage("Folder browsing cancelled", "info")
+                }
+                # Close file picker
+                $this.ShowFilePicker = $false
+                $this.FilePicker = $null
+            }
+
+            return $true
+        }
+
         # Call parent handler first (handles list navigation, add/edit/delete)
         $handled = ([StandardListScreen]$this).HandleKeyPress($keyInfo)
         if ($handled) { return $true }
@@ -468,8 +584,9 @@ class ProjectListScreen : StandardListScreen {
             $selected = $this.List.GetSelectedItem()
             if ($selected) {
                 . "$PSScriptRoot/ProjectInfoScreen.ps1"
-                $screen = New-Object ProjectInfoScreen -ArgumentList $selected.name
-                $this.App.PushScreen($screen)
+                $screen = New-Object ProjectInfoScreen
+                $screen.SetProject((Get-SafeProperty $selected 'name'))
+                $global:PmcApp.PushScreen($screen)
             }
             return $true
         }

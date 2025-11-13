@@ -28,8 +28,21 @@ class FocusSetFormScreen : PmcScreen {
     [int]$SelectedIndex = 0
     [string]$CurrentFocus = ""
 
-    # Constructor
+    # Backward compatible constructor
     FocusSetFormScreen() : base("FocusSetForm", "Set Focus") {
+        # Configure header
+        $this.Header.SetBreadcrumb(@("Home", "Focus", "Set"))
+
+        # Configure footer with shortcuts
+        $this.Footer.ClearShortcuts()
+        $this.Footer.AddShortcut("Up/Down", "Select")
+        $this.Footer.AddShortcut("Enter", "Set Focus")
+        $this.Footer.AddShortcut("Esc", "Cancel")
+        $this.Footer.AddShortcut("Ctrl+Q", "Quit")
+    }
+
+    # Container constructor
+    FocusSetFormScreen([object]$container) : base("FocusSetForm", "Set Focus", $container) {
         # Configure header
         $this.Header.SetBreadcrumb(@("Home", "Focus", "Set"))
 
@@ -46,7 +59,7 @@ class FocusSetFormScreen : PmcScreen {
 
         try {
             # Get PMC data
-            $data = Get-PmcAllData
+            $data = Get-PmcData
 
             # Get current focus
             $this.CurrentFocus = if ($data.PSObject.Properties['currentContext']) {
@@ -152,6 +165,10 @@ class FocusSetFormScreen : PmcScreen {
     }
 
     [bool] HandleKeyPress([ConsoleKeyInfo]$keyInfo) {
+        # CRITICAL: Call parent FIRST for MenuBar, F10, Alt+keys, content widgets
+        $handled = ([PmcScreen]$this).HandleKeyPress($keyInfo)
+        if ($handled) { return $true }
+
         switch ($keyInfo.Key) {
             'UpArrow' {
                 if ($this.SelectedIndex -gt 0) {
@@ -182,7 +199,7 @@ class FocusSetFormScreen : PmcScreen {
         $selectedProject = $this.Projects[$this.SelectedIndex]
 
         try {
-            $data = Get-PmcAllData
+            $data = Get-PmcData
 
             # Set focus
             if (-not $data.PSObject.Properties['currentContext']) {

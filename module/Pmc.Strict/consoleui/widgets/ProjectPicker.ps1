@@ -498,21 +498,23 @@ class ProjectPicker : PmcWidget {
             . "$PSScriptRoot/../services/TaskStore.ps1"
             $store = [TaskStore]::GetInstance()
             $projectsData = $store.GetAllProjects()
+
+            # FIX: Always include "(No Project)" option at the beginning
+            $projects = @("(No Project)")
+
             if ($null -ne $projectsData -and $projectsData.Count -gt 0) {
-                $projects = @()
                 foreach ($proj in $projectsData) {
                     if ($null -ne $proj.name -and -not [string]::IsNullOrWhiteSpace($proj.name)) {
                         $projects += $proj.name.ToString()
                     }
                 }
-                $this._allProjects = $projects | Sort-Object
-                $this._lastRefresh = [DateTime]::Now
-            } else {
-                $this._allProjects = @()
             }
+
+            $this._allProjects = $projects
+            $this._lastRefresh = [DateTime]::Now
         } catch {
-            # Failed to load projects - use empty array
-            $this._allProjects = @()
+            # Failed to load projects - use "(No Project)" only
+            $this._allProjects = @("(No Project)")
         }
 
         # Apply filter to refresh filtered list

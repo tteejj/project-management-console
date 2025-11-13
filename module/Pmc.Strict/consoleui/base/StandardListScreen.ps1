@@ -131,8 +131,17 @@ class StandardListScreen : PmcScreen {
     [bool]$AllowSearch = $true
     [bool]$AllowMultiSelect = $true
 
-    # === Constructor ===
+    # === Constructor (backward compatible - no container) ===
     StandardListScreen([string]$key, [string]$title) : base($key, $title) {
+        # UniversalList has its own status and action footer, so disable the screen's StatusBar
+        $this.StatusBar = $null
+
+        # Initialize components
+        $this._InitializeComponents()
+    }
+
+    # === Constructor (with ServiceContainer) ===
+    StandardListScreen([string]$key, [string]$title, [object]$container) : base($key, $title, $container) {
         # UniversalList has its own status and action footer, so disable the screen's StatusBar
         $this.StatusBar = $null
 
@@ -535,8 +544,30 @@ class StandardListScreen : PmcScreen {
             return
         }
 
-        # TODO: Show confirmation dialog
-        # For now, delete directly
+        # MEDIUM FIX #13: Add simple inline confirmation before delete
+        # Get item name/description for confirmation message
+        $itemDesc = ""
+        if ($item.text) {
+            $itemDesc = $item.text
+        } elseif ($item.name) {
+            $itemDesc = $item.name
+        } elseif ($item.id) {
+            $itemDesc = "ID $($item.id)"
+        } else {
+            $itemDesc = "this item"
+        }
+
+        # Show confirmation in status bar and wait for Y/N
+        if ($this.StatusBar) {
+            $this.StatusBar.SetLeftText("Delete '$itemDesc'? Press Y to confirm, any other key to cancel")
+            $this.Render() | Out-Host
+            $confirmKey = [Console]::ReadKey($true)
+
+            if ($confirmKey.KeyChar -ne 'y' -and $confirmKey.KeyChar -ne 'Y') {
+                $this.StatusBar.SetLeftText("Delete cancelled")
+                return
+            }
+        }
 
         $entityType = $this.GetEntityType()
         $success = $false
@@ -561,7 +592,7 @@ class StandardListScreen : PmcScreen {
 
         if ($success) {
             if ($this.StatusBar) {
-                $this.StatusBar.SetLeftText("Item deleted")
+                $this.StatusBar.SetLeftText("Item deleted: $itemDesc")
             }
         } else {
             if ($this.StatusBar) {
@@ -829,11 +860,13 @@ class StandardListScreen : PmcScreen {
             Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] RenderContent: Rendering List (ShowInlineEditor=$($this.ShowInlineEditor), ShowFilterPanel=$($this.ShowFilterPanel), List=$($null -ne $this.List))"
         }
 
+        # HIGH FIX #8: Throw error instead of silent failure to make debugging easier
         if ($null -eq $this.List) {
+            $errorMsg = "CRITICAL ERROR: StandardListScreen.List is null - screen was not properly initialized"
             if ($global:PmcTuiLogFile) {
-                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] RenderContent: ERROR - List is null!"
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] RenderContent: $errorMsg"
             }
-            return ""
+            throw $errorMsg
         }
 
         $listOutput = $this.List.Render()

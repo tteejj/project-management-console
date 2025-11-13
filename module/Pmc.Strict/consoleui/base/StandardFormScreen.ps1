@@ -103,8 +103,14 @@ class StandardFormScreen : PmcScreen {
     [bool]$AllowCancel = $true
     [string]$SubmitLabel = "Save"
 
-    # === Constructor ===
+    # === Constructor (backward compatible - no container) ===
     StandardFormScreen([string]$key, [string]$title) : base($key, $title) {
+        # Initialize components
+        $this._InitializeComponents()
+    }
+
+    # === Constructor (with ServiceContainer) ===
+    StandardFormScreen([string]$key, [string]$title, [object]$container) : base($key, $title, $container) {
         # Initialize components
         $this._InitializeComponents()
     }

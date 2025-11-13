@@ -38,12 +38,24 @@ class FocusClearScreen : PmcScreen {
         $this.Footer.AddShortcut("Ctrl+Q", "Quit")
     }
 
+    # Constructor with container
+    FocusClearScreen([object]$container) : base("FocusClear", "Clear Focus", $container) {
+        # Configure header
+        $this.Header.SetBreadcrumb(@("Home", "Focus", "Clear"))
+
+        # Configure footer with shortcuts
+        $this.Footer.ClearShortcuts()
+        $this.Footer.AddShortcut("Y", "Confirm")
+        $this.Footer.AddShortcut("N/Esc", "Cancel")
+        $this.Footer.AddShortcut("Ctrl+Q", "Quit")
+    }
+
     [void] LoadData() {
         $this.ShowStatus("Loading focus...")
 
         try {
             # Get PMC data
-            $data = Get-PmcAllData
+            $data = Get-PmcData
 
             # Get current focus
             $this.CurrentFocus = if ($data.PSObject.Properties['currentContext']) {
@@ -143,7 +155,7 @@ class FocusClearScreen : PmcScreen {
 
     hidden [void] _ClearFocus() {
         try {
-            $data = Get-PmcAllData
+            $data = Get-PmcData
 
             # Clear focus (set to inbox)
             if (-not $data.PSObject.Properties['currentContext']) {

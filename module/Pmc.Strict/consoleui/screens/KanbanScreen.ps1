@@ -47,104 +47,24 @@ class KanbanScreen : PmcScreen {
         $this.Footer.AddShortcut("R", "Refresh")
         $this.Footer.AddShortcut("Esc", "Back")
 
-        # Setup menu items
-        $this._SetupMenus()
+        # NOTE: _SetupMenus() removed - MenuRegistry handles menu population via manifest
     }
 
-    hidden [void] _SetupMenus() {
-        # Capture $this in a variable so scriptblocks can access it
-        $screen = $this
+    # Constructor with container
+    KanbanScreen([object]$container) : base("Kanban", "Kanban Board", $container) {
+        # Configure header
+        $this.Header.SetBreadcrumb(@("Home", "Tasks", "Kanban"))
 
-        # Tasks menu - Navigate to different task views
-        $tasksMenu = $this.MenuBar.Menus[0]
-        $tasksMenu.Items.Add([PmcMenuItem]::new("Task List", 'L', {
-            . "$PSScriptRoot/TaskListScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object TaskListScreen))
-        }))
-        # Archived view screens - these were consolidated/removed
-        # $tasksMenu.Items.Add([PmcMenuItem]::new("Today", 'Y', {
-        #     . "$PSScriptRoot/TodayViewScreen.ps1"
-        #     $global:PmcApp.PushScreen((New-Object TodayViewScreen))
-        # }))
-        # $tasksMenu.Items.Add([PmcMenuItem]::new("Tomorrow", 'T', {
-        #     . "$PSScriptRoot/TomorrowViewScreen.ps1"
-        #     $global:PmcApp.PushScreen((New-Object TomorrowViewScreen))
-        # }))
-        # $tasksMenu.Items.Add([PmcMenuItem]::new("Week View", 'W', {
-        #     . "$PSScriptRoot/WeekViewScreen.ps1"
-        #     $global:PmcApp.PushScreen((New-Object WeekViewScreen))
-        # }))
-        # $tasksMenu.Items.Add([PmcMenuItem]::new("Upcoming", 'U', {
-        #     . "$PSScriptRoot/UpcomingViewScreen.ps1"
-        #     $global:PmcApp.PushScreen((New-Object UpcomingViewScreen))
-        # }))
-        # $tasksMenu.Items.Add([PmcMenuItem]::new("Overdue", 'V', {
-        #     . "$PSScriptRoot/OverdueViewScreen.ps1"
-        #     $global:PmcApp.PushScreen((New-Object OverdueViewScreen))
-        # }))
-        # $tasksMenu.Items.Add([PmcMenuItem]::new("Next Actions", 'N', {
-        #     . "$PSScriptRoot/NextActionsViewScreen.ps1"
-        #     $global:PmcApp.PushScreen((New-Object NextActionsViewScreen))
-        # }))
-        # $tasksMenu.Items.Add([PmcMenuItem]::new("No Due Date", 'D', {
-        #     . "$PSScriptRoot/NoDueDateViewScreen.ps1"
-        #     $global:PmcApp.PushScreen((New-Object NoDueDateViewScreen))
-        # }))
-        $tasksMenu.Items.Add([PmcMenuItem]::new("Blocked Tasks", 'B', {
-            . "$PSScriptRoot/BlockedTasksScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object BlockedTasksScreen))
-        }))
-        $tasksMenu.Items.Add([PmcMenuItem]::Separator())
-        $tasksMenu.Items.Add([PmcMenuItem]::new("Kanban Board", 'K', {
-            . "$PSScriptRoot/KanbanScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object KanbanScreen))
-        }))
-        # $tasksMenu.Items.Add([PmcMenuItem]::new("Month View", 'M', {
-        #     . "$PSScriptRoot/MonthViewScreen.ps1"
-        #     $global:PmcApp.PushScreen((New-Object MonthViewScreen))
-        # }))
-        # $tasksMenu.Items.Add([PmcMenuItem]::new("Agenda View", 'A', {
-        #     . "$PSScriptRoot/AgendaViewScreen.ps1"
-        #     $global:PmcApp.PushScreen((New-Object AgendaViewScreen))
-        # }))
-        $tasksMenu.Items.Add([PmcMenuItem]::new("Burndown Chart", 'C', {
-            . "$PSScriptRoot/BurndownChartScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object BurndownChartScreen))
-        }))
+        # Configure footer with shortcuts
+        $this.Footer.ClearShortcuts()
+        $this.Footer.AddShortcut("Up/Down", "Select")
+        $this.Footer.AddShortcut("Left/Right", "Column")
+        $this.Footer.AddShortcut("Enter", "Detail")
+        $this.Footer.AddShortcut("M", "Move")
+        $this.Footer.AddShortcut("R", "Refresh")
+        $this.Footer.AddShortcut("Esc", "Back")
 
-        # Projects menu
-        $projectsMenu = $this.MenuBar.Menus[1]
-        $projectsMenu.Items.Add([PmcMenuItem]::new("Project List", 'L', {
-            . "$PSScriptRoot/ProjectListScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object ProjectListScreen))
-        }))
-        $projectsMenu.Items.Add([PmcMenuItem]::new("Project Stats", 'S', {
-            . "$PSScriptRoot/ProjectStatsScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object ProjectStatsScreen))
-        }))
-        $projectsMenu.Items.Add([PmcMenuItem]::new("Project Info", 'I', {
-            . "$PSScriptRoot/ProjectInfoScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object ProjectInfoScreen))
-        }))
-
-        # Options menu
-        $optionsMenu = $this.MenuBar.Menus[2]
-        $optionsMenu.Items.Add([PmcMenuItem]::new("Theme Editor", 'T', {
-            . "$PSScriptRoot/ThemeEditorScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object ThemeEditorScreen))
-        }))
-        $optionsMenu.Items.Add([PmcMenuItem]::new("Settings", 'S', {
-            . "$PSScriptRoot/SettingsScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object SettingsScreen))
-        }))
-
-        # Help menu
-        $helpMenu = $this.MenuBar.Menus[3]
-        $helpMenu.Items.Add([PmcMenuItem]::new("Help View", 'H', {
-            . "$PSScriptRoot/HelpViewScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object HelpViewScreen))
-        }))
-        $helpMenu.Items.Add([PmcMenuItem]::new("About", 'A', { Write-Host "PMC TUI v1.0" }))
+        # NOTE: _SetupMenus() removed - MenuRegistry handles menu population via manifest
     }
 
     [void] LoadData() {
@@ -152,28 +72,35 @@ class KanbanScreen : PmcScreen {
 
         try {
             # Load PMC data
-            $data = Get-PmcAllData
+            $data = Get-PmcData
             $sevenDaysAgo = (Get-Date).AddDays(-7)
 
             # TODO column: pending, blocked, waiting (not completed)
             $this.TodoTasks = @($data.tasks | Where-Object {
-                -not $_.completed -and
-                ($_.status -eq 'pending' -or $_.status -eq 'blocked' -or $_.status -eq 'waiting' -or -not $_.status)
+                $taskCompleted = Get-SafeProperty $_ 'completed'
+                $taskStatus = Get-SafeProperty $_ 'status'
+                -not $taskCompleted -and
+                ($taskStatus -eq 'pending' -or $taskStatus -eq 'blocked' -or $taskStatus -eq 'waiting' -or -not $taskStatus)
             })
-            $this.TodoTasks = @($this.TodoTasks | Sort-Object -Property @{Expression={$_.priority}; Descending=$true}, id)
+            $this.TodoTasks = @($this.TodoTasks | Sort-Object { Get-SafeProperty $_ 'priority' }, { Get-SafeProperty $_ 'id' } -Descending)
 
             # In Progress column: in-progress (not completed)
             $this.InProgressTasks = @($data.tasks | Where-Object {
-                -not $_.completed -and $_.status -eq 'in-progress'
+                $taskCompleted = Get-SafeProperty $_ 'completed'
+                $taskStatus = Get-SafeProperty $_ 'status'
+                -not $taskCompleted -and $taskStatus -eq 'in-progress'
             })
-            $this.InProgressTasks = @($this.InProgressTasks | Sort-Object -Property @{Expression={$_.priority}; Descending=$true}, id)
+            $this.InProgressTasks = @($this.InProgressTasks | Sort-Object { Get-SafeProperty $_ 'priority' }, { Get-SafeProperty $_ 'id' } -Descending)
 
             # Done column: completed in last 7 days OR status=done
             $this.DoneTasks = @($data.tasks | Where-Object {
-                ($_.completed -and $_.completedDate -and ([DateTime]$_.completedDate) -gt $sevenDaysAgo) -or
-                ($_.status -eq 'done')
+                $taskCompleted = Get-SafeProperty $_ 'completed'
+                $taskCompletedDate = Get-SafeProperty $_ 'completedDate'
+                $taskStatus = Get-SafeProperty $_ 'status'
+                ($taskCompleted -and $taskCompletedDate -and ([DateTime]$taskCompletedDate) -gt $sevenDaysAgo) -or
+                ($taskStatus -eq 'done')
             })
-            $this.DoneTasks = @($this.DoneTasks | Sort-Object -Property @{Expression={$_.completedDate}; Descending=$true}, id)
+            $this.DoneTasks = @($this.DoneTasks | Sort-Object { Get-SafeProperty $_ 'completedDate' }, { Get-SafeProperty $_ 'id' } -Descending)
 
             # Reset selections if out of bounds
             if ($this.SelectedIndexTodo -ge $this.TodoTasks.Count) {
@@ -301,11 +228,13 @@ class KanbanScreen : PmcScreen {
             $sb.Append($this.Header.BuildMoveTo($x, $lineY))
 
             # Priority prefix if present
+            $taskPriority = Get-SafeProperty $task 'priority'
+            $taskTextValue = Get-SafeProperty $task 'text'
             $taskText = ""
-            if ($task.priority -gt 0) {
-                $taskText = "P$($task.priority) "
+            if ($taskPriority -gt 0) {
+                $taskText = "P$taskPriority "
             }
-            $taskText += $task.text
+            $taskText += $taskTextValue
 
             # Truncate if needed
             $maxWidth = $width - 2
@@ -319,12 +248,12 @@ class KanbanScreen : PmcScreen {
                 $sb.Append($taskText.PadRight($maxWidth))
                 $sb.Append($reset)
             } else {
-                if ($task.priority -gt 0) {
+                if ($taskPriority -gt 0) {
                     $sb.Append($priorityColor)
-                    $sb.Append("P$($task.priority) ")
+                    $sb.Append("P$taskPriority ")
                     $sb.Append($reset)
                     $sb.Append($textColor)
-                    $displayText = $task.text
+                    $displayText = $taskTextValue
                     if ($displayText.Length -gt ($maxWidth - 4)) {
                         $displayText = $displayText.Substring(0, $maxWidth - 7) + "..."
                     }
@@ -436,7 +365,9 @@ class KanbanScreen : PmcScreen {
     hidden [void] _ShowTaskDetail() {
         $task = $this._GetSelectedTask()
         if ($task) {
-            $this.ShowStatus("Task detail: [$($task.id)] $($task.text)")
+            $taskId = Get-SafeProperty $task 'id'
+            $taskText = Get-SafeProperty $task 'text'
+            $this.ShowStatus("Task detail: [$taskId] $taskText")
             # TODO: Push detail screen when implemented
         }
     }
@@ -445,31 +376,37 @@ class KanbanScreen : PmcScreen {
         $task = $this._GetSelectedTask()
         if ($task) {
             # Cycle status: pending -> in-progress -> done -> pending
-            switch ($task.status) {
+            $taskId = Get-SafeProperty $task 'id'
+            $taskStatus = Get-SafeProperty $task 'status'
+            $newStatus = 'in-progress'  # Initialize variable for strict mode
+            $completedDate = $null
+            switch ($taskStatus) {
                 'pending' { $newStatus = 'in-progress' }
-                'in-progress' { $newStatus = 'done'; $task.completed = $true; $task.completedDate = (Get-Date).ToString('yyyy-MM-dd HH:mm:ss') }
-                'done' { $newStatus = 'pending'; $task.completed = $false; $task.completedDate = $null }
+                'in-progress' {
+                    $newStatus = 'done'
+                    $completedDate = (Get-Date).ToString('yyyy-MM-dd HH:mm:ss')
+                }
+                'done' { $newStatus = 'pending' }
                 default { $newStatus = 'in-progress' }
             }
 
-            $task.status = $newStatus
-
             # Update storage
-            $allData = Get-PmcAllData
-            $taskToUpdate = $allData.tasks | Where-Object { $_.id -eq $task.id }
+            $allData = Get-PmcData
+            $taskToUpdate = $allData.tasks | Where-Object { (Get-SafeProperty $_ 'id') -eq $taskId }
             if ($taskToUpdate) {
                 $taskToUpdate.status = $newStatus
                 if ($newStatus -eq 'done') {
                     $taskToUpdate.completed = $true
-                    $taskToUpdate.completedDate = $task.completedDate
+                    $taskToUpdate.completedDate = $completedDate
                 } elseif ($newStatus -eq 'pending') {
                     $taskToUpdate.completed = $false
                     $taskToUpdate.completedDate = $null
                 }
-                Set-PmcAllData $allData
+                # FIX: Use Save-PmcData instead of Set-PmcAllData
+                Save-PmcData -Data $allData
             }
 
-            $this.ShowSuccess("Moved task #$($task.id) to $newStatus")
+            $this.ShowSuccess("Moved task #$taskId to $newStatus")
             $this.LoadData()  # Reload to update columns
         }
     }

@@ -37,8 +37,7 @@ class RestoreBackupScreen : PmcScreen {
         $this.Footer.AddShortcut("N", "Cancel")
         $this.Footer.AddShortcut("Esc", "Back")
 
-        # Setup menu items
-        $this._SetupMenus()
+        # NOTE: _SetupMenus() removed - MenuRegistry handles menu population via manifest
     }
 
     RestoreBackupScreen([object]$backup) : base("RestoreBackup", "Restore Backup") {
@@ -53,19 +52,22 @@ class RestoreBackupScreen : PmcScreen {
         $this.Footer.AddShortcut("N", "Cancel")
         $this.Footer.AddShortcut("Esc", "Back")
 
-        # Setup menu items
-        $this._SetupMenus()
+        # NOTE: _SetupMenus() removed - MenuRegistry handles menu population via manifest
     }
 
-    hidden [void] _SetupMenus() {
-        # Tasks menu
-        $tasksMenu = $this.MenuBar.Menus[0]
-        $tasksMenu.Items.Add([PmcMenuItem]::new("Confirm Restore", 'Y', { $this._ConfirmRestore() }))
-        $tasksMenu.Items.Add([PmcMenuItem]::new("Cancel", 'N', { $this._Cancel() }))
+    RestoreBackupScreen([object]$backup, [object]$container) : base("RestoreBackup", "Restore Backup", $container) {
+        $this.Backup = $backup
 
-        # Help menu
-        $helpMenu = $this.MenuBar.Menus[3]
-        $helpMenu.Items.Add([PmcMenuItem]::new("About", 'A', { Write-Host "PMC TUI v1.0" }))
+        # Configure header
+        $this.Header.SetBreadcrumb(@("Home", "Backups", "Restore"))
+
+        # Configure footer with shortcuts
+        $this.Footer.ClearShortcuts()
+        $this.Footer.AddShortcut("Y", "Confirm")
+        $this.Footer.AddShortcut("N", "Cancel")
+        $this.Footer.AddShortcut("Esc", "Back")
+
+        # NOTE: _SetupMenus() removed - MenuRegistry handles menu population via manifest
     }
 
     [void] LoadData() {
@@ -215,7 +217,8 @@ class RestoreBackupScreen : PmcScreen {
             $data = Get-Content $this.Backup.Path -Raw | ConvertFrom-Json
 
             # Save as current data
-            Set-PmcAllData $data
+            # FIX: Use Save-PmcData instead of Set-PmcAllData
+            Save-PmcData -Data $data
 
             $this.ShowSuccess("Data restored successfully from $($this.Backup.Name)")
 

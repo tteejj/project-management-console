@@ -98,6 +98,17 @@ class TaskListScreen : StandardListScreen {
         $this._SetupMenus()
     }
 
+    # Constructor with container (DI-enabled)
+    TaskListScreen([object]$container) : base("TaskList", "Task List", $container) {
+        $this._viewMode = 'active'
+        $this._showCompleted = $false
+        $this._sortColumn = 'due'
+        $this._sortAscending = $true
+
+        # Setup menus after base constructor
+        $this._SetupMenus()
+    }
+
     # Constructor with explicit view mode
     TaskListScreen([string]$viewMode) : base("TaskList", (Get-TaskListTitle $viewMode)) {
         $this._viewMode = $viewMode
@@ -109,18 +120,60 @@ class TaskListScreen : StandardListScreen {
         $this._SetupMenus()
     }
 
+    # Constructor with container and view mode (DI-enabled)
+    TaskListScreen([object]$container, [string]$viewMode) : base("TaskList", (Get-TaskListTitle $viewMode), $container) {
+        $this._viewMode = $viewMode
+        $this._showCompleted = $false
+        $this._sortColumn = 'due'
+        $this._sortAscending = $true
+
+        # Setup menus after base constructor
+        $this._SetupMenus()
+    }
+
+    # Override to add cache invalidation to TaskStore event handler
+    hidden [void] _InitializeComponents() {
+        # Call parent initialization first
+        ([StandardListScreen]$this)._InitializeComponents()
+
+        # CRITICAL FIX: Override the TaskStore event handler to invalidate cache before refresh
+        $self = $this
+        $this.Store.OnTasksChanged = {
+            param($tasks)
+            # Invalidate cache so LoadData will reload
+            $self._cachedFilteredTasks = $null
+            $self._cacheKey = ""
+            # Then refresh the list
+            if ($self.IsActive) {
+                $self.RefreshList()
+            }
+        }.GetNewClosure()
+    }
+
     # Setup menu items using MenuRegistry
     hidden [void] _SetupMenus() {
         # Get singleton MenuRegistry instance
         . "$PSScriptRoot/../services/MenuRegistry.ps1"
         $registry = [MenuRegistry]::GetInstance()
 
-        # Auto-discover screens and let them register their own menu items (only if not already done)
+        # Load menu items from manifest (only if not already loaded)
         $tasksMenuItems = $registry.GetMenuItems('Tasks')
         if (-not $tasksMenuItems -or @($tasksMenuItems).Count -eq 0) {
-            $screenDir = $PSScriptRoot
-            $screenFiles = Get-ChildItem -Path $screenDir -Filter "*Screen.ps1" | Select-Object -ExpandProperty FullName
-            $registry.DiscoverScreens($screenFiles)
+            $manifestPath = Join-Path $PSScriptRoot "MenuItems.psd1"
+
+            # Get or create the service container
+            if (-not $global:PmcContainer) {
+                # Load ServiceContainer if not already loaded
+                . "$PSScriptRoot/../ServiceContainer.ps1"
+                $global:PmcContainer = [ServiceContainer]::new()
+
+                if ($global:PmcTuiLogFile) {
+                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] TaskListScreen: Created new ServiceContainer"
+                }
+            }
+
+            # Load manifest with container
+            $registry.LoadFromManifest($manifestPath, $global:PmcContainer)
         }
 
         # Build menus from registry
@@ -169,6 +222,9 @@ class TaskListScreen : StandardListScreen {
             }
 
             if ($null -ne $items) {
+                # CRITICAL: Clear existing items to prevent duplication
+                $menu.Items.Clear()
+
                 foreach ($item in $items) {
                     # MenuRegistry returns hashtables, use hashtable indexing
                     $menuItem = [PmcMenuItem]::new($item['Label'], $item['Hotkey'], $item['Action'])
@@ -186,6 +242,10 @@ class TaskListScreen : StandardListScreen {
         # Return cached result if nothing changed
         if ($this._cacheKey -eq $currentKey -and $null -ne $this._cachedFilteredTasks) {
             $this.List.SetData($this._cachedFilteredTasks)
+            # Force full re-render when data changes
+            if ($this.RenderEngine -and $this.RenderEngine.PSObject.Methods['RequestClear']) {
+                $this.RenderEngine.RequestClear()
+            }
             return
         }
 
@@ -193,7 +253,6 @@ class TaskListScreen : StandardListScreen {
 
         # Null check to prevent crashes
         if ($null -eq $allTasks -or $allTasks.Count -eq 0) {
-            $this.Data = @()
             $this.List.SetData(@())
             $this._cachedFilteredTasks = @()
             $this._cacheKey = $currentKey
@@ -206,74 +265,81 @@ class TaskListScreen : StandardListScreen {
         # Apply view mode filter
         $filteredTasks = switch ($this._viewMode) {
             'all' { $allTasks }
-            'active' { $allTasks | Where-Object { -not $_.completed } }
-            'completed' { $allTasks | Where-Object { $_.completed } }
+            'active' { $allTasks | Where-Object { -not (Get-SafeProperty $_ 'completed') } }
+            'completed' { $allTasks | Where-Object { Get-SafeProperty $_ 'completed' } }
             'overdue' {
                 $allTasks | Where-Object {
-                    -not $_.completed -and
-                    $_.due -and
-                    $_.due -lt [DateTime]::Today
+                    $due = Get-SafeProperty $_ 'due'
+                    -not (Get-SafeProperty $_ 'completed') -and
+                    $due -and
+                    $due -lt [DateTime]::Today
                 }
             }
             'today' {
                 $allTasks | Where-Object {
-                    -not $_.completed -and
-                    $_.due -and
-                    $_.due.Date -eq [DateTime]::Today
+                    $due = Get-SafeProperty $_ 'due'
+                    -not (Get-SafeProperty $_ 'completed') -and
+                    $due -and
+                    $due.Date -eq [DateTime]::Today
                 }
             }
             'tomorrow' {
                 $tomorrow = [DateTime]::Today.AddDays(1)
                 $allTasks | Where-Object {
-                    -not $_.completed -and
-                    $_.due -and
-                    $_.due.Date -eq $tomorrow
+                    $due = Get-SafeProperty $_ 'due'
+                    -not (Get-SafeProperty $_ 'completed') -and
+                    $due -and
+                    $due.Date -eq $tomorrow
                 }
             }
             'week' {
                 $weekEnd = [DateTime]::Today.AddDays(7)
                 $allTasks | Where-Object {
-                    -not $_.completed -and
-                    $_.due -and
-                    $_.due -ge [DateTime]::Today -and
-                    $_.due -le $weekEnd
+                    $due = Get-SafeProperty $_ 'due'
+                    -not (Get-SafeProperty $_ 'completed') -and
+                    $due -and
+                    $due -ge [DateTime]::Today -and
+                    $due -le $weekEnd
                 }
             }
             'nextactions' {
                 # Tasks with no dependencies or all dependencies completed
                 $allTasks | Where-Object {
-                    -not $_.completed -and
-                    (-not $_.PSObject.Properties['depends_on'] -or -not $_.depends_on -or $_.depends_on.Count -eq 0)
+                    $dependsOn = Get-SafeProperty $_ 'depends_on'
+                    -not (Get-SafeProperty $_ 'completed') -and
+                    (-not $dependsOn -or (-not ($dependsOn -is [array])) -or $dependsOn.Count -eq 0)
                 }
             }
             'noduedate' {
                 $allTasks | Where-Object {
-                    -not $_.completed -and
-                    -not $_.due
+                    -not (Get-SafeProperty $_ 'completed') -and
+                    -not (Get-SafeProperty $_ 'due')
                 }
             }
             'month' {
                 $monthEnd = [DateTime]::Today.AddDays(30)
                 $allTasks | Where-Object {
-                    -not $_.completed -and
-                    $_.due -and
-                    $_.due -ge [DateTime]::Today -and
-                    $_.due -le $monthEnd
+                    $due = Get-SafeProperty $_ 'due'
+                    -not (Get-SafeProperty $_ 'completed') -and
+                    $due -and
+                    $due -ge [DateTime]::Today -and
+                    $due -le $monthEnd
                 }
             }
             'agenda' {
                 # All tasks with due dates, sorted by date
                 $allTasks | Where-Object {
-                    -not $_.completed -and
-                    $_.due
+                    -not (Get-SafeProperty $_ 'completed') -and
+                    (Get-SafeProperty $_ 'due')
                 }
             }
             'upcoming' {
                 # Tasks due in the future (beyond today)
                 $allTasks | Where-Object {
-                    -not $_.completed -and
-                    $_.due -and
-                    $_.due.Date -gt [DateTime]::Today
+                    $due = Get-SafeProperty $_ 'due'
+                    -not (Get-SafeProperty $_ 'completed') -and
+                    $due -and
+                    $due.Date -gt [DateTime]::Today
                 }
             }
             default { $allTasks }
@@ -284,26 +350,26 @@ class TaskListScreen : StandardListScreen {
 
         # Apply completed filter if needed
         if (-not $this._showCompleted) {
-            $filteredTasks = $filteredTasks | Where-Object { -not $_.completed }
+            $filteredTasks = $filteredTasks | Where-Object { -not (Get-SafeProperty $_ 'completed') }
             # Null check after additional filtering
             if ($null -eq $filteredTasks) { $filteredTasks = @() }
         }
 
         # Apply sorting
         $sortedTasks = switch ($this._sortColumn) {
-            'priority' { $filteredTasks | Sort-Object -Property priority -Descending:(-not $this._sortAscending) }
-            'text' { $filteredTasks | Sort-Object -Property text -Descending:(-not $this._sortAscending) }
+            'priority' { $filteredTasks | Sort-Object { Get-SafeProperty $_ 'priority' } -Descending:(-not $this._sortAscending) }
+            'text' { $filteredTasks | Sort-Object { Get-SafeProperty $_ 'text' } -Descending:(-not $this._sortAscending) }
             'due' {
                 # Sort with nulls last
-                $withDue = @($filteredTasks | Where-Object { $_.due })
-                $withoutDue = @($filteredTasks | Where-Object { -not $_.due })
+                $withDue = @($filteredTasks | Where-Object { Get-SafeProperty $_ 'due' })
+                $withoutDue = @($filteredTasks | Where-Object { -not (Get-SafeProperty $_ 'due') })
                 if ($this._sortAscending) {
-                    @($withDue | Sort-Object -Property due) + $withoutDue
+                    @($withDue | Sort-Object { Get-SafeProperty $_ 'due' }) + $withoutDue
                 } else {
-                    @($withDue | Sort-Object -Property due -Descending) + $withoutDue
+                    @($withDue | Sort-Object { Get-SafeProperty $_ 'due' } -Descending) + $withoutDue
                 }
             }
-            'project' { $filteredTasks | Sort-Object -Property project -Descending:(-not $this._sortAscending) }
+            'project' { $filteredTasks | Sort-Object { Get-SafeProperty $_ 'project' } -Descending:(-not $this._sortAscending) }
             default { $filteredTasks }
         }
 
@@ -370,8 +436,16 @@ class TaskListScreen : StandardListScreen {
         $this._cachedFilteredTasks = $sortedTasks
         $this._cacheKey = $currentKey
 
+        # DEBUG: Log the data being set
+        Write-PmcTuiLog "TaskListScreen.LoadData: Setting $($sortedTasks.Count) tasks to list (viewMode=$($this._viewMode), allTasks=$($allTasks.Count), filtered=$($filteredTasks.Count))" "DEBUG"
+
         # Set data to list
         $this.List.SetData($sortedTasks)
+
+        # Force full re-render when data changes
+        if ($this.RenderEngine -and $this.RenderEngine.PSObject.Methods['RequestClear']) {
+            $this.RenderEngine.RequestClear()
+        }
     }
 
     # Override to invalidate cache when data changes
@@ -492,14 +566,14 @@ class TaskListScreen : StandardListScreen {
                 Align = 'left'
                 Format = { param($task)
                     $tags = Get-SafeProperty $task 'tags'
-                    if ($tags -and $tags.Count -gt 0) {
+                    if ($tags -and $tags -is [array] -and $tags.Count -gt 0) {
                         return ($tags -join ', ')
                     }
                     return ''
                 }
                 Color = { param($task)
                     $tags = Get-SafeProperty $task 'tags'
-                    if ($tags -and $tags.Count -gt 0) {
+                    if ($tags -and $tags -is [array] -and $tags.Count -gt 0) {
                         return "`e[95m"  # Bright magenta
                     }
                     return "`e[90m"
@@ -520,13 +594,13 @@ class TaskListScreen : StandardListScreen {
                 @{ Name='tags'; Type='tags'; Label='Tags'; Value=@() }
             )
         } else {
-            # Existing task - populate from item
+            # Existing task - populate from item with safe property access
             return @(
-                @{ Name='text'; Type='text'; Label='Task'; Required=$true; MaxLength=200; Value=$item.text }  # H-VAL-6
-                @{ Name='priority'; Type='number'; Label='Priority'; Min=0; Max=5; Value=$item.priority }
-                @{ Name='due'; Type='date'; Label='Due Date'; Value=$item.due }
-                @{ Name='project'; Type='project'; Label='Project'; Value=$item.project }
-                @{ Name='tags'; Type='tags'; Label='Tags'; Value=$item.tags }
+                @{ Name='text'; Type='text'; Label='Task'; Required=$true; MaxLength=200; Value=(Get-SafeProperty $item 'text') }  # H-VAL-6
+                @{ Name='priority'; Type='number'; Label='Priority'; Min=0; Max=5; Value=(Get-SafeProperty $item 'priority') }
+                @{ Name='due'; Type='date'; Label='Due Date'; Value=(Get-SafeProperty $item 'due') }
+                @{ Name='project'; Type='project'; Label='Project'; Value=(Get-SafeProperty $item 'project') }
+                @{ Name='tags'; Type='tags'; Label='Tags'; Value=(Get-SafeProperty $item 'tags') }
             )
         }
     }
@@ -534,24 +608,48 @@ class TaskListScreen : StandardListScreen {
     # Override: Handle item creation
     [void] OnItemCreated([hashtable]$values) {
         try {
+            # RUNTIME FIX: Safe conversion of priority with fallback to default
+            $priority = 3  # Default priority
+            if ($values.ContainsKey('priority') -and $null -ne $values.priority) {
+                try {
+                    $priority = [int]$values.priority
+                } catch {
+                    Write-PmcTuiLog "Failed to convert priority '$($values.priority)' to int, using default 3" "WARNING"
+                }
+            }
+
             # Convert widget values to task format
+            # FIX: Convert "(No Project)" to empty string
+            $projectValue = ''
+            if ($values.ContainsKey('project') -and $values.project -ne '(No Project)') {
+                $projectValue = $values.project
+            }
+
             $taskData = @{
-                text = $values.text
-                priority = [int]$values.priority
-                project = $values.project
-                tags = $values.tags
+                text = if ($values.ContainsKey('text')) { $values.text } else { '' }
+                priority = $priority
+                project = $projectValue
+                tags = if ($values.ContainsKey('tags')) { $values.tags } else { @() }
                 completed = $false
                 created = [DateTime]::Now
             }
 
             # Add due date if provided
-            if ($values.due) {
-                $taskData.due = [DateTime]$values.due
+            if ($values.ContainsKey('due') -and $values.due) {
+                try {
+                    $taskData.due = [DateTime]$values.due
+                } catch {
+                    Write-PmcTuiLog "Failed to convert due date '$($values.due)', omitting" "WARNING"
+                }
             }
 
             # H-VAL-3: Preserve parent_id from CurrentEditItem if it exists (for subtasks)
-            if ($this.CurrentEditItem -and $this.CurrentEditItem.parent_id) {
-                $taskData.parent_id = $this.CurrentEditItem.parent_id
+            # FIX: Safe property access for parent_id
+            if ($this.CurrentEditItem) {
+                $parentId = Get-SafeProperty $this.CurrentEditItem 'parent_id'
+                if ($parentId) {
+                    $taskData.parent_id = $parentId
+                }
             }
 
             # Add to store (auto-persists and fires events)
@@ -571,17 +669,38 @@ class TaskListScreen : StandardListScreen {
     # Override: Handle item update
     [void] OnItemUpdated([object]$item, [hashtable]$values) {
         try {
+            # RUNTIME FIX: Safe conversion of priority with fallback
+            $priority = 3  # Default priority
+            if ($values.ContainsKey('priority') -and $null -ne $values.priority) {
+                try {
+                    $priority = [int]$values.priority
+                } catch {
+                    Write-PmcTuiLog "Failed to convert priority '$($values.priority)' to int, using default 3" "WARNING"
+                }
+            }
+
             # Build changes hashtable
+            # FIX: Convert "(No Project)" to empty string
+            $projectValue = ''
+            if ($values.ContainsKey('project') -and $values.project -ne '(No Project)') {
+                $projectValue = $values.project
+            }
+
             $changes = @{
-                text = $values.text
-                priority = [int]$values.priority
-                project = $values.project
-                tags = $values.tags
+                text = if ($values.ContainsKey('text')) { $values.text } else { '' }
+                priority = $priority
+                project = $projectValue
+                tags = if ($values.ContainsKey('tags')) { $values.tags } else { @() }
             }
 
             # Update due date
-            if ($values.due) {
-                $changes.due = [DateTime]$values.due
+            if ($values.ContainsKey('due') -and $values.due) {
+                try {
+                    $changes.due = [DateTime]$values.due
+                } catch {
+                    Write-PmcTuiLog "Failed to convert due date '$($values.due)', setting to null" "WARNING"
+                    $changes.due = $null
+                }
             } else {
                 $changes.due = $null
             }
@@ -620,40 +739,53 @@ class TaskListScreen : StandardListScreen {
     [void] ToggleTaskCompletion([object]$task) {
         if ($null -eq $task) { return }
 
-        $newStatus = -not $task.completed
-        $this.Store.UpdateTask($task.id, @{ completed = $newStatus })
+        $completed = Get-SafeProperty $task 'completed'
+        $taskId = Get-SafeProperty $task 'id'
+        $taskText = Get-SafeProperty $task 'text'
+
+        $newStatus = -not $completed
+        $this.Store.UpdateTask($taskId, @{ completed = $newStatus })
 
         $statusText = if ($newStatus) { "completed" } else { "reopened" }
-        $this.SetStatusMessage("Task ${statusText}: $($task.text)", "success")
+        $this.SetStatusMessage("Task ${statusText}: $taskText", "success")
     }
 
     # Custom action: Mark task complete
     [void] CompleteTask([object]$task) {
         if ($null -eq $task) { return }
 
-        $this.Store.UpdateTask($task.id, @{
+        $taskId = Get-SafeProperty $task 'id'
+        $taskText = Get-SafeProperty $task 'text'
+
+        $this.Store.UpdateTask($taskId, @{
             completed = $true
             completed_at = [DateTime]::Now
         })
 
-        $this.SetStatusMessage("Task completed: $($task.text)", "success")
+        $this.SetStatusMessage("Task completed: $taskText", "success")
     }
 
     # Custom action: Clone task
     [void] CloneTask([object]$task) {
         if ($null -eq $task) { return }
 
+        $taskText = Get-SafeProperty $task 'text'
+        $taskPriority = Get-SafeProperty $task 'priority'
+        $taskProject = Get-SafeProperty $task 'project'
+        $taskTags = Get-SafeProperty $task 'tags'
+        $taskDue = Get-SafeProperty $task 'due'
+
         $clonedTask = @{
-            text = "$($task.text) (copy)"
-            priority = $task.priority
-            project = $task.project
-            tags = $task.tags
+            text = "$taskText (copy)"
+            priority = $taskPriority
+            project = $taskProject
+            tags = $taskTags
             completed = $false
             created = [DateTime]::Now
         }
 
-        if ($task.due) {
-            $clonedTask.due = $task.due
+        if ($taskDue) {
+            $clonedTask.due = $taskDue
         }
 
         $this.Store.AddTask($clonedTask)
@@ -717,7 +849,8 @@ class TaskListScreen : StandardListScreen {
         }
 
         foreach ($task in $selected) {
-            $this.Store.UpdateTask($task.id, @{
+            $taskId = Get-SafeProperty $task 'id'
+            $this.Store.UpdateTask($taskId, @{
                 completed = $true
                 completed_at = [DateTime]::Now
             })
@@ -736,7 +869,8 @@ class TaskListScreen : StandardListScreen {
         }
 
         foreach ($task in $selected) {
-            $this.Store.DeleteTask($task.id)
+            $taskId = Get-SafeProperty $task 'id'
+            $this.Store.DeleteTask($taskId)
         }
 
         $this.SetStatusMessage("Deleted $($selected.Count) tasks", "success")
@@ -752,7 +886,11 @@ class TaskListScreen : StandardListScreen {
         }
 
         $this._viewMode = $mode
-        $this.Title = Get-TaskListTitle $mode
+        $titleText = Get-TaskListTitle $mode
+        $this.ScreenTitle = $titleText
+        if ($this.List) {
+            $this.List.Title = $titleText
+        }
         $this.LoadData()
         $this.SetStatusMessage("View: $mode", "info")
     }
@@ -795,36 +933,43 @@ class TaskListScreen : StandardListScreen {
 
         $this._stats = @{
             Total = $allTasks.Count
-            Active = @($allTasks | Where-Object { -not $_.completed }).Count
-            Completed = @($allTasks | Where-Object { $_.completed }).Count
+            Active = @($allTasks | Where-Object { -not (Get-SafeProperty $_ 'completed') }).Count
+            Completed = @($allTasks | Where-Object { Get-SafeProperty $_ 'completed' }).Count
             Overdue = @($allTasks | Where-Object {
-                -not $_.completed -and $_.due -and $_.due -lt [DateTime]::Today
+                $due = Get-SafeProperty $_ 'due'
+                -not (Get-SafeProperty $_ 'completed') -and $due -and $due -lt [DateTime]::Today
             }).Count
             Today = @($allTasks | Where-Object {
-                -not $_.completed -and $_.due -and $_.due.Date -eq [DateTime]::Today
+                $due = Get-SafeProperty $_ 'due'
+                -not (Get-SafeProperty $_ 'completed') -and $due -and $due.Date -eq [DateTime]::Today
             }).Count
             Tomorrow = @($allTasks | Where-Object {
-                -not $_.completed -and $_.due -and $_.due.Date -eq $tomorrow
+                $due = Get-SafeProperty $_ 'due'
+                -not (Get-SafeProperty $_ 'completed') -and $due -and $due.Date -eq $tomorrow
             }).Count
             Week = @($allTasks | Where-Object {
-                -not $_.completed -and $_.due -and
-                $_.due -ge [DateTime]::Today -and
-                $_.due -le $weekEnd
+                $due = Get-SafeProperty $_ 'due'
+                -not (Get-SafeProperty $_ 'completed') -and $due -and
+                $due -ge [DateTime]::Today -and
+                $due -le $weekEnd
             }).Count
             Month = @($allTasks | Where-Object {
-                -not $_.completed -and $_.due -and
-                $_.due -ge [DateTime]::Today -and
-                $_.due -le $monthEnd
+                $due = Get-SafeProperty $_ 'due'
+                -not (Get-SafeProperty $_ 'completed') -and $due -and
+                $due -ge [DateTime]::Today -and
+                $due -le $monthEnd
             }).Count
             NextActions = @($allTasks | Where-Object {
-                -not $_.completed -and
-                (-not $_.PSObject.Properties['depends_on'] -or -not $_.depends_on -or $_.depends_on.Count -eq 0)
+                $dependsOn = Get-SafeProperty $_ 'depends_on'
+                -not (Get-SafeProperty $_ 'completed') -and
+                (-not $dependsOn -or (-not ($dependsOn -is [array])) -or $dependsOn.Count -eq 0)
             }).Count
             NoDueDate = @($allTasks | Where-Object {
-                -not $_.completed -and -not $_.due
+                -not (Get-SafeProperty $_ 'completed') -and -not (Get-SafeProperty $_ 'due')
             }).Count
             Upcoming = @($allTasks | Where-Object {
-                -not $_.completed -and $_.due -and $_.due.Date -gt [DateTime]::Today
+                $due = Get-SafeProperty $_ 'due'
+                -not (Get-SafeProperty $_ 'completed') -and $due -and $due.Date -gt [DateTime]::Today
             }).Count
         }
     }

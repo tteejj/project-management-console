@@ -27,8 +27,17 @@ class ChecklistEditorScreen : PmcScreen {
     hidden [int]$_selectedIndex = 0
     hidden [int]$_scrollOffset = 0
 
-    # Constructor
+    # Legacy constructor (backward compatible)
     ChecklistEditorScreen([string]$instanceId) : base("ChecklistEditor", "Checklist") {
+        $this._InitializeScreen($instanceId)
+    }
+
+    # Container constructor
+    ChecklistEditorScreen([string]$instanceId, [object]$container) : base("ChecklistEditor", "Checklist", $container) {
+        $this._InitializeScreen($instanceId)
+    }
+
+    hidden [void] _InitializeScreen([string]$instanceId) {
         $this._instanceId = $instanceId
         $this._checklistService = [ChecklistService]::GetInstance()
 
@@ -54,8 +63,8 @@ class ChecklistEditorScreen : PmcScreen {
     }
 
     [void] OnEnter() {
-        $this.IsActive = $true
-        $this.LoadData()
+        # Call parent to ensure proper lifecycle (sets IsActive, calls LoadData, executes OnEnterHandler)
+        ([PmcScreen]$this).OnEnter()
     }
 
     [void] OnExit() {

@@ -42,8 +42,25 @@ class TaskDetailScreen : PmcScreen {
         $this.Footer.AddShortcut("R", "Refresh")
         $this.Footer.AddShortcut("Esc", "Back")
 
-        # Setup menu items
-        $this._SetupMenus()
+        # NOTE: _SetupMenus() removed - MenuRegistry handles menu population via manifest
+    }
+
+    # Constructor with container
+    TaskDetailScreen([int]$taskId, [object]$container) : base("TaskDetail", "Task Detail", $container) {
+        $this.TaskId = $taskId
+
+        # Configure header
+        $this.Header.SetBreadcrumb(@("Home", "Tasks", "Detail"))
+
+        # Configure footer with shortcuts
+        $this.Footer.ClearShortcuts()
+        $this.Footer.AddShortcut("E", "Edit")
+        $this.Footer.AddShortcut("C", "Complete")
+        $this.Footer.AddShortcut("D", "Delete")
+        $this.Footer.AddShortcut("R", "Refresh")
+        $this.Footer.AddShortcut("Esc", "Back")
+
+        # NOTE: _SetupMenus() removed - MenuRegistry handles menu population via manifest
     }
 
     # Default constructor (for compatibility)
@@ -57,63 +74,7 @@ class TaskDetailScreen : PmcScreen {
         $this.Footer.ClearShortcuts()
         $this.Footer.AddShortcut("Esc", "Back")
 
-        $this._SetupMenus()
-    }
-
-    hidden [void] _SetupMenus() {
-        # Capture $this in a variable so scriptblocks can access it
-        $screen = $this
-
-        # Tasks menu - Navigate to different task views
-        $tasksMenu = $this.MenuBar.Menus[0]
-        $tasksMenu.Items.Add([PmcMenuItem]::new("Task List", 'L', {
-            . "$PSScriptRoot/TaskListScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object TaskListScreen))
-        }))
-
-        $tasksMenu.Items.Add([PmcMenuItem]::new("Blocked Tasks", 'B', {
-            . "$PSScriptRoot/BlockedTasksScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object BlockedTasksScreen))
-        }))
-        $tasksMenu.Items.Add([PmcMenuItem]::Separator())
-        $tasksMenu.Items.Add([PmcMenuItem]::new("Burndown Chart", 'C', {
-            . "$PSScriptRoot/BurndownChartScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object BurndownChartScreen))
-        }))
-
-        # Projects menu
-        $projectsMenu = $this.MenuBar.Menus[1]
-        $projectsMenu.Items.Add([PmcMenuItem]::new("Project List", 'L', {
-            . "$PSScriptRoot/ProjectListScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object ProjectListScreen))
-        }))
-        $projectsMenu.Items.Add([PmcMenuItem]::new("Project Stats", 'S', {
-            . "$PSScriptRoot/ProjectStatsScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object ProjectStatsScreen))
-        }))
-        $projectsMenu.Items.Add([PmcMenuItem]::new("Project Info", 'I', {
-            . "$PSScriptRoot/ProjectInfoScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object ProjectInfoScreen))
-        }))
-
-        # Options menu
-        $optionsMenu = $this.MenuBar.Menus[2]
-        $optionsMenu.Items.Add([PmcMenuItem]::new("Theme Editor", 'T', {
-            . "$PSScriptRoot/ThemeEditorScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object ThemeEditorScreen))
-        }))
-        $optionsMenu.Items.Add([PmcMenuItem]::new("Settings", 'S', {
-            . "$PSScriptRoot/SettingsScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object SettingsScreen))
-        }))
-
-        # Help menu
-        $helpMenu = $this.MenuBar.Menus[3]
-        $helpMenu.Items.Add([PmcMenuItem]::new("Help View", 'H', {
-            . "$PSScriptRoot/HelpViewScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object HelpViewScreen))
-        }))
-        $helpMenu.Items.Add([PmcMenuItem]::new("About", 'A', { Write-Host "PMC TUI v1.0" }))
+        # NOTE: _SetupMenus() removed - MenuRegistry handles menu population via manifest
     }
 
     [void] LoadData() {
@@ -126,7 +87,7 @@ class TaskDetailScreen : PmcScreen {
 
         try {
             # Load PMC data
-            $data = Get-PmcAllData
+            $data = Get-PmcData
 
             # CRITICAL: Validate data before use
             if ($null -eq $data) {
@@ -142,7 +103,7 @@ class TaskDetailScreen : PmcScreen {
             }
 
             # Find the task
-            $this.Task = $data.tasks | Where-Object { $_.id -eq $this.TaskId } | Select-Object -First 1
+            $this.Task = $data.tasks | Where-Object { (Get-SafeProperty $_ 'id') -eq $this.TaskId } | Select-Object -First 1
 
             if (-not $this.Task) {
                 $this.ShowError("Task #$($this.TaskId) not found")
@@ -216,60 +177,66 @@ class TaskDetailScreen : PmcScreen {
         $labelWidth = 18
 
         # Task ID and Status
+        $taskIdValue = Get-SafeProperty $this.Task 'id'
         $sb.Append($this.Header.BuildMoveTo($x, $y))
         $sb.Append($labelColor)
         $sb.Append("ID:".PadRight($labelWidth))
         $sb.Append($reset)
         $sb.Append($valueColor)
-        $sb.Append("#$($this.Task.id)")
+        $sb.Append("#$taskIdValue")
         $sb.Append($reset)
 
         # Completion status indicator
         $sb.Append("  ")
-        if ($this.Task.completed) {
+        $taskCompleted = Get-SafeProperty $this.Task 'completed'
+        $taskStatus = Get-SafeProperty $this.Task 'status'
+        if ($taskCompleted) {
             $sb.Append($successColor)
             $sb.Append("[COMPLETED]")
         } else {
             $statusColor = $textColor
-            if ($this.Task.status -eq 'blocked') { $statusColor = $errorColor }
-            elseif ($this.Task.status -eq 'in-progress') { $statusColor = $priorityColor }
+            if ($taskStatus -eq 'blocked') { $statusColor = $errorColor }
+            elseif ($taskStatus -eq 'in-progress') { $statusColor = $priorityColor }
             $sb.Append($statusColor)
-            $sb.Append("[$($this.Task.status.ToUpper())]")
+            $sb.Append("[$($taskStatus.ToUpper())]")
         }
         $sb.Append($reset)
         $y++
 
         # Text
         $y++
+        $taskText = Get-SafeProperty $this.Task 'text'
         $sb.Append($this.Header.BuildMoveTo($x, $y))
         $sb.Append($labelColor)
         $sb.Append("Task:".PadRight($labelWidth))
         $sb.Append($reset)
         $sb.Append($valueColor)
-        $sb.Append($this.Task.text)
+        $sb.Append($taskText)
         $sb.Append($reset)
         $y++
 
         # Project
         $y++
+        $taskProject = Get-SafeProperty $this.Task 'project'
         $sb.Append($this.Header.BuildMoveTo($x, $y))
         $sb.Append($labelColor)
         $sb.Append("Project:".PadRight($labelWidth))
         $sb.Append($reset)
         $sb.Append($valueColor)
-        $sb.Append($this.Task.project)
+        $sb.Append($taskProject)
         $sb.Append($reset)
         $y++
 
         # Priority
         $y++
+        $taskPriority = Get-SafeProperty $this.Task 'priority'
         $sb.Append($this.Header.BuildMoveTo($x, $y))
         $sb.Append($labelColor)
         $sb.Append("Priority:".PadRight($labelWidth))
         $sb.Append($reset)
-        if ($this.Task.priority -gt 0) {
+        if ($taskPriority -gt 0) {
             $sb.Append($priorityColor)
-            $sb.Append("P$($this.Task.priority)")
+            $sb.Append("P$taskPriority")
         } else {
             $sb.Append($mutedColor)
             $sb.Append("None")
@@ -283,24 +250,25 @@ class TaskDetailScreen : PmcScreen {
         $sb.Append("Status:".PadRight($labelWidth))
         $sb.Append($reset)
         $sb.Append($valueColor)
-        $sb.Append($this.Task.status)
+        $sb.Append($taskStatus)
         $sb.Append($reset)
         $y++
 
         # Due Date
         $y++
+        $taskDue = Get-SafeProperty $this.Task 'due'
         $sb.Append($this.Header.BuildMoveTo($x, $y))
         $sb.Append($labelColor)
         $sb.Append("Due Date:".PadRight($labelWidth))
         $sb.Append($reset)
-        if ($this.Task.due) {
+        if ($taskDue) {
             $schema = Get-PmcFieldSchema -Domain 'task' -Field 'due'
-            $dueDisplay = & $schema.DisplayFormat $this.Task.due
+            $dueDisplay = & $schema.DisplayFormat $taskDue
 
             # Color based on due date
-            $dueDate = ([DateTime]$this.Task.due).Date
+            $dueDate = ([DateTime]$taskDue).Date
             $today = (Get-Date).Date
-            if (-not $this.Task.completed -and $dueDate -lt $today) {
+            if (-not $taskCompleted -and $dueDate -lt $today) {
                 $sb.Append($errorColor)
                 $sb.Append("$dueDisplay (OVERDUE)")
             } elseif ($dueDate -eq $today) {
@@ -318,13 +286,14 @@ class TaskDetailScreen : PmcScreen {
         $y++
 
         # Created Date
+        $taskCreated = Get-SafeProperty $this.Task 'created'
         $sb.Append($this.Header.BuildMoveTo($x, $y))
         $sb.Append($labelColor)
         $sb.Append("Created:".PadRight($labelWidth))
         $sb.Append($reset)
-        if ($this.Task.created) {
+        if ($taskCreated) {
             $sb.Append($mutedColor)
-            $sb.Append($this.Task.created)
+            $sb.Append($taskCreated)
         } else {
             $sb.Append($mutedColor)
             $sb.Append("Unknown")
@@ -333,26 +302,28 @@ class TaskDetailScreen : PmcScreen {
         $y++
 
         # Completed Date
-        if ($this.Task.completed -and $this.Task.completedDate) {
+        $taskCompletedDate = Get-SafeProperty $this.Task 'completedDate'
+        if ($taskCompleted -and $taskCompletedDate) {
             $sb.Append($this.Header.BuildMoveTo($x, $y))
             $sb.Append($labelColor)
             $sb.Append("Completed:".PadRight($labelWidth))
             $sb.Append($reset)
             $sb.Append($successColor)
-            $sb.Append($this.Task.completedDate)
+            $sb.Append($taskCompletedDate)
             $sb.Append($reset)
             $y++
         }
 
         # Estimated Time
         $y++
+        $taskEstimatedMinutes = Get-SafeProperty $this.Task 'estimatedMinutes'
         $sb.Append($this.Header.BuildMoveTo($x, $y))
         $sb.Append($labelColor)
         $sb.Append("Estimated Time:".PadRight($labelWidth))
         $sb.Append($reset)
-        if ($this.Task.estimatedMinutes) {
-            $hours = [Math]::Floor($this.Task.estimatedMinutes / 60)
-            $mins = $this.Task.estimatedMinutes % 60
+        if ($taskEstimatedMinutes) {
+            $hours = [Math]::Floor($taskEstimatedMinutes / 60)
+            $mins = $taskEstimatedMinutes % 60
             $sb.Append($valueColor)
             if ($hours -gt 0) {
                 $sb.Append("${hours}h ${mins}m")
@@ -367,26 +338,28 @@ class TaskDetailScreen : PmcScreen {
         $y++
 
         # Recurrence
-        if ($this.Task.recur) {
+        $taskRecur = Get-SafeProperty $this.Task 'recur'
+        if ($taskRecur) {
             $sb.Append($this.Header.BuildMoveTo($x, $y))
             $sb.Append($labelColor)
             $sb.Append("Recurrence:".PadRight($labelWidth))
             $sb.Append($reset)
             $sb.Append($valueColor)
-            $sb.Append($this.Task.recur)
+            $sb.Append($taskRecur)
             $sb.Append($reset)
             $y++
         }
 
         # Tags
         $y++
+        $taskTags = Get-SafeProperty $this.Task 'tags'
         $sb.Append($this.Header.BuildMoveTo($x, $y))
         $sb.Append($labelColor)
         $sb.Append("Tags:".PadRight($labelWidth))
         $sb.Append($reset)
-        if ($this.Task.tags -and $this.Task.tags.Count -gt 0) {
+        if ($taskTags -and $taskTags.Count -gt 0) {
             $sb.Append($valueColor)
-            $sb.Append(($this.Task.tags -join ", "))
+            $sb.Append(($taskTags -join ", "))
         } else {
             $sb.Append($mutedColor)
             $sb.Append("None")
@@ -395,13 +368,14 @@ class TaskDetailScreen : PmcScreen {
         $y++
 
         # Dependencies
+        $taskDepends = Get-SafeProperty $this.Task 'depends'
         $sb.Append($this.Header.BuildMoveTo($x, $y))
         $sb.Append($labelColor)
         $sb.Append("Depends On:".PadRight($labelWidth))
         $sb.Append($reset)
-        if ($this.Task.depends -and $this.Task.depends.Count -gt 0) {
+        if ($taskDepends -and $taskDepends.Count -gt 0) {
             $sb.Append($valueColor)
-            $sb.Append(($this.Task.depends -join ", "))
+            $sb.Append(($taskDepends -join ", "))
         } else {
             $sb.Append($mutedColor)
             $sb.Append("None")
@@ -410,7 +384,8 @@ class TaskDetailScreen : PmcScreen {
         $y++
 
         # Notes
-        if ($this.Task.notes -and $this.Task.notes.Count -gt 0) {
+        $taskNotes = Get-SafeProperty $this.Task 'notes'
+        if ($taskNotes -and $taskNotes.Count -gt 0) {
             $y++
             $y++
             $sb.Append($this.Header.BuildMoveTo($x, $y))
@@ -419,7 +394,7 @@ class TaskDetailScreen : PmcScreen {
             $sb.Append($reset)
             $y++
 
-            foreach ($note in $this.Task.notes) {
+            foreach ($note in $taskNotes) {
                 $sb.Append($this.Header.BuildMoveTo($x + 2, $y))
                 $sb.Append($mutedColor)
                 $sb.Append("- ")
@@ -437,7 +412,8 @@ class TaskDetailScreen : PmcScreen {
         }
 
         # Subtasks
-        if ($this.Task.subtasks -and $this.Task.subtasks.Count -gt 0) {
+        $taskSubtasks = Get-SafeProperty $this.Task 'subtasks'
+        if ($taskSubtasks -and $taskSubtasks.Count -gt 0) {
             $y++
             $y++
             $sb.Append($this.Header.BuildMoveTo($x, $y))
@@ -446,7 +422,7 @@ class TaskDetailScreen : PmcScreen {
             $sb.Append($reset)
             $y++
 
-            foreach ($subtask in $this.Task.subtasks) {
+            foreach ($subtask in $taskSubtasks) {
                 $sb.Append($this.Header.BuildMoveTo($x + 2, $y))
                 $sb.Append($mutedColor)
                 $sb.Append("[ ] ")
@@ -467,6 +443,10 @@ class TaskDetailScreen : PmcScreen {
     }
 
     [bool] HandleKeyPress([ConsoleKeyInfo]$keyInfo) {
+        # CRITICAL: Call parent FIRST for MenuBar, F10, Alt+keys, content widgets
+        $handled = ([PmcScreen]$this).HandleKeyPress($keyInfo)
+        if ($handled) { return $true }
+
         if (-not $this.Task) {
             return $false
         }
@@ -497,7 +477,8 @@ class TaskDetailScreen : PmcScreen {
 
     hidden [void] _EditTask() {
         if ($this.Task) {
-            $this.ShowStatus("Edit task: [$($this.Task.id)]")
+            $taskIdValue = Get-SafeProperty $this.Task 'id'
+            $this.ShowStatus("Edit task: [$taskIdValue]")
             . "$PSScriptRoot/TaskListScreen.ps1"
             $global:PmcApp.PopScreen()
             $global:PmcApp.PushScreen((New-Object TaskListScreen))
@@ -509,19 +490,20 @@ class TaskDetailScreen : PmcScreen {
             return
         }
 
-        $taskId = $this.Task.id
+        $this.TaskId = Get-SafeProperty $this.Task 'id'
 
         # Update storage
-        $allData = Get-PmcAllData
-        $taskToComplete = $allData.tasks | Where-Object { $_.id -eq $taskId }
+        $allData = Get-PmcData
+        $taskToComplete = $allData.tasks | Where-Object { (Get-SafeProperty $_ 'id') -eq $this.TaskId }
 
         if ($taskToComplete) {
             $taskToComplete.completed = $true
             $taskToComplete.completedDate = (Get-Date).ToString('yyyy-MM-dd HH:mm:ss')
-            Set-PmcAllData $allData
+            # FIX: Use Save-PmcData instead of Set-PmcAllData
+            Save-PmcData -Data $allData
         }
 
-        $this.ShowSuccess("Task #$taskId completed")
+        $this.ShowSuccess("Task #$($this.TaskId) completed")
         $this.LoadData()  # Reload to show updated status
     }
 
@@ -530,14 +512,15 @@ class TaskDetailScreen : PmcScreen {
             return
         }
 
-        $taskId = $this.Task.id
+        $this.TaskId = Get-SafeProperty $this.Task 'id'
 
         # Update storage
-        $allData = Get-PmcAllData
-        $allData.tasks = @($allData.tasks | Where-Object { $_.id -ne $taskId })
-        Set-PmcAllData $allData
+        $allData = Get-PmcData
+        $allData.tasks = @($allData.tasks | Where-Object { (Get-SafeProperty $_ 'id') -ne $this.TaskId })
+        # FIX: Use Save-PmcData instead of Set-PmcAllData
+        Save-PmcData -Data $allData
 
-        $this.ShowSuccess("Task #$taskId deleted - Press Esc to go back")
+        $this.ShowSuccess("Task #$($this.TaskId) deleted - Press Esc to go back")
         $this.Task = $null  # Clear task to show empty state
     }
 

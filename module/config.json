@@ -1,7 +1,8 @@
 {
   "Display": {
     "Theme": {
-      "Hex": "#8899aa"
+      "Hex": "#ffaa33",
+      "Enabled": true
     }
   }
 }

@@ -113,8 +113,16 @@ class StandardDashboard : PmcScreen {
     [bool]$AllowWidgetNavigation = $true
     [int]$WidgetPadding = 2  # Padding between widgets in auto-layout
 
-    # === Constructor ===
+    # === Constructors ===
+
+    # Legacy constructor
     StandardDashboard([string]$key, [string]$title) : base($key, $title) {
+        # Initialize components
+        $this._InitializeComponents()
+    }
+
+    # Container constructor
+    StandardDashboard([string]$key, [string]$title, [object]$container) : base($key, $title, $container) {
         # Initialize components
         $this._InitializeComponents()
     }

@@ -2,8 +2,18 @@
 # Replaces old ConsoleUI.Core.ps1 monolithic approach
 
 # Setup logging
-# M-CFG-1: Configurable Log Path - uses environment variable or default from Constants
-$logPath = if ($env:PMC_LOG_PATH) { $env:PMC_LOG_PATH } else { "/tmp" }
+# M-CFG-1: Configurable Log Path - uses environment variable or local directory for portability
+# PORTABILITY: Default to .pmc-data/logs directory relative to module root (self-contained)
+$logPath = if ($env:PMC_LOG_PATH) {
+    $env:PMC_LOG_PATH
+} else {
+    $moduleRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
+    $localLogDir = Join-Path $moduleRoot ".pmc-data/logs"
+    if (-not (Test-Path $localLogDir)) {
+        New-Item -ItemType Directory -Path $localLogDir -Force | Out-Null
+    }
+    $localLogDir
+}
 $global:PmcTuiLogFile = Join-Path $logPath "pmc-tui-$(Get-Date -Format 'yyyyMMdd-HHmmss').log"
 
 function Write-PmcTuiLog {
@@ -74,6 +84,10 @@ try {
     throw
 }
 
+# NOTE: Theme initialization moved to Theme service factory in ServiceContainer
+# This ensures proper initialization order via dependency injection
+# See line ~252 where Theme service is registered
+
 Write-PmcTuiLog "Loading services..." "INFO"
 
 try {
@@ -128,7 +142,8 @@ try {
         "InlineEditor.ps1",
         "UniversalList.ps1",
         "TimeEntryDetailDialog.ps1",
-        "TextAreaEditor.ps1"
+        "TextAreaEditor.ps1",
+        "PmcFilePicker.ps1"
     )
 
     foreach ($widgetFile in $widgetFiles) {
@@ -157,6 +172,17 @@ try {
     throw
 }
 
+Write-PmcTuiLog "Loading ServiceContainer..." "INFO"
+
+try {
+    . "$PSScriptRoot/ServiceContainer.ps1"
+    Write-PmcTuiLog "ServiceContainer loaded" "INFO"
+} catch {
+    Write-PmcTuiLog "Failed to load ServiceContainer: $_" "ERROR"
+    Write-PmcTuiLog $_.ScriptStackTrace "ERROR"
+    throw
+}
+
 Write-PmcTuiLog "Loading PmcApplication..." "INFO"
 
 try {
@@ -171,14 +197,10 @@ try {
 Write-PmcTuiLog "Loading screens..." "INFO"
 
 try {
+    # Only pre-load TaskListScreen (initial screen)
+    # All other screens are lazy-loaded via MenuRegistry on-demand
     . "$PSScriptRoot/screens/TaskListScreen.ps1"
     Write-PmcTuiLog "TaskListScreen loaded" "INFO"
-    . "$PSScriptRoot/screens/BlockedTasksScreen.ps1"
-    Write-PmcTuiLog "BlockedTasksScreen loaded" "INFO"
-    . "$PSScriptRoot/screens/SettingsScreen.ps1"
-    Write-PmcTuiLog "SettingsScreen loaded" "INFO"
-    . "$PSScriptRoot/screens/ThemeEditorScreen.ps1"
-    Write-PmcTuiLog "ThemeEditorScreen loaded" "INFO"
 } catch {
     Write-PmcTuiLog "Failed to load screens: $_" "ERROR"
     Write-PmcTuiLog $_.ScriptStackTrace "ERROR"
@@ -209,30 +231,150 @@ function Start-PmcTUI {
     Write-PmcTuiLog "Starting PMC TUI with screen: $StartScreen" "INFO"
 
     try {
-        # Create application
-        Write-PmcTuiLog "Creating PmcApplication..." "INFO"
-        $global:PmcApp = [PmcApplication]::new()
-        Write-PmcTuiLog "PmcApplication created" "INFO"
+        # === Create DI Container ===
+        Write-PmcTuiLog "Creating ServiceContainer..." "INFO"
+        $global:PmcContainer = [ServiceContainer]::new()
+        Write-PmcTuiLog "ServiceContainer created" "INFO"
 
-        # Launch requested screen
+        # === Register Core Services (in dependency order) ===
+
+        # 1. Theme (no dependencies)
+        Write-PmcTuiLog "Registering Theme service..." "INFO"
+        $global:PmcContainer.Register('Theme', {
+            param($container)
+            Write-PmcTuiLog "Resolving Theme: Calling Initialize-PmcThemeSystem..." "INFO"
+            Initialize-PmcThemeSystem
+            $theme = Get-PmcState -Section 'Display' | Select-Object -ExpandProperty Theme
+            Write-PmcTuiLog "Theme resolved: $($theme.Hex)" "INFO"
+            return $theme
+        }, $true)
+
+        # Register ThemeManager (depends on Theme)
+        Write-PmcTuiLog "Registering ThemeManager..." "INFO"
+        $global:PmcContainer.Register('ThemeManager', {
+            param($container)
+            Write-PmcTuiLog "Resolving ThemeManager..." "INFO"
+            $null = $container.Resolve('Theme')
+            return [PmcThemeManager]::GetInstance()
+        }, $true)
+
+        # 2. Config (no dependencies)
+        Write-PmcTuiLog "Registering Config service..." "INFO"
+        $global:PmcContainer.Register('Config', {
+            param($container)
+            Write-PmcTuiLog "Resolving Config..." "INFO"
+            return Get-PmcConfig
+        }, $true)
+
+        # 3. TaskStore (depends on Theme via state)
+        Write-PmcTuiLog "Registering TaskStore service..." "INFO"
+        $global:PmcContainer.Register('TaskStore', {
+            param($container)
+            Write-PmcTuiLog "Resolving TaskStore..." "INFO"
+            # Ensure theme is initialized first
+            $null = $container.Resolve('Theme')
+            return [TaskStore]::GetInstance()
+        }, $true)
+
+        # 4. MenuRegistry (depends on Theme)
+        Write-PmcTuiLog "Registering MenuRegistry service..." "INFO"
+        $global:PmcContainer.Register('MenuRegistry', {
+            param($container)
+            Write-PmcTuiLog "Resolving MenuRegistry..." "INFO"
+            # Ensure theme is initialized first
+            $null = $container.Resolve('Theme')
+            return [MenuRegistry]::new()
+        }, $true)
+
+        # 5. Application (depends on Theme)
+        Write-PmcTuiLog "Registering Application service..." "INFO"
+        $global:PmcContainer.Register('Application', {
+            param($container)
+            Write-PmcTuiLog "Resolving Application..." "INFO"
+            # Ensure theme is initialized first
+            $null = $container.Resolve('Theme')
+            return [PmcApplication]::new($container)
+        }, $true)
+
+        # 6. CommandService (no dependencies)
+        Write-PmcTuiLog "Registering CommandService..." "INFO"
+        $global:PmcContainer.Register('CommandService', {
+            param($container)
+            Write-PmcTuiLog "Resolving CommandService..." "INFO"
+            return [CommandService]::GetInstance()
+        }, $true)
+
+        # 7. ChecklistService (no dependencies)
+        Write-PmcTuiLog "Registering ChecklistService..." "INFO"
+        $global:PmcContainer.Register('ChecklistService', {
+            param($container)
+            Write-PmcTuiLog "Resolving ChecklistService..." "INFO"
+            return [ChecklistService]::GetInstance()
+        }, $true)
+
+        # 8. NoteService (no dependencies)
+        Write-PmcTuiLog "Registering NoteService..." "INFO"
+        $global:PmcContainer.Register('NoteService', {
+            param($container)
+            Write-PmcTuiLog "Resolving NoteService..." "INFO"
+            return [NoteService]::GetInstance()
+        }, $true)
+
+        # 9. ExcelMappingService (no dependencies)
+        Write-PmcTuiLog "Registering ExcelMappingService..." "INFO"
+        $global:PmcContainer.Register('ExcelMappingService', {
+            param($container)
+            Write-PmcTuiLog "Resolving ExcelMappingService..." "INFO"
+            return [ExcelMappingService]::GetInstance()
+        }, $true)
+
+        # 10. PreferencesService (no dependencies)
+        Write-PmcTuiLog "Registering PreferencesService..." "INFO"
+        $global:PmcContainer.Register('PreferencesService', {
+            param($container)
+            Write-PmcTuiLog "Resolving PreferencesService..." "INFO"
+            return [PreferencesService]::GetInstance()
+        }, $true)
+
+        # 11. Screen factories (depend on Application, TaskStore, etc.)
+        Write-PmcTuiLog "Registering screen factories..." "INFO"
+
+        $global:PmcContainer.Register('TaskListScreen', {
+            param($container)
+            Write-PmcTuiLog "Resolving TaskListScreen..." "INFO"
+            # Ensure dependencies
+            $null = $container.Resolve('Theme')
+            $null = $container.Resolve('TaskStore')
+            return [TaskListScreen]::new($container)
+        }, $false)  # Not singleton - create new instance each time
+
+        # === Resolve Application ===
+        Write-PmcTuiLog "Resolving Application from container..." "INFO"
+        $global:PmcApp = $global:PmcContainer.Resolve('Application')
+        Write-PmcTuiLog "Application resolved and assigned to `$global:PmcApp" "INFO"
+
+        # === Launch Initial Screen ===
         Write-PmcTuiLog "Launching screen: $StartScreen" "INFO"
         switch ($StartScreen) {
             'TaskList' {
-                Write-PmcTuiLog "Creating TaskListScreen..." "INFO"
-                $screen = [TaskListScreen]::new()
+                Write-PmcTuiLog "Resolving TaskListScreen from container..." "INFO"
+                $screen = $global:PmcContainer.Resolve('TaskListScreen')
                 Write-PmcTuiLog "Pushing screen to app..." "INFO"
                 $global:PmcApp.PushScreen($screen)
                 Write-PmcTuiLog "Screen pushed successfully" "INFO"
             }
             'BlockedTasks' {
-                Write-PmcTuiLog "Creating BlockedTasksScreen..." "INFO"
+                Write-PmcTuiLog "Creating BlockedTasksScreen (not yet containerized)..." "INFO"
+                # TODO: Containerize BlockedTasksScreen
+                $null = $global:PmcContainer.Resolve('Theme')
+                $null = $global:PmcContainer.Resolve('TaskStore')
                 $screen = [BlockedTasksScreen]::new()
                 Write-PmcTuiLog "Pushing screen to app..." "INFO"
                 $global:PmcApp.PushScreen($screen)
                 Write-PmcTuiLog "Screen pushed successfully" "INFO"
             }
             'Demo' {
-                Write-PmcTuiLog "Loading DemoScreen..." "INFO"
+                Write-PmcTuiLog "Loading DemoScreen (not containerized)..." "INFO"
                 . "$PSScriptRoot/DemoScreen.ps1"
                 $screen = [DemoScreen]::new()
                 $global:PmcApp.PushScreen($screen)

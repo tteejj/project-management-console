@@ -484,8 +484,8 @@ class InlineEditor : PmcWidget {
         if ($this._currentFieldIndex -ge 0 -and $this._currentFieldIndex -lt $this._fields.Count) {
             $currentField = $this._fields[$this._currentFieldIndex]
 
-            # Text, Date, and Tags fields - pass input to widget (except Tab/Up/Down for navigation)
-            if ($currentField.Type -eq 'text' -or $currentField.Type -eq 'date' -or $currentField.Type -eq 'tags') {
+            # Text, Textarea, Date, and Tags fields - pass input to widget (except Tab/Up/Down for navigation)
+            if ($currentField.Type -eq 'text' -or $currentField.Type -eq 'textarea' -or $currentField.Type -eq 'date' -or $currentField.Type -eq 'tags') {
                 # Don't pass navigation keys to widget - let InlineEditor handle them
                 if ($keyInfo.Key -eq 'Tab' -or $keyInfo.Key -eq 'UpArrow' -or $keyInfo.Key -eq 'DownArrow') {
                     return $false  # Let InlineEditor handle navigation
@@ -503,7 +503,7 @@ class InlineEditor : PmcWidget {
                 }
 
                 $widget = $this._fieldWidgets[$currentField.Name]
-                # Only handle input if it's a TextInput (not DatePicker when expanded)
+                # Handle input for TextInput
                 if ($widget.GetType().Name -eq 'TextInput') {
                     $handled = $widget.HandleInput($keyInfo)
 
@@ -658,8 +658,8 @@ class InlineEditor : PmcWidget {
             # Value display - for text/date fields, render the TextInput widget inline
             $sb.Append($this.BuildMoveTo($this.X + 22, $rowY))
 
-            if (($field.Type -eq 'text' -or $field.Type -eq 'date' -or $field.Type -eq 'tags') -and $isFocused -and $this._fieldWidgets.ContainsKey($field.Name)) {
-                # Render TextInput widget inline for focused text/date/tags fields
+            if (($field.Type -eq 'text' -or $field.Type -eq 'textarea' -or $field.Type -eq 'date' -or $field.Type -eq 'tags') -and $isFocused -and $this._fieldWidgets.ContainsKey($field.Name)) {
+                # Render TextInput widget inline for focused text/textarea/date/tags fields
                 $widget = $this._fieldWidgets[$field.Name]
                 if ($widget.GetType().Name -eq 'TextInput') {
                     $sb.Append($textColor)
@@ -835,6 +835,29 @@ class InlineEditor : PmcWidget {
                 }
             }
 
+            'textarea' {
+                # For now, use TextInput with larger size for multi-line text
+                # TODO: Integrate full TextAreaEditor when dependency loading is resolved
+                $widget = [TextInput]::new()
+                $widget.SetPosition($this.X + 5, $this.Y + 5)
+                $widget.SetSize(60, 5)  # Taller than regular text input
+                $widget.Label = $fieldDef.Label
+
+                if ($value) {
+                    # Replace newlines with a visible separator for single-line display
+                    $displayValue = $value.ToString() -replace "`n", " | "
+                    $widget.SetText($displayValue)
+                }
+
+                if ($fieldDef.ContainsKey('MaxLength')) {
+                    $widget.MaxLength = $fieldDef.MaxLength
+                } else {
+                    $widget.MaxLength = 5000  # Default larger limit for textarea
+                }
+
+                $widget.Placeholder = 'Separate items with  | '
+            }
+
             'date' {
                 # For inline editing, use TextInput (user can type dates like "2025-11-15" or "+3")
                 # DatePicker is created on-demand when user presses Enter
@@ -950,6 +973,13 @@ class InlineEditor : PmcWidget {
             'text' {
                 $widget = $this._fieldWidgets[$fieldName]
                 return $widget.GetText()
+            }
+
+            'textarea' {
+                $widget = $this._fieldWidgets[$fieldName]
+                # Convert pipe-separated items back to newline-separated
+                $text = $widget.GetText()
+                return $text -replace '\s*\|\s*', "`n"
             }
 
             'date' {
@@ -1228,8 +1258,8 @@ class InlineEditor : PmcWidget {
         if ($this._currentFieldIndex -ge 0 -and $this._currentFieldIndex -lt $this._fields.Count) {
             $field = $this._fields[$this._currentFieldIndex]
 
-            # Text, Tags, Number, and Button fields are handled inline (no expansion)
-            if ($field.Type -eq 'text' -or $field.Type -eq 'tags' -or $field.Type -eq 'number' -or $field.Type -eq 'button') {
+            # Text, Textarea, Tags, Number, and Button fields are handled inline (no expansion)
+            if ($field.Type -eq 'text' -or $field.Type -eq 'textarea' -or $field.Type -eq 'tags' -or $field.Type -eq 'number' -or $field.Type -eq 'button') {
                 return
             }
 

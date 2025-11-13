@@ -20,11 +20,23 @@ class NotesMenuScreen : StandardListScreen {
     hidden [string]$_ownerName = ""
 
     # === Constructor ===
+    # Legacy constructor (backward compatible)
     NotesMenuScreen() : base("NotesList", "Notes") {
         $this._InitializeScreen("global", $null, "")
     }
 
+    # Container constructor
+    NotesMenuScreen([object]$container) : base("NotesList", "Notes", $container) {
+        $this._InitializeScreen("global", $null, "")
+    }
+
+    # Legacy constructor with owner parameters
     NotesMenuScreen([string]$ownerType, [string]$ownerId, [string]$ownerName) : base("NotesList", "Notes") {
+        $this._InitializeScreen($ownerType, $ownerId, $ownerName)
+    }
+
+    # Container constructor with owner parameters
+    NotesMenuScreen([string]$ownerType, [string]$ownerId, [string]$ownerName, [object]$container) : base("NotesList", "Notes", $container) {
         $this._InitializeScreen($ownerType, $ownerId, $ownerName)
     }
 
@@ -244,9 +256,17 @@ class NotesMenuScreen : StandardListScreen {
     Handle add new note
     #>
     [void] OnAddItem([hashtable]$data) {
-        Write-PmcTuiLog "NotesMenuScreen.OnAddItem: Creating note '$($data.title)'" "DEBUG"
+        # SAVE FIX: Safe property access and validation
+        $title = if ($data.ContainsKey('title')) { $data.title } else { '' }
+        Write-PmcTuiLog "NotesMenuScreen.OnAddItem: Creating note '$title'" "DEBUG"
 
         try {
+            # Validate title
+            if ([string]::IsNullOrWhiteSpace($title)) {
+                $this.SetStatusMessage("Note title is required", "error")
+                return
+            }
+
             # Parse tags
             $tags = @()
             if ($data.ContainsKey('tags') -and -not [string]::IsNullOrWhiteSpace($data.tags)) {
@@ -254,8 +274,8 @@ class NotesMenuScreen : StandardListScreen {
             }
 
             # Create note with owner info
-            Write-PmcTuiLog "NotesMenuScreen.OnAddItem: Calling CreateNote with title='$($data.title)' tags=$($tags.Count) owner=$($this._ownerType):$($this._ownerId)" "DEBUG"
-            $note = $this._noteService.CreateNote($data.title, $tags, $this._ownerType, $this._ownerId)
+            Write-PmcTuiLog "NotesMenuScreen.OnAddItem: Calling CreateNote with title='$title' tags=$($tags.Count) owner=$($this._ownerType):$($this._ownerId)" "DEBUG"
+            $note = $this._noteService.CreateNote($title, $tags, $this._ownerType, $this._ownerId)
 
             if ($null -eq $note) {
                 Write-PmcTuiLog "NotesMenuScreen.OnAddItem: CreateNote returned null!" "ERROR"
@@ -289,12 +309,20 @@ class NotesMenuScreen : StandardListScreen {
     Handle edit note metadata
     #>
     [void] OnEditItem($item, [hashtable]$data) {
-        Write-PmcTuiLog "NotesMenuScreen.OnEditItem: Updating note $($item.id)" "DEBUG"
+        # SAVE FIX: Safe property access
+        $itemId = if ($item -is [hashtable]) { $item['id'] } else { $item.id }
+        Write-PmcTuiLog "NotesMenuScreen.OnEditItem: Updating note $itemId" "DEBUG"
 
         try {
+            # Validate title
+            if (-not $data.ContainsKey('title') -or [string]::IsNullOrWhiteSpace($data.title)) {
+                $this.SetStatusMessage("Note title is required", "error")
+                return
+            }
+
             # Parse tags
             $tags = @()
-            if ($data.tags -and $data.tags.Trim() -ne "") {
+            if ($data.ContainsKey('tags') -and $data.tags -and $data.tags.Trim() -ne "") {
                 $tags = $data.tags -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ -ne "" }
             }
 

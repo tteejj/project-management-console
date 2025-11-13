@@ -153,11 +153,14 @@ class UniversalList : PmcWidget {
     [void] SetColumns([hashtable[]]$columns) {
         $this._columns.Clear()
 
-        if ($null -eq $columns -or $columns.Count -eq 0) {
+        # Force array type to prevent unwrapping
+        $columnsArray = @($columns)
+
+        if ($null -eq $columnsArray -or $columnsArray.Count -eq 0) {
             throw "At least one column is required"
         }
 
-        foreach ($col in $columns) {
+        foreach ($col in $columnsArray) {
             if (-not $col.ContainsKey('Name')) {
                 throw "Column missing 'Name' property"
             }
@@ -188,8 +191,8 @@ class UniversalList : PmcWidget {
     Array of objects to display
     #>
     [void] SetData([array]$data) {
-        $this._data = if ($null -ne $data) { $data } else { @() }
-        $this._filteredData = $this._data
+        $this._data = if ($null -ne $data) { @($data) } else { @() }
+        $this._filteredData = @($this._data)
         $this._selectedIndex = 0
         $this._scrollOffset = 0
         $this._selectedIndices.Clear()
@@ -727,10 +730,45 @@ class UniversalList : PmcWidget {
         # Data rows (virtual scrolling)
         $maxVisibleRows = $this.Height - 6  # Top, header, sep, bottom, footer, status
         $visibleStartIndex = $this._scrollOffset
-        $visibleEndIndex = [Math]::Min($this._scrollOffset + $maxVisibleRows, $this._filteredData.Count)
+
+        # Get count safely - handle both arrays and single items
+        $filteredCount = if ($null -eq $this._filteredData) {
+            0
+        } elseif ($this._filteredData -is [array]) {
+            $this._filteredData.Count
+        } else {
+            1
+        }
+
+        $visibleEndIndex = [Math]::Min($this._scrollOffset + $maxVisibleRows, $filteredCount)
+
+        # DEBUG: Log list state with type checking
+        if ($global:PmcTuiLogFile) {
+            $dataCount = if ($null -eq $this._data) { "NULL" } elseif ($this._data -is [array]) { $this._data.Count } else { "NOT_ARRAY:$($this._data.GetType().Name)" }
+            $filteredCount = if ($null -eq $this._filteredData) { "NULL" } elseif ($this._filteredData -is [array]) { $this._filteredData.Count } else { "NOT_ARRAY:$($this._filteredData.GetType().Name)" }
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] UniversalList._RenderList: _data=$dataCount _filteredData=$filteredCount maxVisible=$maxVisibleRows visibleStart=$visibleStartIndex visibleEnd=$visibleEndIndex"
+        }
+
+        if ($global:PmcTuiLogFile) {
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] UniversalList._RenderList LOOP: visibleStartIndex=$visibleStartIndex visibleEndIndex=$visibleEndIndex"
+        }
 
         for ($i = $visibleStartIndex; $i -lt $visibleEndIndex; $i++) {
-            $item = $this._filteredData[$i]
+            # Handle both array and scalar _filteredData
+            $item = if ($this._filteredData -is [array]) {
+                $this._filteredData[$i]
+            } else {
+                $this._filteredData
+            }
+
+            if ($global:PmcTuiLogFile) {
+                $itemDesc = Get-SafeProperty $item 'text'
+                if (-not $itemDesc) { $itemDesc = Get-SafeProperty $item 'name' }
+                if (-not $itemDesc) { $itemDesc = Get-SafeProperty $item 'id' }
+                if (-not $itemDesc) { $itemDesc = "unknown" }
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] UniversalList._RenderList LOOP iteration $i - item=$itemDesc"
+            }
+
             $rowY = $this.Y + $currentRow
             $isSelected = ($i -eq $this._selectedIndex)
             $isMultiSelected = $this._selectedIndices.Contains($i)
@@ -772,7 +810,7 @@ class UniversalList : PmcWidget {
             # Render columns
             $currentX = 2
             foreach ($col in $this._columns) {
-                $value = $item.($col.Name)
+                $value = Get-SafeProperty $item $col.Name
                 # L-POL-22: Use custom width if set, otherwise use default
                 $width = if ($this._columnWidths.ContainsKey($col.Name)) {
                     $this._columnWidths[$col.Name]
@@ -786,11 +824,12 @@ class UniversalList : PmcWidget {
                         # Pass the WHOLE ITEM to formatter, not just the field value
                         $value = & $col.Format $item
                     } catch {
-                        # Log formatting error for debugging
+                        # HIGH FIX #7: Log error but return original value for graceful degradation
                         if (Get-Command Write-PmcTuiLog -ErrorAction SilentlyContinue) {
                             Write-PmcTuiLog "Column format error for '$($col.Name)': $($_.Exception.Message)" "ERROR"
                         }
-                        $value = "(error)"
+                        # Return original unformatted value instead of error text - use safe property access
+                        $value = Get-SafeProperty $item $col.Name
                     }
                 }
 
@@ -901,8 +940,8 @@ class UniversalList : PmcWidget {
             if ($null -ne $selectedItem) {
                 $preview = "Selected: "
                 # Handle both hashtables and objects
-                $text = if ($selectedItem -is [hashtable]) { $selectedItem['text'] } else { $selectedItem.text }
-                $id = if ($selectedItem -is [hashtable]) { $selectedItem['id'] } else { $selectedItem.id }
+                $text = Get-SafeProperty $selectedItem 'text'
+                $id = Get-SafeProperty $selectedItem 'id'
 
                 if ($text) {
                     $preview += $text
@@ -1106,9 +1145,9 @@ class UniversalList : PmcWidget {
 
         # Sort filtered data
         if ($this._sortAscending) {
-            $this._filteredData = $this._filteredData | Sort-Object -Property $this._sortColumn
+            $this._filteredData = @($this._filteredData | Sort-Object -Property $this._sortColumn)
         } else {
-            $this._filteredData = $this._filteredData | Sort-Object -Property $this._sortColumn -Descending
+            $this._filteredData = @($this._filteredData | Sort-Object -Property $this._sortColumn -Descending)
         }
     }
 
@@ -1117,7 +1156,7 @@ class UniversalList : PmcWidget {
     Apply filters to data
     #>
     hidden [void] _ApplyFilters() {
-        $this._filteredData = $this._filterPanel.ApplyFilters($this._data)
+        $this._filteredData = @($this._filterPanel.ApplyFilters($this._data))
         $this._ApplySearch()
         $this._ApplySort()
 
@@ -1141,13 +1180,13 @@ class UniversalList : PmcWidget {
         }
 
         $searchLower = $this._searchText.ToLower()
-        $filtered = @()
+        $filtered = [System.Collections.ArrayList]::new()
 
         foreach ($item in $this._filteredData) {
             # Search in all columns
             $match = $false
             foreach ($col in $this._columns) {
-                $value = $item.($col.Name)
+                $value = Get-SafeProperty $item $col.Name
                 if ($null -ne $value) {
                     $valueStr = $value.ToString().ToLower()
                     if ($valueStr.Contains($searchLower)) {
@@ -1158,11 +1197,12 @@ class UniversalList : PmcWidget {
             }
 
             if ($match) {
-                $filtered += $item
+                [void]$filtered.Add($item)
             }
         }
 
-        $this._filteredData = $filtered
+        # Force array type - prevent PowerShell from unwrapping single-item arrays
+        $this._filteredData = @($filtered)
     }
 
     <#

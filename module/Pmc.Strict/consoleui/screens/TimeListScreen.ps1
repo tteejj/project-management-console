@@ -48,6 +48,21 @@ class TimeListScreen : StandardListScreen {
         $this.RefreshList()
     }
 
+    # Constructor with container (DI-enabled)
+    TimeListScreen([object]$container) : base("TimeList", "Time Tracking", $container) {
+        # Configure capabilities
+        $this.AllowAdd = $true
+        $this.AllowEdit = $true
+        $this.AllowDelete = $true
+        $this.AllowFilter = $true
+
+        # Configure header
+        $this.Header.SetBreadcrumb(@("Home", "Time Tracking"))
+
+        # Load time entries
+        $this.RefreshList()
+    }
+
     # === Abstract Method Implementations ===
 
     # Get entity type for store operations
@@ -162,7 +177,7 @@ class TimeListScreen : StandardListScreen {
         }
 
         # Sort by date descending (most recent first)
-        return $aggregated | Sort-Object -Property date -Descending
+        return $aggregated | Sort-Object { Get-SafeProperty $_ 'date' } -Descending
     }
 
     # Define columns for list display
@@ -207,56 +222,110 @@ class TimeListScreen : StandardListScreen {
 
     # Handle item creation
     [void] OnItemCreated([hashtable]$values) {
-        # Convert hours to minutes for storage
-        $hoursValue = [double]$values.hours
-        $minutes = [int]($hoursValue * 60)
+        try {
+            # ENDEMIC FIX: Safe conversion with validation
+            if (-not $values.ContainsKey('hours') -or [string]::IsNullOrWhiteSpace($values.hours)) {
+                $this.SetStatusMessage("Hours field is required", "error")
+                return
+            }
 
-        $timeData = @{
-            date = [DateTime]$values.date
-            task = $values.task
-            project = $values.project
-            timecode = $values.timecode
-            minutes = $minutes
-            notes = $values.notes
-            created = [DateTime]::Now
-        }
+            $hoursValue = 0.0
+            try {
+                $hoursValue = [double]$values.hours
+            } catch {
+                $this.SetStatusMessage("Invalid hours value: $($values.hours)", "error")
+                return
+            }
 
-        $success = $this.Store.AddTimeLog($timeData)
+            $minutes = [int]($hoursValue * 60)
 
-        $statusMsg = "Time entry added: {0:F2} hours" -f $hoursValue
-        if ($success) {
-            $this.SetStatusMessage($statusMsg, "success")
-        } else {
-            $this.SetStatusMessage("Failed to add time entry: $($this.Store.LastError)", "error")
+            # Safe date conversion
+            $dateValue = [DateTime]::Today
+            if ($values.ContainsKey('date') -and $values.date) {
+                try {
+                    $dateValue = [DateTime]$values.date
+                } catch {
+                    Write-PmcTuiLog "Failed to parse date '$($values.date)', using today" "WARNING"
+                }
+            }
+
+            $timeData = @{
+                date = $dateValue
+                task = if ($values.ContainsKey('task')) { $values.task } else { '' }
+                project = if ($values.ContainsKey('project')) { $values.project } else { '' }
+                timecode = if ($values.ContainsKey('timecode')) { $values.timecode } else { '' }
+                minutes = $minutes
+                notes = if ($values.ContainsKey('notes')) { $values.notes } else { '' }
+                created = [DateTime]::Now
+            }
+
+            $success = $this.Store.AddTimeLog($timeData)
+
+            $statusMsg = "Time entry added: {0:F2} hours" -f $hoursValue
+            if ($success) {
+                $this.SetStatusMessage($statusMsg, "success")
+            } else {
+                $this.SetStatusMessage("Failed to add time entry: $($this.Store.LastError)", "error")
+            }
+        } catch {
+            Write-PmcTuiLog "OnItemCreated exception: $_" "ERROR"
+            $this.SetStatusMessage("Unexpected error: $($_.Exception.Message)", "error")
         }
     }
 
     # Handle item update
     [void] OnItemUpdated([object]$item, [hashtable]$values) {
-        # Convert hours to minutes for storage
-        $hoursValue = [double]$values.hours
-        $minutes = [int]($hoursValue * 60)
-
-        $changes = @{
-            date = [DateTime]$values.date
-            task = $values.task
-            project = $values.project
-            timecode = $values.timecode
-            minutes = $minutes
-            notes = $values.notes
-        }
-
-        # Time logs typically don't support update in PMC - might need to delete and re-add
-        # For now, try to update by ID if it exists
-        if ($item.ContainsKey('id')) {
-            $success = $this.Store.UpdateTimeLog($item.id, $changes)
-            if ($success) {
-                $this.SetStatusMessage("Time entry updated", "success")
-            } else {
-                $this.SetStatusMessage("Failed to update time entry: $($this.Store.LastError)", "error")
+        try {
+            # ENDEMIC FIX: Safe conversion with validation
+            if (-not $values.ContainsKey('hours') -or [string]::IsNullOrWhiteSpace($values.hours)) {
+                $this.SetStatusMessage("Hours field is required", "error")
+                return
             }
-        } else {
-            $this.SetStatusMessage("Cannot update time entry without ID", "error")
+
+            $hoursValue = 0.0
+            try {
+                $hoursValue = [double]$values.hours
+            } catch {
+                $this.SetStatusMessage("Invalid hours value: $($values.hours)", "error")
+                return
+            }
+
+            $minutes = [int]($hoursValue * 60)
+
+            # Safe date conversion
+            $dateValue = [DateTime]::Today
+            if ($values.ContainsKey('date') -and $values.date) {
+                try {
+                    $dateValue = [DateTime]$values.date
+                } catch {
+                    Write-PmcTuiLog "Failed to parse date '$($values.date)', using today" "WARNING"
+                }
+            }
+
+            $changes = @{
+                date = $dateValue
+                task = if ($values.ContainsKey('task')) { $values.task } else { '' }
+                project = if ($values.ContainsKey('project')) { $values.project } else { '' }
+                timecode = if ($values.ContainsKey('timecode')) { $values.timecode } else { '' }
+                minutes = $minutes
+                notes = if ($values.ContainsKey('notes')) { $values.notes } else { '' }
+            }
+
+            # Time logs typically don't support update in PMC - might need to delete and re-add
+            # For now, try to update by ID if it exists
+            if ($item.ContainsKey('id')) {
+                $success = $this.Store.UpdateTimeLog($item.id, $changes)
+                if ($success) {
+                    $this.SetStatusMessage("Time entry updated", "success")
+                } else {
+                    $this.SetStatusMessage("Failed to update time entry: $($this.Store.LastError)", "error")
+                }
+            } else {
+                $this.SetStatusMessage("Cannot update time entry without ID", "error")
+            }
+        } catch {
+            Write-PmcTuiLog "OnItemUpdated exception: $_" "ERROR"
+            $this.SetStatusMessage("Unexpected error: $($_.Exception.Message)", "error")
         }
     }
 

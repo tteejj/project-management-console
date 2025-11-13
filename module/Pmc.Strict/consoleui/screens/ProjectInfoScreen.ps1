@@ -43,104 +43,22 @@ class ProjectInfoScreen : PmcScreen {
         $this.Footer.AddShortcut("T", "Tasks")
         $this.Footer.AddShortcut("Esc", "Back")
 
-        # Setup menu items
-        $this._SetupMenus()
+        # NOTE: _SetupMenus() removed - MenuRegistry handles menu population via manifest
     }
 
-    hidden [void] _SetupMenus() {
-        # Capture $this in a variable so scriptblocks can access it
-        $screen = $this
+    # Constructor with container
+    ProjectInfoScreen([object]$container) : base("ProjectInfo", "Project Information", $container) {
+        # Configure header
+        $this.Header.SetBreadcrumb(@("Home", "Projects", "Info"))
 
-        # Tasks menu - Navigate to different task views
-        $tasksMenu = $this.MenuBar.Menus[0]
-        $tasksMenu.Items.Add([PmcMenuItem]::new("Task List", 'L', {
-            . "$PSScriptRoot/TaskListScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object TaskListScreen))
-        }))
-        # Archived view screens - these were consolidated/removed
-        # $tasksMenu.Items.Add([PmcMenuItem]::new("Today", 'Y', {
-        #     . "$PSScriptRoot/TodayViewScreen.ps1"
-        #     $global:PmcApp.PushScreen((New-Object TodayViewScreen))
-        # }))
-        # $tasksMenu.Items.Add([PmcMenuItem]::new("Tomorrow", 'T', {
-        #     . "$PSScriptRoot/TomorrowViewScreen.ps1"
-        #     $global:PmcApp.PushScreen((New-Object TomorrowViewScreen))
-        # }))
-        # $tasksMenu.Items.Add([PmcMenuItem]::new("Week View", 'W', {
-        #     . "$PSScriptRoot/WeekViewScreen.ps1"
-        #     $global:PmcApp.PushScreen((New-Object WeekViewScreen))
-        # }))
-        # $tasksMenu.Items.Add([PmcMenuItem]::new("Upcoming", 'U', {
-        #     . "$PSScriptRoot/UpcomingViewScreen.ps1"
-        #     $global:PmcApp.PushScreen((New-Object UpcomingViewScreen))
-        # }))
-        # $tasksMenu.Items.Add([PmcMenuItem]::new("Overdue", 'V', {
-        #     . "$PSScriptRoot/OverdueViewScreen.ps1"
-        #     $global:PmcApp.PushScreen((New-Object OverdueViewScreen))
-        # }))
-        # $tasksMenu.Items.Add([PmcMenuItem]::new("Next Actions", 'N', {
-        #     . "$PSScriptRoot/NextActionsViewScreen.ps1"
-        #     $global:PmcApp.PushScreen((New-Object NextActionsViewScreen))
-        # }))
-        # $tasksMenu.Items.Add([PmcMenuItem]::new("No Due Date", 'D', {
-        #     . "$PSScriptRoot/NoDueDateViewScreen.ps1"
-        #     $global:PmcApp.PushScreen((New-Object NoDueDateViewScreen))
-        # }))
-        $tasksMenu.Items.Add([PmcMenuItem]::new("Blocked Tasks", 'B', {
-            . "$PSScriptRoot/BlockedTasksScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object BlockedTasksScreen))
-        }))
-        $tasksMenu.Items.Add([PmcMenuItem]::Separator())
-        $tasksMenu.Items.Add([PmcMenuItem]::new("Kanban Board", 'K', {
-            . "$PSScriptRoot/KanbanScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object KanbanScreen))
-        }))
-        # $tasksMenu.Items.Add([PmcMenuItem]::new("Month View", 'M', {
-        #     . "$PSScriptRoot/MonthViewScreen.ps1"
-        #     $global:PmcApp.PushScreen((New-Object MonthViewScreen))
-        # }))
-        # $tasksMenu.Items.Add([PmcMenuItem]::new("Agenda View", 'A', {
-        #     . "$PSScriptRoot/AgendaViewScreen.ps1"
-        #     $global:PmcApp.PushScreen((New-Object AgendaViewScreen))
-        # }))
-        $tasksMenu.Items.Add([PmcMenuItem]::new("Burndown Chart", 'C', {
-            . "$PSScriptRoot/BurndownChartScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object BurndownChartScreen))
-        }))
+        # Configure footer with shortcuts
+        $this.Footer.ClearShortcuts()
+        $this.Footer.AddShortcut("E", "Edit")
+        $this.Footer.AddShortcut("D", "Delete")
+        $this.Footer.AddShortcut("T", "Tasks")
+        $this.Footer.AddShortcut("Esc", "Back")
 
-        # Projects menu
-        $projectsMenu = $this.MenuBar.Menus[1]
-        $projectsMenu.Items.Add([PmcMenuItem]::new("Project List", 'L', {
-            . "$PSScriptRoot/ProjectListScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object ProjectListScreen))
-        }))
-        $projectsMenu.Items.Add([PmcMenuItem]::new("Project Stats", 'S', {
-            . "$PSScriptRoot/ProjectStatsScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object ProjectStatsScreen))
-        }))
-        $projectsMenu.Items.Add([PmcMenuItem]::new("Project Info", 'I', {
-            . "$PSScriptRoot/ProjectInfoScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object ProjectInfoScreen))
-        }))
-
-        # Options menu
-        $optionsMenu = $this.MenuBar.Menus[2]
-        $optionsMenu.Items.Add([PmcMenuItem]::new("Theme Editor", 'T', {
-            . "$PSScriptRoot/ThemeEditorScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object ThemeEditorScreen))
-        }))
-        $optionsMenu.Items.Add([PmcMenuItem]::new("Settings", 'S', {
-            . "$PSScriptRoot/SettingsScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object SettingsScreen))
-        }))
-
-        # Help menu
-        $helpMenu = $this.MenuBar.Menus[3]
-        $helpMenu.Items.Add([PmcMenuItem]::new("Help View", 'H', {
-            . "$PSScriptRoot/HelpViewScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object HelpViewScreen))
-        }))
-        $helpMenu.Items.Add([PmcMenuItem]::new("About", 'A', { Write-Host "PMC TUI v1.0" }))
+        # NOTE: _SetupMenus() removed - MenuRegistry handles menu population via manifest
     }
 
     [void] SetProject([string]$projectName) {
@@ -157,12 +75,12 @@ class ProjectInfoScreen : PmcScreen {
 
         try {
             # Get PMC data
-            $data = Get-PmcAllData
+            $data = Get-PmcData
 
             # Find project
             $this.ProjectData = $data.projects | Where-Object {
                 ($_ -is [string] -and $_ -eq $this.ProjectName) -or
-                ($_.PSObject.Properties['name'] -and $_.name -eq $this.ProjectName)
+                ((Get-SafeProperty $_ 'name') -eq $this.ProjectName)
             } | Select-Object -First 1
 
             if (-not $this.ProjectData) {
@@ -171,28 +89,30 @@ class ProjectInfoScreen : PmcScreen {
             }
 
             # Get project tasks
-            $this.ProjectTasks = @($data.tasks | Where-Object { $_.project -eq $this.ProjectName })
+            $this.ProjectTasks = @($data.tasks | Where-Object { (Get-SafeProperty $_ 'project') -eq $this.ProjectName })
 
             # Calculate statistics
             $this.ProjectStats = @{
                 TotalTasks = $this.ProjectTasks.Count
-                ActiveTasks = @($this.ProjectTasks | Where-Object { $_.status -ne 'completed' }).Count
-                CompletedTasks = @($this.ProjectTasks | Where-Object { $_.status -eq 'completed' }).Count
+                ActiveTasks = @($this.ProjectTasks | Where-Object { (Get-SafeProperty $_ 'status') -ne 'completed' }).Count
+                CompletedTasks = @($this.ProjectTasks | Where-Object { (Get-SafeProperty $_ 'status') -eq 'completed' }).Count
                 OverdueTasks = 0
             }
 
             # Count overdue tasks
             $today = (Get-Date).Date
             foreach ($task in $this.ProjectTasks) {
-                if ($task.status -ne 'completed' -and $task.due) {
+                $taskStatus = Get-SafeProperty $task 'status'
+                $taskDue = Get-SafeProperty $task 'due'
+                if ($taskStatus -ne 'completed' -and $taskDue) {
                     try {
-                        $dueDate = [DateTime]::Parse($task.due)
+                        $dueDate = [DateTime]::Parse($taskDue)
                         if ($dueDate.Date -lt $today) {
                             $this.ProjectStats.OverdueTasks++
                         }
                     } catch {
                         if (Get-Command Write-PmcTuiLog -ErrorAction SilentlyContinue) {
-                            Write-PmcTuiLog "Failed to parse due date '$($task.due)' for task: $($_.Exception.Message)" "DEBUG"
+                            Write-PmcTuiLog "Failed to parse due date '$taskDue' for task: $($_.Exception.Message)" "DEBUG"
                         }
                     }
                 }
@@ -248,42 +168,45 @@ class ProjectInfoScreen : PmcScreen {
         # Project name
         $sb.Append($this.Header.BuildMoveTo($contentRect.X + 4, $y++))
         $sb.Append($highlightColor)
-        $name = if ($this.ProjectData -is [string]) { $this.ProjectData } else { $this.ProjectData.name }
+        $name = if ($this.ProjectData -is [string]) { $this.ProjectData } else { Get-SafeProperty $this.ProjectData 'name' }
         $sb.Append($name)
         $sb.Append($reset)
         $y++
 
         # Description
-        if ($this.ProjectData -isnot [string] -and $this.ProjectData.PSObject.Properties['description'] -and $this.ProjectData.description) {
+        $projectDescription = Get-SafeProperty $this.ProjectData 'description'
+        if ($this.ProjectData -isnot [string] -and $projectDescription) {
             $sb.Append($this.Header.BuildMoveTo($contentRect.X + 4, $y++))
             $sb.Append($mutedColor)
             $sb.Append("Description: ")
             $sb.Append($reset)
             $sb.Append($textColor)
-            $sb.Append($this.ProjectData.description)
+            $sb.Append($projectDescription)
             $sb.Append($reset)
             $y++
         }
 
         # Status
-        if ($this.ProjectData -isnot [string] -and $this.ProjectData.PSObject.Properties['status'] -and $this.ProjectData.status) {
+        $projectStatus = Get-SafeProperty $this.ProjectData 'status'
+        if ($this.ProjectData -isnot [string] -and $projectStatus) {
             $sb.Append($this.Header.BuildMoveTo($contentRect.X + 4, $y++))
             $sb.Append($mutedColor)
             $sb.Append("Status: ")
             $sb.Append($reset)
             $sb.Append($textColor)
-            $sb.Append($this.ProjectData.status)
+            $sb.Append($projectStatus)
             $sb.Append($reset)
         }
 
         # Created date
-        if ($this.ProjectData -isnot [string] -and $this.ProjectData.PSObject.Properties['created'] -and $this.ProjectData.created) {
+        $projectCreated = Get-SafeProperty $this.ProjectData 'created'
+        if ($this.ProjectData -isnot [string] -and $projectCreated) {
             $sb.Append($this.Header.BuildMoveTo($contentRect.X + 4, $y++))
             $sb.Append($mutedColor)
             $sb.Append("Created: ")
             $sb.Append($reset)
             $sb.Append($textColor)
-            $sb.Append($this.ProjectData.created)
+            $sb.Append($projectCreated)
             $sb.Append($reset)
         }
 
@@ -352,15 +275,16 @@ class ProjectInfoScreen : PmcScreen {
             foreach ($task in $recentTasks) {
                 if ($y -ge $contentRect.Y + $contentRect.Height - 2) { break }
 
+                $taskStatus = Get-SafeProperty $task 'status'
+                $taskText = Get-SafeProperty $task 'text'
                 $sb.Append($this.Header.BuildMoveTo($contentRect.X + 6, $y++))
-                $statusIcon = if ($task.status -eq 'completed') { "[X]" } else { "[ ]" }
-                $statusColor = if ($task.status -eq 'completed') { $successColor } else { $textColor }
+                $statusIcon = if ($taskStatus -eq 'completed') { "[X]" } else { "[ ]" }
+                $statusColor = if ($taskStatus -eq 'completed') { $successColor } else { $textColor }
                 $sb.Append($statusColor)
                 $sb.Append($statusIcon)
                 $sb.Append($reset)
                 $sb.Append(" ")
                 $sb.Append($textColor)
-                $taskText = $task.text
                 if ($taskText.Length -gt 60) {
                     $taskText = $taskText.Substring(0, 57) + "..."
                 }
@@ -404,18 +328,19 @@ class ProjectInfoScreen : PmcScreen {
 
     hidden [void] _DeleteProject() {
         # Confirm and delete project
-        $allData = Get-PmcAllData
-        $project = $allData.projects | Where-Object { $_.name -eq $this.ProjectName }
+        $allData = Get-PmcData
+        $project = $allData.projects | Where-Object { (Get-SafeProperty $_ 'name') -eq $this.ProjectName }
 
         if ($project) {
             # Count tasks in this project
-            $taskCount = ($allData.tasks | Where-Object { $_.project -eq $this.ProjectName }).Count
+            $taskCount = ($allData.tasks | Where-Object { (Get-SafeProperty $_ 'project') -eq $this.ProjectName }).Count
 
             if ($taskCount -gt 0) {
                 $this.ShowError("Cannot delete project with $taskCount tasks. Move or delete tasks first.")
             } else {
-                $allData.projects = @($allData.projects | Where-Object { $_.name -ne $this.ProjectName })
-                Set-PmcAllData $allData
+                $allData.projects = @($allData.projects | Where-Object { (Get-SafeProperty $_ 'name') -ne $this.ProjectName })
+                # FIX: Use Save-PmcData instead of Set-PmcAllData
+                Save-PmcData -Data $allData
                 $this.ShowSuccess("Project deleted: $($this.ProjectName)")
                 $global:PmcApp.PopScreen()
             }

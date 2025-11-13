@@ -56,6 +56,34 @@ class ChecklistsMenuScreen : StandardListScreen {
         }.GetNewClosure()
     }
 
+    ChecklistsMenuScreen([string]$ownerType, [string]$ownerId, [string]$ownerName, [object]$container) : base("ChecklistsMenu", "Checklists", $container) {
+        $this._ownerType = $ownerType
+        $this._ownerId = $ownerId
+        $this._ownerName = $ownerName
+        $this._checklistService = [ChecklistService]::GetInstance()
+
+        # Configure capabilities
+        $this.AllowAdd = $true
+        $this.AllowEdit = $false  # Use Enter to open editor instead
+        $this.AllowDelete = $true
+        $this.AllowFilter = $false
+
+        # Configure header
+        $ownerLabel = if ($ownerType -eq "project") { "Project" } elseif ($ownerType -eq "task") { "Task" } else { "Global" }
+        $this.Header.SetBreadcrumb(@($ownerLabel, $ownerName, "Checklists"))
+
+        # Update screen title
+        $this.ScreenTitle = "Checklists - $ownerName"
+
+        # Setup event handlers
+        $self = $this
+        $this._checklistService.OnChecklistsChanged = {
+            if ($null -ne $self -and $self.IsActive) {
+                $self.LoadData()
+            }
+        }.GetNewClosure()
+    }
+
     # === Abstract Method Implementations ===
 
     [string] GetEntityType() {
@@ -106,6 +134,7 @@ class ChecklistsMenuScreen : StandardListScreen {
 
     [void] OnItemCreated([hashtable]$values) {
         try {
+            # SAVE FIX: Safe property access
             if ($values.ContainsKey('template_id') -and -not [string]::IsNullOrWhiteSpace($values.template_id)) {
                 # Create from template
                 $instance = $this._checklistService.CreateInstanceFromTemplate(
@@ -113,9 +142,15 @@ class ChecklistsMenuScreen : StandardListScreen {
                     $this._ownerType,
                     $this._ownerId
                 )
-                $this.SetStatusMessage("Checklist '$($instance.title)' created from template", "success")
+                $instanceTitle = if ($instance -and $instance.PSObject.Properties['title']) { $instance.title } else { 'Checklist' }
+                $this.SetStatusMessage("Checklist '$instanceTitle' created from template", "success")
             } else {
-                # Create blank checklist
+                # Create blank checklist - validate title
+                if (-not $values.ContainsKey('title') -or [string]::IsNullOrWhiteSpace($values.title)) {
+                    $this.SetStatusMessage("Checklist title is required", "error")
+                    return
+                }
+
                 $itemTexts = @()
                 if ($values.ContainsKey('items') -and -not [string]::IsNullOrWhiteSpace($values.items)) {
                     $itemTexts = @($values.items -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ })
@@ -132,7 +167,8 @@ class ChecklistsMenuScreen : StandardListScreen {
                     $this._ownerId,
                     $itemTexts
                 )
-                $this.SetStatusMessage("Checklist '$($instance.title)' created", "success")
+                $instanceTitle = if ($instance -and $instance.PSObject.Properties['title']) { $instance.title } else { 'Checklist' }
+                $this.SetStatusMessage("Checklist '$instanceTitle' created", "success")
             }
         } catch {
             $this.SetStatusMessage("Error creating checklist: $($_.Exception.Message)", "error")
@@ -176,7 +212,7 @@ class ChecklistsMenuScreen : StandardListScreen {
     # Custom action: Show template picker
     [void] ShowTemplatePicker() {
         . "$PSScriptRoot/ChecklistTemplatesScreen.ps1"
-        $templateScreen = [ChecklistTemplatesScreen]::new()
+        $templateScreen = New-Object ChecklistTemplatesScreen
         $global:PmcApp.PushScreen($templateScreen)
     }
 

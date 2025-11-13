@@ -44,104 +44,21 @@ class BurndownChartScreen : PmcScreen {
         $this.Footer.AddShortcut("F", "Filter")
         $this.Footer.AddShortcut("Esc", "Back")
 
-        # Setup menu items
-        $this._SetupMenus()
+        # NOTE: _SetupMenus() removed - MenuRegistry handles menu population via manifest
     }
 
-    hidden [void] _SetupMenus() {
-        # Capture $this in a variable so scriptblocks can access it
-        $screen = $this
+    # Constructor with container
+    BurndownChartScreen([object]$container) : base("BurndownChart", "Burndown Chart", $container) {
+        # Configure header
+        $this.Header.SetBreadcrumb(@("Home", "Views", "Burndown"))
 
-        # Tasks menu - Navigate to different task views
-        $tasksMenu = $this.MenuBar.Menus[0]
-        $tasksMenu.Items.Add([PmcMenuItem]::new("Task List", 'L', {
-            . "$PSScriptRoot/TaskListScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object TaskListScreen))
-        }))
-        # Archived view screens - these were consolidated/removed
-        # $tasksMenu.Items.Add([PmcMenuItem]::new("Today", 'Y', {
-        #     . "$PSScriptRoot/TodayViewScreen.ps1"
-        #     $global:PmcApp.PushScreen((New-Object TodayViewScreen))
-        # }))
-        # $tasksMenu.Items.Add([PmcMenuItem]::new("Tomorrow", 'T', {
-        #     . "$PSScriptRoot/TomorrowViewScreen.ps1"
-        #     $global:PmcApp.PushScreen((New-Object TomorrowViewScreen))
-        # }))
-        # $tasksMenu.Items.Add([PmcMenuItem]::new("Week View", 'W', {
-        #     . "$PSScriptRoot/WeekViewScreen.ps1"
-        #     $global:PmcApp.PushScreen((New-Object WeekViewScreen))
-        # }))
-        # $tasksMenu.Items.Add([PmcMenuItem]::new("Upcoming", 'U', {
-        #     . "$PSScriptRoot/UpcomingViewScreen.ps1"
-        #     $global:PmcApp.PushScreen((New-Object UpcomingViewScreen))
-        # }))
-        # $tasksMenu.Items.Add([PmcMenuItem]::new("Overdue", 'V', {
-        #     . "$PSScriptRoot/OverdueViewScreen.ps1"
-        #     $global:PmcApp.PushScreen((New-Object OverdueViewScreen))
-        # }))
-        # $tasksMenu.Items.Add([PmcMenuItem]::new("Next Actions", 'N', {
-        #     . "$PSScriptRoot/NextActionsViewScreen.ps1"
-        #     $global:PmcApp.PushScreen((New-Object NextActionsViewScreen))
-        # }))
-        # $tasksMenu.Items.Add([PmcMenuItem]::new("No Due Date", 'D', {
-        #     . "$PSScriptRoot/NoDueDateViewScreen.ps1"
-        #     $global:PmcApp.PushScreen((New-Object NoDueDateViewScreen))
-        # }))
-        $tasksMenu.Items.Add([PmcMenuItem]::new("Blocked Tasks", 'B', {
-            . "$PSScriptRoot/BlockedTasksScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object BlockedTasksScreen))
-        }))
-        $tasksMenu.Items.Add([PmcMenuItem]::Separator())
-        $tasksMenu.Items.Add([PmcMenuItem]::new("Kanban Board", 'K', {
-            . "$PSScriptRoot/KanbanScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object KanbanScreen))
-        }))
-        # $tasksMenu.Items.Add([PmcMenuItem]::new("Month View", 'M', {
-        #     . "$PSScriptRoot/MonthViewScreen.ps1"
-        #     $global:PmcApp.PushScreen((New-Object MonthViewScreen))
-        # }))
-        # $tasksMenu.Items.Add([PmcMenuItem]::new("Agenda View", 'A', {
-        #     . "$PSScriptRoot/AgendaViewScreen.ps1"
-        #     $global:PmcApp.PushScreen((New-Object AgendaViewScreen))
-        # }))
-        $tasksMenu.Items.Add([PmcMenuItem]::new("Burndown Chart", 'C', {
-            . "$PSScriptRoot/BurndownChartScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object BurndownChartScreen))
-        }))
+        # Configure footer with shortcuts
+        $this.Footer.ClearShortcuts()
+        $this.Footer.AddShortcut("R", "Refresh")
+        $this.Footer.AddShortcut("F", "Filter")
+        $this.Footer.AddShortcut("Esc", "Back")
 
-        # Projects menu
-        $projectsMenu = $this.MenuBar.Menus[1]
-        $projectsMenu.Items.Add([PmcMenuItem]::new("Project List", 'L', {
-            . "$PSScriptRoot/ProjectListScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object ProjectListScreen))
-        }))
-        $projectsMenu.Items.Add([PmcMenuItem]::new("Project Stats", 'S', {
-            . "$PSScriptRoot/ProjectStatsScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object ProjectStatsScreen))
-        }))
-        $projectsMenu.Items.Add([PmcMenuItem]::new("Project Info", 'I', {
-            . "$PSScriptRoot/ProjectInfoScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object ProjectInfoScreen))
-        }))
-
-        # Options menu
-        $optionsMenu = $this.MenuBar.Menus[2]
-        $optionsMenu.Items.Add([PmcMenuItem]::new("Theme Editor", 'T', {
-            . "$PSScriptRoot/ThemeEditorScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object ThemeEditorScreen))
-        }))
-        $optionsMenu.Items.Add([PmcMenuItem]::new("Settings", 'S', {
-            . "$PSScriptRoot/SettingsScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object SettingsScreen))
-        }))
-
-        # Help menu
-        $helpMenu = $this.MenuBar.Menus[3]
-        $helpMenu.Items.Add([PmcMenuItem]::new("Help View", 'H', {
-            . "$PSScriptRoot/HelpViewScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object HelpViewScreen))
-        }))
-        $helpMenu.Items.Add([PmcMenuItem]::new("About", 'A', { Write-Host "PMC TUI v1.0" }))
+        # NOTE: _SetupMenus() removed - MenuRegistry handles menu population via manifest
     }
 
     [void] LoadData() {
@@ -149,11 +66,11 @@ class BurndownChartScreen : PmcScreen {
 
         try {
             # Load PMC data
-            $data = Get-PmcAllData
+            $data = Get-PmcData
 
             # Filter tasks by project if needed
             $projectTasks = if ($this.FilterProject) {
-                @($data.tasks | Where-Object { $_.project -eq $this.FilterProject })
+                @($data.tasks | Where-Object { (Get-SafeProperty $_ 'project') -eq $this.FilterProject })
             } else {
                 @($data.tasks)
             }
@@ -163,25 +80,33 @@ class BurndownChartScreen : PmcScreen {
 
             # Completed tasks (completed = true or status = 'done'/'completed')
             $this.CompletedTasks = @($projectTasks | Where-Object {
-                $_.completed -or $_.status -eq 'done' -or $_.status -eq 'completed'
+                $taskCompleted = Get-SafeProperty $_ 'completed'
+                $taskStatus = Get-SafeProperty $_ 'status'
+                $taskCompleted -or $taskStatus -eq 'done' -or $taskStatus -eq 'completed'
             }).Count
 
             # In progress tasks
             $this.InProgressTasks = @($projectTasks | Where-Object {
-                -not $_.completed -and ($_.status -eq 'in-progress' -or $_.status -eq 'active')
+                $taskCompleted = Get-SafeProperty $_ 'completed'
+                $taskStatus = Get-SafeProperty $_ 'status'
+                -not $taskCompleted -and ($taskStatus -eq 'in-progress' -or $taskStatus -eq 'active')
             }).Count
 
             # Blocked tasks
             $this.BlockedTasks = @($projectTasks | Where-Object {
-                -not $_.completed -and $_.status -eq 'blocked'
+                $taskCompleted = Get-SafeProperty $_ 'completed'
+                $taskStatus = Get-SafeProperty $_ 'status'
+                -not $taskCompleted -and $taskStatus -eq 'blocked'
             }).Count
 
             # Todo tasks (everything else that's not completed)
             $this.TodoTasks = @($projectTasks | Where-Object {
-                -not $_.completed -and
-                $_.status -ne 'in-progress' -and
-                $_.status -ne 'active' -and
-                $_.status -ne 'blocked'
+                $taskCompleted = Get-SafeProperty $_ 'completed'
+                $taskStatus = Get-SafeProperty $_ 'status'
+                -not $taskCompleted -and
+                $taskStatus -ne 'in-progress' -and
+                $taskStatus -ne 'active' -and
+                $taskStatus -ne 'blocked'
             }).Count
 
             # Calculate completion percentage
@@ -348,8 +273,8 @@ class BurndownChartScreen : PmcScreen {
             }
             'f' {
                 # Show project list for filtering
-                $allData = Get-PmcAllData
-                $projects = $allData.projects | Where-Object { -not $_.archived }
+                $allData = Get-PmcData
+                $projects = $allData.projects | Where-Object { -not (Get-SafeProperty $_ 'archived') }
 
                 if ($projects.Count -eq 0) {
                     $this.ShowError("No projects available")
@@ -359,7 +284,8 @@ class BurndownChartScreen : PmcScreen {
                 # For now, cycle through projects
                 $currentIndex = -1
                 for ($i = 0; $i -lt $projects.Count; $i++) {
-                    if ($projects[$i].name -eq $this.FilterProject) {
+                    $projectName = Get-SafeProperty $projects[$i] 'name'
+                    if ($projectName -eq $this.FilterProject) {
                         $currentIndex = $i
                         break
                     }
@@ -371,7 +297,8 @@ class BurndownChartScreen : PmcScreen {
                     $this.FilterProject = ""
                     $this.ShowStatus("Filter cleared - showing all projects")
                 } else {
-                    $this.FilterProject = $projects[$nextIndex].name
+                    $nextProjectName = Get-SafeProperty $projects[$nextIndex] 'name'
+                    $this.FilterProject = $nextProjectName
                     $this.ShowStatus("Filtered to project: $($this.FilterProject)")
                 }
 

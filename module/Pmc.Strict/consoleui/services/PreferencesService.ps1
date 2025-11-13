@@ -130,20 +130,18 @@ class PreferencesService {
     Determines where to store preferences based on environment and platform
     #>
     hidden [void] _InitializePreferencesPath() {
-        # Get config base path from PMC module
-        $configPath = if (Get-Command Get-PmcConfigPath -ErrorAction SilentlyContinue) {
+        # PORTABILITY: Use local directory for self-contained deployment
+        # Priority: ENV > Get-PmcConfigPath > Local .pmc-data directory
+        $configPath = if ($env:PMC_CONFIG_PATH) {
+            # Explicit override via environment variable
+            $env:PMC_CONFIG_PATH
+        } elseif (Get-Command Get-PmcConfigPath -ErrorAction SilentlyContinue) {
+            # Use PMC module's config path if available
             Get-PmcConfigPath
         } else {
-            # Fallback to environment variable or default
-            if ($env:PMC_CONFIG_PATH) {
-                $env:PMC_CONFIG_PATH
-            } elseif ($env:HOME -and -not $env:APPDATA) {
-                # Unix-like system (Linux/macOS) detected by presence of HOME without APPDATA
-                Join-Path $env:HOME ".config/pmc"
-            } else {
-                # Windows detected by presence of APPDATA
-                Join-Path $env:APPDATA "pmc"
-            }
+            # Default: Use .pmc-data directory relative to module root (self-contained)
+            $moduleRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
+            Join-Path $moduleRoot ".pmc-data"
         }
 
         # Ensure directory exists

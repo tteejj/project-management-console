@@ -31,8 +31,17 @@ class ChecklistTemplatesScreen : StandardListScreen {
         }, 30)
     }
 
-    # Constructor
+    # Legacy constructor (backward compatible)
     ChecklistTemplatesScreen() : base("ChecklistTemplates", "Checklist Templates") {
+        $this._InitializeScreen()
+    }
+
+    # Container constructor
+    ChecklistTemplatesScreen([object]$container) : base("ChecklistTemplates", "Checklist Templates", $container) {
+        $this._InitializeScreen()
+    }
+
+    hidden [void] _InitializeScreen() {
         # Initialize service
         $this._checklistService = [ChecklistService]::GetInstance()
 
@@ -96,31 +105,37 @@ class ChecklistTemplatesScreen : StandardListScreen {
                 @{ Name='name'; Type='text'; Label='Template Name'; Required=$true; Value='' }
                 @{ Name='category'; Type='text'; Label='Category'; Value='General' }
                 @{ Name='description'; Type='text'; Label='Description'; Value='' }
-                @{ Name='items'; Type='text'; Label='Items (one per line, comma-separated)'; Value=''; MaxLength=1000 }
+                @{ Name='items'; Type='textarea'; Label='Items (pipe-separated)'; Value=''; MaxLength=5000 }
             )
         } else {
             # Existing template - populate from item
             $itemsText = ''
             if ($item.ContainsKey('items') -and $item.items) {
                 $itemTexts = @($item.items | ForEach-Object { $_.text })
-                $itemsText = $itemTexts -join ', '
+                $itemsText = $itemTexts -join " | "
             }
 
             return @(
                 @{ Name='name'; Type='text'; Label='Template Name'; Required=$true; Value=$item.name }
                 @{ Name='category'; Type='text'; Label='Category'; Value=$item.category }
                 @{ Name='description'; Type='text'; Label='Description'; Value=$item.description }
-                @{ Name='items'; Type='text'; Label='Items (one per line, comma-separated)'; Value=$itemsText; MaxLength=1000 }
+                @{ Name='items'; Type='textarea'; Label='Items (pipe-separated)'; Value=$itemsText; MaxLength=5000 }
             )
         }
     }
 
     [void] OnItemCreated([hashtable]$values) {
         try {
-            # Parse items
+            # SAVE FIX: Validate and safe access
+            if (-not $values.ContainsKey('name') -or [string]::IsNullOrWhiteSpace($values.name)) {
+                $this.SetStatusMessage("Template name is required", "error")
+                return
+            }
+
+            # Parse items (newline-separated)
             $itemTexts = @()
             if ($values.ContainsKey('items') -and -not [string]::IsNullOrWhiteSpace($values.items)) {
-                $itemTexts = @($values.items -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+                $itemTexts = @($values.items -split "`n" | ForEach-Object { $_.Trim() } | Where-Object { $_ })
             }
 
             if ($itemTexts.Count -eq 0) {
@@ -128,14 +143,13 @@ class ChecklistTemplatesScreen : StandardListScreen {
                 return
             }
 
-            $this._checklistService.CreateTemplate(
-                $values.name,
-                $values.description,
-                $values.category,
-                $itemTexts
-            )
+            $name = $values.name
+            $description = if ($values.ContainsKey('description')) { $values.description } else { '' }
+            $category = if ($values.ContainsKey('category')) { $values.category } else { '' }
 
-            $this.SetStatusMessage("Template '$($values.name)' created", "success")
+            $this._checklistService.CreateTemplate($name, $description, $category, $itemTexts)
+
+            $this.SetStatusMessage("Template '$name' created", "success")
         } catch {
             $this.SetStatusMessage("Error creating template: $($_.Exception.Message)", "error")
         }
@@ -145,10 +159,10 @@ class ChecklistTemplatesScreen : StandardListScreen {
         try {
             $itemId = if ($item -is [hashtable]) { $item['id'] } else { $item.id }
 
-            # Parse items
+            # Parse items (newline-separated)
             $itemTexts = @()
             if ($values.ContainsKey('items') -and -not [string]::IsNullOrWhiteSpace($values.items)) {
-                $itemTexts = @($values.items -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+                $itemTexts = @($values.items -split "`n" | ForEach-Object { $_.Trim() } | Where-Object { $_ })
             }
 
             if ($itemTexts.Count -eq 0) {
@@ -166,15 +180,21 @@ class ChecklistTemplatesScreen : StandardListScreen {
                 }
             }
 
+            # ENDEMIC FIX: Safe value access
             $changes = @{
-                name = $values.name
-                category = $values.category
-                description = $values.description
+                name = if ($values.ContainsKey('name')) { $values.name } else { '' }
+                category = if ($values.ContainsKey('category')) { $values.category } else { '' }
+                description = if ($values.ContainsKey('description')) { $values.description } else { '' }
                 items = $items
             }
 
+            if ([string]::IsNullOrWhiteSpace($changes.name)) {
+                $this.SetStatusMessage("Template name is required", "error")
+                return
+            }
+
             $this._checklistService.UpdateTemplate($itemId, $changes)
-            $this.SetStatusMessage("Template '$($values.name)' updated", "success")
+            $this.SetStatusMessage("Template '$($changes.name)' updated", "success")
         } catch {
             $this.SetStatusMessage("Error updating template: $($_.Exception.Message)", "error")
         }

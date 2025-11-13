@@ -40,104 +40,24 @@ class ThemeEditorScreen : PmcScreen {
         $this.Footer.AddShortcut("T", "Test")
         $this.Footer.AddShortcut("Esc", "Back")
 
-        # Setup menu items
-        $this._SetupMenus()
+        # NOTE: _SetupMenus() removed - MenuRegistry handles menu population via static RegisterMenuItems() or manifest
+        # Old pattern was adding duplicate/misplaced menu items AND breaking constructor
     }
 
-    hidden [void] _SetupMenus() {
-        # Capture $this in a variable so scriptblocks can access it
-        $screen = $this
+    # Constructor with container (DI-enabled)
+    ThemeEditorScreen([object]$container) : base("ThemeEditor", "Theme Editor", $container) {
+        # Configure header
+        $this.Header.SetBreadcrumb(@("Home", "Options", "Themes"))
 
-        # Tasks menu - Navigate to different task views
-        $tasksMenu = $this.MenuBar.Menus[0]
-        $tasksMenu.Items.Add([PmcMenuItem]::new("Task List", 'L', {
-            . "$PSScriptRoot/TaskListScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object TaskListScreen))
-        }))
-        # Archived view screens - these were consolidated/removed
-        # $tasksMenu.Items.Add([PmcMenuItem]::new("Today", 'Y', {
-        #     . "$PSScriptRoot/TodayViewScreen.ps1"
-        #     $global:PmcApp.PushScreen((New-Object TodayViewScreen))
-        # }))
-        # $tasksMenu.Items.Add([PmcMenuItem]::new("Tomorrow", 'T', {
-        #     . "$PSScriptRoot/TomorrowViewScreen.ps1"
-        #     $global:PmcApp.PushScreen((New-Object TomorrowViewScreen))
-        # }))
-        # $tasksMenu.Items.Add([PmcMenuItem]::new("Week View", 'W', {
-        #     . "$PSScriptRoot/WeekViewScreen.ps1"
-        #     $global:PmcApp.PushScreen((New-Object WeekViewScreen))
-        # }))
-        # $tasksMenu.Items.Add([PmcMenuItem]::new("Upcoming", 'U', {
-        #     . "$PSScriptRoot/UpcomingViewScreen.ps1"
-        #     $global:PmcApp.PushScreen((New-Object UpcomingViewScreen))
-        # }))
-        # $tasksMenu.Items.Add([PmcMenuItem]::new("Overdue", 'V', {
-        #     . "$PSScriptRoot/OverdueViewScreen.ps1"
-        #     $global:PmcApp.PushScreen((New-Object OverdueViewScreen))
-        # }))
-        # $tasksMenu.Items.Add([PmcMenuItem]::new("Next Actions", 'N', {
-        #     . "$PSScriptRoot/NextActionsViewScreen.ps1"
-        #     $global:PmcApp.PushScreen((New-Object NextActionsViewScreen))
-        # }))
-        # $tasksMenu.Items.Add([PmcMenuItem]::new("No Due Date", 'D', {
-        #     . "$PSScriptRoot/NoDueDateViewScreen.ps1"
-        #     $global:PmcApp.PushScreen((New-Object NoDueDateViewScreen))
-        # }))
-        $tasksMenu.Items.Add([PmcMenuItem]::new("Blocked Tasks", 'B', {
-            . "$PSScriptRoot/BlockedTasksScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object BlockedTasksScreen))
-        }))
-        $tasksMenu.Items.Add([PmcMenuItem]::Separator())
-        $tasksMenu.Items.Add([PmcMenuItem]::new("Kanban Board", 'K', {
-            . "$PSScriptRoot/KanbanScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object KanbanScreen))
-        }))
-        # $tasksMenu.Items.Add([PmcMenuItem]::new("Month View", 'M', {
-        #     . "$PSScriptRoot/MonthViewScreen.ps1"
-        #     $global:PmcApp.PushScreen((New-Object MonthViewScreen))
-        # }))
-        # $tasksMenu.Items.Add([PmcMenuItem]::new("Agenda View", 'A', {
-        #     . "$PSScriptRoot/AgendaViewScreen.ps1"
-        #     $global:PmcApp.PushScreen((New-Object AgendaViewScreen))
-        # }))
-        $tasksMenu.Items.Add([PmcMenuItem]::new("Burndown Chart", 'C', {
-            . "$PSScriptRoot/BurndownChartScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object BurndownChartScreen))
-        }))
+        # Configure footer with shortcuts
+        $this.Footer.ClearShortcuts()
+        $this.Footer.AddShortcut("Up/Down", "Select")
+        $this.Footer.AddShortcut("Enter", "Apply")
+        $this.Footer.AddShortcut("T", "Test")
+        $this.Footer.AddShortcut("Esc", "Back")
 
-        # Projects menu
-        $projectsMenu = $this.MenuBar.Menus[1]
-        $projectsMenu.Items.Add([PmcMenuItem]::new("Project List", 'L', {
-            . "$PSScriptRoot/ProjectListScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object ProjectListScreen))
-        }))
-        $projectsMenu.Items.Add([PmcMenuItem]::new("Project Stats", 'S', {
-            . "$PSScriptRoot/ProjectStatsScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object ProjectStatsScreen))
-        }))
-        $projectsMenu.Items.Add([PmcMenuItem]::new("Project Info", 'I', {
-            . "$PSScriptRoot/ProjectInfoScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object ProjectInfoScreen))
-        }))
-
-        # Options menu
-        $optionsMenu = $this.MenuBar.Menus[2]
-        $optionsMenu.Items.Add([PmcMenuItem]::new("Theme Editor", 'T', {
-            . "$PSScriptRoot/ThemeEditorScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object ThemeEditorScreen))
-        }))
-        $optionsMenu.Items.Add([PmcMenuItem]::new("Settings", 'S', {
-            . "$PSScriptRoot/SettingsScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object SettingsScreen))
-        }))
-
-        # Help menu
-        $helpMenu = $this.MenuBar.Menus[3]
-        $helpMenu.Items.Add([PmcMenuItem]::new("Help View", 'H', {
-            . "$PSScriptRoot/HelpViewScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object HelpViewScreen))
-        }))
-        $helpMenu.Items.Add([PmcMenuItem]::new("About", 'A', { Write-Host "PMC TUI v1.0" }))
+        # NOTE: _SetupMenus() removed - MenuRegistry handles menu population via static RegisterMenuItems() or manifest
+        # Old pattern was adding duplicate/misplaced menu items AND breaking constructor
     }
 
     [void] LoadData() {
@@ -227,7 +147,9 @@ class ThemeEditorScreen : PmcScreen {
                 $this.CurrentTheme = "Default"
             }
 
-            $this.ShowSuccess("$($this.Themes.Count) themes available")
+            # Success message
+            $count = if ($this.Themes) { $this.Themes.Count } else { 0 }
+            $this.ShowSuccess("$count themes available")
 
         } catch {
             $this.ShowError("Failed to load themes: $_")
@@ -366,7 +288,12 @@ class ThemeEditorScreen : PmcScreen {
         return $sb.ToString()
     }
 
-    [bool] HandleInput([ConsoleKeyInfo]$keyInfo) {
+    [bool] HandleKeyPress([ConsoleKeyInfo]$keyInfo) {
+        # CRITICAL: Call parent FIRST for MenuBar, F10, Alt+keys
+        $handled = ([PmcScreen]$this).HandleKeyPress($keyInfo)
+        if ($handled) { return $true }
+
+        # Custom key handling
         $keyChar = [char]::ToLower($keyInfo.KeyChar)
         switch ($keyInfo.Key) {
             'UpArrow' {

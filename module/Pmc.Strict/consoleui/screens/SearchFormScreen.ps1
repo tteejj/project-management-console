@@ -30,8 +30,22 @@ class SearchFormScreen : PmcScreen {
     [array]$MatchingTasks = @()
     [int]$SelectedIndex = 0
 
-    # Constructor
+    # Backward compatible constructor
     SearchFormScreen() : base("SearchForm", "Search Tasks") {
+        # Configure header
+        $this.Header.SetBreadcrumb(@("Home", "Search"))
+
+        # Configure footer with shortcuts
+        $this.Footer.ClearShortcuts()
+        $this.Footer.AddShortcut("Type", "Search")
+        $this.Footer.AddShortcut("Up/Down", "Navigate")
+        $this.Footer.AddShortcut("Enter", "View Task")
+        $this.Footer.AddShortcut("Esc", "Cancel")
+        $this.Footer.AddShortcut("Ctrl+Q", "Quit")
+    }
+
+    # Container constructor
+    SearchFormScreen([object]$container) : base("SearchForm", "Search Tasks", $container) {
         # Configure header
         $this.Header.SetBreadcrumb(@("Home", "Search"))
 
@@ -51,7 +65,7 @@ class SearchFormScreen : PmcScreen {
 
     hidden [void] _UpdateSearch() {
         try {
-            $data = Get-PmcAllData
+            $data = Get-PmcData
 
             if ([string]::IsNullOrWhiteSpace($this.SearchQuery)) {
                 $this.MatchingTasks = @()
@@ -229,6 +243,10 @@ class SearchFormScreen : PmcScreen {
     }
 
     [bool] HandleKeyPress([ConsoleKeyInfo]$keyInfo) {
+        # CRITICAL: Call parent FIRST for MenuBar, F10, Alt+keys, content widgets
+        $handled = ([PmcScreen]$this).HandleKeyPress($keyInfo)
+        if ($handled) { return $true }
+
         switch ($keyInfo.Key) {
             'UpArrow' {
                 if ($this.MatchingTasks.Count -gt 0 -and $this.SelectedIndex -gt 0) {

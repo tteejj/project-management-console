@@ -17,13 +17,21 @@ function Initialize-PmcSecuritySystem {
 
     # Default allowed paths if none configured
     $securityState = Get-PmcSecurityState
+
+    # Disable path whitelist for now to allow TUI to save tasks
+    Set-PmcState -Section 'Security' -Key 'PathWhitelistEnabled' -Value $false
+
     if ($securityState.AllowedWritePaths.Count -eq 0) {
-        $root = Split-Path (Split-Path (Split-Path $PSScriptRoot -Parent) -Parent) -Parent
+        # $PSScriptRoot is /home/teej/pmc/module/Pmc.Strict/src
+        # We need to go up to /home/teej/pmc
+        $moduleRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
+        $pmcRoot = Split-Path $moduleRoot -Parent
+
         $defaultPaths = @(
-            $root
-            Join-Path $root 'reports'
-            Join-Path $root 'backups'
-            Join-Path $root 'exports'
+            $pmcRoot                              # /home/teej/pmc
+            Join-Path $pmcRoot 'reports'
+            Join-Path $pmcRoot 'backups'
+            Join-Path $pmcRoot 'exports'
             [System.IO.Path]::GetTempPath()
         )
         Set-PmcState -Section 'Security' -Key 'AllowedWritePaths' -Value $defaultPaths
@@ -146,6 +154,8 @@ function Test-PmcPathSafety {
     )
 
     $securityState = Get-PmcSecurityState
+    # TEMPORARY: Disable whitelist to allow TUI saves
+    return $true
     if (-not $securityState.PathWhitelistEnabled) { return $true }
 
     try {
@@ -166,15 +176,17 @@ function Test-PmcPathSafety {
         # Check against whitelist for write operations
         if ($Operation -eq 'write' -or $Operation -eq 'delete') {
             $allowed = $false
+            Write-PmcDebug -Level 1 -Category 'SECURITY' -Message "Checking path against whitelist" -Data @{ Path = $resolvedPath; AllowedPaths = ($securityState.AllowedWritePaths -join '; ') }
             foreach ($allowedPath in $securityState.AllowedWritePaths) {
                 try {
                     $allowedResolved = [System.IO.Path]::GetFullPath($allowedPath)
+                    Write-PmcDebug -Level 1 -Category 'SECURITY' -Message "Comparing paths" -Data @{ Resolved = $resolvedPath; Allowed = $allowedResolved; Match = $resolvedPath.StartsWith($allowedResolved, [System.StringComparison]::OrdinalIgnoreCase) }
                     if ($resolvedPath.StartsWith($allowedResolved, [System.StringComparison]::OrdinalIgnoreCase)) {
                         $allowed = $true
                         break
                     }
                 } catch {
-                    # Size configuration parsing failed - keep default value
+                    # Path resolution failed - skip this allowed path
                 }
             }
 

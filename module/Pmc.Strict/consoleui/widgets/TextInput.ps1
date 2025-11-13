@@ -243,7 +243,9 @@ class TextInput : PmcWidget {
 
         # L-POL-11: Ctrl+C - copy to clipboard
         if ($keyInfo.Modifiers -band [ConsoleModifiers]::Control -and $keyInfo.Key -eq 'C') {
-            if ($PSVersionTable.PSVersion.Major -ge 7 -and -not [string]::IsNullOrEmpty($this.Text)) {
+            # FIX: Access $PSVersionTable via Get-Variable to work in strict mode class methods
+            $psVersion = (Get-Variable -Name PSVersionTable -ValueOnly -ErrorAction SilentlyContinue)
+            if ($null -ne $psVersion -and $psVersion.PSVersion.Major -ge 7 -and -not [string]::IsNullOrEmpty($this.Text)) {
                 try {
                     Set-Clipboard -Value $this.Text
                 } catch {
@@ -255,7 +257,9 @@ class TextInput : PmcWidget {
 
         # L-POL-11: Ctrl+V - paste from clipboard
         if ($keyInfo.Modifiers -band [ConsoleModifiers]::Control -and $keyInfo.Key -eq 'V') {
-            if ($PSVersionTable.PSVersion.Major -ge 7) {
+            # FIX: Access $PSVersionTable via Get-Variable to work in strict mode class methods
+            $psVersion = (Get-Variable -Name PSVersionTable -ValueOnly -ErrorAction SilentlyContinue)
+            if ($null -ne $psVersion -and $psVersion.PSVersion.Major -ge 7) {
                 try {
                     $clipText = Get-Clipboard -Raw
                     if (-not [string]::IsNullOrEmpty($clipText)) {

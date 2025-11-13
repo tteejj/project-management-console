@@ -710,6 +710,8 @@ Export-ModuleMember -Function `
     Get-PmcHelp, `
     Get-PmcHelpData, `
     Set-PmcConfigProvider, `
+    Get-PmcConfig, `
+    Save-PmcConfig, `
     Ensure-PmcUniversalDisplay, `
     Write-PmcDebug, `
     Get-PmcDebugStatus, `

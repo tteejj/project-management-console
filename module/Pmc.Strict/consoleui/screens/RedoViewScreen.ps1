@@ -24,8 +24,17 @@ class RedoViewScreen : PmcScreen {
     # Data
     [object]$UndoStatus = $null
 
-    # Constructor
+    # Legacy constructor (backward compatible)
     RedoViewScreen() : base("RedoView", "Redo Last Action") {
+        $this._InitializeScreen()
+    }
+
+    # Container constructor
+    RedoViewScreen([object]$container) : base("RedoView", "Redo Last Action", $container) {
+        $this._InitializeScreen()
+    }
+
+    hidden [void] _InitializeScreen() {
         # Configure header
         $this.Header.SetBreadcrumb(@("Home", "Redo"))
 

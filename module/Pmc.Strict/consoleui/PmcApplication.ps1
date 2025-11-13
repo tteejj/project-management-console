@@ -22,7 +22,8 @@ PmcApplication manages:
 - Theme management
 
 .EXAMPLE
-$app = [PmcApplication]::new()
+$container = [ServiceContainer]::new()
+$app = [PmcApplication]::new($container)
 $app.PushScreen($taskScreen)
 $app.Run()
 #>
@@ -31,6 +32,7 @@ class PmcApplication {
     [object]$RenderEngine
     [object]$LayoutManager
     [object]$ThemeManager
+    [object]$Container        # ServiceContainer for dependency injection
 
     # === Screen Management ===
     [object]$ScreenStack      # Stack of PmcScreen objects
@@ -49,7 +51,9 @@ class PmcApplication {
     [scriptblock]$OnError = $null
 
     # === Constructor ===
-    PmcApplication() {
+    PmcApplication([object]$container) {
+        # Store container for passing to screens
+        $this.Container = $container
         # Initialize render engine (OptimizedRenderEngine with cell buffering)
         try {
             $this.RenderEngine = New-Object OptimizedRenderEngine
@@ -66,7 +70,7 @@ class PmcApplication {
         $this.LayoutManager = New-Object PmcLayoutManager
 
         # Initialize theme manager
-        $this.ThemeManager = New-Object PmcThemeManager
+        $this.ThemeManager = $container.Resolve('ThemeManager')
 
         # Initialize screen stack
         $this.ScreenStack = New-Object "System.Collections.Generic.Stack[object]"
@@ -99,9 +103,9 @@ class PmcApplication {
         $this.ScreenStack.Push($screen)
         $this.CurrentScreen = $screen
 
-        # Initialize screen with render engine
+        # Initialize screen with render engine and container
         if ($screen.PSObject.Methods['Initialize']) {
-            $screen.Initialize($this.RenderEngine)
+            $screen.Initialize($this.RenderEngine, $this.Container)
         }
 
         # Apply layout if screen has widgets

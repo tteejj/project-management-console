@@ -177,62 +177,123 @@ class MenuRegistry {
         }
     }
 
-    # === Auto-Discovery ===
+    # === Manifest-Based Discovery ===
 
     <#
     .SYNOPSIS
-    Discover and register menu items from all screen classes
+    Load menu items from manifest file
 
-    .PARAMETER screenPaths
-    Array of screen file paths to load and register
+    .PARAMETER manifestPath
+    Path to MenuItems.psd1 manifest file
+
+    .PARAMETER container
+    ServiceContainer instance for resolving screen dependencies
 
     .DESCRIPTION
-    Loads screen files and calls static RegisterMenuItems method if it exists
+    Loads menu item definitions from manifest and registers them.
+    Uses the DI container to resolve screens when menu items are clicked.
+    This avoids parsing all screen files at startup, fixing type resolution issues.
+    #>
+    [void] LoadFromManifest([string]$manifestPath, [object]$container) {
+        if (-not (Test-Path $manifestPath)) {
+            if ($global:PmcTuiLogFile) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [ERROR] MenuRegistry: Manifest not found at '$manifestPath'"
+            }
+            Write-Host "ERROR: Menu manifest not found at '$manifestPath'" -ForegroundColor Red
+            return
+        }
+
+        try {
+            # Load manifest
+            $manifest = Import-PowerShellDataFile -Path $manifestPath
+
+            if ($global:PmcTuiLogFile) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] MenuRegistry: Loaded manifest with $($manifest.Count) entries"
+            }
+
+            $screensDir = Split-Path $manifestPath -Parent
+
+            # Register each menu item
+            foreach ($entry in $manifest.GetEnumerator()) {
+                $screenName = $entry.Key
+                $config = $entry.Value
+
+                $menu = $config.Menu
+                $label = $config.Label
+                $hotkey = $config.Hotkey
+                $order = $config.Order
+                $screenFile = $config.ScreenFile
+                $viewMode = if ($config.ContainsKey('ViewMode')) { $config.ViewMode } else { $null }  # Optional, for TaskListScreen variants
+
+                # Register screen factory in container if not already registered
+                $screenTypeName = $screenFile -replace '\.ps1$', ''
+                $screenPath = Join-Path $screensDir $screenFile
+
+                if (-not $container.IsRegistered($screenName)) {
+                    # Capture variables in closure for the factory
+                    $factoryScreenPath = $screenPath
+                    $factoryScreenTypeName = $screenTypeName
+                    $factoryViewMode = $viewMode
+
+                    # Register screen factory in container (non-singleton, creates new instance each time)
+                    $container.Register($screenName, {
+                        param($c)
+                        # Dot-source screen file to load class
+                        . $factoryScreenPath
+                        # Create screen instance with container
+                        if ($factoryViewMode) {
+                            return New-Object $factoryScreenTypeName $c, $factoryViewMode
+                        } else {
+                            return New-Object $factoryScreenTypeName $c
+                        }
+                    }.GetNewClosure(), $false)  # Non-singleton: create new instance each time
+
+                    if ($global:PmcTuiLogFile) {
+                        Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] MenuRegistry: Registered screen factory '$screenName' in container (viewMode=$viewMode)"
+                    }
+                }
+
+                # Build scriptblock that uses container to resolve screen
+                $scriptblock = [scriptblock]::Create(@"
+`$screen = `$global:PmcContainer.Resolve('$screenName')
+`$global:PmcApp.PushScreen(`$screen)
+"@)
+
+                # Register the menu item
+                $this.AddMenuItem($menu, $label, $hotkey, $scriptblock, $order)
+
+                if ($global:PmcTuiLogFile) {
+                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] MenuRegistry: Registered '$label' in '$menu' menu (hotkey=$hotkey order=$order)"
+                }
+            }
+
+        } catch {
+            $errorMsg = "MenuRegistry: Error loading manifest: $($_.Exception.Message)"
+            if ($global:PmcTuiLogFile) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [ERROR] $errorMsg"
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] Stack trace: $($_.ScriptStackTrace)"
+            }
+            Write-Host "ERROR: $errorMsg" -ForegroundColor Red
+        }
+    }
+
+    <#
+    .SYNOPSIS
+    DEPRECATED: Old discovery method - kept for reference but not used
+
+    .DESCRIPTION
+    This method is deprecated in favor of LoadFromManifest().
+    It caused type resolution issues due to parse-time type checking in PowerShell.
     #>
     [void] DiscoverScreens([string[]]$screenPaths) {
-        foreach ($screenPath in $screenPaths) {
-            if (-not (Test-Path $screenPath)) { continue }
+        # DEPRECATED: Use LoadFromManifest() instead
+        # This method caused issues:
+        # - Slow startup (loads all 40+ screen files)
+        # - Type resolution errors (bracket notation requires types at parse time)
+        # - Circular dependencies between screens
 
-            try {
-                # Dot-source the screen file
-                . $screenPath
-
-                # Get screen class name from file name
-                $fileName = [System.IO.Path]::GetFileNameWithoutExtension($screenPath)
-
-                if ($global:PmcTuiLogFile) {
-                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] MenuRegistry.DiscoverScreens: Checking '$fileName'"
-                }
-
-                # Try to call static RegisterMenuItems method if it exists
-                $type = $fileName -as [Type]
-                if ($null -ne $type) {
-                    if ($global:PmcTuiLogFile) {
-                        Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] MenuRegistry: Found type '$fileName'"
-                    }
-                    $method = $type.GetMethod('RegisterMenuItems', [System.Reflection.BindingFlags]::Static -bor [System.Reflection.BindingFlags]::Public)
-                    if ($null -ne $method) {
-                        if ($global:PmcTuiLogFile) {
-                            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] MenuRegistry: Calling RegisterMenuItems for '$fileName'"
-                        }
-                        $method.Invoke($null, @($this))
-                    } else {
-                        if ($global:PmcTuiLogFile) {
-                            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] MenuRegistry: No RegisterMenuItems method on '$fileName'"
-                        }
-                    }
-                } else {
-                    if ($global:PmcTuiLogFile) {
-                        Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] MenuRegistry: Type '$fileName' not found (not loaded yet?)"
-                    }
-                }
-            } catch {
-                if ($global:PmcTuiLogFile) {
-                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] MenuRegistry: Error discovering '$fileName': $_"
-                }
-                # Silently skip screens that don't have RegisterMenuItems or fail to load
-                # This allows gradual adoption without breaking existing screens
-            }
+        if ($global:PmcTuiLogFile) {
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [WARN] MenuRegistry.DiscoverScreens() is deprecated - use LoadFromManifest() instead"
         }
     }
 }

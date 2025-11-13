@@ -50,6 +50,30 @@ class ExcelMappingEditorScreen : StandardListScreen {
         }.GetNewClosure()
     }
 
+    ExcelMappingEditorScreen([string]$profileId, [string]$profileName, [object]$container) : base("ExcelMappings", "Field Mappings", $container) {
+        $this._profileId = $profileId
+        $this._profileName = $profileName
+        $this._mappingService = [ExcelMappingService]::GetInstance()
+
+        # Configure capabilities
+        $this.AllowAdd = $true
+        $this.AllowEdit = $true
+        $this.AllowDelete = $true
+        $this.AllowFilter = $false
+
+        # Configure header
+        $this.Header.SetBreadcrumb(@("Home", "Projects", "Excel Profiles", $profileName, "Mappings"))
+        $this.ScreenTitle = "Mappings - $profileName"
+
+        # Setup event handlers
+        $self = $this
+        $this._mappingService.OnProfilesChanged = {
+            if ($null -ne $self -and $self.IsActive) {
+                $self.LoadData()
+            }
+        }.GetNewClosure()
+    }
+
     [void] OnExit() {
         ([StandardListScreen]$this).OnExit()
         $this._mappingService.OnProfilesChanged = $null
@@ -110,9 +134,28 @@ class ExcelMappingEditorScreen : StandardListScreen {
             $includeInExport = if ($item -is [hashtable]) { $item['include_in_export'] } else { $item.include_in_export }
             $sortOrder = if ($item -is [hashtable]) { $item['sort_order'] } else { $item.sort_order }
 
-            # Convert boolean values to string - handle string "false" correctly
-            $requiredBool = if ($required -is [bool]) { $required } elseif ($required -eq 'true') { $true } else { $false }
-            $includeInExportBool = if ($includeInExport -is [bool]) { $includeInExport } elseif ($includeInExport -eq 'true') { $true } else { $false }
+            # HIGH FIX #10: Robust boolean parsing with error handling
+            $requiredBool = try {
+                if ($required -is [bool]) {
+                    $required
+                } else {
+                    [bool]::Parse($required)
+                }
+            } catch {
+                Write-PmcTuiLog "Invalid boolean value for required: '$required', defaulting to false" "WARNING"
+                $false
+            }
+
+            $includeInExportBool = try {
+                if ($includeInExport -is [bool]) {
+                    $includeInExport
+                } else {
+                    [bool]::Parse($includeInExport)
+                }
+            } catch {
+                Write-PmcTuiLog "Invalid boolean value for includeInExport: '$includeInExport', defaulting to true" "WARNING"
+                $true
+            }
 
             return @(
                 @{ Name='display_name'; Type='text'; Label='Display Name'; Required=$true; Value=$displayName }
@@ -141,9 +184,9 @@ class ExcelMappingEditorScreen : StandardListScreen {
                 return
             }
 
-            # Parse boolean values
-            $required = $values.required -eq 'true'
-            $includeInExport = $values.include_in_export -eq 'true'
+            # HIGH FIX #10: Parse boolean values robustly
+            $required = try { [bool]::Parse($values.required) } catch { $false }
+            $includeInExport = try { [bool]::Parse($values.include_in_export) } catch { $true }
 
             # Validate and parse sort order
             $sortOrder = 1
@@ -187,9 +230,9 @@ class ExcelMappingEditorScreen : StandardListScreen {
                 return
             }
 
-            # Parse boolean values
-            $required = $values.required -eq 'true'
-            $includeInExport = $values.include_in_export -eq 'true'
+            # HIGH FIX #10: Parse boolean values robustly
+            $required = try { [bool]::Parse($values.required) } catch { $false }
+            $includeInExport = try { [bool]::Parse($values.include_in_export) } catch { $true }
 
             # Validate and parse sort order
             $sortOrder = 1

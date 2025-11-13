@@ -71,7 +71,20 @@ class ExcelComReader {
             $this._excelApp.DisplayAlerts = $false
             $this._isAttached = $false
 
-            $this._workbook = $this._excelApp.Workbooks.Open($filePath)
+            # MEDIUM FIX #16: Add file lock detection and user-friendly error handling
+            try {
+                $this._workbook = $this._excelApp.Workbooks.Open($filePath)
+            } catch {
+                # Common COM errors for file locks or permissions
+                $errorMsg = $_.Exception.Message
+                $lockError = $errorMsg -match 'locked|in use|permission denied|cannot access|0x800A03EC'
+                if ($lockError) {
+                    $this.Close()
+                    throw "Cannot open file - it may be open in another program, locked by the file system, or you may not have permission to access it. Please close the file in other programs and try again."
+                }
+                throw
+            }
+
             if ($this._workbook.Worksheets.Count -gt 0) {
                 $this._worksheet = $this._workbook.Worksheets.Item(1)
                 $this.ActiveSheet = 1

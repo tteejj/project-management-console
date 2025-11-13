@@ -94,21 +94,29 @@ function Initialize-PmcDataSchema {
         foreach ($task in $data.tasks) {
             if ($null -eq $task) { continue }
             try {
-                # Ensure critical properties exist with defaults
-                if (-not (Pmc-HasProp $task 'depends')) { Add-Member -InputObject $task -MemberType NoteProperty -Name 'depends' -NotePropertyValue @() -Force }
-                if (-not (Pmc-HasProp $task 'tags')) { Add-Member -InputObject $task -MemberType NoteProperty -Name 'tags' -NotePropertyValue @() -Force }
-                if (-not (Pmc-HasProp $task 'notes')) { Add-Member -InputObject $task -MemberType NoteProperty -Name 'notes' -NotePropertyValue @() -Force }
-                if (-not (Pmc-HasProp $task 'recur')) { Add-Member -InputObject $task -MemberType NoteProperty -Name 'recur' -NotePropertyValue $null -Force }
-                if (-not (Pmc-HasProp $task 'estimatedMinutes')) { Add-Member -InputObject $task -MemberType NoteProperty -Name 'estimatedMinutes' -NotePropertyValue $null -Force }
-                if (-not (Pmc-HasProp $task 'status')) { Add-Member -InputObject $task -MemberType NoteProperty -Name 'status' -NotePropertyValue 'pending' -Force }
-                if (-not (Pmc-HasProp $task 'priority')) { Add-Member -InputObject $task -MemberType NoteProperty -Name 'priority' -NotePropertyValue 0 -Force }
-                if (-not (Pmc-HasProp $task 'project')) { Add-Member -InputObject $task -MemberType NoteProperty -Name 'project' -NotePropertyValue 'inbox' -Force }
-                if (-not (Pmc-HasProp $task 'due')) { Add-Member -InputObject $task -MemberType NoteProperty -Name 'due' -NotePropertyValue $null -Force }
-                if (-not (Pmc-HasProp $task 'nextSuggestedCount')) { Add-Member -InputObject $task -MemberType NoteProperty -Name 'nextSuggestedCount' -NotePropertyValue 3 -Force }
-                if (-not (Pmc-HasProp $task 'lastNextShown')) { Add-Member -InputObject $task -MemberType NoteProperty -Name 'lastNextShown' -NotePropertyValue (Get-Date).ToString('yyyy-MM-dd') -Force }
-                if (-not (Pmc-HasProp $task 'created')) { Add-Member -InputObject $task -MemberType NoteProperty -Name 'created' -NotePropertyValue (Get-Date).ToString('yyyy-MM-dd HH:mm:ss') -Force }
+                # Check if Pmc-HasProp function exists before using it
+                $hasPmcHasProp = Get-Command -Name 'Pmc-HasProp' -ErrorAction SilentlyContinue
+                if (-not $hasPmcHasProp) {
+                    Write-PmcDebug -Level 2 -Category 'STORAGE' -Message "Pmc-HasProp function not available, skipping task property normalization"
+                    continue
+                }
+
+                # Ensure critical properties exist with defaults - wrap each in try-catch
+                try { if (-not (Pmc-HasProp $task 'depends')) { Add-Member -InputObject $task -MemberType NoteProperty -Name 'depends' -NotePropertyValue @() -Force } } catch { Write-PmcDebug -Level 3 -Category 'STORAGE' -Message "Failed to normalize task.depends: $_" }
+                try { if (-not (Pmc-HasProp $task 'tags')) { Add-Member -InputObject $task -MemberType NoteProperty -Name 'tags' -NotePropertyValue @() -Force } } catch { Write-PmcDebug -Level 3 -Category 'STORAGE' -Message "Failed to normalize task.tags: $_" }
+                try { if (-not (Pmc-HasProp $task 'notes')) { Add-Member -InputObject $task -MemberType NoteProperty -Name 'notes' -NotePropertyValue @() -Force } } catch { Write-PmcDebug -Level 3 -Category 'STORAGE' -Message "Failed to normalize task.notes: $_" }
+                try { if (-not (Pmc-HasProp $task 'recur')) { Add-Member -InputObject $task -MemberType NoteProperty -Name 'recur' -NotePropertyValue $null -Force } } catch { Write-PmcDebug -Level 3 -Category 'STORAGE' -Message "Failed to normalize task.recur: $_" }
+                try { if (-not (Pmc-HasProp $task 'estimatedMinutes')) { Add-Member -InputObject $task -MemberType NoteProperty -Name 'estimatedMinutes' -NotePropertyValue $null -Force } } catch { Write-PmcDebug -Level 3 -Category 'STORAGE' -Message "Failed to normalize task.estimatedMinutes: $_" }
+                try { if (-not (Pmc-HasProp $task 'status')) { Add-Member -InputObject $task -MemberType NoteProperty -Name 'status' -NotePropertyValue 'pending' -Force } } catch { Write-PmcDebug -Level 3 -Category 'STORAGE' -Message "Failed to normalize task.status: $_" }
+                try { if (-not (Pmc-HasProp $task 'priority')) { Add-Member -InputObject $task -MemberType NoteProperty -Name 'priority' -NotePropertyValue 0 -Force } } catch { Write-PmcDebug -Level 3 -Category 'STORAGE' -Message "Failed to normalize task.priority: $_" }
+                try { if (-not (Pmc-HasProp $task 'project')) { Add-Member -InputObject $task -MemberType NoteProperty -Name 'project' -NotePropertyValue 'inbox' -Force } } catch { Write-PmcDebug -Level 3 -Category 'STORAGE' -Message "Failed to normalize task.project: $_" }
+                try { if (-not (Pmc-HasProp $task 'due')) { Add-Member -InputObject $task -MemberType NoteProperty -Name 'due' -NotePropertyValue $null -Force } } catch { Write-PmcDebug -Level 3 -Category 'STORAGE' -Message "Failed to normalize task.due: $_" }
+                try { if (-not (Pmc-HasProp $task 'nextSuggestedCount')) { Add-Member -InputObject $task -MemberType NoteProperty -Name 'nextSuggestedCount' -NotePropertyValue 3 -Force } } catch { Write-PmcDebug -Level 3 -Category 'STORAGE' -Message "Failed to normalize task.nextSuggestedCount: $_" }
+                try { if (-not (Pmc-HasProp $task 'lastNextShown')) { Add-Member -InputObject $task -MemberType NoteProperty -Name 'lastNextShown' -NotePropertyValue (Get-Date).ToString('yyyy-MM-dd') -Force } } catch { Write-PmcDebug -Level 3 -Category 'STORAGE' -Message "Failed to normalize task.lastNextShown: $_" }
+                try { if (-not (Pmc-HasProp $task 'created')) { Add-Member -InputObject $task -MemberType NoteProperty -Name 'created' -NotePropertyValue (Get-Date).ToString('yyyy-MM-dd HH:mm:ss') -Force } } catch { Write-PmcDebug -Level 3 -Category 'STORAGE' -Message "Failed to normalize task.created: $_" }
             } catch {
-                # Individual task property normalization failed - continue
+                # Individual task property normalization failed - log and continue
+                Write-PmcDebug -Level 2 -Category 'STORAGE' -Message "Failed to normalize task properties: $_"
             }
         }
     }
@@ -127,26 +135,35 @@ function Initialize-PmcDataSchema {
         foreach ($project in $data.projects) {
             if ($null -eq $project) { continue }
             try {
-                if (-not (Pmc-HasProp $project 'name')) { Add-Member -InputObject $project -MemberType NoteProperty -Name 'name' -NotePropertyValue '' -Force }
-                if (-not (Pmc-HasProp $project 'description')) { Add-Member -InputObject $project -MemberType NoteProperty -Name 'description' -NotePropertyValue '' -Force }
-                if (-not (Pmc-HasProp $project 'aliases')) { Add-Member -InputObject $project -MemberType NoteProperty -Name 'aliases' -NotePropertyValue @() -Force }
-                if (-not (Pmc-HasProp $project 'created')) { Add-Member -InputObject $project -MemberType NoteProperty -Name 'created' -NotePropertyValue (Get-Date).ToString('yyyy-MM-dd HH:mm:ss') -Force }
-                if (-not (Pmc-HasProp $project 'isArchived')) { Add-Member -InputObject $project -MemberType NoteProperty -Name 'isArchived' -NotePropertyValue $false -Force }
-                if (-not (Pmc-HasProp $project 'color')) { Add-Member -InputObject $project -MemberType NoteProperty -Name 'color' -NotePropertyValue 'Gray' -Force }
-                if (-not (Pmc-HasProp $project 'icon')) { Add-Member -InputObject $project -MemberType NoteProperty -Name 'icon' -NotePropertyValue '📁' -Force }
-                if (-not (Pmc-HasProp $project 'sortOrder')) { Add-Member -InputObject $project -MemberType NoteProperty -Name 'sortOrder' -NotePropertyValue 0 -Force }
+                # Check if Pmc-HasProp function exists before using it
+                $hasPmcHasProp = Get-Command -Name 'Pmc-HasProp' -ErrorAction SilentlyContinue
+                if (-not $hasPmcHasProp) {
+                    Write-PmcDebug -Level 2 -Category 'STORAGE' -Message "Pmc-HasProp function not available, skipping project property normalization"
+                    continue
+                }
+
+                # Ensure critical properties exist with defaults - wrap each in try-catch
+                try { if (-not (Pmc-HasProp $project 'name')) { Add-Member -InputObject $project -MemberType NoteProperty -Name 'name' -NotePropertyValue '' -Force } } catch { Write-PmcDebug -Level 3 -Category 'STORAGE' -Message "Failed to normalize project.name: $_" }
+                try { if (-not (Pmc-HasProp $project 'description')) { Add-Member -InputObject $project -MemberType NoteProperty -Name 'description' -NotePropertyValue '' -Force } } catch { Write-PmcDebug -Level 3 -Category 'STORAGE' -Message "Failed to normalize project.description: $_" }
+                try { if (-not (Pmc-HasProp $project 'aliases')) { Add-Member -InputObject $project -MemberType NoteProperty -Name 'aliases' -NotePropertyValue @() -Force } } catch { Write-PmcDebug -Level 3 -Category 'STORAGE' -Message "Failed to normalize project.aliases: $_" }
+                try { if (-not (Pmc-HasProp $project 'created')) { Add-Member -InputObject $project -MemberType NoteProperty -Name 'created' -NotePropertyValue (Get-Date).ToString('yyyy-MM-dd HH:mm:ss') -Force } } catch { Write-PmcDebug -Level 3 -Category 'STORAGE' -Message "Failed to normalize project.created: $_" }
+                try { if (-not (Pmc-HasProp $project 'isArchived')) { Add-Member -InputObject $project -MemberType NoteProperty -Name 'isArchived' -NotePropertyValue $false -Force } } catch { Write-PmcDebug -Level 3 -Category 'STORAGE' -Message "Failed to normalize project.isArchived: $_" }
+                try { if (-not (Pmc-HasProp $project 'color')) { Add-Member -InputObject $project -MemberType NoteProperty -Name 'color' -NotePropertyValue 'Gray' -Force } } catch { Write-PmcDebug -Level 3 -Category 'STORAGE' -Message "Failed to normalize project.color: $_" }
+                try { if (-not (Pmc-HasProp $project 'icon')) { Add-Member -InputObject $project -MemberType NoteProperty -Name 'icon' -NotePropertyValue '📁' -Force } } catch { Write-PmcDebug -Level 3 -Category 'STORAGE' -Message "Failed to normalize project.icon: $_" }
+                try { if (-not (Pmc-HasProp $project 'sortOrder')) { Add-Member -InputObject $project -MemberType NoteProperty -Name 'sortOrder' -NotePropertyValue 0 -Force } } catch { Write-PmcDebug -Level 3 -Category 'STORAGE' -Message "Failed to normalize project.sortOrder: $_" }
                 # Extended fields (t2 parity)
-                if (-not (Pmc-HasProp $project 'ID1')) { Add-Member -InputObject $project -MemberType NoteProperty -Name 'ID1' -NotePropertyValue '' -Force }
-                if (-not (Pmc-HasProp $project 'ID2')) { Add-Member -InputObject $project -MemberType NoteProperty -Name 'ID2' -NotePropertyValue '' -Force }
-                if (-not (Pmc-HasProp $project 'ProjFolder')) { Add-Member -InputObject $project -MemberType NoteProperty -Name 'ProjFolder' -NotePropertyValue '' -Force }
-                if (-not (Pmc-HasProp $project 'AssignedDate')) { Add-Member -InputObject $project -MemberType NoteProperty -Name 'AssignedDate' -NotePropertyValue '' -Force }
-                if (-not (Pmc-HasProp $project 'DueDate')) { Add-Member -InputObject $project -MemberType NoteProperty -Name 'DueDate' -NotePropertyValue '' -Force }
-                if (-not (Pmc-HasProp $project 'BFDate')) { Add-Member -InputObject $project -MemberType NoteProperty -Name 'BFDate' -NotePropertyValue '' -Force }
-                if (-not (Pmc-HasProp $project 'CAAName')) { Add-Member -InputObject $project -MemberType NoteProperty -Name 'CAAName' -NotePropertyValue '' -Force }
-                if (-not (Pmc-HasProp $project 'RequestName')) { Add-Member -InputObject $project -MemberType NoteProperty -Name 'RequestName' -NotePropertyValue '' -Force }
-                if (-not (Pmc-HasProp $project 'T2020')) { Add-Member -InputObject $project -MemberType NoteProperty -Name 'T2020' -NotePropertyValue '' -Force }
+                try { if (-not (Pmc-HasProp $project 'ID1')) { Add-Member -InputObject $project -MemberType NoteProperty -Name 'ID1' -NotePropertyValue '' -Force } } catch { Write-PmcDebug -Level 3 -Category 'STORAGE' -Message "Failed to normalize project.ID1: $_" }
+                try { if (-not (Pmc-HasProp $project 'ID2')) { Add-Member -InputObject $project -MemberType NoteProperty -Name 'ID2' -NotePropertyValue '' -Force } } catch { Write-PmcDebug -Level 3 -Category 'STORAGE' -Message "Failed to normalize project.ID2: $_" }
+                try { if (-not (Pmc-HasProp $project 'ProjFolder')) { Add-Member -InputObject $project -MemberType NoteProperty -Name 'ProjFolder' -NotePropertyValue '' -Force } } catch { Write-PmcDebug -Level 3 -Category 'STORAGE' -Message "Failed to normalize project.ProjFolder: $_" }
+                try { if (-not (Pmc-HasProp $project 'AssignedDate')) { Add-Member -InputObject $project -MemberType NoteProperty -Name 'AssignedDate' -NotePropertyValue '' -Force } } catch { Write-PmcDebug -Level 3 -Category 'STORAGE' -Message "Failed to normalize project.AssignedDate: $_" }
+                try { if (-not (Pmc-HasProp $project 'DueDate')) { Add-Member -InputObject $project -MemberType NoteProperty -Name 'DueDate' -NotePropertyValue '' -Force } } catch { Write-PmcDebug -Level 3 -Category 'STORAGE' -Message "Failed to normalize project.DueDate: $_" }
+                try { if (-not (Pmc-HasProp $project 'BFDate')) { Add-Member -InputObject $project -MemberType NoteProperty -Name 'BFDate' -NotePropertyValue '' -Force } } catch { Write-PmcDebug -Level 3 -Category 'STORAGE' -Message "Failed to normalize project.BFDate: $_" }
+                try { if (-not (Pmc-HasProp $project 'CAAName')) { Add-Member -InputObject $project -MemberType NoteProperty -Name 'CAAName' -NotePropertyValue '' -Force } } catch { Write-PmcDebug -Level 3 -Category 'STORAGE' -Message "Failed to normalize project.CAAName: $_" }
+                try { if (-not (Pmc-HasProp $project 'RequestName')) { Add-Member -InputObject $project -MemberType NoteProperty -Name 'RequestName' -NotePropertyValue '' -Force } } catch { Write-PmcDebug -Level 3 -Category 'STORAGE' -Message "Failed to normalize project.RequestName: $_" }
+                try { if (-not (Pmc-HasProp $project 'T2020')) { Add-Member -InputObject $project -MemberType NoteProperty -Name 'T2020' -NotePropertyValue '' -Force } } catch { Write-PmcDebug -Level 3 -Category 'STORAGE' -Message "Failed to normalize project.T2020: $_" }
             } catch {
-                # Individual project property normalization failed - continue
+                # Individual project property normalization failed - log and continue
+                Write-PmcDebug -Level 2 -Category 'STORAGE' -Message "Failed to normalize project properties: $_"
             }
         }
     }
@@ -374,8 +391,15 @@ function Save-PmcUndoRedoStacks {
 function Add-PmcActivity {
     param([object]$data,[string]$action)
     if (-not $data.PSObject.Properties['activityLog']) { $data | Add-Member -NotePropertyName activityLog -NotePropertyValue @() -Force }
+
+    # Add new entry
     $data.activityLog += @{ timestamp=(Get-Date).ToString('yyyy-MM-dd HH:mm:ss'); action=$action; user=$env:USERNAME }
-    if (@($data.activityLog).Count -gt 1000) { $data.activityLog = $data.activityLog[-1000..-1] }
+
+    # Enforce limit IMMEDIATELY to prevent in-memory growth
+    $currentCount = @($data.activityLog).Count
+    if ($currentCount -gt 1000) {
+        $data.activityLog = $data.activityLog[-1000..-1]
+    }
 }
 
 function Save-PmcData {
@@ -418,15 +442,44 @@ function Save-PmcData {
         # Use secure file operation for the actual write
         $jsonContent = $data | ConvertTo-Json -Depth 10
 
-        # Validate content safety
+        # CRITICAL: Validate content safety BEFORE writing
         if (-not (Test-PmcInputSafety -Input $jsonContent -InputType 'json')) {
-            Write-PmcDebug -Level 1 -Category 'SECURITY' -Message "Data content failed safety validation"
+            Write-PmcDebug -Level 1 -Category 'SECURITY' -Message "Data content failed safety validation - aborting save"
+            throw "Data content failed safety validation - refusing to save potentially unsafe data"
         }
 
         Invoke-PmcSecureFileOperation -Path $tmp -Operation 'write' -Content $jsonContent
 
-        Move-Item -Force -Path $tmp -Destination $file
-        if (Test-Path $tmp) { Remove-Item $tmp -Force -ErrorAction SilentlyContinue }
+        # Atomic rename operation - if this fails, lock will prevent corruption
+        try {
+            Move-Item -Force -Path $tmp -Destination $file -ErrorAction Stop
+        } catch {
+            # If move fails, ensure temp file is cleaned up
+            if (Test-Path $tmp) {
+                Remove-Item $tmp -Force -ErrorAction SilentlyContinue
+            }
+            throw  # Rethrow to be caught by outer try-catch
+        }
+
+        # Verify that the written file is valid JSON
+        try {
+            $verifyContent = Get-Content $file -Raw -ErrorAction Stop
+            $null = $verifyContent | ConvertFrom-Json -ErrorAction Stop
+            Write-PmcDebug -Level 3 -Category 'STORAGE' -Message "File verification successful after save"
+        } catch {
+            Write-PmcDebug -Level 1 -Category 'STORAGE' -Message "WARNING: Saved file failed JSON validation: $_"
+            # Try to restore from backup
+            if (Test-Path "$file.bak1") {
+                Write-PmcDebug -Level 1 -Category 'STORAGE' -Message "Attempting to restore from backup"
+                try {
+                    Copy-Item "$file.bak1" $file -Force
+                    Write-PmcDebug -Level 2 -Category 'STORAGE' -Message "Successfully restored from backup"
+                } catch {
+                    Write-PmcDebug -Level 1 -Category 'STORAGE' -Message "Failed to restore from backup: $_"
+                }
+            }
+            throw "Saved file validation failed - data may be corrupted"
+        }
 
         Write-PmcDebugStorage -Operation 'SaveCompleted' -File $file -Data @{ Size = $jsonContent.Length }
 

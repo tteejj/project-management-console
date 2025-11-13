@@ -11,7 +11,46 @@ function Set-PmcConfigProvider {
 
 function Get-PmcConfig {
     $providers = Get-PmcConfigProviders
-    try { return & $providers.Get } catch { return @{} }
+    try {
+        $cfg = & $providers.Get
+        # If provider returns empty config, try reading from default file
+        if (-not $cfg -or ($cfg.GetType().Name -eq 'Hashtable' -and $cfg.Count -eq 0)) {
+            # Default: read from pmc/config.json near module root
+            try {
+                $root = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
+                $path = Join-Path $root 'config.json'
+                if (Test-Path $path) {
+                    $json = Get-Content -Path $path -Raw -Encoding UTF8
+                    $cfg = $json | ConvertFrom-Json
+                    # Convert PSCustomObject to hashtable recursively
+                    $cfg = ConvertPSObjectToHashtable $cfg
+                    return $cfg
+                }
+            } catch {
+                # File read failed, return empty
+            }
+        }
+        return $cfg
+    } catch {
+        return @{}
+    }
+}
+
+function ConvertPSObjectToHashtable {
+    param($obj)
+    if ($null -eq $obj) { return $null }
+    if ($obj -is [System.Collections.IDictionary]) { return $obj }
+    if ($obj -is [System.Collections.IEnumerable] -and $obj -isnot [string]) {
+        return @($obj | ForEach-Object { ConvertPSObjectToHashtable $_ })
+    }
+    if ($obj -is [PSCustomObject]) {
+        $ht = @{}
+        foreach ($prop in $obj.PSObject.Properties) {
+            $ht[$prop.Name] = ConvertPSObjectToHashtable $prop.Value
+        }
+        return $ht
+    }
+    return $obj
 }
 
 function Save-PmcConfig {
@@ -135,5 +174,5 @@ function Set-PmcIconMode {
     Write-PmcStyled -Style 'Success' -Text "✓ Icon mode set to: $mode"
 }
 
-# Export config functions
-Export-ModuleMember -Function Get-PmcConfig, Validate-PmcConfig, Show-PmcConfig, Edit-PmcConfig, Set-PmcConfigValue, Reload-PmcConfig, Set-PmcIconMode
+# Export config functions - handled by main module (Pmc.Strict.psm1)
+# Export-ModuleMember -Function Get-PmcConfig, Save-PmcConfig, Validate-PmcConfig, Show-PmcConfig, Edit-PmcConfig, Set-PmcConfigValue, Reload-PmcConfig, Set-PmcIconMode

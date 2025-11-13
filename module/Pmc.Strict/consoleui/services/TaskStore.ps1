@@ -219,10 +219,11 @@ class TaskStore {
         [Monitor]::Enter($this._dataLock)
         try {
             try {
-                # Call Get-PmcAllData to load from disk
-                Write-PmcTuiLog "TaskStore.LoadData: Calling Get-PmcAllData" "DEBUG"
-                $pmcData = Get-PmcAllData
-                Write-PmcTuiLog "TaskStore.LoadData: Get-PmcAllData returned, has tasks: $($null -ne $pmcData.tasks), count: $($pmcData.tasks.Count)" "DEBUG"
+                # FIX: Call Get-PmcData via explicit module invocation
+                Write-PmcTuiLog "TaskStore.LoadData: Calling Get-PmcData" "DEBUG"
+                $pmcModule = Get-Module -Name 'Pmc.Strict'
+                $pmcData = & $pmcModule { Get-PmcData }
+                Write-PmcTuiLog "TaskStore.LoadData: Get-PmcData returned, has tasks: $($null -ne $pmcData.tasks), count: $($pmcData.tasks.Count)" "DEBUG"
 
                 if ($null -eq $pmcData) {
                     $this.LastError = "Get-PmcAllData returned null"
@@ -358,9 +359,10 @@ class TaskStore {
                     settings = $this._data.settings
                 }
 
-                Write-PmcTuiLog "SaveData: Calling Set-PmcAllData with $($dataToSave.tasks.Count) tasks" "DEBUG"
-                # Call Set-PmcAllData to persist
-                Set-PmcAllData -Data $dataToSave
+                Write-PmcTuiLog "SaveData: Calling Save-PmcData with $($dataToSave.tasks.Count) tasks" "DEBUG"
+                # FIX: Call Save-PmcData via explicit module invocation
+                $pmcModule = Get-Module -Name 'Pmc.Strict'
+                & $pmcModule { param($data) Save-PmcData -Data $data } $dataToSave
 
                 $this._data.metadata.lastSaved = Get-Date
                 $this.LastError = ""
@@ -438,6 +440,12 @@ class TaskStore {
     [array] GetAllTasks() {
         [Monitor]::Enter($this._dataLock)
         try {
+            # HIGH FIX #9: Always return array, never null
+            if ($null -eq $this._data.tasks) {
+                Write-PmcTuiLog "GetAllTasks: No tasks collection, returning empty array" "WARNING"
+                return @()
+            }
+
             $tasks = $this._data.tasks.ToArray()
             Write-PmcTuiLog "GetAllTasks: Returning $($tasks.Count) tasks" "DEBUG"
             return $tasks
@@ -456,11 +464,28 @@ class TaskStore {
 
     .OUTPUTS
     Task hashtable or $null if not found
+
+    .NOTES
+    HIGH FIX #9: Consistent error handling pattern
+    - Collections (GetAllTasks, GetAllProjects) ALWAYS return arrays (never null)
+    - Single items (GetTask, GetProject) return object or $null
+    - Operations (Add, Update, Delete) return bool with LastError on failure
     #>
     [hashtable] GetTask([string]$id) {
         [Monitor]::Enter($this._dataLock)
         try {
+            # HIGH FIX #9: Explicit null check with consistent behavior
+            if ([string]::IsNullOrWhiteSpace($id)) {
+                Write-PmcTuiLog "GetTask: Invalid ID (null or empty)" "WARNING"
+                return $null
+            }
+
             $task = $this._data.tasks | Where-Object { $_.id -eq $id } | Select-Object -First 1
+
+            if ($null -eq $task) {
+                Write-PmcTuiLog "GetTask: Task not found with ID '$id'" "DEBUG"
+            }
+
             return $task
         }
         finally {

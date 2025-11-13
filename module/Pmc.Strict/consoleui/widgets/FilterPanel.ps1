@@ -703,7 +703,7 @@ class FilterPanel : PmcWidget {
         $op = $filter.Op
         $value = $filter.Value
 
-        $filtered = @()
+        $filtered = [System.Collections.ArrayList]::new()
 
         foreach ($item in $dataArray) {
             $match = $false
@@ -748,11 +748,12 @@ class FilterPanel : PmcWidget {
             }
 
             if ($match) {
-                $filtered += $item
+                [void]$filtered.Add($item)
             }
         }
 
-        return $filtered
+        # Force array type - prevent PowerShell from unwrapping single-item arrays to scalars
+        return @($filtered)
     }
 
     <#

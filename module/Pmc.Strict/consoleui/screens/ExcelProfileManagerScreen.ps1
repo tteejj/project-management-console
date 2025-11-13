@@ -30,8 +30,17 @@ class ExcelProfileManagerScreen : StandardListScreen {
         }, 50)
     }
 
-    # Constructor
+    # Legacy constructor (backward compatible)
     ExcelProfileManagerScreen() : base("ExcelProfiles", "Excel Import Profiles") {
+        $this._InitializeScreen()
+    }
+
+    # Container constructor
+    ExcelProfileManagerScreen([object]$container) : base("ExcelProfiles", "Excel Import Profiles", $container) {
+        $this._InitializeScreen()
+    }
+
+    hidden [void] _InitializeScreen() {
         # Initialize service
         $this._mappingService = [ExcelMappingService]::GetInstance()
 
@@ -118,13 +127,19 @@ class ExcelProfileManagerScreen : StandardListScreen {
 
     [void] OnItemCreated([hashtable]$values) {
         try {
-            $this._mappingService.CreateProfile(
-                $values.name,
-                $values.description,
-                $values.start_cell
-            )
+            # ENDEMIC FIX: Safe value access and validation
+            $name = if ($values.ContainsKey('name')) { $values.name } else { '' }
+            $description = if ($values.ContainsKey('description')) { $values.description } else { '' }
+            $startCell = if ($values.ContainsKey('start_cell')) { $values.start_cell } else { '' }
 
-            $this.SetStatusMessage("Profile '$($values.name)' created", "success")
+            if ([string]::IsNullOrWhiteSpace($name)) {
+                $this.SetStatusMessage("Profile name is required", "error")
+                return
+            }
+
+            $this._mappingService.CreateProfile($name, $description, $startCell)
+
+            $this.SetStatusMessage("Profile '$name' created", "success")
         } catch {
             $this.SetStatusMessage("Error creating profile: $($_.Exception.Message)", "error")
         }
@@ -134,14 +149,21 @@ class ExcelProfileManagerScreen : StandardListScreen {
         try {
             $itemId = if ($item -is [hashtable]) { $item['id'] } else { $item.id }
 
+            # ENDEMIC FIX: Safe value access
             $changes = @{
-                name = $values.name
-                description = $values.description
-                start_cell = $values.start_cell
+                name = if ($values.ContainsKey('name')) { $values.name } else { '' }
+                description = if ($values.ContainsKey('description')) { $values.description } else { '' }
+                start_cell = if ($values.ContainsKey('start_cell')) { $values.start_cell } else { '' }
+            }
+
+            # Validate required fields
+            if ([string]::IsNullOrWhiteSpace($changes.name)) {
+                $this.SetStatusMessage("Profile name is required", "error")
+                return
             }
 
             $this._mappingService.UpdateProfile($itemId, $changes)
-            $this.SetStatusMessage("Profile '$($values.name)' updated", "success")
+            $this.SetStatusMessage("Profile '$($changes.name)' updated", "success")
         } catch {
             $this.SetStatusMessage("Error updating profile: $($_.Exception.Message)", "error")
         }

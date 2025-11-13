@@ -32,6 +32,7 @@ class WeeklyTimeReportScreen : PmcScreen {
     [DateTime]$WeekEnd
     [string]$WeekHeader = ""
     [string]$WeekIndicator = ""
+    [TaskStore]$Store = $null
 
     # Static: Register menu items
     static [void] RegisterMenuItems([object]$registry) {
@@ -43,6 +44,9 @@ class WeeklyTimeReportScreen : PmcScreen {
 
     # Constructor
     WeeklyTimeReportScreen() : base("WeeklyTimeReport", "Weekly Time Report") {
+        # Initialize TaskStore
+        $this.Store = [TaskStore]::GetInstance()
+
         # Configure header
         $this.Header.SetBreadcrumb(@("Home", "Time Entries", "Weekly Report"))
 
@@ -54,59 +58,34 @@ class WeeklyTimeReportScreen : PmcScreen {
         $this.Footer.AddShortcut("Esc", "Back")
         $this.Footer.AddShortcut("Ctrl+Q", "Quit")
 
-        # Setup menu items
-        $this._SetupMenus()
+        # NOTE: _SetupMenus() removed - MenuRegistry handles menu population via static RegisterMenuItems()
+        # Old pattern was adding duplicate/misplaced menu items
     }
 
-    # Initialize - Load data when screen is first shown
-    [void] Initialize([object]$renderEngine) {
-        # Call base class initialization
-        ([PmcScreen]$this).Initialize($renderEngine)
+    # Constructor with container (DI-enabled)
+    WeeklyTimeReportScreen([object]$container) : base("WeeklyTimeReport", "Weekly Time Report", $container) {
+        # Initialize TaskStore
+        $this.Store = [TaskStore]::GetInstance()
 
-        # Load initial data
-        $this.LoadData()
+        # Configure header
+        $this.Header.SetBreadcrumb(@("Home", "Time Entries", "Weekly Report"))
+
+        # Configure footer with shortcuts
+        $this.Footer.ClearShortcuts()
+        $this.Footer.AddShortcut("=", "Next Week")
+        $this.Footer.AddShortcut("-", "Prev Week")
+        $this.Footer.AddShortcut("R", "Refresh")
+        $this.Footer.AddShortcut("Esc", "Back")
+        $this.Footer.AddShortcut("Ctrl+Q", "Quit")
+
+        # NOTE: _SetupMenus() removed - MenuRegistry handles menu population via static RegisterMenuItems()
+        # Old pattern was adding duplicate/misplaced menu items
     }
 
-    hidden [void] _SetupMenus() {
-        # Capture $this in a variable so scriptblocks can access it
-        $screen = $this
-
-        # Tasks menu - Navigate to different task views
-        $tasksMenu = $this.MenuBar.Menus[0]
-        $tasksMenu.Items.Add([PmcMenuItem]::new("Task List", 'L', {
-            . "$PSScriptRoot/TaskListScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object TaskListScreen))
-        }))
-        # Archived view screens - these were consolidated/removed
-        # $tasksMenu.Items.Add([PmcMenuItem]::new("Today", 'Y', {
-        #     . "$PSScriptRoot/TodayViewScreen.ps1"
-        #     $global:PmcApp.PushScreen((New-Object TodayViewScreen))
-        # }))
-        # $tasksMenu.Items.Add([PmcMenuItem]::new("Week View", 'W', {
-        #     . "$PSScriptRoot/WeekViewScreen.ps1"
-        #     $global:PmcApp.PushScreen((New-Object WeekViewScreen))
-        # }))
-
-        # Projects menu
-        $projectsMenu = $this.MenuBar.Menus[1]
-        $projectsMenu.Items.Add([PmcMenuItem]::new("Project List", 'L', {
-            . "$PSScriptRoot/ProjectListScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object ProjectListScreen))
-        }))
-
-        # Options menu
-        $optionsMenu = $this.MenuBar.Menus[2]
-        $optionsMenu.Items.Add([PmcMenuItem]::new("Settings", 'S', {
-            . "$PSScriptRoot/SettingsScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object SettingsScreen))
-        }))
-
-        # Help menu
-        $helpMenu = $this.MenuBar.Menus[3]
-        $helpMenu.Items.Add([PmcMenuItem]::new("Help View", 'H', {
-            . "$PSScriptRoot/HelpViewScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object HelpViewScreen))
-        }))
+    # OnEnter - Load data when screen becomes active (consistent with other screens)
+    [void] OnEnter() {
+        # Call parent to ensure proper lifecycle (sets IsActive, calls LoadData, executes OnEnterHandler)
+        ([PmcScreen]$this).OnEnter()
     }
 
     [void] LoadData() {
@@ -377,6 +356,10 @@ class WeeklyTimeReportScreen : PmcScreen {
     }
 
     [bool] HandleKeyPress([ConsoleKeyInfo]$keyInfo) {
+        # CRITICAL: Call parent FIRST for MenuBar, F10, Alt+keys, content widgets
+        $handled = ([PmcScreen]$this).HandleKeyPress($keyInfo)
+        if ($handled) { return $true }
+
         # Week navigation with arrow keys
         if ($keyInfo.Key -eq 'LeftArrow') {
             $this.WeekOffset--

@@ -24,8 +24,17 @@ class UndoViewScreen : PmcScreen {
     # Data
     [object]$UndoStatus = $null
 
-    # Constructor
+    # Legacy constructor (backward compatible)
     UndoViewScreen() : base("UndoView", "Undo Last Action") {
+        $this._InitializeScreen()
+    }
+
+    # Container constructor
+    UndoViewScreen([object]$container) : base("UndoView", "Undo Last Action", $container) {
+        $this._InitializeScreen()
+    }
+
+    hidden [void] _InitializeScreen() {
         # Configure header
         $this.Header.SetBreadcrumb(@("Home", "Undo"))
 

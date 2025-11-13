@@ -31,8 +31,17 @@ class CommandLibraryScreen : StandardListScreen {
         }, 10)
     }
 
-    # Constructor
+    # Legacy constructor (backward compatible)
     CommandLibraryScreen() : base("CommandLibrary", "Command Library") {
+        $this._InitializeScreen()
+    }
+
+    # Container constructor
+    CommandLibraryScreen([object]$container) : base("CommandLibrary", "Command Library", $container) {
+        $this._InitializeScreen()
+    }
+
+    hidden [void] _InitializeScreen() {
         # Initialize service
         $this._commandService = [CommandService]::GetInstance()
 
@@ -183,21 +192,31 @@ class CommandLibraryScreen : StandardListScreen {
     # Handle item creation
     [void] OnItemCreated([hashtable]$values) {
         try {
+            # SAVE FIX: Validate and safe access
+            if (-not $values.ContainsKey('name') -or [string]::IsNullOrWhiteSpace($values.name)) {
+                $this.SetStatusMessage("Command name is required", "error")
+                return
+            }
+
+            if (-not $values.ContainsKey('command_text') -or [string]::IsNullOrWhiteSpace($values.command_text)) {
+                $this.SetStatusMessage("Command text is required", "error")
+                return
+            }
+
             $tags = if ($values.ContainsKey('tags') -and -not [string]::IsNullOrWhiteSpace($values.tags)) {
                 @($values.tags -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ })
             } else {
                 @()
             }
 
-            $this._commandService.CreateCommand(
-                $values.name,
-                $values.command_text,
-                $values.category,
-                $values.description,
-                $tags
-            )
+            $name = $values.name
+            $commandText = $values.command_text
+            $category = if ($values.ContainsKey('category')) { $values.category } else { '' }
+            $description = if ($values.ContainsKey('description')) { $values.description } else { '' }
 
-            $this.SetStatusMessage("Command '$($values.name)' saved", "success")
+            $this._commandService.CreateCommand($name, $commandText, $category, $description, $tags)
+
+            $this.SetStatusMessage("Command '$name' saved", "success")
         } catch {
             $this.SetStatusMessage("Error creating command: $($_.Exception.Message)", "error")
         }
@@ -214,16 +233,22 @@ class CommandLibraryScreen : StandardListScreen {
                 @()
             }
 
+            # ENDEMIC FIX: Safe value access
             $changes = @{
-                name = $values.name
-                category = $values.category
-                command_text = $values.command_text
-                description = $values.description
+                name = if ($values.ContainsKey('name')) { $values.name } else { '' }
+                category = if ($values.ContainsKey('category')) { $values.category } else { '' }
+                command_text = if ($values.ContainsKey('command_text')) { $values.command_text } else { '' }
+                description = if ($values.ContainsKey('description')) { $values.description } else { '' }
                 tags = $tags
             }
 
+            if ([string]::IsNullOrWhiteSpace($changes.name)) {
+                $this.SetStatusMessage("Command name is required", "error")
+                return
+            }
+
             $this._commandService.UpdateCommand($itemId, $changes)
-            $this.SetStatusMessage("Command '$($values.name)' updated", "success")
+            $this.SetStatusMessage("Command '$($changes.name)' updated", "success")
         } catch {
             $this.SetStatusMessage("Error updating command: $($_.Exception.Message)", "error")
         }
@@ -283,9 +308,12 @@ class CommandLibraryScreen : StandardListScreen {
     # === Input Handling ===
 
     [bool] HandleKeyPress([ConsoleKeyInfo]$keyInfo) {
-        # Call parent handler first (handles list navigation, add/edit/delete)
-        $handled = ([StandardListScreen]$this).HandleKeyPress($keyInfo)
-        if ($handled) { return $true }
+        # CRITICAL: Handle Enter BEFORE parent to prevent edit dialog
+        # Custom key: Enter = Copy command to clipboard (NOT edit)
+        if ($keyInfo.Key -eq ([ConsoleKey]::Enter)) {
+            $this.CopyCommand()
+            return $true
+        }
 
         # Custom key: C = Copy command to clipboard
         if ($keyInfo.Key -eq ([ConsoleKey]::C)) {
@@ -293,11 +321,9 @@ class CommandLibraryScreen : StandardListScreen {
             return $true
         }
 
-        # Custom key: Enter = Copy command to clipboard (activate)
-        if ($keyInfo.Key -eq ([ConsoleKey]::Enter)) {
-            $this.CopyCommand()
-            return $true
-        }
+        # Call parent handler for list navigation, add/delete (but NOT Enter which triggers edit)
+        $handled = ([StandardListScreen]$this).HandleKeyPress($keyInfo)
+        if ($handled) { return $true }
 
         return $false
     }

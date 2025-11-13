@@ -25,8 +25,17 @@ class TimerStopScreen : PmcScreen {
     [object]$TimerStatus = $null
     [bool]$IsConfirming = $false
 
-    # Constructor
+    # Legacy constructor (backward compatible)
     TimerStopScreen() : base("TimerStop", "Stop Timer") {
+        $this._InitializeScreen()
+    }
+
+    # Container constructor
+    TimerStopScreen([object]$container) : base("TimerStop", "Stop Timer", $container) {
+        $this._InitializeScreen()
+    }
+
+    hidden [void] _InitializeScreen() {
         # Configure header
         $this.Header.SetBreadcrumb(@("Home", "Timer", "Stop"))
 

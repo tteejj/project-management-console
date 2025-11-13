@@ -39,8 +39,17 @@ class ExcelImportScreen : PmcScreen {
         }, 40)
     }
 
-    # Constructor
+    # Legacy constructor (backward compatible)
     ExcelImportScreen() : base("ExcelImport", "Import from Excel") {
+        $this._InitializeScreen()
+    }
+
+    # Container constructor
+    ExcelImportScreen([object]$container) : base("ExcelImport", "Import from Excel", $container) {
+        $this._InitializeScreen()
+    }
+
+    hidden [void] _InitializeScreen() {
         $this._reader = [ExcelComReader]::new()
         $this._mappingService = [ExcelMappingService]::GetInstance()
 
@@ -205,6 +214,10 @@ class ExcelImportScreen : PmcScreen {
     }
 
     [bool] HandleKeyPress([ConsoleKeyInfo]$keyInfo) {
+        # CRITICAL: Call parent FIRST for MenuBar, F10, Alt+keys, content widgets
+        $handled = ([PmcScreen]$this).HandleKeyPress($keyInfo)
+        if ($handled) { return $true }
+
         # Clear error
         $this._errorMessage = ""
 
@@ -253,6 +266,7 @@ class ExcelImportScreen : PmcScreen {
             }
             default { return 0 }
         }
+        return 0  # Explicit return to satisfy PowerShell strict mode
     }
 
     hidden [void] _ProcessStep() {

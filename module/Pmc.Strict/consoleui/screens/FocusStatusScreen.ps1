@@ -38,12 +38,23 @@ class FocusStatusScreen : PmcScreen {
         $this.Footer.AddShortcut("Ctrl+Q", "Quit")
     }
 
+    # Constructor with container
+    FocusStatusScreen([object]$container) : base("FocusStatus", "Focus Status", $container) {
+        # Configure header
+        $this.Header.SetBreadcrumb(@("Home", "Focus", "Status"))
+
+        # Configure footer with shortcuts
+        $this.Footer.ClearShortcuts()
+        $this.Footer.AddShortcut("Esc", "Exit")
+        $this.Footer.AddShortcut("Ctrl+Q", "Quit")
+    }
+
     [void] LoadData() {
         $this.ShowStatus("Loading focus status...")
 
         try {
             # Get PMC data
-            $data = Get-PmcAllData
+            $data = Get-PmcData
 
             # Get current focus
             $this.CurrentFocus = if ($data.PSObject.Properties['currentContext']) {

@@ -26,8 +26,27 @@ class DepRemoveFormScreen : PmcScreen {
     [string]$InputField = "taskId"  # "taskId" or "dependsId"
     [hashtable]$FormData = @{}
 
-    # Constructor
+    # Backward compatible constructor
     DepRemoveFormScreen() : base("DepRemove", "Remove Dependency") {
+        # Configure header
+        $this.Header.SetBreadcrumb(@("Home", "Dependencies", "Remove"))
+
+        # Configure footer with shortcuts
+        $this.Footer.ClearShortcuts()
+        $this.Footer.AddShortcut("Tab", "Next Field")
+        $this.Footer.AddShortcut("Enter", "Submit")
+        $this.Footer.AddShortcut("Esc", "Cancel")
+        $this.Footer.AddShortcut("Ctrl+Q", "Quit")
+
+        # Initialize form data
+        $this.FormData = @{
+            taskId = ""
+            dependsId = ""
+        }
+    }
+
+    # Container constructor
+    DepRemoveFormScreen([object]$container) : base("DepRemove", "Remove Dependency", $container) {
         # Configure header
         $this.Header.SetBreadcrumb(@("Home", "Dependencies", "Remove"))
 
@@ -182,20 +201,21 @@ class DepRemoveFormScreen : PmcScreen {
                 return
             }
 
-            $data = Get-PmcAllData
-            $task = $data.tasks | Where-Object { $_.id -eq $taskId } | Select-Object -First 1
+            $data = Get-PmcData
+            $task = $data.tasks | Where-Object { (Get-SafeProperty $_ 'id') -eq $taskId } | Select-Object -First 1
 
             if (-not $task) {
                 $this.ShowError("Task $taskId not found!")
                 return
             }
 
-            if (-not $task.PSObject.Properties['depends'] -or -not $task.depends) {
+            $taskDepends = Get-SafeProperty $task 'depends'
+            if (-not $taskDepends) {
                 $this.ShowError("Task has no dependencies!")
                 return
             }
 
-            $task.depends = @($task.depends | Where-Object { $_ -ne $dependsId })
+            $task.depends = @($taskDepends | Where-Object { $_ -ne $dependsId })
 
             # Clean up empty depends array
             if ($task.depends.Count -eq 0) {

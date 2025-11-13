@@ -25,8 +25,17 @@ class TimerStatusScreen : PmcScreen {
     # Data
     [object]$TimerStatus = $null
 
-    # Constructor
+    # Legacy constructor (backward compatible)
     TimerStatusScreen() : base("TimerStatus", "Timer Status") {
+        $this._InitializeScreen()
+    }
+
+    # Container constructor
+    TimerStatusScreen([object]$container) : base("TimerStatus", "Timer Status", $container) {
+        $this._InitializeScreen()
+    }
+
+    hidden [void] _InitializeScreen() {
         # Configure header
         $this.Header.SetBreadcrumb(@("Home", "Timer", "Status"))
 

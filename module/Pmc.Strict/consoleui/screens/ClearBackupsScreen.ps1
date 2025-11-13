@@ -40,22 +40,21 @@ class ClearBackupsScreen : PmcScreen {
         $this.Footer.AddShortcut("B", "Both")
         $this.Footer.AddShortcut("Esc", "Cancel")
 
-        # Setup menu items
-        $this._SetupMenus()
+        # NOTE: _SetupMenus() removed - MenuRegistry handles menu population via manifest
     }
 
-    hidden [void] _SetupMenus() {
-        # Tasks menu
-        $tasksMenu = $this.MenuBar.Menus[0]
-        $tasksMenu.Items.Add([PmcMenuItem]::new("Clear Auto Backups", 'A', { $this._ClearAutoBackups() }))
-        $tasksMenu.Items.Add([PmcMenuItem]::new("Clear Manual Backups", 'M', { $this._ClearManualBackups() }))
-        $tasksMenu.Items.Add([PmcMenuItem]::new("Clear Both", 'B', { $this._ClearBothBackups() }))
-        $tasksMenu.Items.Add([PmcMenuItem]::Separator())
-        $tasksMenu.Items.Add([PmcMenuItem]::new("Cancel", 'N', { $this._Cancel() }))
+    ClearBackupsScreen([object]$container) : base("ClearBackups", "Clear All Backups", $container) {
+        # Configure header
+        $this.Header.SetBreadcrumb(@("Home", "Backups", "Clear All"))
 
-        # Help menu
-        $helpMenu = $this.MenuBar.Menus[3]
-        $helpMenu.Items.Add([PmcMenuItem]::new("About", 'A', { Write-Host "PMC TUI v1.0" }))
+        # Configure footer with shortcuts
+        $this.Footer.ClearShortcuts()
+        $this.Footer.AddShortcut("A", "Auto Only")
+        $this.Footer.AddShortcut("M", "Manual Only")
+        $this.Footer.AddShortcut("B", "Both")
+        $this.Footer.AddShortcut("Esc", "Cancel")
+
+        # NOTE: _SetupMenus() removed - MenuRegistry handles menu population via manifest
     }
 
     [void] LoadData() {

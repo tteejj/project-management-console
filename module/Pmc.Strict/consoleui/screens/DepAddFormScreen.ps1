@@ -26,8 +26,27 @@ class DepAddFormScreen : PmcScreen {
     [string]$InputField = "taskId"  # "taskId" or "dependsId"
     [hashtable]$FormData = @{}
 
-    # Constructor
+    # Backward compatible constructor
     DepAddFormScreen() : base("DepAdd", "Add Dependency") {
+        # Configure header
+        $this.Header.SetBreadcrumb(@("Home", "Dependencies", "Add"))
+
+        # Configure footer with shortcuts
+        $this.Footer.ClearShortcuts()
+        $this.Footer.AddShortcut("Tab", "Next Field")
+        $this.Footer.AddShortcut("Enter", "Submit")
+        $this.Footer.AddShortcut("Esc", "Cancel")
+        $this.Footer.AddShortcut("Ctrl+Q", "Quit")
+
+        # Initialize form data
+        $this.FormData = @{
+            taskId = ""
+            dependsId = ""
+        }
+    }
+
+    # Container constructor
+    DepAddFormScreen([object]$container) : base("DepAdd", "Add Dependency", $container) {
         # Configure header
         $this.Header.SetBreadcrumb(@("Home", "Dependencies", "Add"))
 
@@ -189,9 +208,9 @@ class DepAddFormScreen : PmcScreen {
                 return
             }
 
-            $data = Get-PmcAllData
-            $task = $data.tasks | Where-Object { $_.id -eq $taskId } | Select-Object -First 1
-            $dependsTask = $data.tasks | Where-Object { $_.id -eq $dependsId } | Select-Object -First 1
+            $data = Get-PmcData
+            $task = $data.tasks | Where-Object { (Get-SafeProperty $_ 'id') -eq $taskId } | Select-Object -First 1
+            $dependsTask = $data.tasks | Where-Object { (Get-SafeProperty $_ 'id') -eq $dependsId } | Select-Object -First 1
 
             if (-not $task) {
                 $this.ShowError("Task $taskId not found!")
@@ -203,18 +222,20 @@ class DepAddFormScreen : PmcScreen {
                 return
             }
 
-            # Initialize depends array if needed
-            if (-not $task.PSObject.Properties['depends']) {
+            # Get existing depends or initialize
+            $taskDepends = Get-SafeProperty $task 'depends'
+            if (-not $taskDepends) {
                 $task | Add-Member -NotePropertyName depends -NotePropertyValue @()
+                $taskDepends = @()
             }
 
             # Check if dependency already exists
-            if ($task.depends -contains $dependsId) {
+            if ($taskDepends -contains $dependsId) {
                 $this.ShowError("Dependency already exists!")
                 return
             }
 
-            $task.depends = @($task.depends + $dependsId)
+            $task.depends = @($taskDepends + $dependsId)
 
             # Update blocked status
             Update-PmcBlockedStatus -data $data

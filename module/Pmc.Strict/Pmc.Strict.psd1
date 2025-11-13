@@ -37,6 +37,7 @@
         'Update-PmcDebugFromConfig',
         'Update-PmcSecurityFromConfig',
         'Get-PmcConfig',
+        'Save-PmcConfig',
         'Get-PmcConfigProviders',
         'Set-PmcConfigProviders',
         'Get-PmcState',

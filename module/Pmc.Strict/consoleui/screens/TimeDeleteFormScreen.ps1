@@ -24,7 +24,7 @@ class TimeDeleteFormScreen : PmcScreen {
     # Data
     [object]$TimeEntry = $null
 
-    # Constructor
+    # Backward compatible constructor
     TimeDeleteFormScreen() : base("TimeDeleteForm", "Delete Time Entry") {
         # Configure header
         $this.Header.SetBreadcrumb(@("Home", "Time Entries", "Delete"))
@@ -35,10 +35,24 @@ class TimeDeleteFormScreen : PmcScreen {
         $this.Footer.AddShortcut("N", "Cancel")
         $this.Footer.AddShortcut("Esc", "Back")
 
-        # Setup menu items
-        $this._SetupMenus()
+        # NOTE: _SetupMenus() removed - MenuRegistry handles menu population via manifest
     }
 
+    # Container constructor
+    TimeDeleteFormScreen([object]$container) : base("TimeDeleteForm", "Delete Time Entry", $container) {
+        # Configure header
+        $this.Header.SetBreadcrumb(@("Home", "Time Entries", "Delete"))
+
+        # Configure footer with shortcuts
+        $this.Footer.ClearShortcuts()
+        $this.Footer.AddShortcut("Y", "Confirm")
+        $this.Footer.AddShortcut("N", "Cancel")
+        $this.Footer.AddShortcut("Esc", "Back")
+
+        # NOTE: _SetupMenus() removed - MenuRegistry handles menu population via manifest
+    }
+
+    # Entry constructor (backward compatible)
     TimeDeleteFormScreen([object]$entry) : base("TimeDeleteForm", "Delete Time Entry") {
         $this.TimeEntry = $entry
 
@@ -51,104 +65,7 @@ class TimeDeleteFormScreen : PmcScreen {
         $this.Footer.AddShortcut("N", "Cancel")
         $this.Footer.AddShortcut("Esc", "Back")
 
-        # Setup menu items
-        $this._SetupMenus()
-    }
-
-    hidden [void] _SetupMenus() {
-        # Capture $this in a variable so scriptblocks can access it
-        $screen = $this
-
-        # Tasks menu - Navigate to different task views
-        $tasksMenu = $this.MenuBar.Menus[0]
-        $tasksMenu.Items.Add([PmcMenuItem]::new("Task List", 'L', {
-            . "$PSScriptRoot/TaskListScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object TaskListScreen))
-        }))
-        # Archived view screens - these were consolidated/removed
-        # $tasksMenu.Items.Add([PmcMenuItem]::new("Today", 'Y', {
-        #     . "$PSScriptRoot/TodayViewScreen.ps1"
-        #     $global:PmcApp.PushScreen((New-Object TodayViewScreen))
-        # }))
-        # $tasksMenu.Items.Add([PmcMenuItem]::new("Tomorrow", 'T', {
-        #     . "$PSScriptRoot/TomorrowViewScreen.ps1"
-        #     $global:PmcApp.PushScreen((New-Object TomorrowViewScreen))
-        # }))
-        # $tasksMenu.Items.Add([PmcMenuItem]::new("Week View", 'W', {
-        #     . "$PSScriptRoot/WeekViewScreen.ps1"
-        #     $global:PmcApp.PushScreen((New-Object WeekViewScreen))
-        # }))
-        # $tasksMenu.Items.Add([PmcMenuItem]::new("Upcoming", 'U', {
-        #     . "$PSScriptRoot/UpcomingViewScreen.ps1"
-        #     $global:PmcApp.PushScreen((New-Object UpcomingViewScreen))
-        # }))
-        # $tasksMenu.Items.Add([PmcMenuItem]::new("Overdue", 'V', {
-        #     . "$PSScriptRoot/OverdueViewScreen.ps1"
-        #     $global:PmcApp.PushScreen((New-Object OverdueViewScreen))
-        # }))
-        # $tasksMenu.Items.Add([PmcMenuItem]::new("Next Actions", 'N', {
-        #     . "$PSScriptRoot/NextActionsViewScreen.ps1"
-        #     $global:PmcApp.PushScreen((New-Object NextActionsViewScreen))
-        # }))
-        # $tasksMenu.Items.Add([PmcMenuItem]::new("No Due Date", 'D', {
-        #     . "$PSScriptRoot/NoDueDateViewScreen.ps1"
-        #     $global:PmcApp.PushScreen((New-Object NoDueDateViewScreen))
-        # }))
-        $tasksMenu.Items.Add([PmcMenuItem]::new("Blocked Tasks", 'B', {
-            . "$PSScriptRoot/BlockedTasksScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object BlockedTasksScreen))
-        }))
-        $tasksMenu.Items.Add([PmcMenuItem]::Separator())
-        $tasksMenu.Items.Add([PmcMenuItem]::new("Kanban Board", 'K', {
-            . "$PSScriptRoot/KanbanScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object KanbanScreen))
-        }))
-        # $tasksMenu.Items.Add([PmcMenuItem]::new("Month View", 'M', {
-        #     . "$PSScriptRoot/MonthViewScreen.ps1"
-        #     $global:PmcApp.PushScreen((New-Object MonthViewScreen))
-        # }))
-        # $tasksMenu.Items.Add([PmcMenuItem]::new("Agenda View", 'A', {
-        #     . "$PSScriptRoot/AgendaViewScreen.ps1"
-        #     $global:PmcApp.PushScreen((New-Object AgendaViewScreen))
-        # }))
-        $tasksMenu.Items.Add([PmcMenuItem]::new("Burndown Chart", 'C', {
-            . "$PSScriptRoot/BurndownChartScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object BurndownChartScreen))
-        }))
-
-        # Projects menu
-        $projectsMenu = $this.MenuBar.Menus[1]
-        $projectsMenu.Items.Add([PmcMenuItem]::new("Project List", 'L', {
-            . "$PSScriptRoot/ProjectListScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object ProjectListScreen))
-        }))
-        $projectsMenu.Items.Add([PmcMenuItem]::new("Project Stats", 'S', {
-            . "$PSScriptRoot/ProjectStatsScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object ProjectStatsScreen))
-        }))
-        $projectsMenu.Items.Add([PmcMenuItem]::new("Project Info", 'I', {
-            . "$PSScriptRoot/ProjectInfoScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object ProjectInfoScreen))
-        }))
-
-        # Options menu
-        $optionsMenu = $this.MenuBar.Menus[2]
-        $optionsMenu.Items.Add([PmcMenuItem]::new("Theme Editor", 'T', {
-            . "$PSScriptRoot/ThemeEditorScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object ThemeEditorScreen))
-        }))
-        $optionsMenu.Items.Add([PmcMenuItem]::new("Settings", 'S', {
-            . "$PSScriptRoot/SettingsScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object SettingsScreen))
-        }))
-
-        # Help menu
-        $helpMenu = $this.MenuBar.Menus[3]
-        $helpMenu.Items.Add([PmcMenuItem]::new("Help View", 'H', {
-            . "$PSScriptRoot/HelpViewScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object HelpViewScreen))
-        }))
-        $helpMenu.Items.Add([PmcMenuItem]::new("About", 'A', { Write-Host "PMC TUI v1.0" }))
+        # NOTE: _SetupMenus() removed - MenuRegistry handles menu population via manifest
     }
 
     [void] LoadData() {
@@ -197,17 +114,19 @@ class TimeDeleteFormScreen : PmcScreen {
         $y += 2
 
         # ID
+        $entryId = Get-SafeProperty $this.TimeEntry 'id'
         $sb.Append($this.Header.BuildMoveTo($contentRect.X + 6, $y))
         $sb.Append($mutedColor)
         $sb.Append("ID: ")
         $sb.Append($reset)
         $sb.Append($textColor)
-        $sb.Append($this.TimeEntry.id)
+        $sb.Append($entryId)
         $sb.Append($reset)
         $y++
 
         # Date
-        $rawDate = if ($this.TimeEntry.date) { $this.TimeEntry.date.ToString() } else { "" }
+        $entryDate = Get-SafeProperty $this.TimeEntry 'date'
+        $rawDate = if ($entryDate) { $entryDate.ToString() } else { "" }
         $dateStr = if ($rawDate -eq 'today') {
             (Get-Date).ToString('yyyy-MM-dd')
         } elseif ($rawDate -eq 'tomorrow') {
@@ -226,7 +145,9 @@ class TimeDeleteFormScreen : PmcScreen {
         $y++
 
         # Project
-        $projectStr = if ($this.TimeEntry.project) { $this.TimeEntry.project.ToString() } else { if ($this.TimeEntry.id1) { "#$($this.TimeEntry.id1)" } else { "" } }
+        $entryProject = Get-SafeProperty $this.TimeEntry 'project'
+        $entryId1 = Get-SafeProperty $this.TimeEntry 'id1'
+        $projectStr = if ($entryProject) { $entryProject.ToString() } else { if ($entryId1) { "#$entryId1" } else { "" } }
         $sb.Append($this.Header.BuildMoveTo($contentRect.X + 6, $y))
         $sb.Append($mutedColor)
         $sb.Append("Project: ")
@@ -237,7 +158,8 @@ class TimeDeleteFormScreen : PmcScreen {
         $y++
 
         # Hours
-        $hours = if ($this.TimeEntry.minutes) { [math]::Round($this.TimeEntry.minutes / 60.0, 2) } else { 0 }
+        $entryMinutes = Get-SafeProperty $this.TimeEntry 'minutes'
+        $hours = if ($entryMinutes) { [math]::Round($entryMinutes / 60.0, 2) } else { 0 }
         $sb.Append($this.Header.BuildMoveTo($contentRect.X + 6, $y))
         $sb.Append($mutedColor)
         $sb.Append("Hours: ")
@@ -248,13 +170,14 @@ class TimeDeleteFormScreen : PmcScreen {
         $y++
 
         # Description
-        if ($this.TimeEntry.PSObject.Properties['description'] -and $this.TimeEntry.description) {
+        $entryDescription = Get-SafeProperty $this.TimeEntry 'description'
+        if ($entryDescription) {
             $sb.Append($this.Header.BuildMoveTo($contentRect.X + 6, $y))
             $sb.Append($mutedColor)
             $sb.Append("Description: ")
             $sb.Append($reset)
             $sb.Append($textColor)
-            $descStr = $this.TimeEntry.description.ToString()
+            $descStr = $entryDescription.ToString()
             $maxDescWidth = $contentRect.Width - 20
             if ($descStr.Length -gt $maxDescWidth) {
                 $descStr = $descStr.Substring(0, $maxDescWidth - 3) + "..."
@@ -306,14 +229,15 @@ class TimeDeleteFormScreen : PmcScreen {
 
         try {
             # Load data
-            $data = Get-PmcAllData
+            $data = Get-PmcData
 
             # Remove entry
-            $entryId = $this.TimeEntry.id
-            $data.timelogs = @($data.timelogs | Where-Object { $_.id -ne $entryId })
+            $entryId = Get-SafeProperty $this.TimeEntry 'id'
+            $data.timelogs = @($data.timelogs | Where-Object { (Get-SafeProperty $_ 'id') -ne $entryId })
 
             # Save
-            Set-PmcAllData $data
+            # FIX: Use Save-PmcData instead of Set-PmcAllData
+            Save-PmcData -Data $data
 
             $this.ShowSuccess("Time entry #$entryId deleted successfully")
 
