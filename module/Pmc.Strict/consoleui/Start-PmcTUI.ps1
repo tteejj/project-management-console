@@ -16,6 +16,17 @@ $logPath = if ($env:PMC_LOG_PATH) {
 }
 $global:PmcTuiLogFile = Join-Path $logPath "pmc-tui-$(Get-Date -Format 'yyyyMMdd-HHmmss').log"
 
+# ============================================================================
+# HYBRID PATTERN: Global application-level singletons + DI for services
+# ============================================================================
+# Initialize global Pmc structure (holds app-level singletons)
+$global:Pmc = @{
+    App = $null          # PmcApplication instance (set after creation)
+    Logger = $null       # LoggingService instance (set after services loaded)
+    Theme = $null        # PmcThemeManager instance (set after services loaded)
+    Container = $null    # ServiceContainer reference (set after container created)
+}
+
 # Initialize buffered logging service (reduces file I/O by ~95%)
 # Note: LoggingService class will be loaded later, so we define the helper function first
 $global:PmcLoggingService = $null
@@ -113,6 +124,7 @@ try {
     # Initialize buffered logging service now that LoggingService class is loaded
     # This switches from unbuffered to buffered logging (reduces I/O by ~95%)
     $global:PmcLoggingService = [LoggingService]::new($global:PmcTuiLogFile)
+    $global:Pmc.Logger = $global:PmcLoggingService  # Set global reference
     Write-PmcTuiLog "Buffered logging initialized (250ms flush interval)" "INFO"
 
 } catch {
@@ -132,6 +144,11 @@ try {
     . "$PSScriptRoot/widgets/PmcStatusBar.ps1"
     . "$PSScriptRoot/layout/PmcLayoutManager.ps1"
     . "$PSScriptRoot/theme/PmcThemeManager.ps1"
+
+    # Initialize theme manager (global singleton for app-level theming)
+    $global:Pmc.Theme = [PmcThemeManager]::new()
+    Write-PmcTuiLog "Theme manager initialized" "INFO"
+
     Write-PmcTuiLog "Legacy infrastructure loaded" "INFO"
 } catch {
     Write-PmcTuiLog "Failed to load legacy infrastructure: $_" "ERROR"
@@ -254,6 +271,7 @@ function Start-PmcTUI {
         # === Create DI Container ===
         Write-PmcTuiLog "Creating ServiceContainer..." "INFO"
         $global:PmcContainer = [ServiceContainer]::new()
+        $global:Pmc.Container = $global:PmcContainer  # Set global reference
         Write-PmcTuiLog "ServiceContainer created" "INFO"
 
         # === Register Core Services (in dependency order) ===
@@ -269,13 +287,13 @@ function Start-PmcTUI {
             return $theme
         }, $true)
 
-        # Register ThemeManager (depends on Theme)
+        # Register ThemeManager (depends on Theme) - returns global singleton
         Write-PmcTuiLog "Registering ThemeManager..." "INFO"
         $global:PmcContainer.Register('ThemeManager', {
             param($container)
             Write-PmcTuiLog "Resolving ThemeManager..." "INFO"
             $null = $container.Resolve('Theme')
-            return [PmcThemeManager]::GetInstance()
+            return $global:Pmc.Theme  # Return global singleton
         }, $true)
 
         # 2. Config (no dependencies)
@@ -371,7 +389,8 @@ function Start-PmcTUI {
         # === Resolve Application ===
         Write-PmcTuiLog "Resolving Application from container..." "INFO"
         $global:PmcApp = $global:PmcContainer.Resolve('Application')
-        Write-PmcTuiLog "Application resolved and assigned to `$global:PmcApp" "INFO"
+        $global:Pmc.App = $global:PmcApp  # Set global reference
+        Write-PmcTuiLog "Application resolved and assigned to `$global:Pmc.App" "INFO"
 
         # === Launch Initial Screen ===
         Write-PmcTuiLog "Launching screen: $StartScreen" "INFO"

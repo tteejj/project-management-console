@@ -21,9 +21,6 @@ $color = $theme.GetColor('Primary')
 $ansi = $theme.GetAnsiSequence('Primary', $false)
 #>
 class PmcThemeManager {
-    # === Singleton Instance ===
-    hidden static [PmcThemeManager]$_instance = $null
-
     # === PMC Theme Data ===
     [hashtable]$PmcTheme           # From Get-PmcState -Section 'Display' -Key 'Theme'
     [hashtable]$StyleTokens        # From Get-PmcState -Section 'Display' -Key 'Styles'
@@ -36,20 +33,9 @@ class PmcThemeManager {
     hidden [hashtable]$_colorCache = @{}
     hidden [hashtable]$_ansiCache = @{}
 
-    # === Singleton Constructor ===
-    hidden PmcThemeManager() {
+    # === Constructor ===
+    PmcThemeManager() {
         $this._Initialize()
-    }
-
-    <#
-    .SYNOPSIS
-    Get singleton instance of PmcThemeManager
-    #>
-    static [PmcThemeManager] GetInstance() {
-        if ($null -eq [PmcThemeManager]::_instance) {
-            [PmcThemeManager]::_instance = [PmcThemeManager]::new()
-        }
-        return [PmcThemeManager]::_instance
     }
 
     # === Initialization ===
