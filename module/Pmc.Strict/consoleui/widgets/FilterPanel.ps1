@@ -429,26 +429,93 @@ class FilterPanel : PmcWidget {
     RenderEngine instance to write to
     #>
     [void] RenderToEngine([object]$engine) {
-        # Parse OnRender/Render output and write to engine
-        # TODO: Convert to direct engine.WriteAt() calls for optimal performance
-        # Render to string then parse to engine
-        $output = $this.Render()
-        if ([string]::IsNullOrEmpty($output)) {
-            $output = $this.Render()
+        # Colors from theme
+        $borderColor = $this.GetThemedAnsi('Border', $false)
+        $textColor = $this.GetThemedAnsi('Text', $false)
+        $primaryColor = $this.GetThemedAnsi('Primary', $false)
+        $mutedColor = $this.GetThemedAnsi('Muted', $false)
+        $errorColor = $this.GetThemedAnsi('Error', $false)
+        $successColor = $this.GetThemedAnsi('Success', $false)
+        $highlightBg = $this.GetThemedAnsi('Primary', $true)
+        $reset = "`e[0m"
+
+        # Draw top border
+        $topLine = [StringBuilder]::new(256)
+        $topLine.Append($borderColor)
+        $topLine.Append($this.BuildBoxBorder($this.Width, 'top', 'single'))
+        $topLine.Append($reset)
+        $engine.WriteAt($this.X, $this.Y, $topLine.ToString())
+
+        # Title
+        $titleText = " $($this.Title) "
+        $titlePos = 2
+        $engine.WriteAt($this.X + $titlePos, $this.Y, $primaryColor + $titleText + $reset)
+
+        # Filter count
+        $countText = "($($this._filters.Count) active)"
+        $engine.WriteAt($this.X + $this.Width - $countText.Length - 2, $this.Y, $mutedColor + $countText + $reset)
+
+        # Active filters display (rows 1-8)
+        $filterDisplayRows = 7
+        $currentRow = 1
+
+        if ($this._filters.Count -eq 0) {
+            # No filters message
+            $noFiltersY = $this.Y + $currentRow + 2
+            $noFiltersLine = [StringBuilder]::new(256)
+            $noFiltersLine.Append($borderColor)
+            $noFiltersLine.Append($this.GetBoxChar('single_vertical'))
+            $noFiltersLine.Append(" ")
+            $noFiltersLine.Append($mutedColor)
+            $noFiltersLine.Append($this.PadText("No filters active", $this.Width - 4, 'center'))
+            $noFiltersLine.Append(" ")
+            $noFiltersLine.Append($borderColor)
+            $noFiltersLine.Append($this.GetBoxChar('single_vertical'))
+            $noFiltersLine.Append($reset)
+            $engine.WriteAt($this.X, $noFiltersY, $noFiltersLine.ToString())
+        } else {
+            # Render filter chips
+            $this._RenderFilterChipsToEngine($engine, [ref]$currentRow, $borderColor, $textColor, $primaryColor, $highlightBg, $reset)
         }
-        if ($output) {
-            $lines = $output -split "\n"
-            foreach ($line in $lines) {
-                if ($line -match '\[(\d+);(\d+)H') {
-                    $row = [int]$matches[1] - 1
-                    $col = [int]$matches[2] - 1
-                    $cleanLine = $line -replace '\[\d+;\d+H', ''
-                    if ($cleanLine) {
-                        $engine.WriteAt($col, $row, $cleanLine)
-                    }
-                }
-            }
+
+        # Fill remaining rows
+        for ($row = $currentRow; $row -lt $filterDisplayRows + 1; $row++) {
+            $rowY = $this.Y + $row
+            $emptyLine = [StringBuilder]::new(256)
+            $emptyLine.Append($borderColor)
+            $emptyLine.Append($this.GetBoxChar('single_vertical'))
+            $emptyLine.Append(" " * ($this.Width - 2))
+            $emptyLine.Append($this.GetBoxChar('single_vertical'))
+            $emptyLine.Append($reset)
+            $engine.WriteAt($this.X, $rowY, $emptyLine.ToString())
         }
+
+        # Add menu overlay (if shown)
+        if ($this._showAddMenu) {
+            $this._RenderAddMenuToEngine($engine, $borderColor, $textColor, $primaryColor, $mutedColor, $highlightBg, $reset)
+        }
+
+        # Help text row
+        $helpRowY = $this.Y + $this.Height - 2
+        $helpLine = [StringBuilder]::new(256)
+        $helpLine.Append($borderColor)
+        $helpLine.Append($this.GetBoxChar('single_vertical'))
+        $helpLine.Append(" ")
+        $helpLine.Append($mutedColor)
+        $helpText = "Alt+A: Add | Alt+R: Remove | Alt+C: Clear | Arrows: Navigate"
+        $helpLine.Append($this.PadText($helpText, $this.Width - 4, 'left'))
+        $helpLine.Append(" ")
+        $helpLine.Append($borderColor)
+        $helpLine.Append($this.GetBoxChar('single_vertical'))
+        $helpLine.Append($reset)
+        $engine.WriteAt($this.X, $helpRowY, $helpLine.ToString())
+
+        # Bottom border
+        $bottomLine = [StringBuilder]::new(256)
+        $bottomLine.Append($borderColor)
+        $bottomLine.Append($this.BuildBoxBorder($this.Width, 'bottom', 'single'))
+        $bottomLine.Append($reset)
+        $engine.WriteAt($this.X, $this.Y + $this.Height - 1, $bottomLine.ToString())
     }
 
     # === Private Helper Methods ===
@@ -591,6 +658,159 @@ class FilterPanel : PmcWidget {
         $sb.Append($this.BuildMoveTo($menuX, $menuY + $menuHeight - 1))
         $sb.Append($borderColor)
         $sb.Append($this.BuildBoxBorder($menuWidth, 'bottom', 'single'))
+    }
+
+    <#
+    .SYNOPSIS
+    Render filter chips directly to engine (optimized path)
+    #>
+    hidden [void] _RenderFilterChipsToEngine([object]$engine, [ref]$currentRow, [string]$borderColor, [string]$textColor, [string]$primaryColor, [string]$highlightBg, [string]$reset) {
+        $innerWidth = $this.Width - 4
+        $currentX = 0
+        $currentY = $currentRow.Value
+
+        # Build first line
+        $lineSb = [StringBuilder]::new(256)
+        $lineSb.Append($borderColor)
+        $lineSb.Append($this.GetBoxChar('single_vertical'))
+        $lineSb.Append(" ")
+        $lineSb.Append($textColor)
+
+        for ($i = 0; $i -lt $this._filters.Count; $i++) {
+            $filter = $this._filters[$i]
+            $chipText = $this._FormatFilterChip($filter)
+            $chipLen = $chipText.Length + 2  # Add padding
+
+            # Check if we need to wrap to next row
+            if ($currentX + $chipLen -gt $innerWidth) {
+                # Fill rest of current row
+                $padding = $innerWidth - $currentX
+                $lineSb.Append(" " * $padding)
+                $lineSb.Append(" ")
+                $lineSb.Append($borderColor)
+                $lineSb.Append($this.GetBoxChar('single_vertical'))
+                $lineSb.Append($reset)
+
+                # Write current line
+                $engine.WriteAt($this.X, $this.Y + $currentY, $lineSb.ToString())
+
+                # Move to next row
+                $currentY++
+                $currentX = 0
+
+                # Start new line
+                $lineSb = [StringBuilder]::new(256)
+                $lineSb.Append($borderColor)
+                $lineSb.Append($this.GetBoxChar('single_vertical'))
+                $lineSb.Append(" ")
+                $lineSb.Append($textColor)
+            }
+
+            # Render chip
+            $isSelected = ($i -eq $this._selectedFilterIndex)
+
+            if ($isSelected) {
+                $lineSb.Append($highlightBg)
+                $lineSb.Append("`e[30m")
+            } else {
+                $chipColor = $this._GetFilterColor($filter.Type)
+                $lineSb.Append($chipColor)
+            }
+
+            $lineSb.Append("[")
+            $lineSb.Append($chipText)
+            $lineSb.Append("]")
+            $lineSb.Append($reset)
+            $lineSb.Append($textColor)
+            $lineSb.Append(" ")
+
+            $currentX += $chipLen + 1
+        }
+
+        # Fill rest of current row and write it
+        if ($currentX -lt $innerWidth) {
+            $padding = $innerWidth - $currentX
+            $lineSb.Append(" " * $padding)
+        }
+        $lineSb.Append(" ")
+        $lineSb.Append($borderColor)
+        $lineSb.Append($this.GetBoxChar('single_vertical'))
+        $lineSb.Append($reset)
+
+        # Write final line
+        $engine.WriteAt($this.X, $this.Y + $currentY, $lineSb.ToString())
+
+        $currentRow.Value = $currentY + 1
+    }
+
+    <#
+    .SYNOPSIS
+    Render add menu overlay directly to engine (optimized path)
+    #>
+    hidden [void] _RenderAddMenuToEngine([object]$engine, [string]$borderColor, [string]$textColor, [string]$primaryColor, [string]$mutedColor, [string]$highlightBg, [string]$reset) {
+        $menuWidth = 30
+        $menuHeight = $this._availableFilterTypes.Count + 4
+        $menuX = $this.X + [Math]::Floor(($this.Width - $menuWidth) / 2)
+        $menuY = $this.Y + 2
+
+        # Draw menu border
+        $topLine = [StringBuilder]::new(256)
+        $topLine.Append($primaryColor)
+        $topLine.Append($this.BuildBoxBorder($menuWidth, 'top', 'single'))
+        $topLine.Append($reset)
+        $engine.WriteAt($menuX, $menuY, $topLine.ToString())
+
+        # Title
+        $engine.WriteAt($menuX + 2, $menuY, $primaryColor + " Add Filter " + $reset)
+
+        # Filter types
+        for ($i = 0; $i -lt $this._availableFilterTypes.Count; $i++) {
+            $itemY = $menuY + $i + 1
+            $filterType = $this._availableFilterTypes[$i]
+            $isSelected = ($i -eq $this._addMenuSelectedIndex)
+
+            $itemLine = [StringBuilder]::new(256)
+            $itemLine.Append($borderColor)
+            $itemLine.Append($this.GetBoxChar('single_vertical'))
+            $itemLine.Append(" ")
+
+            if ($isSelected) {
+                $itemLine.Append($highlightBg)
+                $itemLine.Append("`e[30m")
+            } else {
+                $itemLine.Append($textColor)
+            }
+
+            $itemLine.Append($this.PadText($filterType, $menuWidth - 4, 'left'))
+            $itemLine.Append($reset)
+            $itemLine.Append(" ")
+            $itemLine.Append($borderColor)
+            $itemLine.Append($this.GetBoxChar('single_vertical'))
+            $itemLine.Append($reset)
+
+            $engine.WriteAt($menuX, $itemY, $itemLine.ToString())
+        }
+
+        # Help row
+        $helpY = $menuY + $this._availableFilterTypes.Count + 1
+        $helpLine = [StringBuilder]::new(256)
+        $helpLine.Append($borderColor)
+        $helpLine.Append($this.GetBoxChar('single_vertical'))
+        $helpLine.Append(" ")
+        $helpLine.Append($mutedColor)
+        $helpLine.Append($this.PadText("Enter=Add | Esc=Cancel", $menuWidth - 4, 'left'))
+        $helpLine.Append(" ")
+        $helpLine.Append($borderColor)
+        $helpLine.Append($this.GetBoxChar('single_vertical'))
+        $helpLine.Append($reset)
+        $engine.WriteAt($menuX, $helpY, $helpLine.ToString())
+
+        # Bottom border
+        $bottomLine = [StringBuilder]::new(256)
+        $bottomLine.Append($borderColor)
+        $bottomLine.Append($this.BuildBoxBorder($menuWidth, 'bottom', 'single'))
+        $bottomLine.Append($reset)
+        $engine.WriteAt($menuX, $menuY + $menuHeight - 1, $bottomLine.ToString())
     }
 
     <#

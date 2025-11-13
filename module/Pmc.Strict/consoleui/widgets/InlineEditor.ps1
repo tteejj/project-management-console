@@ -810,27 +810,306 @@ class InlineEditor : PmcWidget {
     RenderEngine instance to write to
     #>
     [void] RenderToEngine([object]$engine) {
-        # Parse OnRender/Render output and write to engine
-        # TODO: Convert to direct engine.WriteAt() calls for optimal performance
-        # Render to string then parse to engine
-        $output = $this.Render()
-        if ([string]::IsNullOrEmpty($output)) {
-            $output = $this.Render()
-        }
-        if ($output) {
-            $lines = $output -split "\n"
-            foreach ($line in $lines) {
-                if ($line -match '\[(\d+);(\d+)H') {
-                    $row = [int]$matches[1] - 1
-                    $col = [int]$matches[2] - 1
-                    $cleanLine = $line -replace '\[\d+;\d+H', ''
-                    if ($cleanLine) {
-                        $engine.WriteAt($col, $row, $cleanLine)
-                    }
+        # Colors from theme
+        $borderColor = $this.GetThemedAnsi('Border', $false)
+        $textColor = $this.GetThemedAnsi('Text', $false)
+        $primaryColor = $this.GetThemedAnsi('Primary', $false)
+        $mutedColor = $this.GetThemedAnsi('Muted', $false)
+        $errorColor = $this.GetThemedAnsi('Error', $false)
+        $successColor = $this.GetThemedAnsi('Success', $false)
+        $highlightBg = $this.GetThemedAnsi('Primary', $true)
+        $reset = "`e[0m"
+
+        # If a field widget is expanded, render it instead of the form
+        if ($this._showFieldWidgets -and -not [string]::IsNullOrWhiteSpace($this._expandedFieldName)) {
+            # Get the appropriate widget based on mode
+            $field = $this._fields | Where-Object { $_.Name -eq $this._expandedFieldName } | Select-Object -First 1
+
+            $widget = $null
+            if ($field.Type -eq 'date' -and $this._datePickerMode) {
+                # Render DatePicker when in DatePicker mode
+                if ($this._datePickerWidgets.ContainsKey($this._expandedFieldName)) {
+                    $widget = $this._datePickerWidgets[$this._expandedFieldName]
+                }
+            } else {
+                # Render normal widget
+                if ($this._fieldWidgets.ContainsKey($this._expandedFieldName)) {
+                    $widget = $this._fieldWidgets[$this._expandedFieldName]
                 }
             }
+
+            if ($null -ne $widget) {
+                # Check if widget is PmcFilePicker (needs terminal dimensions)
+                if ($widget.GetType().Name -eq 'PmcFilePicker') {
+                    # FilePicker uses old Render() method - delegate to it
+                    # TODO: Update FilePicker to support RenderToEngine()
+                    $output = $this.Render()
+                    if ($output) {
+                        $lines = $output -split "\n"
+                        foreach ($line in $lines) {
+                            if ($line -match '\[(\d+);(\d+)H') {
+                                $row = [int]$matches[1] - 1
+                                $col = [int]$matches[2] - 1
+                                $cleanLine = $line -replace '\[\d+;\d+H', ''
+                                if ($cleanLine) {
+                                    $engine.WriteAt($col, $row, $cleanLine)
+                                }
+                            }
+                        }
+                    }
+                    return
+                } else {
+                    # Delegate to widget's RenderToEngine if available
+                    if ($widget.PSObject.Methods['RenderToEngine']) {
+                        $widget.RenderToEngine($engine)
+                    } else {
+                        # Fallback to Render() for widgets without RenderToEngine
+                        $output = $widget.Render()
+                        if ($output) {
+                            $lines = $output -split "\n"
+                            foreach ($line in $lines) {
+                                if ($line -match '\[(\d+);(\d+)H') {
+                                    $row = [int]$matches[1] - 1
+                                    $col = [int]$matches[2] - 1
+                                    $cleanLine = $line -replace '\[\d+;\d+H', ''
+                                    if ($cleanLine) {
+                                        $engine.WriteAt($col, $row, $cleanLine)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    return
+                }
+            }
+
+            # Widget doesn't exist - fall through to render normal form
+            $this._showFieldWidgets = $false
+            $this._expandedFieldName = ""
         }
+
+        # Draw top border
+        $topLine = [StringBuilder]::new(256)
+        $topLine.Append($borderColor)
+        $topLine.Append($this.BuildBoxBorder($this.Width, 'top', 'single'))
+        $topLine.Append($reset)
+        $engine.WriteAt($this.X, $this.Y, $topLine.ToString())
+
+        # Title
+        $titleText = " $($this.Title) "
+        $titlePos = 2
+        $engine.WriteAt($this.X + $titlePos, $this.Y, $primaryColor + $titleText + $reset)
+
+        # Field count
+        $countText = "($($this._fields.Count) fields)"
+        $engine.WriteAt($this.X + $this.Width - $countText.Length - 2, $this.Y, $mutedColor + $countText + $reset)
+
+        $currentRow = 1
+
+        # Render each field
+        for ($i = 0; $i -lt $this._fields.Count; $i++) {
+            $field = $this._fields[$i]
+            $isFocused = ($i -eq $this._currentFieldIndex)
+
+            # Field row
+            $rowY = $this.Y + $currentRow
+
+            # Check for validation error
+            $hasError = $this._fieldErrors.ContainsKey($field.Name)
+
+            # Label row - left border
+            $fieldLine = [StringBuilder]::new(512)
+            if ($hasError) {
+                $fieldLine.Append($errorColor)
+            } else {
+                $fieldLine.Append($borderColor)
+            }
+            $fieldLine.Append($this.GetBoxChar('single_vertical'))
+
+            # Label
+            $label = Get-SafeProperty $field 'Label'
+            $isRequired = Get-SafeProperty $field 'Required' $false
+            if ($isRequired) {
+                $label += " *"
+            }
+
+            $fieldLine.Append(" ")
+            if ($hasError) {
+                # H-UI-3: Red text for invalid field label
+                $fieldLine.Append($errorColor)
+            } elseif ($isFocused) {
+                $fieldLine.Append($primaryColor)
+            } else {
+                $fieldLine.Append($mutedColor)
+            }
+            $fieldLine.Append($this.PadText($label + ":", 20, 'left'))
+
+            # Value display - for text/date fields, render the TextInput widget inline
+            if (($field.Type -eq 'text' -or $field.Type -eq 'textarea' -or $field.Type -eq 'date' -or $field.Type -eq 'tags') -and $isFocused -and $this._fieldWidgets.ContainsKey($field.Name)) {
+                # Render TextInput widget inline for focused text/textarea/date/tags fields
+                $widget = $this._fieldWidgets[$field.Name]
+                if ($widget.GetType().Name -eq 'TextInput') {
+                    $fieldLine.Append($textColor)
+                    $text = $widget.GetText()
+                    $cursorPos = $widget._cursorPosition
+
+                    # Show text with cursor
+                    if ($cursorPos -le $text.Length) {
+                        $beforeCursor = $text.Substring(0, $cursorPos)
+                        $atCursor = if ($cursorPos -lt $text.Length) { $text.Substring($cursorPos, 1) } else { " " }
+                        $afterCursor = if ($cursorPos -lt $text.Length - 1) { $text.Substring($cursorPos + 1) } else { "" }
+
+                        $fieldLine.Append($beforeCursor)
+                        $fieldLine.Append($highlightBg)
+                        $fieldLine.Append("`e[30m")
+                        $fieldLine.Append($atCursor)
+                        $fieldLine.Append($reset)
+                        $fieldLine.Append($textColor)
+                        $fieldLine.Append($afterCursor)
+                    } else {
+                        $fieldLine.Append($text)
+                    }
+                    $fieldLine.Append($reset)
+                } else {
+                    # Not a TextInput, show preview
+                    if ($isFocused) {
+                        $fieldLine.Append($highlightBg)
+                        $fieldLine.Append("`e[30m")
+                    } else {
+                        $fieldLine.Append($textColor)
+                    }
+                    $valuePreview = $this._GetFieldValuePreview($field)
+                    $fieldLine.Append($this.PadText($valuePreview, $this.Width - 24, 'left'))
+                    if ($isFocused) {
+                        $fieldLine.Append($reset)
+                    }
+                }
+            } else {
+                # Not focused or not text/date field - show preview
+                if ($isFocused) {
+                    $fieldLine.Append($highlightBg)
+                    $fieldLine.Append("`e[30m")
+                } else {
+                    $fieldLine.Append($textColor)
+                }
+
+                $valuePreview = $this._GetFieldValuePreview($field)
+                $fieldLine.Append($this.PadText($valuePreview, $this.Width - 24, 'left'))
+
+                if ($isFocused) {
+                    $fieldLine.Append($reset)
+                }
+            }
+
+            # Right border
+            if ($hasError) {
+                $fieldLine.Append($errorColor)
+            } else {
+                $fieldLine.Append($borderColor)
+            }
+            $fieldLine.Append($this.GetBoxChar('single_vertical'))
+            $fieldLine.Append($reset)
+
+            $engine.WriteAt($this.X, $rowY, $fieldLine.ToString())
+
+            $currentRow++
+
+            # Spacing row (H-UI-3: show error message below field if invalid)
+            $spacingLine = [StringBuilder]::new(512)
+            if ($hasError) {
+                $spacingLine.Append($errorColor)
+            } else {
+                $spacingLine.Append($borderColor)
+            }
+            $spacingLine.Append($this.GetBoxChar('single_vertical'))
+
+            # H-UI-3: Display per-field error message
+            if ($hasError) {
+                $errorMsg = $this._fieldErrors[$field.Name]
+                $spacingLine.Append(" ")
+                $spacingLine.Append($errorColor)
+                $spacingLine.Append($this.TruncateText($errorMsg, $this.Width - 4))
+                # Pad to width
+                $msgLen = $errorMsg.Length
+                if ($msgLen -lt $this.Width - 4) {
+                    $spacingLine.Append(" " * ($this.Width - 4 - $msgLen))
+                }
+                $spacingLine.Append(" ")
+            } else {
+                $spacingLine.Append(" " * ($this.Width - 2))
+            }
+
+            if ($hasError) {
+                $spacingLine.Append($errorColor)
+            } else {
+                $spacingLine.Append($borderColor)
+            }
+            $spacingLine.Append($this.GetBoxChar('single_vertical'))
+            $spacingLine.Append($reset)
+
+            $engine.WriteAt($this.X, $this.Y + $currentRow, $spacingLine.ToString())
+
+            $currentRow++
+        }
+
+        # Help text row
+        $helpRowY = $this.Y + $currentRow
+        $helpLine = [StringBuilder]::new(256)
+        $helpLine.Append($borderColor)
+        $helpLine.Append($this.GetBoxChar('single_vertical'))
+        $helpLine.Append(" ")
+        $helpLine.Append($mutedColor)
+        $helpText = "Tab: Next | Enter on Save button | Esc: Cancel"
+        $helpLine.Append($this.TruncateText($helpText, $this.Width - 4))
+        # Pad to width
+        $helpTextLen = $helpText.Length
+        if ($helpTextLen -lt $this.Width - 4) {
+            $helpLine.Append(" " * ($this.Width - 4 - $helpTextLen))
+        }
+        $helpLine.Append(" ")
+        $helpLine.Append($borderColor)
+        $helpLine.Append($this.GetBoxChar('single_vertical'))
+        $helpLine.Append($reset)
+        $engine.WriteAt($this.X, $helpRowY, $helpLine.ToString())
+
+        $currentRow++
+
+        # Validation errors row
+        $errorRowY = $this.Y + $currentRow
+        $errorLine = [StringBuilder]::new(256)
+        $errorLine.Append($borderColor)
+        $errorLine.Append($this.GetBoxChar('single_vertical'))
+
+        if ($this._validationErrors.Count -gt 0) {
+            $errorLine.Append(" ")
+            $errorLine.Append($errorColor)
+            $errorMsg = $this._validationErrors[0]  # Show first error
+            $errorLine.Append($this.TruncateText($errorMsg, $this.Width - 4))
+            # Pad to width
+            $errorMsgLen = $errorMsg.Length
+            if ($errorMsgLen -lt $this.Width - 4) {
+                $errorLine.Append(" " * ($this.Width - 4 - $errorMsgLen))
+            }
+            $errorLine.Append(" ")
+        } else {
+            $errorLine.Append(" " * ($this.Width - 2))
+        }
+
+        $errorLine.Append($borderColor)
+        $errorLine.Append($this.GetBoxChar('single_vertical'))
+        $errorLine.Append($reset)
+        $engine.WriteAt($this.X, $errorRowY, $errorLine.ToString())
+
+        $currentRow++
+
+        # Bottom border
+        $bottomLine = [StringBuilder]::new(256)
+        $bottomLine.Append($borderColor)
+        $bottomLine.Append($this.BuildBoxBorder($this.Width, 'bottom', 'single'))
+        $bottomLine.Append($reset)
+        $engine.WriteAt($this.X, $this.Y + $currentRow, $bottomLine.ToString())
     }
+
 
     # === Private Helper Methods ===
 

@@ -585,20 +585,6 @@ class TextInput : PmcWidget {
             $bottomLine.Append($reset)
             $engine.WriteAt($this.X, $this.Y + 2, $bottomLine.ToString())
         }
-        }
-        if ($output) {
-            $lines = $output -split "\n"
-            foreach ($line in $lines) {
-                if ($line -match '\[(\d+);(\d+)H') {
-                    $row = [int]$matches[1] - 1
-                    $col = [int]$matches[2] - 1
-                    $cleanLine = $line -replace '\[\d+;\d+H', ''
-                    if ($cleanLine) {
-                        $engine.WriteAt($col, $row, $cleanLine)
-                    }
-                }
-            }
-        }
     }
 
     # === Private Helper Methods ===

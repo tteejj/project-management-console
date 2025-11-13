@@ -623,25 +623,257 @@ class TagEditor : PmcWidget {
     RenderEngine instance to write to
     #>
     [void] RenderToEngine([object]$engine) {
-        # Parse OnRender/Render output and write to engine
-        # TODO: Convert to direct engine.WriteAt() calls for optimal performance
-        # Render to string then parse to engine
-        $output = $this.Render()
-        if ([string]::IsNullOrEmpty($output)) {
-            $output = $this.Render()
-        }
-        if ($output) {
-            $lines = $output -split "\n"
-            foreach ($line in $lines) {
-                if ($line -match '\[(\d+);(\d+)H') {
-                    $row = [int]$matches[1] - 1
-                    $col = [int]$matches[2] - 1
-                    $cleanLine = $line -replace '\[\d+;\d+H', ''
-                    if ($cleanLine) {
-                        $engine.WriteAt($col, $row, $cleanLine)
-                    }
+        # Colors from theme
+        $borderColor = $this.GetThemedAnsi('Border', $false)
+        $textColor = $this.GetThemedAnsi('Text', $false)
+        $primaryColor = $this.GetThemedAnsi('Primary', $false)
+        $mutedColor = $this.GetThemedAnsi('Muted', $false)
+        $errorColor = $this.GetThemedAnsi('Error', $false)
+        $successColor = $this.GetThemedAnsi('Success', $false)
+        $reset = "`e[0m"
+
+        # Draw top border
+        $topLine = [StringBuilder]::new(256)
+        $topLine.Append($borderColor)
+        $topLine.Append($this.BuildBoxBorder($this.Width, 'top', 'single'))
+        $topLine.Append($reset)
+        $engine.WriteAt($this.X, $this.Y, $topLine.ToString())
+
+        # Title
+        $title = " $($this.Label) "
+        $titlePos = 2
+        $engine.WriteAt($this.X + $titlePos, $this.Y, $primaryColor + $title + $reset)
+
+        # Tag count
+        $countText = "($($this._selectedTags.Count)/$($this.MaxTags))"
+        $engine.WriteAt($this.X + $this.Width - $countText.Length - 2, $this.Y, $mutedColor + $countText + $reset)
+
+        # Chips and input area (rows 1-2)
+        $chipRow1Y = $this.Y + 1
+        $chipRow2Y = $this.Y + 2
+        $innerWidth = $this.Width - 4
+        $currentX = 0
+        $currentY = 0
+
+        # Build first chip line
+        $chipLine = [StringBuilder]::new(256)
+        $chipLine.Append($borderColor)
+        $chipLine.Append($this.GetBoxChar('single_vertical'))
+        $chipLine.Append(" ")
+
+        # Render chips
+        foreach ($tag in $this._selectedTags) {
+            $chipText = $this._FormatChip($tag)
+            $chipDisplayLen = $tag.Length + 3  # [tag] length
+
+            # Check if we need to wrap to next row
+            if ($currentX + $chipDisplayLen -gt $innerWidth) {
+                # Fill rest of current row
+                $padding = $innerWidth - $currentX
+                $chipLine.Append(" " * $padding)
+                $chipLine.Append(" ")
+                $chipLine.Append($borderColor)
+                $chipLine.Append($this.GetBoxChar('single_vertical'))
+                $chipLine.Append($reset)
+
+                # Write current line
+                $engine.WriteAt($this.X, $chipRow1Y + $currentY, $chipLine.ToString())
+
+                # Move to next row
+                $currentY++
+                $currentX = 0
+
+                if ($currentY -ge 2) {
+                    # Out of space, stop rendering chips
+                    break
                 }
+
+                # Start new line
+                $chipLine = [StringBuilder]::new(256)
+                $chipLine.Append($borderColor)
+                $chipLine.Append($this.GetBoxChar('single_vertical'))
+                $chipLine.Append(" ")
             }
+
+            # Render chip
+            $chipColor = $this._GetChipColor($tag)
+            $chipLine.Append($chipColor)
+            $chipLine.Append($chipText)
+            $chipLine.Append($reset)
+            $chipLine.Append(" ")
+
+            $currentX += $chipDisplayLen + 1  # +1 for space
+        }
+
+        # Input field on same row or next row
+        $inputFieldY = $chipRow1Y + $currentY
+        $inputStartX = $currentX
+
+        # Check if we need new row for input
+        $inputSpaceNeeded = 15  # Minimum space for input
+        if ($inputStartX + $inputSpaceNeeded -gt $innerWidth) {
+            # Fill rest of current row
+            if ($currentX -lt $innerWidth) {
+                $padding = $innerWidth - $currentX
+                $chipLine.Append(" " * $padding)
+            }
+            $chipLine.Append(" ")
+            $chipLine.Append($borderColor)
+            $chipLine.Append($this.GetBoxChar('single_vertical'))
+            $chipLine.Append($reset)
+
+            # Write current line
+            $engine.WriteAt($this.X, $chipRow1Y + $currentY, $chipLine.ToString())
+
+            # Move input to next row
+            $currentY++
+            $inputFieldY = $chipRow1Y + $currentY
+            $inputStartX = 0
+
+            # Start new line
+            $chipLine = [StringBuilder]::new(256)
+            $chipLine.Append($borderColor)
+            $chipLine.Append($this.GetBoxChar('single_vertical'))
+            $chipLine.Append(" ")
+        }
+
+        # Render input field
+        if ($inputFieldY -lt $chipRow2Y + 1) {
+            if ([string]::IsNullOrEmpty($this._inputText)) {
+                $chipLine.Append($mutedColor)
+                $chipLine.Append("type tag...")
+                $inputDisplayLen = 11
+            } else {
+                $chipLine.Append($textColor)
+
+                # Render text with cursor
+                $displayText = $this._inputText
+                $maxInputWidth = $innerWidth - $inputStartX
+
+                if ($displayText.Length -gt $maxInputWidth) {
+                    $displayText = $displayText.Substring(0, $maxInputWidth)
+                }
+
+                # Text before cursor
+                if ($this._cursorPosition -gt 0 -and $this._cursorPosition -le $displayText.Length) {
+                    $chipLine.Append($displayText.Substring(0, $this._cursorPosition))
+                }
+
+                # Cursor and text after
+                if ($this._cursorPosition -lt $displayText.Length) {
+                    # Cursor on character
+                    $chipLine.Append("`e[7m")
+                    $chipLine.Append($displayText[$this._cursorPosition])
+                    $chipLine.Append("`e[27m")
+
+                    # Text after cursor
+                    if ($this._cursorPosition + 1 -lt $displayText.Length) {
+                        $chipLine.Append($displayText.Substring($this._cursorPosition + 1))
+                    }
+                } else {
+                    # Cursor at end - show block cursor
+                    $chipLine.Append("`e[7m `e[27m")
+                }
+
+                $inputDisplayLen = $displayText.Length + 1
+            }
+
+            # Padding for input row
+            $remainingSpace = $innerWidth - $inputStartX - $inputDisplayLen
+            if ($remainingSpace -gt 0) {
+                $chipLine.Append(" " * $remainingSpace)
+            }
+        }
+
+        # Complete current line
+        $chipLine.Append(" ")
+        $chipLine.Append($borderColor)
+        $chipLine.Append($this.GetBoxChar('single_vertical'))
+        $chipLine.Append($reset)
+        $engine.WriteAt($this.X, $inputFieldY, $chipLine.ToString())
+
+        # Complete all rows with borders
+        for ($row = 0; $row -le 1; $row++) {
+            $rowY = $chipRow1Y + $row
+            if ($rowY -ne $inputFieldY) {
+                # Empty row
+                $emptyLine = [StringBuilder]::new(256)
+                $emptyLine.Append($borderColor)
+                $emptyLine.Append($this.GetBoxChar('single_vertical'))
+                $emptyLine.Append(" " * ($this.Width - 2))
+                $emptyLine.Append($this.GetBoxChar('single_vertical'))
+                $emptyLine.Append($reset)
+                $engine.WriteAt($this.X, $rowY, $emptyLine.ToString())
+            }
+        }
+
+        # Autocomplete dropdown (if shown)
+        if ($this._showAutocomplete -and $this._autocompleteMatches.Count -gt 0) {
+            $acRow = $chipRow2Y + 1
+            $maxAcItems = [Math]::Min(3, $this._autocompleteMatches.Count)
+
+            for ($i = 0; $i -lt $maxAcItems; $i++) {
+                $acY = $acRow + $i
+                if ($acY -ge $this.Y + $this.Height - 1) {
+                    break
+                }
+
+                $acLine = [StringBuilder]::new(256)
+                $acLine.Append($borderColor)
+                $acLine.Append($this.GetBoxChar('single_vertical'))
+                $acLine.Append("   ")
+
+                $tag = $this._autocompleteMatches[$i]
+                if ($i -eq $this._selectedAutocompleteIndex) {
+                    $acLine.Append($this.GetThemedAnsi('Primary', $true))
+                    $acLine.Append("`e[30m")
+                } else {
+                    $acLine.Append($mutedColor)
+                }
+
+                $acLine.Append($this.TruncateText($tag, $this.Width - 6))
+
+                $displayLen = [Math]::Min($tag.Length, $this.Width - 6)
+                $padding = $this.Width - 6 - $displayLen
+                if ($padding -gt 0) {
+                    $acLine.Append(" " * $padding)
+                }
+
+                $acLine.Append($reset)
+                $acLine.Append(" ")
+                $acLine.Append($borderColor)
+                $acLine.Append($this.GetBoxChar('single_vertical'))
+                $acLine.Append($reset)
+                $engine.WriteAt($this.X, $acY, $acLine.ToString())
+            }
+        }
+
+        # Help/status row
+        $helpRowY = $this.Y + $this.Height - 2
+        $helpLine = [StringBuilder]::new(256)
+        $helpLine.Append($borderColor)
+        $helpLine.Append($this.GetBoxChar('single_vertical'))
+        $helpLine.Append(" ")
+        $helpLine.Append($mutedColor)
+        $helpText = "Tab/Enter=Add | Backspace=Remove | Esc=Done"
+        $helpLine.Append($this.TruncateText($helpText, $this.Width - 4))
+        $helpLine.Append(" ")
+        $helpLine.Append($borderColor)
+        $helpLine.Append($this.GetBoxChar('single_vertical'))
+        $helpLine.Append($reset)
+        $engine.WriteAt($this.X, $helpRowY, $helpLine.ToString())
+
+        # Bottom border
+        $bottomLine = [StringBuilder]::new(256)
+        $bottomLine.Append($borderColor)
+        $bottomLine.Append($this.BuildBoxBorder($this.Width, 'bottom', 'single'))
+        $bottomLine.Append($reset)
+        $engine.WriteAt($this.X, $this.Y + $this.Height - 1, $bottomLine.ToString())
+
+        # Error message in bottom border
+        if (-not [string]::IsNullOrWhiteSpace($this._errorMessage)) {
+            $errorMsg = " $($this._errorMessage) "
+            $engine.WriteAt($this.X + 2, $this.Y + $this.Height - 1, $errorColor + $this.TruncateText($errorMsg, $this.Width - 4) + $reset)
         }
     }
 

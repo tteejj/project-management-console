@@ -495,26 +495,261 @@ class ProjectPicker : PmcWidget {
     RenderEngine instance to write to
     #>
     [void] RenderToEngine([object]$engine) {
-        # Parse OnRender/Render output and write to engine
-        # TODO: Convert to direct engine.WriteAt() calls for optimal performance
-        # Render to string then parse to engine
-        $output = $this.Render()
-        if ([string]::IsNullOrEmpty($output)) {
-            $output = $this.Render()
+        # Colors from theme
+        $borderColor = $this.GetThemedAnsi('Border', $false)
+        $textColor = $this.GetThemedAnsi('Text', $false)
+        $primaryColor = $this.GetThemedAnsi('Primary', $false)
+        $mutedColor = $this.GetThemedAnsi('Muted', $false)
+        $errorColor = $this.GetThemedAnsi('Error', $false)
+        $successColor = $this.GetThemedAnsi('Success', $false)
+        $highlightBg = $this.GetThemedAnsi('Primary', $true)
+        $reset = "`e[0m"
+
+        # Top border
+        $topLine = [StringBuilder]::new(256)
+        $topLine.Append($borderColor)
+        $topLine.Append($this.BuildBoxBorder($this.Width, 'top', 'single'))
+        $topLine.Append($reset)
+        $engine.WriteAt($this.X, $this.Y, $topLine.ToString())
+
+        # Title
+        $title = if ($this._isCreateMode) { "Create New Project" } else { $this.Label }
+        $titlePos = 2
+        $engine.WriteAt($this.X + $titlePos, $this.Y, $primaryColor + " $title " + $reset)
+
+        # Project count (if not create mode)
+        if (-not $this._isCreateMode) {
+            $countText = "($($this._filteredProjects.Count))"
+            $engine.WriteAt($this.X + $this.Width - $countText.Length - 2, $this.Y, $mutedColor + $countText + $reset)
         }
-        if ($output) {
-            $lines = $output -split "\n"
-            foreach ($line in $lines) {
-                if ($line -match '\[(\d+);(\d+)H') {
-                    $row = [int]$matches[1] - 1
-                    $col = [int]$matches[2] - 1
-                    $cleanLine = $line -replace '\[\d+;\d+H', ''
-                    if ($cleanLine) {
-                        $engine.WriteAt($col, $row, $cleanLine)
-                    }
+
+        # Content area
+        if ($this._isCreateMode) {
+            $this._RenderCreateModeToEngine($engine, $borderColor, $textColor, $mutedColor, $reset)
+        } else {
+            $this._RenderSelectModeToEngine($engine, $borderColor, $textColor, $primaryColor, $mutedColor, $highlightBg, $reset)
+        }
+
+        # Bottom border
+        $bottomLine = [StringBuilder]::new(256)
+        $bottomLine.Append($borderColor)
+        $bottomLine.Append($this.BuildBoxBorder($this.Width, 'bottom', 'single'))
+        $bottomLine.Append($reset)
+        $engine.WriteAt($this.X, $this.Y + $this.Height - 1, $bottomLine.ToString())
+
+        # Error message in bottom border (if present)
+        if (-not [string]::IsNullOrWhiteSpace($this._errorMessage)) {
+            $errorMsg = " $($this._errorMessage) "
+            $engine.WriteAt($this.X + 2, $this.Y + $this.Height - 1, $errorColor + $this.TruncateText($errorMsg, $this.Width - 4) + $reset)
+        }
+    }
+
+    <#
+    .SYNOPSIS
+    Render create mode UI to engine
+
+    .PARAMETER engine
+    RenderEngine instance
+
+    .PARAMETER borderColor, textColor, mutedColor, reset
+    Theme colors
+    #>
+    hidden [void] _RenderCreateModeToEngine([object]$engine, [string]$borderColor, [string]$textColor, [string]$mutedColor, [string]$reset) {
+        $currentRow = 1
+
+        # Input row
+        $inputLine = [StringBuilder]::new(256)
+        $inputLine.Append($borderColor)
+        $inputLine.Append($this.GetBoxChar('single_vertical'))
+        $inputLine.Append(" ")
+
+        $innerWidth = $this.Width - 4
+        if ([string]::IsNullOrEmpty($this._createText)) {
+            $inputLine.Append($mutedColor)
+            $inputLine.Append($this.TruncateText("Enter project name...", $innerWidth))
+        } else {
+            $inputLine.Append($textColor)
+            $displayText = $this._createText
+            if ($displayText.Length -gt $innerWidth) {
+                $displayText = $displayText.Substring(0, $innerWidth)
+            }
+
+            # Text before cursor
+            if ($this._createCursorPos -gt 0 -and $this._createCursorPos -le $displayText.Length) {
+                $inputLine.Append($displayText.Substring(0, $this._createCursorPos))
+            }
+
+            # Cursor
+            if ($this._createCursorPos -lt $displayText.Length) {
+                $inputLine.Append("`e[7m")
+                $inputLine.Append($displayText[$this._createCursorPos])
+                $inputLine.Append("`e[27m")
+
+                if ($this._createCursorPos + 1 -lt $displayText.Length) {
+                    $inputLine.Append($displayText.Substring($this._createCursorPos + 1))
                 }
+            } elseif ($this._createCursorPos -eq $displayText.Length) {
+                $inputLine.Append($displayText)
+                $inputLine.Append("`e[7m `e[27m")
+            }
+
+            # Padding
+            $textLen = $displayText.Length
+            $padding = $innerWidth - $textLen - 1
+            if ($padding -gt 0) {
+                $inputLine.Append(" " * $padding)
             }
         }
+
+        $inputLine.Append(" ")
+        $inputLine.Append($borderColor)
+        $inputLine.Append($this.GetBoxChar('single_vertical'))
+        $inputLine.Append($reset)
+        $engine.WriteAt($this.X, $this.Y + $currentRow, $inputLine.ToString())
+
+        $currentRow++
+
+        # Instructions row
+        $instLine = [StringBuilder]::new(256)
+        $instLine.Append($borderColor)
+        $instLine.Append($this.GetBoxChar('single_vertical'))
+        $instLine.Append(" ")
+        $instLine.Append($mutedColor)
+        $instLine.Append($this.TruncateText("Enter=Create | Esc=Cancel", $this.Width - 4))
+        $instLine.Append(" ")
+        $instLine.Append($borderColor)
+        $instLine.Append($this.GetBoxChar('single_vertical'))
+        $instLine.Append($reset)
+        $engine.WriteAt($this.X, $this.Y + $currentRow, $instLine.ToString())
+
+        $currentRow++
+
+        # Fill remaining rows
+        $emptyLine = [StringBuilder]::new(256)
+        $emptyLine.Append($borderColor)
+        $emptyLine.Append($this.GetBoxChar('single_vertical'))
+        $emptyLine.Append(" " * ($this.Width - 2))
+        $emptyLine.Append($this.GetBoxChar('single_vertical'))
+        $emptyLine.Append($reset)
+
+        for ($i = $currentRow; $i -lt $this.Height - 1; $i++) {
+            $engine.WriteAt($this.X, $this.Y + $i, $emptyLine.ToString())
+        }
+    }
+
+    <#
+    .SYNOPSIS
+    Render select mode UI to engine
+
+    .PARAMETER engine
+    RenderEngine instance
+
+    .PARAMETER borderColor, textColor, primaryColor, mutedColor, highlightBg, reset
+    Theme colors
+    #>
+    hidden [void] _RenderSelectModeToEngine([object]$engine, [string]$borderColor, [string]$textColor, [string]$primaryColor, [string]$mutedColor, [string]$highlightBg, [string]$reset) {
+        $currentRow = 1
+
+        # Search filter row
+        $searchLine = [StringBuilder]::new(256)
+        $searchLine.Append($borderColor)
+        $searchLine.Append($this.GetBoxChar('single_vertical'))
+        $searchLine.Append(" ")
+
+        if ([string]::IsNullOrWhiteSpace($this._searchText)) {
+            $searchLine.Append($mutedColor)
+            $searchLine.Append($this.TruncateText("Type to filter...", $this.Width - 4))
+        } else {
+            $searchLine.Append($primaryColor)
+            $searchLine.Append($this.TruncateText($this._searchText, $this.Width - 4))
+        }
+
+        $searchLine.Append(" ")
+        $searchLine.Append($borderColor)
+        $searchLine.Append($this.GetBoxChar('single_vertical'))
+        $searchLine.Append($reset)
+        $engine.WriteAt($this.X, $this.Y + $currentRow, $searchLine.ToString())
+
+        $currentRow++
+
+        # Project list
+        $maxVisibleItems = $this.Height - 4
+        $visibleProjects = @()
+        if ($this._filteredProjects.Count -gt 0) {
+            $endIndex = [Math]::Min($this._scrollOffset + $maxVisibleItems, $this._filteredProjects.Count)
+            for ($i = $this._scrollOffset; $i -lt $endIndex; $i++) {
+                $visibleProjects += $this._filteredProjects[$i]
+            }
+        }
+
+        # Render visible project items
+        for ($i = 0; $i -lt $maxVisibleItems; $i++) {
+            $rowY = $this.Y + $currentRow + $i
+            $projectLine = [StringBuilder]::new(256)
+            $projectLine.Append($borderColor)
+            $projectLine.Append($this.GetBoxChar('single_vertical'))
+
+            if ($i -lt $visibleProjects.Count) {
+                $projectName = $visibleProjects[$i]
+                $isSelected = ($this._scrollOffset + $i) -eq $this._selectedIndex
+
+                if ($isSelected) {
+                    $projectLine.Append($highlightBg)
+                    $projectLine.Append("`e[30m")
+                } else {
+                    $projectLine.Append($textColor)
+                }
+
+                # L-POL-8: Show task count after project name
+                $taskCount = $this._GetTaskCountForProject($projectName)
+                $displayName = if ($taskCount -ge 0) {
+                    "$projectName ($taskCount)"
+                } else {
+                    $projectName
+                }
+
+                $projectLine.Append(" ")
+                $projectLine.Append($this.TruncateText($displayName, $this.Width - 4))
+
+                # Padding
+                $textLen = [Math]::Min($displayName.Length, $this.Width - 4)
+                $padding = $this.Width - 3 - $textLen
+                if ($padding -gt 0) {
+                    $projectLine.Append(" " * $padding)
+                }
+
+                $projectLine.Append($reset)
+            } else {
+                # Empty row
+                $projectLine.Append(" " * ($this.Width - 2))
+            }
+
+            $projectLine.Append($borderColor)
+            $projectLine.Append($this.GetBoxChar('single_vertical'))
+            $projectLine.Append($reset)
+            $engine.WriteAt($this.X, $rowY, $projectLine.ToString())
+        }
+
+        $currentRow += $maxVisibleItems
+
+        # Help row
+        $helpLine = [StringBuilder]::new(256)
+        $helpLine.Append($borderColor)
+        $helpLine.Append($this.GetBoxChar('single_vertical'))
+        $helpLine.Append(" ")
+        $helpLine.Append($mutedColor)
+
+        if ($this._filteredProjects.Count -eq 0) {
+            $helpLine.Append($this.TruncateText("Alt+N=Create", $this.Width - 4))
+        } else {
+            $helpLine.Append($this.TruncateText("Enter=Select | Alt+N=Create", $this.Width - 4))
+        }
+
+        $helpLine.Append(" ")
+        $helpLine.Append($borderColor)
+        $helpLine.Append($this.GetBoxChar('single_vertical'))
+        $helpLine.Append($reset)
+        $engine.WriteAt($this.X, $this.Y + $currentRow, $helpLine.ToString())
     }
 
     # === Private Helper Methods ===

@@ -260,26 +260,240 @@ class DatePicker : PmcWidget {
     RenderEngine instance to write to
     #>
     [void] RenderToEngine([object]$engine) {
-        # Parse OnRender/Render output and write to engine
-        # TODO: Convert to direct engine.WriteAt() calls for optimal performance
-        # Render to string then parse to engine
-        $output = $this.Render()
-        if ([string]::IsNullOrEmpty($output)) {
-            $output = $this.Render()
+        # Colors from theme
+        $borderColor = $this.GetThemedAnsi('Border', $false)
+        $textColor = $this.GetThemedAnsi('Text', $false)
+        $primaryColor = $this.GetThemedAnsi('Primary', $false)
+        $mutedColor = $this.GetThemedAnsi('Muted', $false)
+        $errorColor = $this.GetThemedAnsi('Error', $false)
+        $successColor = $this.GetThemedAnsi('Success', $false)
+        $reset = "`e[0m"
+
+        # Title
+        $title = "Select Date"
+
+        # Top border with title
+        $topLine = [StringBuilder]::new(256)
+        $topLine.Append($borderColor)
+        $topLine.Append($this.BuildBoxBorder($this.Width, 'top', 'single'))
+        $topLine.Append($reset)
+        $engine.WriteAt($this.X, $this.Y, $topLine.ToString())
+
+        # Title centered in top border
+        $titlePos = [Math]::Floor(($this.Width - $title.Length) / 2)
+        $engine.WriteAt($this.X + $titlePos, $this.Y, $primaryColor + $title + $reset)
+
+        # Mode indicator
+        $mode = if ($this._isCalendarMode) { "Calendar" } else { "Text" }
+        $modeText = "[$mode]"
+        $engine.WriteAt($this.X + $this.Width - $modeText.Length - 1, $this.Y, $mutedColor + $modeText + $reset)
+
+        # Current value display (row 1)
+        $currentValue = "Current: " + $this._selectedDate.ToString("yyyy-MM-dd (ddd)")
+        $row1Line = [StringBuilder]::new(256)
+        $row1Line.Append($borderColor)
+        $row1Line.Append($this.GetBoxChar('single_vertical'))
+        $row1Line.Append($textColor)
+        $row1Line.Append(" " + $this.PadText($currentValue, $this.Width - 3, 'left'))
+        $row1Line.Append($borderColor)
+        $row1Line.Append($this.GetBoxChar('single_vertical'))
+        $row1Line.Append($reset)
+        $engine.WriteAt($this.X, $this.Y + 1, $row1Line.ToString())
+
+        # Content area (rows 2-10)
+        if ($this._isCalendarMode) {
+            $this._RenderCalendarToEngine($engine, $borderColor, $textColor, $primaryColor, $mutedColor, $successColor, $reset)
+        } else {
+            $this._RenderTextModeToEngine($engine, $borderColor, $textColor, $primaryColor, $errorColor, $reset)
         }
-        if ($output) {
-            $lines = $output -split "\n"
-            foreach ($line in $lines) {
-                if ($line -match '\[(\d+);(\d+)H') {
-                    $row = [int]$matches[1] - 1
-                    $col = [int]$matches[2] - 1
-                    $cleanLine = $line -replace '\[\d+;\d+H', ''
-                    if ($cleanLine) {
-                        $engine.WriteAt($col, $row, $cleanLine)
+
+        # Help text (row 11)
+        $helpText = "Tab: Toggle mode | Enter: Confirm | Esc: Cancel"
+        $helpLine = [StringBuilder]::new(256)
+        $helpLine.Append($borderColor)
+        $helpLine.Append($this.GetBoxChar('single_vertical'))
+        $helpLine.Append($mutedColor)
+        $helpLine.Append(" " + $this.TruncateText($helpText, $this.Width - 3))
+        $helpLine.Append($borderColor)
+        $helpLine.Append($reset)
+        $engine.WriteAt($this.X, $this.Y + 11, $helpLine.ToString())
+        $engine.WriteAt($this.X + $this.Width - 1, $this.Y + 11, $borderColor + $this.GetBoxChar('single_vertical') + $reset)
+
+        # Error message (row 12) if present
+        $errorLine = [StringBuilder]::new(256)
+        $errorLine.Append($borderColor)
+        $errorLine.Append($this.GetBoxChar('single_vertical'))
+        if ($this._errorMessage) {
+            $errorLine.Append($errorColor)
+            $errorLine.Append(" " + $this.TruncateText($this._errorMessage, $this.Width - 3))
+        } else {
+            $errorLine.Append(" " * ($this.Width - 2))
+        }
+        $errorLine.Append($borderColor)
+        $errorLine.Append($reset)
+        $engine.WriteAt($this.X, $this.Y + 12, $errorLine.ToString())
+        $engine.WriteAt($this.X + $this.Width - 1, $this.Y + 12, $borderColor + $this.GetBoxChar('single_vertical') + $reset)
+
+        # Bottom border
+        $bottomLine = [StringBuilder]::new(256)
+        $bottomLine.Append($borderColor)
+        $bottomLine.Append($this.BuildBoxBorder($this.Width, 'bottom', 'single'))
+        $bottomLine.Append($reset)
+        $engine.WriteAt($this.X, $this.Y + 13, $bottomLine.ToString())
+    }
+
+    hidden [void] _RenderTextModeToEngine([object]$engine, [string]$borderColor, [string]$textColor, [string]$primaryColor, [string]$errorColor, [string]$reset) {
+        # Instructions (row 2)
+        $instructions = "Type: today, tomorrow, next fri, +7, eom, YYYY-MM-DD"
+        $instLine = [StringBuilder]::new(256)
+        $instLine.Append($borderColor)
+        $instLine.Append($this.GetBoxChar('single_vertical'))
+        $instLine.Append($textColor)
+        $instLine.Append(" " + $this.TruncateText($instructions, $this.Width - 3))
+        $instLine.Append($borderColor)
+        $instLine.Append($reset)
+        $engine.WriteAt($this.X, $this.Y + 2, $instLine.ToString())
+        $engine.WriteAt($this.X + $this.Width - 1, $this.Y + 2, $borderColor + $this.GetBoxChar('single_vertical') + $reset)
+
+        # Empty row 3
+        $emptyLine = [StringBuilder]::new(256)
+        $emptyLine.Append($borderColor)
+        $emptyLine.Append($this.GetBoxChar('single_vertical'))
+        $emptyLine.Append(" " * ($this.Width - 2))
+        $emptyLine.Append($this.GetBoxChar('single_vertical'))
+        $emptyLine.Append($reset)
+        $engine.WriteAt($this.X, $this.Y + 3, $emptyLine.ToString())
+
+        # Input field (row 4)
+        $inputLine = [StringBuilder]::new(256)
+        $inputLine.Append($borderColor)
+        $inputLine.Append($this.GetBoxChar('single_vertical'))
+        $inputLine.Append($primaryColor)
+        $inputLine.Append(" Input: ")
+        $inputLine.Append($textColor)
+
+        $displayInput = $this._textInput
+        $maxInputWidth = $this.Width - 11
+        if ($displayInput.Length -gt $maxInputWidth) {
+            $displayInput = $displayInput.Substring($displayInput.Length - $maxInputWidth)
+        }
+        $inputLine.Append($displayInput)
+        $inputLine.Append("_")
+        $inputLine.Append(" " * [Math]::Max(0, $maxInputWidth - $displayInput.Length - 1))
+        $inputLine.Append($borderColor)
+        $inputLine.Append($reset)
+        $engine.WriteAt($this.X, $this.Y + 4, $inputLine.ToString())
+        $engine.WriteAt($this.X + $this.Width - 1, $this.Y + 4, $borderColor + $this.GetBoxChar('single_vertical') + $reset)
+
+        # Empty row 5
+        $engine.WriteAt($this.X, $this.Y + 5, $emptyLine.ToString())
+
+        # Examples (rows 6-10)
+        $examples = @(
+            "Examples:",
+            "  today, tomorrow",
+            "  next monday, next fri",
+            "  +7 (7 days from now)",
+            "  eom (end of month)",
+            "  2025-03-15"
+        )
+
+        for ($i = 0; $i -lt $examples.Count; $i++) {
+            $row = $this.Y + 6 + $i
+            $exLine = [StringBuilder]::new(256)
+            $exLine.Append($borderColor)
+            $exLine.Append($this.GetBoxChar('single_vertical'))
+            $exLine.Append($textColor)
+            $exLine.Append(" " + $this.PadText($examples[$i], $this.Width - 3, 'left'))
+            $exLine.Append($borderColor)
+            $exLine.Append($reset)
+            $engine.WriteAt($this.X, $row, $exLine.ToString())
+            $engine.WriteAt($this.X + $this.Width - 1, $row, $borderColor + $this.GetBoxChar('single_vertical') + $reset)
+        }
+    }
+
+    hidden [void] _RenderCalendarToEngine([object]$engine, [string]$borderColor, [string]$textColor, [string]$primaryColor, [string]$mutedColor, [string]$successColor, [string]$reset) {
+        # Month/Year header (row 2)
+        $monthYear = $this._calendarMonth.ToString("MMMM yyyy")
+        $monthLine = [StringBuilder]::new(256)
+        $monthLine.Append($borderColor)
+        $monthLine.Append($this.GetBoxChar('single_vertical'))
+        $monthLine.Append($primaryColor)
+        $monthLine.Append(" " + $this.PadText($monthYear, $this.Width - 3, 'center'))
+        $monthLine.Append($borderColor)
+        $monthLine.Append($reset)
+        $engine.WriteAt($this.X, $this.Y + 2, $monthLine.ToString())
+        $engine.WriteAt($this.X + $this.Width - 1, $this.Y + 2, $borderColor + $this.GetBoxChar('single_vertical') + $reset)
+
+        # Day names (row 3)
+        $dayNames = "Su Mo Tu We Th Fr Sa"
+        $dayLine = [StringBuilder]::new(256)
+        $dayLine.Append($borderColor)
+        $dayLine.Append($this.GetBoxChar('single_vertical'))
+        $dayLine.Append($primaryColor)
+        $dayLine.Append(" " + $this.PadText($dayNames, $this.Width - 3, 'center'))
+        $dayLine.Append($borderColor)
+        $dayLine.Append($reset)
+        $engine.WriteAt($this.X, $this.Y + 3, $dayLine.ToString())
+        $engine.WriteAt($this.X + $this.Width - 1, $this.Y + 3, $borderColor + $this.GetBoxChar('single_vertical') + $reset)
+
+        # Calendar grid (rows 4-9, 6 weeks max)
+        $firstDay = [DateTime]::new($this._calendarMonth.Year, $this._calendarMonth.Month, 1)
+        $daysInMonth = [DateTime]::DaysInMonth($this._calendarMonth.Year, $this._calendarMonth.Month)
+        $startDayOfWeek = [int]$firstDay.DayOfWeek
+        $today = [DateTime]::Today
+
+        for ($week = 0; $week -lt 6; $week++) {
+            $row = $this.Y + 4 + $week
+            $weekLine = [StringBuilder]::new(256)
+            $weekLine.Append($borderColor)
+            $weekLine.Append($this.GetBoxChar('single_vertical'))
+            $weekLine.Append(" ")
+            $weekLine.Append($textColor)
+
+            for ($dow = 0; $dow -lt 7; $dow++) {
+                $dayNum = ($week * 7 + $dow) - $startDayOfWeek + 1
+
+                if ($dayNum -ge 1 -and $dayNum -le $daysInMonth) {
+                    $thisDate = [DateTime]::new($this._calendarMonth.Year, $this._calendarMonth.Month, $dayNum)
+                    $dayStr = $dayNum.ToString().PadLeft(2)
+
+                    $isSelected = ($thisDate.Date -eq $this._selectedDate.Date)
+                    $isToday = ($thisDate.Date -eq $today)
+
+                    if ($isSelected) {
+                        $weekLine.Append($successColor + "[$dayStr]" + $textColor)
+                    } elseif ($isToday) {
+                        $weekLine.Append($primaryColor + " $dayStr " + $textColor)
+                    } else {
+                        $weekLine.Append(" $dayStr ")
                     }
+                } else {
+                    $weekLine.Append("    ")
                 }
             }
+
+            # Pad remaining width
+            $visibleLength = ($weekLine.ToString() -replace '\e\[[0-9;]*m', '').Length
+            $padding = [Math]::Max(0, $this.Width - 1 - $visibleLength)
+            $weekLine.Append(' ' * $padding)
+            $weekLine.Append($borderColor)
+            $weekLine.Append($reset)
+            $engine.WriteAt($this.X, $row, $weekLine.ToString())
+            $engine.WriteAt($this.X + $this.Width - 1, $row, $borderColor + $this.GetBoxChar('single_vertical') + $reset)
         }
+
+        # Navigation hints (row 10)
+        $hints = "Arrows: Navigate | PgUp/Dn: Month | Home/End: Month edges"
+        $hintLine = [StringBuilder]::new(256)
+        $hintLine.Append($borderColor)
+        $hintLine.Append($this.GetBoxChar('single_vertical'))
+        $hintLine.Append($mutedColor)
+        $hintLine.Append(" " + $this.TruncateText($hints, $this.Width - 3))
+        $hintLine.Append($borderColor)
+        $hintLine.Append($reset)
+        $engine.WriteAt($this.X, $this.Y + 10, $hintLine.ToString())
+        $engine.WriteAt($this.X + $this.Width - 1, $this.Y + 10, $borderColor + $this.GetBoxChar('single_vertical') + $reset)
     }
 
     # === Private Helper Methods ===
