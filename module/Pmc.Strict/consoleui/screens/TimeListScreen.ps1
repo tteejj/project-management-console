@@ -382,9 +382,8 @@ class TimeListScreen : StandardListScreen {
 
         # Dialog render loop
         while (-not $dialog.IsComplete) {
-            # Get theme from theme manager
-            $themeManager = [PmcThemeManager]::GetInstance()
-            $theme = $themeManager.GetTheme()
+            # Get theme from global theme manager
+            $theme = $global:Pmc.Theme.GetTheme()
 
             # Render dialog
             $termWidth = [Console]::WindowWidth

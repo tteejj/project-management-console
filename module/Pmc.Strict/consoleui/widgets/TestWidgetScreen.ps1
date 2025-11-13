@@ -274,8 +274,8 @@ function Test-WidgetCreation {
         Write-Host "    ✓ PmcLayoutManager created" -ForegroundColor Green
 
         Write-Host "  Creating PmcThemeManager..." -ForegroundColor Gray
-        $theme = [PmcThemeManager]::GetInstance()
-        Write-Host "    ✓ PmcThemeManager created" -ForegroundColor Green
+        $theme = $global:Pmc.Theme
+        Write-Host "    ✓ PmcThemeManager accessed" -ForegroundColor Green
 
         Write-Host "`n✓ All widget classes validated!" -ForegroundColor Green
         return $true

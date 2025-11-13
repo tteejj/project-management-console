@@ -152,9 +152,12 @@ class TaskListScreen : StandardListScreen {
 
     # Setup menu items using MenuRegistry
     hidden [void] _SetupMenus() {
-        # Get singleton MenuRegistry instance
-        . "$PSScriptRoot/../services/MenuRegistry.ps1"
-        $registry = [MenuRegistry]::GetInstance()
+        # Get MenuRegistry from DI container
+        if ($this.Container) {
+            $registry = $this.Container.Resolve('MenuRegistry')
+        } else {
+            $registry = $global:Pmc.Container.Resolve('MenuRegistry')
+        }
 
         # Load menu items from manifest (only if not already loaded)
         $tasksMenuItems = $registry.GetMenuItems('Tasks')

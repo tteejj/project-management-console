@@ -144,7 +144,7 @@ Phase 2: COMPLETE
 
     hidden [void] _SetTheme([string]$hex) {
         try {
-            $theme = [PmcThemeManager]::GetInstance()
+            $theme = $global:Pmc.Theme
             $theme.SetTheme($hex)
             $this.ShowSuccess("Theme changed to $hex")
         } catch {

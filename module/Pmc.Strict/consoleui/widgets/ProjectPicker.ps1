@@ -495,8 +495,8 @@ class ProjectPicker : PmcWidget {
     #>
     hidden [void] _LoadProjects() {
         try {
-            . "$PSScriptRoot/../services/TaskStore.ps1"
-            $store = [TaskStore]::GetInstance()
+            # Get TaskStore from global container
+            $store = $global:Pmc.Container.Resolve('TaskStore')
             $projectsData = $store.GetAllProjects()
 
             # FIX: Always include "(No Project)" option at the beginning
@@ -824,8 +824,8 @@ class ProjectPicker : PmcWidget {
     #>
     hidden [int] _GetTaskCountForProject([string]$projectName) {
         try {
-            . "$PSScriptRoot/../services/TaskStore.ps1"
-            $store = [TaskStore]::GetInstance()
+            # Get TaskStore from global container
+            $store = $global:Pmc.Container.Resolve('TaskStore')
             $allTasks = $store.GetAllTasks()
 
             if ($null -eq $allTasks) {
