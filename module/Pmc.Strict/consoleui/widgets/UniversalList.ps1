@@ -637,6 +637,34 @@ class UniversalList : PmcWidget {
         return $this._RenderList()
     }
 
+    # PERFORMANCE: Direct engine rendering (bypasses ANSI string building/parsing)
+    [void] OnRenderToEngine([object]$engine) {
+        # If inline editor is shown, render it instead
+        if ($this._showInlineEditor) {
+            # Inline editor still uses string path - parse its output
+            $output = $this._inlineEditor.Render()
+            if ($output) {
+                # Parse ANSI and write to engine
+                # Note: This is temporary until InlineEditor is also converted
+                $this._ParseAnsiToEngine($engine, $output)
+            }
+            return
+        }
+
+        # If filter panel is shown, render list + filter panel
+        if ($this.IsInFilterMode) {
+            $this._RenderListDirect($engine)
+            # Filter panel still uses string path
+            $filterOutput = $this._filterPanel.Render()
+            if ($filterOutput) {
+                $this._ParseAnsiToEngine($engine, $filterOutput)
+            }
+            return
+        }
+
+        $this._RenderListDirect($engine)
+    }
+
     # === Private Helper Methods ===
 
     <#
@@ -1298,5 +1326,181 @@ class UniversalList : PmcWidget {
                 # DON'T rethrow - UI callbacks must not crash
             }
         }
+    }
+
+    # ===== PERFORMANCE: Direct Engine Rendering Methods =====
+
+    # Parse ANSI string and write to engine (helper for child widgets not yet converted)
+    hidden [void] _ParseAnsiToEngine([object]$engine, [string]$ansiOutput) {
+        # Same logic as PmcScreen._ParseAnsiAndWrite
+        $pattern = "`e\[(\d+);(\d+)H"
+        $matches = [regex]::Matches($ansiOutput, $pattern)
+
+        if ($matches.Count -eq 0) {
+            if ($ansiOutput) {
+                $engine.WriteAt(0, 0, $ansiOutput)
+            }
+            return
+        }
+
+        for ($i = 0; $i -lt $matches.Count; $i++) {
+            $match = $matches[$i]
+            $row = [int]$match.Groups[1].Value
+            $col = [int]$match.Groups[2].Value
+            $x = $col - 1  # Convert to 0-based
+            $y = $row - 1
+
+            $startIndex = $match.Index + $match.Length
+            if ($i + 1 -lt $matches.Count) {
+                $endIndex = $matches[$i + 1].Index
+            } else {
+                $endIndex = $ansiOutput.Length
+            }
+
+            $content = $ansiOutput.Substring($startIndex, $endIndex - $startIndex)
+            if ($content) {
+                $engine.WriteAt($x, $y, $content)
+            }
+        }
+    }
+
+    # Render list directly to engine (no string building)
+    hidden [void] _RenderListDirect([object]$engine) {
+        # Colors from theme
+        $borderColor = $this.GetThemedAnsi('Border', $false)
+        $textColor = $this.GetThemedAnsi('Text', $false)
+        $primaryColor = $this.GetThemedAnsi('Primary', $false)
+        $mutedColor = $this.GetThemedAnsi('Muted', $false)
+        $errorColor = $this.GetThemedAnsi('Error', $false)
+        $successColor = $this.GetThemedAnsi('Success', $false)
+        $highlightBg = $this.GetThemedAnsi('Primary', $true)
+        $reset = "`e[0m"
+
+        # Draw top border
+        $topLine = $borderColor + $this.BuildBoxBorder($this.Width, 'top', 'single')
+        $engine.WriteAt($this.X - 1, $this.Y - 1, $topLine)
+
+        # Title
+        $titleText = " $($this.Title) "
+        $engine.WriteAt($this.X + 1, $this.Y - 1, $primaryColor + $titleText + $reset)
+
+        # Item count
+        $countText = "($($this._filteredData.Count) items)"
+        $engine.WriteAt($this.X + $this.Width - $countText.Length - 3, $this.Y - 1, $mutedColor + $countText + $reset)
+
+        $currentRow = 1
+
+        # Column headers
+        $headerY = $this.Y + $currentRow
+        $engine.WriteAt($this.X - 1, $headerY - 1, $borderColor + $this.GetBoxChar('single_vertical') + $reset)
+
+        # Build header line
+        $headerBuilder = [StringBuilder]::new()
+        $currentX = 2
+        $supportsUnicode = $env:LANG -match 'UTF-8' -or [Console]::OutputEncoding.EncodingName -match 'UTF'
+        $sortUpSymbol = if ($supportsUnicode) { "↑" } else { "^" }
+        $sortDownSymbol = if ($supportsUnicode) { "↓" } else { "v" }
+
+        foreach ($col in $this._columns) {
+            $label = $col.Label
+            $width = if ($this._columnWidths.ContainsKey($col.Name)) {
+                $this._columnWidths[$col.Name]
+            } else {
+                $col.Width
+            }
+
+            if ($this._sortColumn -eq $col.Name) {
+                $sortIndicator = if ($this._sortAscending) { " $sortUpSymbol" } else { " $sortDownSymbol" }
+                $label += $sortIndicator
+            }
+
+            $headerBuilder.Append($this.PadText($label, $width, $col.Align))
+            $headerBuilder.Append("  ")
+        }
+
+        $engine.WriteAt($this.X + 1, $headerY - 1, $primaryColor + $headerBuilder.ToString() + $reset)
+        $engine.WriteAt($this.X + $this.Width - 2, $headerY - 1, $borderColor + $this.GetBoxChar('single_vertical') + $reset)
+
+        $currentRow++
+
+        # Separator row
+        $sepY = $this.Y + $currentRow
+        $sepLine = $borderColor + $this.GetBoxChar('single_vertical') + $this.BuildHorizontalLine($this.Width - 2, 'single') + $this.GetBoxChar('single_vertical') + $reset
+        $engine.WriteAt($this.X - 1, $sepY - 1, $sepLine)
+
+        $currentRow++
+
+        # Data rows (virtual scrolling)
+        $maxVisibleRows = $this.Height - 6
+        $visibleStartIndex = $this._scrollOffset
+
+        $filteredCount = if ($null -eq $this._filteredData) {
+            0
+        } elseif ($this._filteredData -is [array]) {
+            $this._filteredData.Count
+        } else {
+            1
+        }
+
+        $linesToRender = [Math]::Min($maxVisibleRows, $filteredCount - $visibleStartIndex)
+
+        for ($i = 0; $i -lt $linesToRender; $i++) {
+            $dataIndex = $visibleStartIndex + $i
+            $item = $this._filteredData[$dataIndex]
+            $rowY = $this.Y + $currentRow + $i
+
+            # Left border
+            $engine.WriteAt($this.X - 1, $rowY - 1, $borderColor + $this.GetBoxChar('single_vertical') + $reset)
+
+            # Determine if selected
+            $isSelected = ($dataIndex -eq $this._selectedIndex)
+
+            # Build row content
+            $rowBuilder = [StringBuilder]::new()
+            $currentX = 2
+
+            foreach ($col in $this._columns) {
+                $cellValue = if ($item.PSObject.Properties[$col.Name]) {
+                    $item.($col.Name)
+                } else {
+                    ""
+                }
+
+                # Format cell value
+                $cellText = $this._FormatCellValue($cellValue, $col.Type)
+                $width = if ($this._columnWidths.ContainsKey($col.Name)) {
+                    $this._columnWidths[$col.Name]
+                } else {
+                    $col.Width
+                }
+
+                if ($isSelected) {
+                    $rowBuilder.Append($highlightBg)
+                }
+
+                $rowBuilder.Append($this.PadText($cellText, $width, $col.Align))
+
+                if ($isSelected) {
+                    $rowBuilder.Append($reset)
+                }
+
+                $rowBuilder.Append("  ")
+            }
+
+            $engine.WriteAt($this.X + 1, $rowY - 1, $rowBuilder.ToString())
+
+            # Right border
+            $engine.WriteAt($this.X + $this.Width - 2, $rowY - 1, $borderColor + $this.GetBoxChar('single_vertical') + $reset)
+        }
+
+        # Bottom border
+        $bottomY = $this.Y + $this.Height - 2
+        $bottomLine = $borderColor + $this.BuildBoxBorder($this.Width, 'bottom', 'single') + $reset
+        $engine.WriteAt($this.X - 1, $bottomY - 1, $bottomLine)
+
+        # Status line
+        $statusY = $this.Y + $this.Height - 1
+        $statusText = " Row $($this._selectedIndex + 1) of $filteredCount "
+        $engine.WriteAt($this.X - 1, $statusY - 1, $mutedColor + $statusText + $reset)
     }
 }

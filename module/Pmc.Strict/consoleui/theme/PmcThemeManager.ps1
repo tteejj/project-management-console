@@ -411,17 +411,11 @@ class PmcThemeManager {
             $cfg.Display.Theme.Hex = $hex
             Save-PmcConfig $cfg
 
-            # Invalidate config cache to pick up new theme on next read
-            if (Get-Command -Name ConfigCache -ErrorAction SilentlyContinue) {
-                [ConfigCache]::InvalidateCache()
-            }
-
-            # Reinitialize theme system to regenerate palette
-            Initialize-PmcThemeSystem
+            # Force theme re-initialization
+            Initialize-PmcThemeSystem -Force
 
             # Reload this manager
             $this.Reload()
-
         } catch {
             throw "Failed to set theme: $_"
         }

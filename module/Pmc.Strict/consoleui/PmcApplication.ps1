@@ -478,9 +478,9 @@ class PmcApplication {
 
                 # Sleep longer when idle (no render) vs active
                 if ($wasActive) {
-                    Start-Sleep -Milliseconds 16  # ~60 FPS when actively rendering
+                    Start-Sleep -Milliseconds 1  # ~1000 FPS max, instant response to input
                 } else {
-                    Start-Sleep -Milliseconds 100  # ~10 FPS when idle, 50% less CPU
+                    Start-Sleep -Milliseconds 50  # ~20 FPS when idle, reduced from 100ms for better responsiveness
                 }
             }
 

@@ -469,9 +469,17 @@ class PmcScreen {
 
         # Render content - wrap in try-catch to prevent rendering crashes
         try {
-            $contentOutput = $this.RenderContent()
-            if ($contentOutput) {
-                $this._ParseAnsiAndWrite($engine, $contentOutput)
+            # PERFORMANCE: Use direct engine rendering if available (avoids ANSI parsing)
+            if ($this.PSObject.Methods['RenderContentToEngine'] -and
+                $this.GetType().GetMethod('RenderContentToEngine').DeclaringType.Name -ne 'PmcScreen') {
+                # Subclass overrides RenderContentToEngine - use direct path (no ANSI parsing)
+                $this.RenderContentToEngine($engine)
+            } else {
+                # Fallback: Use ANSI string rendering (legacy path)
+                $contentOutput = $this.RenderContent()
+                if ($contentOutput) {
+                    $this._ParseAnsiAndWrite($engine, $contentOutput)
+                }
             }
         } catch {
             $this._HandleWidgetRenderError("RenderContent", $_, $engine, 5)
@@ -480,12 +488,16 @@ class PmcScreen {
         # Render content widgets - each with error boundary
         $widgetRow = 10  # Start position for widget error messages
         foreach ($widget in $this.ContentWidgets) {
+            # Define widgetName outside try block for catch scope
+            $widgetName = if ($widget.Name) { $widget.Name } else { $widget.GetType().Name }
             try {
-                $widgetName = if ($widget.Name) { $widget.Name } else { $widget.GetType().Name }
                 $output = $widget.Render()
-                if ($output) {
+                # PERFORMANCE: If widget returns empty string, it used direct engine rendering
+                # No need to parse ANSI - widget already called WriteAt() directly
+                if ($output -and $output.Length -gt 0) {
                     $this._ParseAnsiAndWrite($engine, $output)
                 }
+                # else: widget used fast path (OnRenderToEngine), already rendered
             } catch {
                 $this._HandleWidgetRenderError($widgetName, $_, $engine, $widgetRow)
                 $widgetRow += 2  # Space out error messages

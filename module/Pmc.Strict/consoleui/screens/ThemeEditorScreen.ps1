@@ -348,71 +348,38 @@ class ThemeEditorScreen : PmcScreen {
         }
 
         try {
-            # Get PMC config and set theme hex
+            if ($global:PmcTuiLogFile) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ThemeEditor._ApplyTheme: Updating theme to $($theme.Hex)..."
+            }
+
+            # Get current config
             $cfg = Get-PmcConfig
 
-            # Create Display property if it doesn't exist
-            if (-not (Get-Member -InputObject $cfg -Name Display -MemberType Properties)) {
-                $cfg | Add-Member -NotePropertyName Display -NotePropertyValue @{} -Force
-            }
-            if (-not $cfg.Display) {
-                $cfg.Display = @{}
-            }
+            # Update theme hex
+            if (-not $cfg.Display) { $cfg.Display = @{} }
+            if (-not $cfg.Display.Theme) { $cfg.Display.Theme = @{} }
+            $cfg.Display.Theme.Hex = $theme.Hex
+            $cfg.Display.Theme.Enabled = $true
 
-            # Create Theme property if it doesn't exist
-            if (-not (Get-Member -InputObject $cfg.Display -Name Theme -MemberType Properties)) {
-                $cfg.Display | Add-Member -NotePropertyName Theme -NotePropertyValue @{} -Force
-            }
-            if (-not $cfg.Display.Theme) {
-                $cfg.Display.Theme = @{}
-            }
+            # Save config (auto-invalidates ConfigCache)
+            Save-PmcConfig $cfg
 
-            # Set theme properties
-            if (-not (Get-Member -InputObject $cfg.Display.Theme -Name Hex -MemberType Properties)) {
-                $cfg.Display.Theme | Add-Member -NotePropertyName Hex -NotePropertyValue $theme.Hex -Force
-            } else {
-                $cfg.Display.Theme.Hex = $theme.Hex
-            }
+            # Reload State System
+            Initialize-PmcThemeSystem -Force
 
-            if (-not (Get-Member -InputObject $cfg.Display.Theme -Name Enabled -MemberType Properties)) {
-                $cfg.Display.Theme | Add-Member -NotePropertyName Enabled -NotePropertyValue $true -Force
-            } else {
-                $cfg.Display.Theme.Enabled = $true
-            }
+            # Reload PmcThemeManager singleton
+            $themeManager = [PmcThemeManager]::GetInstance()
+            $themeManager.Reload()
 
             if ($global:PmcTuiLogFile) {
-                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ThemeEditor._ApplyTheme: Saving config..."
-            }
-
-            try {
-                Save-PmcConfig $cfg
-                if ($global:PmcTuiLogFile) {
-                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ThemeEditor._ApplyTheme: Save-PmcConfig completed successfully"
-                }
-            } catch {
-                if ($global:PmcTuiLogFile) {
-                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ThemeEditor._ApplyTheme: Save-PmcConfig FAILED: $_"
-                }
-                throw
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ThemeEditor._ApplyTheme: Theme updated successfully"
             }
 
             # Update current theme marker
             $this.CurrentTheme = $theme.Name
 
-            # Reinitialize theme system to apply changes
             try {
-                if ($global:PmcTuiLogFile) {
-                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ThemeEditor._ApplyTheme: Reinitializing theme system..."
-                }
-                Initialize-PmcThemeSystem
-            } catch {
-                if ($global:PmcTuiLogFile) {
-                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ThemeEditor._ApplyTheme: Initialize-PmcThemeSystem failed: $_"
-                }
-            }
-
-            try {
-                $this.ShowSuccess("Theme saved! Restart TUI to see changes: Ctrl+Q then run again")
+                $this.ShowSuccess("Theme saved and applied! Changes visible immediately.")
             } catch {
                 # ShowSuccess may fail
             }

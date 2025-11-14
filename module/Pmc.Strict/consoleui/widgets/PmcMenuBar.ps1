@@ -496,13 +496,20 @@ class PmcMenuBar : PmcWidget {
         $maxWidth = 10
         foreach ($item in $menu.Items) {
             if (-not $item.IsSeparator) {
-                $itemWidth = $item.Label.Length + 6  # " Label (H) "
+                # Calculate actual text that will be rendered: " Label (H)"
+                # Leading space: 1, Label, Space: 1, (H): 3 = Label + 5
+                $itemWidth = $item.Label.Length + 5
+                if ($item.Hotkey -eq [char]0) {
+                    # No hotkey: just " Label"
+                    $itemWidth = $item.Label.Length + 1
+                }
                 if ($itemWidth -gt $maxWidth) {
                     $maxWidth = $itemWidth
                 }
             }
         }
-        $this._dropdownWidth = [Math]::Min($maxWidth, $this.Width - $dropdownX - 2)
+        # Add 2 for left/right borders
+        $this._dropdownWidth = $maxWidth + 2
 
         # Colors
         $bgColor = $this.GetThemedAnsi('Border', $true)

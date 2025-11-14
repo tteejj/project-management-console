@@ -142,6 +142,14 @@
         ViewMode = 'agenda'
     }
 
+    'KanbanScreenV2' = @{
+        Menu = 'Tasks'
+        Label = 'Kanban Board'
+        Hotkey = 'K'
+        Order = 55
+        ScreenFile = 'KanbanScreenV2.ps1'
+    }
+
     # ===== TIME MENU =====
     'TimeListScreen' = @{
         Menu = 'Time'
