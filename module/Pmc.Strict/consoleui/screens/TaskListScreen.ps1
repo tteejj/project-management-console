@@ -611,9 +611,17 @@ class TaskListScreen : StandardListScreen {
             # RUNTIME FIX: Safe conversion of priority with fallback to default
             $priority = 3  # Default priority
             if ($values.ContainsKey('priority') -and $null -ne $values.priority) {
-                try {
-                    $priority = [int]$values.priority
-                } catch {
+                # Validate priority is a number between 0-5
+                if ($values.priority -match '^\d+$') {
+                    $tempPriority = [int]$values.priority
+                    if ($tempPriority -ge 0 -and $tempPriority -le 5) {
+                        $priority = $tempPriority
+                    } else {
+                        $this.SetStatusMessage("Priority must be between 0 and 5. Using default: 3", "warning")
+                        Write-PmcTuiLog "Priority value $tempPriority out of range, using default 3" "WARNING"
+                    }
+                } else {
+                    $this.SetStatusMessage("Priority must be a number. Using default: 3", "warning")
                     Write-PmcTuiLog "Failed to convert priority '$($values.priority)' to int, using default 3" "WARNING"
                 }
             }
@@ -625,8 +633,21 @@ class TaskListScreen : StandardListScreen {
                 $projectValue = $values.project
             }
 
+            # Validate text field (required)
+            $taskText = if ($values.ContainsKey('text')) { $values.text } else { '' }
+            if ([string]::IsNullOrWhiteSpace($taskText)) {
+                $this.SetStatusMessage("Task description is required", "error")
+                return
+            }
+
+            # Validate text length
+            if ($taskText.Length -gt 500) {
+                $this.SetStatusMessage("Task description must be 500 characters or less", "error")
+                return
+            }
+
             $taskData = @{
-                text = if ($values.ContainsKey('text')) { $values.text } else { '' }
+                text = $taskText
                 priority = $priority
                 project = $projectValue
                 tags = if ($values.ContainsKey('tags')) { $values.tags } else { @() }
@@ -634,11 +655,25 @@ class TaskListScreen : StandardListScreen {
                 created = [DateTime]::Now
             }
 
-            # Add due date if provided
+            # Add due date if provided - with validation
             if ($values.ContainsKey('due') -and $values.due) {
                 try {
-                    $taskData.due = [DateTime]$values.due
+                    $dueDate = [DateTime]$values.due
+                    # Validate date is reasonable (not in past, not too far in future)
+                    $minDate = [DateTime]::Today.AddDays(-1) # Allow yesterday for timezone issues
+                    $maxDate = [DateTime]::Today.AddYears(10)
+
+                    if ($dueDate -lt $minDate) {
+                        $this.SetStatusMessage("Due date cannot be in the past", "warning")
+                        # Don't return - just omit the due date
+                    } elseif ($dueDate -gt $maxDate) {
+                        $this.SetStatusMessage("Due date cannot be more than 10 years in the future", "warning")
+                        # Don't return - just omit the due date
+                    } else {
+                        $taskData.due = $dueDate
+                    }
                 } catch {
+                    $this.SetStatusMessage("Invalid due date format", "warning")
                     Write-PmcTuiLog "Failed to convert due date '$($values.due)', omitting" "WARNING"
                 }
             }
@@ -650,6 +685,22 @@ class TaskListScreen : StandardListScreen {
                 if ($parentId) {
                     $taskData.parent_id = $parentId
                 }
+            }
+
+            # Use ValidationHelper to validate before saving
+            . "$PSScriptRoot/../helpers/ValidationHelper.ps1"
+            $validationResult = Test-TaskValid $taskData
+
+            if (-not $validationResult.IsValid) {
+                # Show first validation error
+                $errorMsg = if ($validationResult.Errors.Count -gt 0) {
+                    $validationResult.Errors[0]
+                } else {
+                    "Validation failed"
+                }
+                $this.SetStatusMessage($errorMsg, "error")
+                Write-PmcTuiLog "Task validation failed: $($validationResult.Errors -join ', ')" "ERROR"
+                return
             }
 
             # Add to store (auto-persists and fires events)
@@ -670,12 +721,20 @@ class TaskListScreen : StandardListScreen {
     [void] OnItemUpdated([object]$item, [hashtable]$values) {
         try {
             # RUNTIME FIX: Safe conversion of priority with fallback
-            $priority = 3  # Default priority
+            $priority = Get-SafeProperty $item 'priority' 3  # Use existing priority as default
             if ($values.ContainsKey('priority') -and $null -ne $values.priority) {
-                try {
-                    $priority = [int]$values.priority
-                } catch {
-                    Write-PmcTuiLog "Failed to convert priority '$($values.priority)' to int, using default 3" "WARNING"
+                # Validate priority is a number between 0-5
+                if ($values.priority -match '^\d+$') {
+                    $tempPriority = [int]$values.priority
+                    if ($tempPriority -ge 0 -and $tempPriority -le 5) {
+                        $priority = $tempPriority
+                    } else {
+                        $this.SetStatusMessage("Priority must be between 0 and 5. Keeping original value.", "warning")
+                        Write-PmcTuiLog "Priority value $tempPriority out of range, keeping original" "WARNING"
+                    }
+                } else {
+                    $this.SetStatusMessage("Priority must be a number. Keeping original value.", "warning")
+                    Write-PmcTuiLog "Failed to convert priority '$($values.priority)' to int, keeping original" "WARNING"
                 }
             }
 
@@ -686,23 +745,76 @@ class TaskListScreen : StandardListScreen {
                 $projectValue = $values.project
             }
 
+            # Validate text field (required)
+            $taskText = if ($values.ContainsKey('text')) { $values.text } else { '' }
+            if ([string]::IsNullOrWhiteSpace($taskText)) {
+                $this.SetStatusMessage("Task description is required", "error")
+                return
+            }
+
+            # Validate text length
+            if ($taskText.Length -gt 500) {
+                $this.SetStatusMessage("Task description must be 500 characters or less", "error")
+                return
+            }
+
             $changes = @{
-                text = if ($values.ContainsKey('text')) { $values.text } else { '' }
+                text = $taskText
                 priority = $priority
                 project = $projectValue
                 tags = if ($values.ContainsKey('tags')) { $values.tags } else { @() }
             }
 
-            # Update due date
+            # Update due date with validation
             if ($values.ContainsKey('due') -and $values.due) {
                 try {
-                    $changes.due = [DateTime]$values.due
+                    $dueDate = [DateTime]$values.due
+                    # Validate date is reasonable
+                    $minDate = [DateTime]::Today.AddDays(-7) # Allow past week for updates
+                    $maxDate = [DateTime]::Today.AddYears(10)
+
+                    if ($dueDate -lt $minDate) {
+                        $this.SetStatusMessage("Due date too far in the past (max 7 days)", "warning")
+                        # Don't return - just omit the due date update
+                    } elseif ($dueDate -gt $maxDate) {
+                        $this.SetStatusMessage("Due date cannot be more than 10 years in the future", "warning")
+                        # Don't return - just omit the due date update
+                    } else {
+                        $changes.due = $dueDate
+                    }
                 } catch {
-                    Write-PmcTuiLog "Failed to convert due date '$($values.due)', setting to null" "WARNING"
-                    $changes.due = $null
+                    $this.SetStatusMessage("Invalid due date format", "warning")
+                    Write-PmcTuiLog "Failed to convert due date '$($values.due)', omitting" "WARNING"
+                    # Don't include due in changes - keep existing value
                 }
             } else {
                 $changes.due = $null
+            }
+
+            # Use ValidationHelper to validate the updated task before saving
+            . "$PSScriptRoot/../helpers/ValidationHelper.ps1"
+
+            # Merge changes with existing task for validation
+            $updatedTask = @{}
+            foreach ($key in $item.PSObject.Properties.Name) {
+                $updatedTask[$key] = $item.$key
+            }
+            foreach ($key in $changes.Keys) {
+                $updatedTask[$key] = $changes[$key]
+            }
+
+            $validationResult = Test-TaskValid $updatedTask
+
+            if (-not $validationResult.IsValid) {
+                # Show first validation error
+                $errorMsg = if ($validationResult.Errors.Count -gt 0) {
+                    $validationResult.Errors[0]
+                } else {
+                    "Validation failed"
+                }
+                $this.SetStatusMessage($errorMsg, "error")
+                Write-PmcTuiLog "Task validation failed: $($validationResult.Errors -join ', ')" "ERROR"
+                return
             }
 
             # Update in store

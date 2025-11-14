@@ -434,28 +434,36 @@ class PmcScreen {
     We parse those ANSI strings and write them to the engine using WriteAt().
     #>
     [void] RenderToEngine([object]$engine) {
-        # Render MenuBar (if present)
+        # Render MenuBar (if present) - with error boundary
         if ($this.MenuBar) {
-            if ($global:PmcTuiLogFile) {
-                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcScreen.RenderToEngine: Calling MenuBar.Render()"
-            }
-            $output = $this.MenuBar.Render()
-            if ($global:PmcTuiLogFile) {
-                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcScreen.RenderToEngine: MenuBar.Render() returned length=$($output.Length)"
-            }
-            if ($output) {
-                $this._ParseAnsiAndWrite($engine, $output)
+            try {
                 if ($global:PmcTuiLogFile) {
-                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcScreen.RenderToEngine: MenuBar ANSI parsed and written to engine"
+                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcScreen.RenderToEngine: Calling MenuBar.Render()"
                 }
+                $output = $this.MenuBar.Render()
+                if ($global:PmcTuiLogFile) {
+                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcScreen.RenderToEngine: MenuBar.Render() returned length=$($output.Length)"
+                }
+                if ($output) {
+                    $this._ParseAnsiAndWrite($engine, $output)
+                    if ($global:PmcTuiLogFile) {
+                        Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcScreen.RenderToEngine: MenuBar ANSI parsed and written to engine"
+                    }
+                }
+            } catch {
+                $this._HandleWidgetRenderError("MenuBar", $_, $engine, 0)
             }
         }
 
-        # Render Header
+        # Render Header - with error boundary
         if ($this.Header) {
-            $output = $this.Header.Render()
-            if ($output) {
-                $this._ParseAnsiAndWrite($engine, $output)
+            try {
+                $output = $this.Header.Render()
+                if ($output) {
+                    $this._ParseAnsiAndWrite($engine, $output)
+                }
+            } catch {
+                $this._HandleWidgetRenderError("Header", $_, $engine, 1)
             }
         }
 
@@ -466,40 +474,85 @@ class PmcScreen {
                 $this._ParseAnsiAndWrite($engine, $contentOutput)
             }
         } catch {
-            $errorMsg = "RenderContent() crashed in RenderToEngine: $($_.Exception.Message)"
-            $stackTrace = $_.ScriptStackTrace
-            if ($global:PmcTuiLogFile) {
-                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcScreen.RenderToEngine: $errorMsg"
-                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] Stack: $stackTrace"
-                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] TargetObject: $($_.TargetObject)"
-                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] InvocationInfo: $($_.InvocationInfo.Line)"
-            }
-            # Write error message to engine so user sees something
-            $engine.WriteAt(0, 5, "`e[1;31mERROR: $errorMsg`e[0m")
-            $engine.WriteAt(0, 6, "`e[1;33mStack: $($stackTrace -split "`n" | Select-Object -First 1)`e[0m")
+            $this._HandleWidgetRenderError("RenderContent", $_, $engine, 5)
         }
 
-        # Render content widgets
+        # Render content widgets - each with error boundary
+        $widgetRow = 10  # Start position for widget error messages
         foreach ($widget in $this.ContentWidgets) {
-            $output = $widget.Render()
-            if ($output) {
-                $this._ParseAnsiAndWrite($engine, $output)
+            try {
+                $widgetName = if ($widget.Name) { $widget.Name } else { $widget.GetType().Name }
+                $output = $widget.Render()
+                if ($output) {
+                    $this._ParseAnsiAndWrite($engine, $output)
+                }
+            } catch {
+                $this._HandleWidgetRenderError($widgetName, $_, $engine, $widgetRow)
+                $widgetRow += 2  # Space out error messages
             }
         }
 
-        # Render Footer
+        # Render Footer - with error boundary
         if ($this.Footer) {
-            $output = $this.Footer.Render()
-            if ($output) {
-                $this._ParseAnsiAndWrite($engine, $output)
+            try {
+                $output = $this.Footer.Render()
+                if ($output) {
+                    $this._ParseAnsiAndWrite($engine, $output)
+                }
+            } catch {
+                # Footer errors shown at bottom of screen
+                $footerRow = [Math]::Max(20, $this.TermHeight - 4)
+                $this._HandleWidgetRenderError("Footer", $_, $engine, $footerRow)
             }
         }
 
-        # Render StatusBar
+        # Render StatusBar - with error boundary
         if ($this.StatusBar) {
-            $output = $this.StatusBar.Render()
-            if ($output) {
-                $this._ParseAnsiAndWrite($engine, $output)
+            try {
+                $output = $this.StatusBar.Render()
+                if ($output) {
+                    $this._ParseAnsiAndWrite($engine, $output)
+                }
+            } catch {
+                # StatusBar errors shown at very bottom
+                $statusRow = [Math]::Max(22, $this.TermHeight - 2)
+                $this._HandleWidgetRenderError("StatusBar", $_, $engine, $statusRow)
+            }
+        }
+    }
+
+    <#
+    .SYNOPSIS
+    Handle widget render errors gracefully
+
+    .DESCRIPTION
+    Shows error inline without crashing the app, logs the error,
+    and allows the rest of the UI to continue rendering.
+    #>
+    hidden [void] _HandleWidgetRenderError([string]$widgetName, [object]$error, [object]$engine, [int]$row) {
+        $errorMsg = "$widgetName render failed: $($error.Exception.Message)"
+        $stackTrace = $error.ScriptStackTrace
+
+        # Log error details
+        if ($global:PmcTuiLogFile) {
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [ERROR] Widget render error: $errorMsg"
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [ERROR] Stack: $stackTrace"
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [ERROR] TargetObject: $($error.TargetObject)"
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [ERROR] InvocationInfo: $($error.InvocationInfo.Line)"
+        }
+
+        # Show error inline where widget would have rendered
+        try {
+            $engine.WriteAt(2, $row, "`e[1;31m[!] $widgetName Error: $($error.Exception.Message -replace "`n", " ")`e[0m")
+
+            # If status bar is available, also show error there
+            if ($this.StatusBar) {
+                $this.SetStatusMessage("$widgetName render failed - see logs", "error")
+            }
+        } catch {
+            # If we can't even write the error, just log it
+            if ($global:PmcTuiLogFile) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [FATAL] Could not write error to screen: $_"
             }
         }
     }

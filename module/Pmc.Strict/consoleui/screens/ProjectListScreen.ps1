@@ -157,9 +157,21 @@ class ProjectListScreen : StandardListScreen {
     # Handle item creation
     [void] OnItemCreated([hashtable]$values) {
         try {
-            # ENDEMIC FIX: Validate required field
+            # Validate required field
             if (-not $values.ContainsKey('name') -or [string]::IsNullOrWhiteSpace($values.name)) {
                 $this.SetStatusMessage("Project name is required", "error")
+                return
+            }
+
+            # Validate name length
+            if ($values.name.Length -gt 100) {
+                $this.SetStatusMessage("Project name must be 100 characters or less", "error")
+                return
+            }
+
+            # Validate description length if provided
+            if ($values.ContainsKey('description') -and $values.description -and $values.description.Length -gt 500) {
+                $this.SetStatusMessage("Description must be 500 characters or less", "error")
                 return
             }
 
@@ -167,17 +179,38 @@ class ProjectListScreen : StandardListScreen {
             $tags = @()
             if ($values.ContainsKey('tags') -and $values.tags -and $values.tags.Trim()) {
                 $tags = $values.tags -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ }
+                # Validate tag count
+                if ($tags.Count -gt 10) {
+                    $this.SetStatusMessage("Maximum 10 tags allowed", "error")
+                    return
+                }
             }
 
-            # Format dates to ISO string with safe access
+            # Format dates to ISO string with validation
             $assignedDate = ''
             if ($values.ContainsKey('AssignedDate') -and $values.AssignedDate -is [DateTime]) {
-                $assignedDate = $values.AssignedDate.ToString('yyyy-MM-dd')
+                # Validate date range
+                $minDate = [DateTime]::new(2000, 1, 1)
+                $maxDate = [DateTime]::Today.AddYears(10)
+                if ($values.AssignedDate -lt $minDate -or $values.AssignedDate -gt $maxDate) {
+                    $this.SetStatusMessage("Assigned date must be between 2000 and 10 years from now", "warning")
+                    # Continue without the date
+                } else {
+                    $assignedDate = $values.AssignedDate.ToString('yyyy-MM-dd')
+                }
             }
 
             $dueDate = ''
             if ($values.ContainsKey('DueDate') -and $values.DueDate -is [DateTime]) {
-                $dueDate = $values.DueDate.ToString('yyyy-MM-dd')
+                # Validate date range
+                $minDate = [DateTime]::Today.AddDays(-30) # Allow past month for existing projects
+                $maxDate = [DateTime]::Today.AddYears(10)
+                if ($values.DueDate -lt $minDate -or $values.DueDate -gt $maxDate) {
+                    $this.SetStatusMessage("Due date must be within reasonable range", "warning")
+                    # Continue without the date
+                } else {
+                    $dueDate = $values.DueDate.ToString('yyyy-MM-dd')
+                }
             }
 
             $bfDate = ''
@@ -185,13 +218,8 @@ class ProjectListScreen : StandardListScreen {
                 $bfDate = $values.BFDate.ToString('yyyy-MM-dd')
             }
 
-            # H-VAL-9: Check for duplicate project name before creating
+            # Check for duplicate project name before creating
             $existingProjects = $this.Store.GetAllProjects()
-            $duplicate = $existingProjects | Where-Object { (Get-SafeProperty $_ 'name') -eq $values.name } | Select-Object -First 1
-            if ($duplicate) {
-                $this.SetStatusMessage("Project with name '$($values.name)' already exists", "error")
-                return
-            }
 
             $projectData = @{
                 id = [guid]::NewGuid().ToString()
@@ -206,6 +234,22 @@ class ProjectListScreen : StandardListScreen {
                 AssignedDate = $assignedDate
                 DueDate = $dueDate
                 BFDate = $bfDate
+            }
+
+            # Use ValidationHelper for comprehensive validation
+            . "$PSScriptRoot/../helpers/ValidationHelper.ps1"
+            $validationResult = Test-ProjectValid $projectData -existingProjects $existingProjects
+
+            if (-not $validationResult.IsValid) {
+                # Show first validation error
+                $errorMsg = if ($validationResult.Errors.Count -gt 0) {
+                    $validationResult.Errors[0]
+                } else {
+                    "Validation failed"
+                }
+                $this.SetStatusMessage($errorMsg, "error")
+                Write-PmcTuiLog "Project validation failed: $($validationResult.Errors -join ', ')" "ERROR"
+                return
             }
 
             $success = $this.Store.AddProject($projectData)

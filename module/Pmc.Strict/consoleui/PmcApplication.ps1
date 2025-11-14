@@ -45,6 +45,7 @@ class PmcApplication {
 
     # === Rendering State ===
     [bool]$IsDirty = $true  # Dirty flag - true when redraw needed
+    [int]$RenderErrorCount = 0  # Track consecutive render errors for recovery
 
     # === Event Handlers ===
     [scriptblock]$OnTerminalResize = $null
@@ -268,39 +269,88 @@ class PmcApplication {
             }
 
         } catch {
-            # CRITICAL RENDER ERROR - Fail fast instead of silently continuing
-            $errorMsg = "FATAL RENDER ERROR: $_"
+            # RENDER ERROR - Try to recover gracefully
+            $errorMsg = "Render error: $_"
             $errorLocation = "$($_.InvocationInfo.ScriptName):$($_.InvocationInfo.ScriptLineNumber)"
 
             # Log to file if available
             if ($global:PmcTuiLogFile) {
-                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [FATAL] $errorMsg"
-                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [FATAL] Location: $errorLocation"
-                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [FATAL] Line: $($_.InvocationInfo.Line)"
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [ERROR] $errorMsg"
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [ERROR] Location: $errorLocation"
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [ERROR] Line: $($_.InvocationInfo.Line)"
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [ERROR] Stack: $($_.ScriptStackTrace)"
             }
 
-            # Show error to user
-            [Console]::Clear()
-            [Console]::CursorVisible = $true
-            [Console]::SetCursorPosition(0, 0)
-            Write-Host "`n========================================" -ForegroundColor Red
-            Write-Host "  FATAL ERROR - APPLICATION CRASHED" -ForegroundColor Red
-            Write-Host "========================================`n" -ForegroundColor Red
-            Write-Host "Error: $errorMsg" -ForegroundColor Red
-            Write-Host "Location: $errorLocation" -ForegroundColor Yellow
-            Write-Host "`nThe application cannot continue safely." -ForegroundColor Yellow
-            Write-Host "Press any key to exit..." -ForegroundColor Gray
+            # Increment error count
+            if (-not $this.RenderErrorCount) { $this.RenderErrorCount = 0 }
+            $this.RenderErrorCount++
+
+            # If too many errors, then we need to fail
+            if ($this.RenderErrorCount -gt 10) {
+                # Too many errors - give up
+                [Console]::Clear()
+                [Console]::CursorVisible = $true
+                [Console]::SetCursorPosition(0, 0)
+                Write-Host "`n========================================" -ForegroundColor Red
+                Write-Host "  TOO MANY RENDER ERRORS - EXITING" -ForegroundColor Red
+                Write-Host "========================================`n" -ForegroundColor Red
+                Write-Host "Error: $errorMsg" -ForegroundColor Red
+                Write-Host "Location: $errorLocation" -ForegroundColor Yellow
+                Write-Host "`nThe application experienced too many render errors." -ForegroundColor Yellow
+                Write-Host "Please restart the application." -ForegroundColor Yellow
+                Write-Host "Press any key to exit..." -ForegroundColor Gray
+
+                [Console]::ReadKey($true) | Out-Null
+                $this.Stop()
+                return
+            }
+
+            # Try to show error in a minimal way and continue
+            try {
+                # Clear screen and show error message
+                [Console]::Clear()
+                [Console]::SetCursorPosition(0, 0)
+                Write-Host "Render Error Occurred" -ForegroundColor Yellow
+                Write-Host "Error: $($_.Exception.Message)" -ForegroundColor Red
+                Write-Host "`nPress any key to continue (ESC to exit)..." -ForegroundColor Gray
+
+                $key = [Console]::ReadKey($true)
+                if ($key.Key -eq 'Escape') {
+                    $this.Stop()
+                    return
+                }
+
+                # Try to recover by requesting full clear and redraw
+                $this.RequestClear = $true
+                $this.IsDirty = $true
+
+                # If current screen is problematic, try to go back
+                if ($this.ScreenStack.Count -gt 1 -and $this.RenderErrorCount -gt 3) {
+                    Write-Host "Returning to previous screen due to errors..." -ForegroundColor Yellow
+                    Start-Sleep -Milliseconds 500
+                    $this.PopScreen()
+                    $this.RenderErrorCount = 0  # Reset counter after navigation
+                }
+
+            } catch {
+                # Can't even show the error message - now we really need to exit
+                if ($global:PmcTuiLogFile) {
+                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [FATAL] Could not display error: $_"
+                }
+                $this.Stop()
+            }
 
             # Call error handler if registered
             if ($this.OnError) {
-                & $this.OnError $_
+                try {
+                    & $this.OnError $_
+                } catch {
+                    # Error handler failed, log it but continue
+                    if ($global:PmcTuiLogFile) {
+                        Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [ERROR] OnError handler failed: $_"
+                    }
+                }
             }
-
-            # Wait for user acknowledgment
-            [Console]::ReadKey($true) | Out-Null
-
-            # Stop application
-            $this.Stop()
         }
     }
 
