@@ -1,23 +1,49 @@
 # Start-PmcTUI - Entry point for new PMC TUI architecture
 # Replaces old ConsoleUI.Core.ps1 monolithic approach
 
-# Setup logging
+param(
+    [switch]$DebugLog,      # Enable debug logging to file
+    [int]$LogLevel = 0      # 0=off, 1=errors only, 2=info, 3=verbose
+)
+
+# Setup logging (DISABLED BY DEFAULT for performance)
 # M-CFG-1: Configurable Log Path - uses environment variable or local directory for portability
 # PORTABILITY: Default to .pmc-data/logs directory relative to module root (self-contained)
-$logPath = if ($env:PMC_LOG_PATH) {
-    $env:PMC_LOG_PATH
-} else {
-    $moduleRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
-    $localLogDir = Join-Path $moduleRoot ".pmc-data/logs"
-    if (-not (Test-Path $localLogDir)) {
-        New-Item -ItemType Directory -Path $localLogDir -Force | Out-Null
+if ($DebugLog -or $LogLevel -gt 0) {
+    $logPath = if ($env:PMC_LOG_PATH) {
+        $env:PMC_LOG_PATH
+    } else {
+        $moduleRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
+        $localLogDir = Join-Path $moduleRoot ".pmc-data/logs"
+        if (-not (Test-Path $localLogDir)) {
+            New-Item -ItemType Directory -Path $localLogDir -Force | Out-Null
+        }
+        $localLogDir
     }
-    $localLogDir
+    $global:PmcTuiLogFile = Join-Path $logPath "pmc-tui-$(Get-Date -Format 'yyyyMMdd-HHmmss').log"
+    $global:PmcTuiLogLevel = $LogLevel
+    Write-Host "Debug logging enabled: $global:PmcTuiLogFile (Level $LogLevel)" -ForegroundColor Yellow
+} else {
+    $global:PmcTuiLogFile = $null
+    $global:PmcTuiLogLevel = 0
 }
-$global:PmcTuiLogFile = Join-Path $logPath "pmc-tui-$(Get-Date -Format 'yyyyMMdd-HHmmss').log"
 
 function Write-PmcTuiLog {
     param([string]$Message, [string]$Level = "INFO")
+
+    # Skip if logging disabled
+    if (-not $global:PmcTuiLogFile) { return }
+
+    # Filter by log level
+    $levelValue = switch ($Level) {
+        "ERROR" { 1 }
+        "INFO"  { 2 }
+        "DEBUG" { 3 }
+        default { 2 }
+    }
+
+    if ($levelValue -gt $global:PmcTuiLogLevel) { return }
+
     $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss.fff"
     $logLine = "[$timestamp] [$Level] $Message"
     Add-Content -Path $global:PmcTuiLogFile -Value $logLine
@@ -258,12 +284,24 @@ function Start-PmcTUI {
             return [PmcThemeManager]::GetInstance()
         }, $true)
 
-        # 2. Config (no dependencies)
+        # 2. Config (no dependencies) - CACHED for performance
         Write-PmcTuiLog "Registering Config service..." "INFO"
         $global:PmcContainer.Register('Config', {
             param($container)
             Write-PmcTuiLog "Resolving Config..." "INFO"
-            return Get-PmcConfig
+
+            # Determine config path (same logic as Get-PmcConfig)
+            $moduleRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
+            $configPath = Join-Path $moduleRoot 'config.json'
+
+            # Use cached config for performance (eliminates repeated file I/O)
+            try {
+                return [ConfigCache]::GetConfig($configPath)
+            } catch {
+                Write-PmcTuiLog "Config load failed, falling back to Get-PmcConfig: $_" "ERROR"
+                # Fallback to original method if cache fails
+                return Get-PmcConfig
+            }
         }, $true)
 
         # 3. TaskStore (depends on Theme via state)
