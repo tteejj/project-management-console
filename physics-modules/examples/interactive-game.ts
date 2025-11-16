@@ -204,29 +204,92 @@ class MoonLanderGame {
     console.log(colors.magenta + '└────────────────────────────────────────────────────────────┘' + colors.reset);
     console.log();
 
-    // Resources
+    // Resources with visual bars
     console.log(colors.green + '┌─ RESOURCES ────────────────────────────────────────────────┐' + colors.reset);
     const fuelPercent = (state.fuel.totalFuel / 160) * 100;  // Assuming 160kg total initial
     const fuelColor = fuelPercent < 20 ? colors.red : fuelPercent < 50 ? colors.yellow : colors.green;
     const batteryColor = state.electrical.battery.chargePercent < 20 ? colors.red : colors.green;
 
-    console.log(`│ Propellant:     ${fuelColor}${state.fuel.totalFuel.toFixed(0).padStart(10)}${colors.reset} kg (${fuelPercent.toFixed(0)}%)`);
-    console.log(`│ Reactor:        ${state.electrical.reactor.outputKW.toFixed(1).padStart(10)} kW`);
-    console.log(`│ Battery:        ${batteryColor}${state.electrical.battery.chargePercent.toFixed(0).padStart(10)}${colors.reset}%`);
+    // Fuel bar
+    const fuelBar = this.createBar(fuelPercent, 20, fuelColor);
+    console.log(`│ Propellant:     ${fuelColor}${state.fuel.totalFuel.toFixed(0).padStart(6)}${colors.reset} kg ${fuelBar} ${fuelPercent.toFixed(0)}%`);
+
+    // Reactor power bar
+    const reactorPowerPercent = (state.electrical.reactor.outputKW / 8.0) * 100;
+    const reactorColor = reactorPowerPercent > 80 ? colors.green : reactorPowerPercent > 40 ? colors.yellow : colors.dim;
+    const reactorBar = this.createBar(reactorPowerPercent, 20, reactorColor);
+    console.log(`│ Reactor:        ${reactorColor}${state.electrical.reactor.outputKW.toFixed(1).padStart(6)}${colors.reset} kW ${reactorBar} ${reactorPowerPercent.toFixed(0)}%`);
+
+    // Battery bar
+    const batteryBar = this.createBar(state.electrical.battery.chargePercent, 20, batteryColor);
+    console.log(`│ Battery:        ${batteryColor}${state.electrical.battery.chargePercent.toFixed(0).padStart(6)}${colors.reset}%   ${batteryBar}`);
+
     console.log(colors.green + '└────────────────────────────────────────────────────────────┘' + colors.reset);
     console.log();
 
-    // Thermal
+    // Thermal with health bars
     const reactorTemp = state.thermal.components.find((c: any) => c.name === 'reactor')?.temperature || 0;
     const engineTemp = state.thermal.components.find((c: any) => c.name === 'main_engine')?.temperature || 0;
     const coolantTemp = state.coolant.loops[0].temperature;
 
     console.log(colors.red + '┌─ THERMAL ──────────────────────────────────────────────────┐' + colors.reset);
-    console.log(`│ Reactor Temp:   ${reactorTemp.toFixed(0).padStart(10)} K`);
-    console.log(`│ Engine Temp:    ${engineTemp.toFixed(0).padStart(10)} K`);
-    console.log(`│ Coolant Temp:   ${coolantTemp.toFixed(0).padStart(10)} K`);
+
+    // Reactor temp (normal: 400K, warning: 600K, critical: 900K)
+    const reactorPercent = Math.min(100, (reactorTemp / 900) * 100);
+    const reactorTempColor = reactorTemp > 700 ? colors.red : reactorTemp > 500 ? colors.yellow : colors.green;
+    const reactorTempBar = this.createBar(reactorPercent, 15, reactorTempColor);
+    console.log(`│ Reactor Temp:   ${reactorTempColor}${reactorTemp.toFixed(0).padStart(5)}${colors.reset} K ${reactorTempBar}`);
+
+    // Engine temp (normal: 300-600K, warning: >800K)
+    const enginePercent = Math.min(100, (engineTemp / 1000) * 100);
+    const engineTempColor = engineTemp > 800 ? colors.red : engineTemp > 600 ? colors.yellow : colors.green;
+    const engineTempBar = this.createBar(enginePercent, 15, engineTempColor);
+    console.log(`│ Engine Temp:    ${engineTempColor}${engineTemp.toFixed(0).padStart(5)}${colors.reset} K ${engineTempBar}`);
+
+    // Coolant temp (normal: 293K, warning: >350K, critical: >393K boil)
+    const coolantPercent = Math.min(100, ((coolantTemp - 253) / (393 - 253)) * 100);
+    const coolantTempColor = coolantTemp > 370 ? colors.red : coolantTemp > 330 ? colors.yellow : colors.green;
+    const coolantTempBar = this.createBar(coolantPercent, 15, coolantTempColor);
+    console.log(`│ Coolant Temp:   ${coolantTempColor}${coolantTemp.toFixed(0).padStart(5)}${colors.reset} K ${coolantTempBar}`);
+
     console.log(colors.red + '└────────────────────────────────────────────────────────────┘' + colors.reset);
     console.log();
+
+    // Mission Status (if mission loaded)
+    const missionState = state.mission;
+    if (missionState && missionState.id) {
+      console.log(colors.yellow + '┌─ MISSION ──────────────────────────────────────────────────┐' + colors.reset);
+      console.log(`│ Mission:        ${missionState.name.substring(0, 40).padEnd(40)} │`);
+      if (missionState.landingZone) {
+        console.log(`│ Difficulty:     ${missionState.landingZone.difficulty.toUpperCase().padEnd(40)} │`);
+      }
+
+      // Show objectives if available
+      if (missionState.objectives && missionState.objectives.length > 0) {
+        const completedObjectives = missionState.objectives.filter((o: any) => o.completed).length;
+        const totalObjectives = missionState.objectives.length;
+        const objPercent = (completedObjectives / totalObjectives) * 100;
+        const objColor = objPercent === 100 ? colors.green : objPercent > 50 ? colors.yellow : colors.white;
+        const objBar = this.createBar(objPercent, 20, objColor);
+        console.log(`│ Objectives:     ${objColor}${completedObjectives}/${totalObjectives}${colors.reset} ${objBar}`);
+
+        // Show first incomplete objective
+        const nextObjective = missionState.objectives.find((o: any) => !o.completed);
+        if (nextObjective) {
+          console.log(`│ Next:           ${nextObjective.description.substring(0, 40).padEnd(40)} │`);
+        }
+      }
+
+      // Show par time if available
+      if (missionState.parTime) {
+        const currentTime = state.simulationTime;
+        const timeColor = currentTime > missionState.parTime ? colors.yellow : colors.green;
+        console.log(`│ Par Time:       ${timeColor}${missionState.parTime.toFixed(0)}${colors.reset}s (Current: ${currentTime.toFixed(0)}s)`);
+      }
+
+      console.log(colors.yellow + '└────────────────────────────────────────────────────────────┘' + colors.reset);
+      console.log();
+    }
 
     // Flight Control
     const fcState = state.flightControl;
@@ -252,32 +315,72 @@ class MoonLanderGame {
     const navData = state.navigation;
     const suicideBurn = this.spacecraft.getSuicideBurnData();
     const burnWarning = suicideBurn.shouldBurn ? colors.red : colors.green;
+    const trajectory = this.spacecraft.predictTrajectory();
 
     console.log(colors.cyan + '┌─ NAVIGATION ───────────────────────────────────────────────┐' + colors.reset);
+
+    // Velocity breakdown
+    console.log(`│ Horiz Speed:    ${navData.horizontalSpeed.toFixed(2).padStart(10)} m/s`);
+    console.log(`│ Vert Speed:     ${vSpeedColor}${navData.verticalSpeed.toFixed(2).padStart(10)}${colors.reset} m/s`);
+
+    // Impact prediction
     if (navData.timeToImpact !== null && navData.timeToImpact !== Infinity) {
       console.log(`│ Time to Impact: ${navData.timeToImpact.toFixed(1).padStart(10)} s`);
+      if (trajectory.willImpact) {
+        console.log(`│ Impact Speed:   ${trajectory.impactSpeed.toFixed(2).padStart(10)} m/s`);
+        console.log(`│ Impact Coords:  ${trajectory.coordinates.lat.toFixed(2)}°N ${trajectory.coordinates.lon.toFixed(2)}°E`);
+      }
     } else {
       console.log(`│ Time to Impact: ${colors.dim}NO IMPACT${colors.reset}`);
     }
+
+    // Suicide burn info
     console.log(`│ Suicide Burn:   ${burnWarning}${suicideBurn.burnAltitude.toFixed(0).padStart(10)}${colors.reset} m`);
     if (suicideBurn.shouldBurn) {
       console.log(`│ ${colors.red}⚠️  INITIATE SUICIDE BURN NOW!${colors.reset.padStart(33)}`);
-    } else if (suicideBurn.timeUntilBurn > 0 && suicideBurn.timeUntilBurn < 30) {
+    } else if (suicideBurn.timeUntilBurn > 0 && suicideBurn.timeUntilBurn < 60) {
       console.log(`│ Burn in:        ${colors.yellow}${suicideBurn.timeUntilBurn.toFixed(1).padStart(10)}${colors.reset} s`);
     }
-    console.log(`│ Delta-V Remain: ${navData.deltaVRemaining.toFixed(0).padStart(10)} m/s`);
-    console.log(`│ TWR:            ${navData.twr.toFixed(2).padStart(10)}`);
+
+    // Delta-V and TWR
+    const dvColor = navData.deltaVRemaining < 50 ? colors.red : navData.deltaVRemaining < 150 ? colors.yellow : colors.green;
+    console.log(`│ Delta-V Remain: ${dvColor}${navData.deltaVRemaining.toFixed(0).padStart(10)}${colors.reset} m/s`);
+    const twrColor = navData.twr < 1.0 ? colors.yellow : colors.green;
+    console.log(`│ TWR:            ${twrColor}${navData.twr.toFixed(2).padStart(10)}${colors.reset}`);
+
     console.log(colors.cyan + '└────────────────────────────────────────────────────────────┘' + colors.reset);
+    console.log();
+
+    // Navball Display
+    const navball = this.spacecraft.renderNavball();
+    console.log(colors.magenta + '┌─ NAVBALL ──────────────────────────────────────────────────┐' + colors.reset);
+    const navballLines = navball.split('\n');
+    for (const line of navballLines) {
+      if (line.trim()) {
+        console.log('│ ' + line.padEnd(59) + '│');
+      }
+    }
+    console.log(colors.magenta + '└────────────────────────────────────────────────────────────┘' + colors.reset);
     console.log();
 
     // Controls
     console.log(colors.cyan + '┌─ CONTROLS ─────────────────────────────────────────────────┐' + colors.reset);
     console.log('│ ENGINE: [I]gnite [K]ill [+/-]Throttle                    │');
     console.log('│ RCS:    [W/S]Pitch [A/D]Yaw [Q/E]Roll                    │');
-    console.log('│ SAS:    [1]Off [2]Stability [3]Prograde [4]Retrograde   │');
+    console.log('│ SAS:    [1]Off [2]Stab [3]Pro [4]Retro [5]RadIn [6]RadOut│');
+    console.log('│         [7]Norm [8]AntiNorm [9]AttHold                   │');
     console.log('│ AUTO:   [F1]Off [F2]AltHold [F3]V/S [F4]Suicide [F5]Hovr│');
     console.log('│ OTHER:  [G]imbal [P]ause [X]Quit                         │');
     console.log(colors.cyan + '└────────────────────────────────────────────────────────────┘' + colors.reset);
+  }
+
+  /**
+   * Create a visual progress bar
+   */
+  private createBar(percent: number, width: number, color: string): string {
+    const filled = Math.round((percent / 100) * width);
+    const empty = width - filled;
+    return color + '█'.repeat(filled) + colors.dim + '░'.repeat(empty) + colors.reset;
   }
 
   /**
@@ -352,6 +455,21 @@ class MoonLanderGame {
           break;
         case '4':
           this.spacecraft.setSASMode('retrograde');
+          break;
+        case '5':
+          this.spacecraft.setSASMode('radial_in');
+          break;
+        case '6':
+          this.spacecraft.setSASMode('radial_out');
+          break;
+        case '7':
+          this.spacecraft.setSASMode('normal');
+          break;
+        case '8':
+          this.spacecraft.setSASMode('anti_normal');
+          break;
+        case '9':
+          this.spacecraft.setSASMode('attitude_hold');
           break;
 
         // Autopilot controls
@@ -444,6 +562,45 @@ class MoonLanderGame {
     console.log(`   Battery:         ${state.electrical.battery.chargePercent.toFixed(0)}%`);
     console.log(`   Reactor:         ${state.electrical.reactor.status}`);
     console.log();
+
+    // Calculate mission score using ScoringCalculator directly
+    const landingAngle = 0; // Simplified - assume vertical landing
+    const distanceFromTarget = 0; // Simplified - assume on target
+    const avgHealth = (state.mainEngine.health + state.electrical.battery.chargePercent) / 2;
+
+    // Use the first landing zone (easy difficulty) for scoring
+    const landingZone = this.spacecraft.mission.getLandingZone('lz_tranquility');
+    if (landingZone) {
+      // Access scoring calculator through mission system (need to create instance)
+      const {ScoringCalculator} = require('../src/mission');
+      const scoringCalc = new ScoringCalculator();
+
+      const score = scoringCalc.calculateScore(
+        this.impactSpeed,
+        landingAngle,
+        distanceFromTarget,
+        state.fuel.totalFuel,
+        160, // Initial fuel
+        state.simulationTime,
+        300, // Par time (5 minutes)
+        avgHealth,
+        0, // Checklists completed
+        0, // Total checklists
+        landingZone
+      );
+
+      console.log('🏆 MISSION SCORE:');
+      console.log(`   Landing Quality: ${score.speedScore.toFixed(0)} + ${score.angleScore.toFixed(0)} + ${score.precisionScore.toFixed(0)} = ${(score.speedScore + score.angleScore + score.precisionScore).toFixed(0)}`);
+      console.log(`   Resources:       ${score.fuelScore.toFixed(0)} (fuel) + ${score.timeScore.toFixed(0)} (time)`);
+      console.log(`   Systems:         ${score.healthScore.toFixed(0)} (health)`);
+      console.log(`   Difficulty:      ${score.difficultyMultiplier.toFixed(1)}x`);
+      console.log();
+
+      const gradeColor = score.grade === 'S' || score.grade === 'A' ? colors.green :
+                         score.grade === 'B' || score.grade === 'C' ? colors.yellow : colors.red;
+      console.log(`   ${gradeColor}TOTAL SCORE:     ${score.totalScore.toFixed(0)} points - Grade ${score.grade}${colors.reset}`);
+      console.log();
+    }
 
     console.log('Press any key to exit...');
 
