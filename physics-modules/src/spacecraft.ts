@@ -71,6 +71,9 @@ export class Spacecraft {
   // Simulation time
   public simulationTime: number = 0;
 
+  // Initial fuel capacity (for delta-V calculations)
+  private initialFuelCapacity: number = 0;
+
   constructor(config?: SpacecraftConfig) {
     // Initialize core physics systems
     this.fuel = new FuelSystem(config?.fuelConfig);
@@ -86,6 +89,9 @@ export class Spacecraft {
     this.flightControl = new FlightControlSystem(config?.flightControlConfig);
     this.navigation = new NavigationSystem();
     this.mission = new MissionSystem();
+
+    // Store initial fuel capacity for delta-V calculations
+    this.initialFuelCapacity = this.fuel.getState().totalFuel;
   }
 
   /**
@@ -111,7 +117,7 @@ export class Spacecraft {
     const maxThrust = this.mainEngine.maxThrustN;
     const currentThrust = this.mainEngine.currentThrustN;
     const totalMass = this.physics.dryMass + this.physics.propellantMass;
-    const gravity = 1.62; // Moon gravity (TODO: calculate from physics)
+    const gravity = this.physics.getLocalGravity();
 
     const flightControlState = this.flightControl.update(
       physicsState.attitude,
@@ -270,8 +276,8 @@ export class Spacecraft {
       thrustDir,
       mainEngineState.throttle,
       fuelState.totalFuel,
-      200,  // Initial fuel capacity (TODO: get from config)
-      311   // Specific impulse (TODO: get from main engine)
+      this.initialFuelCapacity,
+      this.mainEngine.specificImpulseSec
     );
   }
 

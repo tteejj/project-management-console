@@ -229,6 +229,16 @@ export class ShipPhysics {
   }
 
   /**
+   * Get local gravity magnitude at current position
+   * Returns scalar value in m/s²
+   */
+  getLocalGravity(): number {
+    const rMag = this.vectorMagnitude(this.position);
+    if (rMag < 1) return 0;  // Avoid division by zero
+    return this.G * this.planetMass / (rMag * rMag);
+  }
+
+  /**
    * Get total mass
    */
   getTotalMass(): number {

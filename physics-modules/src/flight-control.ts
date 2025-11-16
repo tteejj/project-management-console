@@ -308,15 +308,62 @@ export class SASController {
   }
 
   private vectorToQuaternion(direction: Vector3): Quaternion {
-    // Simple conversion: align Z-axis with direction vector
-    // This is simplified - full implementation would handle all edge cases
-    const up = { x: 0, y: 1, z: 0 };
-    const right = this.crossProduct(up, direction);
-    const newUp = this.crossProduct(direction, right);
+    // Align Z-axis with direction vector
+    // Build orthonormal basis: [right, up, forward]
 
-    // Build rotation matrix and convert to quaternion
-    // Simplified version - returns identity for now
-    return { w: 1, x: 0, y: 0, z: 0 };
+    // Normalize direction to get forward vector
+    const forward = this.normalize(direction);
+
+    // Choose a reasonable up vector (avoid singularity when direction is vertical)
+    let up = { x: 0, y: 1, z: 0 };
+    if (Math.abs(forward.y) > 0.99) {
+      // If nearly vertical, use X-axis as reference
+      up = { x: 1, y: 0, z: 0 };
+    }
+
+    // Right = up × forward
+    const right = this.normalize(this.crossProduct(up, forward));
+
+    // Recalculate up = forward × right (ensure orthogonality)
+    const newUp = this.crossProduct(forward, right);
+
+    // Build rotation matrix (column-major: [right, up, forward])
+    // Convert rotation matrix to quaternion using standard algorithm
+    const trace = right.x + newUp.y + forward.z;
+
+    if (trace > 0) {
+      const s = 0.5 / Math.sqrt(trace + 1.0);
+      return {
+        w: 0.25 / s,
+        x: (newUp.z - forward.y) * s,
+        y: (forward.x - right.z) * s,
+        z: (right.y - newUp.x) * s
+      };
+    } else if (right.x > newUp.y && right.x > forward.z) {
+      const s = 2.0 * Math.sqrt(1.0 + right.x - newUp.y - forward.z);
+      return {
+        w: (newUp.z - forward.y) / s,
+        x: 0.25 * s,
+        y: (newUp.x + right.y) / s,
+        z: (forward.x + right.z) / s
+      };
+    } else if (newUp.y > forward.z) {
+      const s = 2.0 * Math.sqrt(1.0 + newUp.y - right.x - forward.z);
+      return {
+        w: (forward.x - right.z) / s,
+        x: (newUp.x + right.y) / s,
+        y: 0.25 * s,
+        z: (forward.y + newUp.z) / s
+      };
+    } else {
+      const s = 2.0 * Math.sqrt(1.0 + forward.z - right.x - newUp.y);
+      return {
+        w: (right.y - newUp.x) / s,
+        x: (forward.x + right.z) / s,
+        y: (forward.y + newUp.z) / s,
+        z: 0.25 * s
+      };
+    }
   }
 
   private quaternionDifference(target: Quaternion, current: Quaternion): Quaternion {
