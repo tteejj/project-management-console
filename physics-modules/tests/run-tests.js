@@ -29,6 +29,24 @@ try {
     stdio: 'inherit'
   });
 
+  console.log('\n' + '='.repeat(60) + '\n');
+  console.log('Running electrical system tests...\n');
+
+  // Compile electrical test file
+  execSync('npx tsc tests/electrical-system.test.ts --outDir dist --module commonjs --target es2020 --esModuleInterop --skipLibCheck', {
+    cwd: path.join(__dirname, '..'),
+    stdio: 'inherit'
+  });
+
+  // Run test
+  execSync('node dist/tests/electrical-system.test.js', {
+    cwd: path.join(__dirname, '..'),
+    stdio: 'inherit'
+  });
+
+  console.log('\n' + '='.repeat(60) + '\n');
+  console.log('✓ All test suites completed!\n');
+
 } catch (error) {
   console.error('Test execution failed');
   process.exit(1);
