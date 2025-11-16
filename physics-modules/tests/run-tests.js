@@ -150,6 +150,51 @@ try {
   });
 
   console.log('\n' + '='.repeat(60) + '\n');
+  console.log('Running flight control system tests...\n');
+
+  // Compile flight control test file
+  execSync('npx tsc tests/flight-control.test.ts --outDir dist --module commonjs --target es2020 --esModuleInterop --skipLibCheck', {
+    cwd: path.join(__dirname, '..'),
+    stdio: 'inherit'
+  });
+
+  // Run test
+  execSync('node dist/tests/flight-control.test.js', {
+    cwd: path.join(__dirname, '..'),
+    stdio: 'inherit'
+  });
+
+  console.log('\n' + '='.repeat(60) + '\n');
+  console.log('Running navigation system tests...\n');
+
+  // Compile navigation test file
+  execSync('npx tsc tests/navigation.test.ts --outDir dist --module commonjs --target es2020 --esModuleInterop --skipLibCheck', {
+    cwd: path.join(__dirname, '..'),
+    stdio: 'inherit'
+  });
+
+  // Run test
+  execSync('node dist/tests/navigation.test.js', {
+    cwd: path.join(__dirname, '..'),
+    stdio: 'inherit'
+  });
+
+  console.log('\n' + '='.repeat(60) + '\n');
+  console.log('Running mission system tests...\n');
+
+  // Compile mission test file
+  execSync('npx tsc tests/mission.test.ts --outDir dist --module commonjs --target es2020 --esModuleInterop --skipLibCheck', {
+    cwd: path.join(__dirname, '..'),
+    stdio: 'inherit'
+  });
+
+  // Run test
+  execSync('node dist/tests/mission.test.js', {
+    cwd: path.join(__dirname, '..'),
+    stdio: 'inherit'
+  });
+
+  console.log('\n' + '='.repeat(60) + '\n');
   console.log('✓ All test suites completed!\n');
 
 } catch (error) {
