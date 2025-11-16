@@ -120,6 +120,21 @@ try {
   });
 
   console.log('\n' + '='.repeat(60) + '\n');
+  console.log('Running ship physics tests...\n');
+
+  // Compile ship physics test file
+  execSync('npx tsc tests/ship-physics.test.ts --outDir dist --module commonjs --target es2020 --esModuleInterop --skipLibCheck', {
+    cwd: path.join(__dirname, '..'),
+    stdio: 'inherit'
+  });
+
+  // Run test
+  execSync('node dist/tests/ship-physics.test.js', {
+    cwd: path.join(__dirname, '..'),
+    stdio: 'inherit'
+  });
+
+  console.log('\n' + '='.repeat(60) + '\n');
   console.log('✓ All test suites completed!\n');
 
 } catch (error) {
