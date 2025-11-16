@@ -90,6 +90,21 @@ try {
   });
 
   console.log('\n' + '='.repeat(60) + '\n');
+  console.log('Running main engine tests...\n');
+
+  // Compile main engine test file
+  execSync('npx tsc tests/main-engine.test.ts --outDir dist --module commonjs --target es2020 --esModuleInterop --skipLibCheck', {
+    cwd: path.join(__dirname, '..'),
+    stdio: 'inherit'
+  });
+
+  // Run test
+  execSync('node dist/tests/main-engine.test.js', {
+    cwd: path.join(__dirname, '..'),
+    stdio: 'inherit'
+  });
+
+  console.log('\n' + '='.repeat(60) + '\n');
   console.log('✓ All test suites completed!\n');
 
 } catch (error) {
