@@ -135,6 +135,21 @@ try {
   });
 
   console.log('\n' + '='.repeat(60) + '\n');
+  console.log('Running spacecraft integration tests...\n');
+
+  // Compile integration test file
+  execSync('npx tsc tests/spacecraft-integration.test.ts --outDir dist --module commonjs --target es2020 --esModuleInterop --skipLibCheck', {
+    cwd: path.join(__dirname, '..'),
+    stdio: 'inherit'
+  });
+
+  // Run test
+  execSync('node dist/tests/spacecraft-integration.test.js', {
+    cwd: path.join(__dirname, '..'),
+    stdio: 'inherit'
+  });
+
+  console.log('\n' + '='.repeat(60) + '\n');
   console.log('✓ All test suites completed!\n');
 
 } catch (error) {
