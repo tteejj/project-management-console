@@ -10,12 +10,18 @@
  * - Main Engine
  * - RCS System
  * - Ship Physics Core
+ * - Flight Control System (PID, SAS, Autopilot)
+ * - Navigation System (Trajectory, Telemetry)
+ * - Mission System (Objectives, Scoring)
  *
  * Handles:
  * - System interconnections
  * - Resource management
  * - Power distribution
  * - Thermal coupling
+ * - Flight automation
+ * - Navigation and guidance
+ * - Mission management
  * - Complete update loop
  */
 
@@ -27,6 +33,9 @@ import { CoolantSystem } from './coolant-system';
 import { MainEngine } from './main-engine';
 import { RCSSystem } from './rcs-system';
 import { ShipPhysics } from './ship-physics';
+import { FlightControlSystem, type SASMode, type AutopilotMode } from './flight-control';
+import { NavigationSystem } from './navigation';
+import { MissionSystem, type Mission } from './mission';
 
 export interface SpacecraftConfig {
   // Optional system configurations
@@ -38,10 +47,13 @@ export interface SpacecraftConfig {
   mainEngineConfig?: any;
   rcsConfig?: any;
   shipPhysicsConfig?: any;
+  flightControlConfig?: any;
+  navigationConfig?: any;
+  missionConfig?: any;
 }
 
 export class Spacecraft {
-  // All subsystems
+  // Core physics subsystems
   public fuel: FuelSystem;
   public electrical: ElectricalSystem;
   public gas: CompressedGasSystem;
@@ -51,10 +63,16 @@ export class Spacecraft {
   public rcs: RCSSystem;
   public physics: ShipPhysics;
 
+  // Advanced flight systems
+  public flightControl: FlightControlSystem;
+  public navigation: NavigationSystem;
+  public mission: MissionSystem;
+
   // Simulation time
   public simulationTime: number = 0;
 
   constructor(config?: SpacecraftConfig) {
+    // Initialize core physics systems
     this.fuel = new FuelSystem(config?.fuelConfig);
     this.electrical = new ElectricalSystem(config?.electricalConfig);
     this.gas = new CompressedGasSystem(config?.gasConfig);
@@ -63,6 +81,11 @@ export class Spacecraft {
     this.mainEngine = new MainEngine(config?.mainEngineConfig);
     this.rcs = new RCSSystem(config?.rcsConfig);
     this.physics = new ShipPhysics(config?.shipPhysicsConfig);
+
+    // Initialize advanced flight systems
+    this.flightControl = new FlightControlSystem(config?.flightControlConfig);
+    this.navigation = new NavigationSystem();
+    this.mission = new MissionSystem();
   }
 
   /**
@@ -80,11 +103,49 @@ export class Spacecraft {
     // 3. Update RCS system
     this.rcs.update(dt, t);
 
-    // 4. Get propellant consumption from engines
+    // 4. Get current physics state for flight control
+    const physicsState = this.physics.getState();
+    const mainEngineState = this.mainEngine.getState();
+
+    // 5. Update flight control system (SAS, autopilot)
+    const maxThrust = this.mainEngine.maxThrustN;
+    const currentThrust = this.mainEngine.currentThrustN;
+    const totalMass = this.physics.dryMass + this.physics.propellantMass;
+    const gravity = 1.62; // Moon gravity (TODO: calculate from physics)
+
+    const flightControlState = this.flightControl.update(
+      physicsState.attitude,
+      physicsState.angularVelocity,
+      null, // targetAttitude (can be set by autopilot mode)
+      physicsState.velocity,
+      physicsState.position,
+      physicsState.altitude,
+      physicsState.verticalSpeed,
+      totalMass,
+      maxThrust,
+      currentThrust,
+      gravity,
+      dt
+    );
+
+    // 6. Apply autopilot throttle commands (if active)
+    if (flightControlState.autopilotMode !== 'off' && mainEngineState.status === 'running') {
+      this.mainEngine.setThrottle(flightControlState.throttleCommand.throttle);
+    }
+
+    // 7. Apply gimbal autopilot commands (if active)
+    if (this.flightControl.isGimbalAutopilotEnabled() && mainEngineState.status === 'running') {
+      this.mainEngine.setGimbal(
+        flightControlState.gimbalCommand.pitch,
+        flightControlState.gimbalCommand.yaw
+      );
+    }
+
+    // 8. Get propellant consumption from engines
     const mainEngineRates = this.mainEngine.getConsumptionRates();
     const rcsFuelConsumption = this.rcs.consumeFuel(dt, this.getAvailableRCSFuel());
 
-    // 5. Consume fuel from tanks
+    // 9. Consume fuel from tanks
     const mainFuelTank = this.fuel.getTank('main_1')!;
     const mainOxidizerTank = this.fuel.getTank('main_2')!;
     const rcsTank = this.fuel.getTank('rcs')!;
@@ -99,18 +160,18 @@ export class Spacecraft {
 
     this.fuel.consumeFuel('rcs', rcsFuelConsumption);
 
-    // 6. Update ship mass in physics
+    // 10. Update ship mass in physics
     const totalPropellantMass = this.fuel.getTotalFuelMass();
     this.physics.propellantMass = totalPropellantMass;
 
-    // 7. Get thrust and torque vectors
+    // 11. Get thrust and torque vectors
     const mainEngineThrust = this.mainEngine.getThrustVector();
     const mainEngineTorque = { x: 0, y: 0, z: 0 };  // Gimbal torque (simplified for now)
 
     const rcsThrust = this.rcs.getTotalThrustVector();
     const rcsTorque = this.rcs.getTotalTorque();
 
-    // 8. Update ship physics
+    // 12. Update ship physics
     const totalPropellantConsumed = mainFuelAmount + mainOxidizerAmount + rcsFuelConsumption;
 
     this.physics.update(
@@ -122,7 +183,7 @@ export class Spacecraft {
       totalPropellantConsumed
     );
 
-    // 9. Update thermal system with heat generation
+    // 13. Update thermal system with heat generation
     const componentTemps = new Map<string, number>();
 
     // Main engine generates heat
@@ -140,20 +201,23 @@ export class Spacecraft {
 
     this.thermal.update(dt, t);
 
-    // 10. Update coolant system with component temperatures
+    // 14. Update coolant system with component temperatures
     for (const [name, component] of this.thermal.heatSources) {
       componentTemps.set(name, component.temperature);
     }
 
     this.coolant.update(dt, t, componentTemps);
 
-    // 11. Update compressed gas system
+    // 15. Update compressed gas system
     this.gas.update(dt, t);
 
-    // 12. Update fuel system
+    // 16. Update fuel system
     this.fuel.update(dt, t);
 
-    // 13. Increment time
+    // 17. Update mission checklists (if mission loaded)
+    this.mission.updateChecklists();
+
+    // 18. Increment time
     this.simulationTime += dt;
   }
 
@@ -178,8 +242,37 @@ export class Spacecraft {
       thermal: this.thermal.getState(),
       coolant: this.coolant.getState(),
       mainEngine: this.mainEngine.getState(),
-      rcs: this.rcs.getState()
+      rcs: this.rcs.getState(),
+      flightControl: this.flightControl.getState(),
+      navigation: this.getNavigationTelemetry(),
+      mission: this.mission.getCurrentMission()
     };
+  }
+
+  /**
+   * Get navigation telemetry
+   */
+  getNavigationTelemetry() {
+    const physicsState = this.physics.getState();
+    const mainEngineState = this.mainEngine.getState();
+    const fuelState = this.fuel.getState();
+    const totalMass = this.physics.dryMass + this.physics.propellantMass;
+
+    // Get thrust direction from ship attitude (simplified)
+    const thrustDir = { x: 0, y: 0, z: 1 };  // Local Z-axis
+
+    return this.navigation.getTelemetry(
+      physicsState.position,
+      physicsState.velocity,
+      physicsState.attitude,
+      totalMass,
+      this.mainEngine.currentThrustN,
+      thrustDir,
+      mainEngineState.throttle,
+      fuelState.totalFuel,
+      200,  // Initial fuel capacity (TODO: get from config)
+      311   // Specific impulse (TODO: get from main engine)
+    );
   }
 
   /**
@@ -229,6 +322,178 @@ export class Spacecraft {
    */
   startCoolantPump(loopId: number): boolean {
     return this.coolant.startPump(loopId);
+  }
+
+  // =============================================================================
+  // Flight Control System Commands
+  // =============================================================================
+
+  /**
+   * Set SAS mode
+   */
+  setSASMode(mode: SASMode): void {
+    this.flightControl.setSASMode(mode);
+  }
+
+  /**
+   * Get current SAS mode
+   */
+  getSASMode(): SASMode {
+    return this.flightControl.getSASMode();
+  }
+
+  /**
+   * Set autopilot mode
+   */
+  setAutopilotMode(mode: AutopilotMode): void {
+    this.flightControl.setAutopilotMode(mode);
+  }
+
+  /**
+   * Get current autopilot mode
+   */
+  getAutopilotMode(): AutopilotMode {
+    return this.flightControl.getAutopilotMode();
+  }
+
+  /**
+   * Set target altitude for altitude hold autopilot
+   */
+  setTargetAltitude(altitude: number): void {
+    this.flightControl.setTargetAltitude(altitude);
+  }
+
+  /**
+   * Set target vertical speed for vertical speed hold autopilot
+   */
+  setTargetVerticalSpeed(speed: number): void {
+    this.flightControl.setTargetVerticalSpeed(speed);
+  }
+
+  /**
+   * Enable/disable gimbal autopilot
+   */
+  setGimbalAutopilot(enabled: boolean): void {
+    this.flightControl.setGimbalAutopilot(enabled);
+  }
+
+  // =============================================================================
+  // Navigation System Commands
+  // =============================================================================
+
+  /**
+   * Set navigation target
+   */
+  setNavigationTarget(position: { x: number; y: number; z: number }): void {
+    this.navigation.setTarget(position);
+  }
+
+  /**
+   * Clear navigation target
+   */
+  clearNavigationTarget(): void {
+    this.navigation.clearTarget();
+  }
+
+  /**
+   * Get trajectory prediction
+   */
+  predictTrajectory() {
+    const physicsState = this.physics.getState();
+    const totalMass = this.physics.dryMass + this.physics.propellantMass;
+    const thrustDir = { x: 0, y: 0, z: 1 };
+
+    return this.navigation.predictImpact(
+      physicsState.position,
+      physicsState.velocity,
+      totalMass,
+      this.mainEngine.currentThrustN,
+      thrustDir
+    );
+  }
+
+  /**
+   * Get suicide burn data
+   */
+  getSuicideBurnData() {
+    const physicsState = this.physics.getState();
+    const totalMass = this.physics.dryMass + this.physics.propellantMass;
+
+    return this.navigation.calculateSuicideBurn(
+      physicsState.altitude,
+      physicsState.verticalSpeed,
+      totalMass,
+      this.mainEngine.maxThrustN
+    );
+  }
+
+  /**
+   * Render navball display
+   */
+  renderNavball(): string {
+    const physicsState = this.physics.getState();
+    return this.navigation.renderNavball(
+      physicsState.attitude,
+      physicsState.velocity
+    );
+  }
+
+  // =============================================================================
+  // Mission System Commands
+  // =============================================================================
+
+  /**
+   * Load mission
+   */
+  loadMission(mission: Mission): void {
+    this.mission.loadMission(mission);
+  }
+
+  /**
+   * Start mission
+   */
+  startMission(): void {
+    this.mission.startMission(this.simulationTime);
+  }
+
+  /**
+   * Get current mission
+   */
+  getCurrentMission(): Mission | null {
+    return this.mission.getCurrentMission();
+  }
+
+  /**
+   * Complete mission objective
+   */
+  completeObjective(objectiveId: string): void {
+    this.mission.completeObjective(objectiveId);
+  }
+
+  /**
+   * Calculate mission score
+   */
+  calculateMissionScore(landingSpeed: number, landingAngle: number) {
+    const physicsState = this.physics.getState();
+    const fuelState = this.fuel.getState();
+    const currentMission = this.mission.getCurrentMission();
+
+    if (!currentMission) {
+      throw new Error('No active mission');
+    }
+
+    // Get target position from landing zone
+    const targetPos = { x: 0, y: 0, z: 1737400 };  // Simplified
+
+    return this.mission.calculateMissionScore(
+      landingSpeed,
+      landingAngle,
+      physicsState.position,
+      targetPos,
+      fuelState.totalFuel,
+      95,  // System health (simplified)
+      this.simulationTime
+    );
   }
 
   /**
