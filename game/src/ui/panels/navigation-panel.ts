@@ -4,20 +4,20 @@
  * Based on design: 01-CONTROL-STATIONS.md
  */
 
+import { SpacecraftAdapter } from '../../spacecraft-adapter';
+
 export class NavigationPanel {
     private ctx: CanvasRenderingContext2D;
     private palette: any;
+    private spacecraft: SpacecraftAdapter;
 
     // State
-    private radarActive: boolean = true;
     private radarRange: number = 10; // km
-    private radarGain: number = 75; // percent
-    private lidarActive: boolean = false;
-    private contacts: any[] = [];
 
-    constructor(ctx: CanvasRenderingContext2D, palette: any) {
+    constructor(ctx: CanvasRenderingContext2D, palette: any, spacecraft: SpacecraftAdapter) {
         this.ctx = ctx;
         this.palette = palette;
+        this.spacecraft = spacecraft;
     }
 
     handleInput(key: string): void {
@@ -25,40 +25,38 @@ export class NavigationPanel {
 
         switch (keyLower) {
             case 'r':
-                this.radarActive = !this.radarActive;
-                console.log(`Radar: ${this.radarActive ? 'ACTIVE' : 'OFF'}`);
+                this.spacecraft.setRadarActive(true);
+                console.log('Radar toggled');
                 break;
             case 'z':
                 this.radarRange = Math.min(100, this.radarRange + 5);
+                this.spacecraft.setRadarRange(this.radarRange);
                 console.log(`Radar range: ${this.radarRange}km`);
                 break;
             case 'x':
                 this.radarRange = Math.max(1, this.radarRange - 5);
+                this.spacecraft.setRadarRange(this.radarRange);
                 console.log(`Radar range: ${this.radarRange}km`);
-                break;
-            case 'c':
-                this.radarGain = Math.min(100, this.radarGain + 5);
-                console.log(`Radar gain: ${this.radarGain}%`);
-                break;
-            case 'v':
-                this.radarGain = Math.max(0, this.radarGain - 5);
-                console.log(`Radar gain: ${this.radarGain}%`);
-                break;
-            case 'l':
-                this.lidarActive = !this.lidarActive;
-                console.log(`LIDAR: ${this.lidarActive ? 'ACTIVE' : 'PASSIVE'}`);
                 break;
         }
     }
 
     render(): void {
         const ctx = this.ctx;
+        const navData = this.spacecraft.getNavigationTelemetry();
 
         ctx.font = 'bold 20px "Courier New"';
         ctx.fillStyle = this.palette.info;
         ctx.fillText('NAVIGATION', 40, 40);
 
         ctx.font = '14px "Courier New"';
+
+        // Show altitude and velocity
+        let infoY = 620;
+        ctx.fillStyle = this.palette.primary;
+        ctx.fillText(`Altitude: ${navData.altitude.toFixed(0)}m`, 40, infoY);
+        ctx.fillText(`V/S: ${navData.verticalSpeed.toFixed(1)}m/s`, 250, infoY);
+        ctx.fillText(`Speed: ${navData.horizontalSpeed.toFixed(1)}m/s`, 450, infoY);
 
         // Tactical Display (left side)
         let y = 80;

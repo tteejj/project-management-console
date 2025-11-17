@@ -4,22 +4,20 @@
  * Based on design: 01-CONTROL-STATIONS.md
  */
 
+import { SpacecraftAdapter } from '../../spacecraft-adapter';
+
 export class LifeSupportPanel {
     private ctx: CanvasRenderingContext2D;
     private palette: any;
+    private spacecraft: SpacecraftAdapter;
 
     // State
     private selectedCompartment: number = 5; // Center compartment
-    private o2GeneratorOn: boolean = true;
-    private co2ScrubberOn: boolean = true;
-    private o2Percent: number = 18.2;
-    private co2Percent: number = 0.8;
-    private pressure: number = 101; // kPa
-    private temperature: number = 295; // K
 
-    constructor(ctx: CanvasRenderingContext2D, palette: any) {
+    constructor(ctx: CanvasRenderingContext2D, palette: any, spacecraft: SpacecraftAdapter) {
         this.ctx = ctx;
         this.palette = palette;
+        this.spacecraft = spacecraft;
     }
 
     handleInput(key: string): void {

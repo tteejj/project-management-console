@@ -3,6 +3,8 @@
  * Orchestrates game loop, physics simulation, and rendering
  */
 
+import { SpacecraftAdapter } from './spacecraft-adapter';
+
 export class Game {
     private canvas: HTMLCanvasElement;
     private ctx: CanvasRenderingContext2D;
@@ -14,6 +16,9 @@ export class Game {
     // Game state
     private paused: boolean = false;
 
+    // Spacecraft simulation
+    public spacecraft: SpacecraftAdapter;
+
     constructor(canvas: HTMLCanvasElement) {
         this.canvas = canvas;
         const ctx = canvas.getContext('2d');
@@ -24,6 +29,10 @@ export class Game {
 
         // Set up canvas for crisp rendering
         this.ctx.imageSmoothingEnabled = false;
+
+        // Initialize spacecraft
+        this.spacecraft = new SpacecraftAdapter();
+        console.log('Spacecraft initialized');
     }
 
     /**
@@ -75,9 +84,10 @@ export class Game {
      * Update game state
      */
     private update(deltaTime: number): void {
-        // Fixed timestep accumulator pattern
-        // This will be where we update the physics simulation
-        // For now, just a placeholder
+        // Update spacecraft physics simulation
+        // Use fixed timestep for stability
+        const dt = Math.min(deltaTime, this.fixedTimestep * 2); // Clamp to prevent spiral of death
+        this.spacecraft.update(dt);
     }
 
     /**

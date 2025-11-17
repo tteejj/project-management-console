@@ -3,6 +3,7 @@
  * Manages control station panels and rendering
  */
 
+import { SpacecraftAdapter } from '../spacecraft-adapter';
 import { HelmPanel } from './panels/helm-panel';
 import { EngineeringPanel } from './panels/engineering-panel';
 import { NavigationPanel } from './panels/navigation-panel';
@@ -13,8 +14,9 @@ export type StationPanel = HelmPanel | EngineeringPanel | NavigationPanel | Life
 export class UIManager {
     private canvas: HTMLCanvasElement;
     private ctx: CanvasRenderingContext2D;
-    private activeStationIndex: number = 1; // Start with Helm (Station 1)
+    private activeStationIndex: number = 0; // Start with Helm (Station 1)
     private stations: StationPanel[];
+    private spacecraft: SpacecraftAdapter;
 
     // Color palette (green monochrome by default)
     palette = {
@@ -27,20 +29,21 @@ export class UIManager {
         info: '#00ffff'
     };
 
-    constructor(canvas: HTMLCanvasElement) {
+    constructor(canvas: HTMLCanvasElement, spacecraft: SpacecraftAdapter) {
         this.canvas = canvas;
+        this.spacecraft = spacecraft;
         const ctx = canvas.getContext('2d');
         if (!ctx) {
             throw new Error('Could not get 2D context');
         }
         this.ctx = ctx;
 
-        // Initialize all station panels
+        // Initialize all station panels with spacecraft reference
         this.stations = [
-            new HelmPanel(this.ctx, this.palette),           // Station 1
-            new EngineeringPanel(this.ctx, this.palette),    // Station 2
-            new NavigationPanel(this.ctx, this.palette),     // Station 3
-            new LifeSupportPanel(this.ctx, this.palette)     // Station 4
+            new HelmPanel(this.ctx, this.palette, spacecraft),           // Station 1
+            new EngineeringPanel(this.ctx, this.palette, spacecraft),    // Station 2
+            new NavigationPanel(this.ctx, this.palette, spacecraft),     // Station 3
+            new LifeSupportPanel(this.ctx, this.palette, spacecraft)     // Station 4
         ];
 
         // Start rendering

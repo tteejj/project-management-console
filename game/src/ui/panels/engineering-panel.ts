@@ -4,58 +4,60 @@
  * Based on design: 01-CONTROL-STATIONS.md
  */
 
+import { SpacecraftAdapter } from '../../spacecraft-adapter';
+
 export class EngineeringPanel {
     private ctx: CanvasRenderingContext2D;
     private palette: any;
+    private spacecraft: SpacecraftAdapter;
 
-    // State
-    private reactorStatus: string = 'offline';
-    private reactorThrottle: number = 75;
-    private batteryCharge: number = 78;
-    private breakers: boolean[] = new Array(10).fill(true); // 10 circuit breakers
-    private coolantPumpOn: boolean = true;
-    private radiatorsDeployed: boolean = false;
-
-    constructor(ctx: CanvasRenderingContext2D, palette: any) {
+    constructor(ctx: CanvasRenderingContext2D, palette: any, spacecraft: SpacecraftAdapter) {
         this.ctx = ctx;
         this.palette = palette;
+        this.spacecraft = spacecraft;
     }
 
     handleInput(key: string): void {
         const keyLower = key.toLowerCase();
+        const electricalState = this.spacecraft.getElectricalState();
 
         switch (keyLower) {
             case 'r':
+                this.spacecraft.startReactor();
                 console.log('Starting reactor...');
-                this.reactorStatus = 'starting';
                 break;
             case 't':
+                this.spacecraft.scramReactor();
                 console.log('Reactor SCRAM!');
-                this.reactorStatus = 'offline';
                 break;
             case 'i':
-                this.reactorThrottle = Math.min(100, this.reactorThrottle + 5);
-                console.log(`Reactor throttle: ${this.reactorThrottle}%`);
+                const currentPower = electricalState.reactor.powerOutput;
+                this.spacecraft.setReactorThrottle(Math.min(100, currentPower + 5));
+                console.log(`Reactor throttle increased`);
                 break;
             case 'k':
-                this.reactorThrottle = Math.max(0, this.reactorThrottle - 5);
-                console.log(`Reactor throttle: ${this.reactorThrottle}%`);
+                const currentPower2 = electricalState.reactor.powerOutput;
+                this.spacecraft.setReactorThrottle(Math.max(0, currentPower2 - 5));
+                console.log(`Reactor throttle decreased`);
                 break;
             case '1': case '2': case '3': case '4': case '5':
             case '6': case '7': case '8': case '9': case '0':
                 const num = key === '0' ? 9 : parseInt(key) - 1;
-                this.breakers[num] = !this.breakers[num];
-                console.log(`Breaker ${num + 1}: ${this.breakers[num] ? 'ON' : 'OFF'}`);
+                this.spacecraft.toggleBreaker(num, !electricalState.circuitBreakers[num]);
+                console.log(`Breaker ${num + 1} toggled`);
                 break;
             case 'g':
-                this.radiatorsDeployed = !this.radiatorsDeployed;
-                console.log(`Radiators: ${this.radiatorsDeployed ? 'DEPLOYED' : 'RETRACTED'}`);
+                // Toggle radiators
+                this.spacecraft.toggleRadiators(true);
+                console.log('Radiators toggled');
                 break;
         }
     }
 
     render(): void {
         const ctx = this.ctx;
+        const electricalState = this.spacecraft.getElectricalState();
+        const thermalState = this.spacecraft.getThermalState();
 
         ctx.font = 'bold 20px "Courier New"';
         ctx.fillStyle = this.palette.info;
@@ -68,11 +70,13 @@ export class EngineeringPanel {
         let y = 80;
         ctx.fillText('REACTOR', 40, y);
         y += 25;
-        ctx.fillStyle = this.reactorStatus === 'online' ? this.palette.primary : this.palette.danger;
-        ctx.fillText(`Status: ${this.reactorStatus.toUpperCase()}`, 60, y);
+        const reactorStatus = electricalState.reactor.status;
+        ctx.fillStyle = reactorStatus === 'online' ? this.palette.primary : this.palette.danger;
+        ctx.fillText(`Status: ${reactorStatus.toUpperCase()}`, 60, y);
         y += 25;
         ctx.fillStyle = this.palette.secondary;
-        ctx.fillText(`Throttle: ${this.reactorThrottle}%  (I/K)`, 60, y);
+        const reactorPower = (electricalState.reactor.powerOutput / 10) * 100; // Normalize to percentage
+        ctx.fillText(`Power: ${reactorPower.toFixed(0)}%  (I/K)`, 60, y);
 
         // Power Distribution
         y += 50;
@@ -80,11 +84,15 @@ export class EngineeringPanel {
         ctx.fillText('POWER DISTRIBUTION', 40, y);
         y += 25;
         ctx.fillStyle = this.palette.secondary;
+        const battery = electricalState.battery.chargePercent;
+        ctx.fillText(`Battery: ${battery.toFixed(0)}%`, 60, y);
+        y += 25;
         ctx.fillText('BREAKERS: 1-0 to toggle', 60, y);
         y += 25;
         for (let i = 0; i < 10; i++) {
-            const status = this.breakers[i] ? 'ON ' : 'OFF';
-            const color = this.breakers[i] ? this.palette.primary : this.palette.muted;
+            const breakerState = electricalState.circuitBreakers[i] || false;
+            const status = breakerState ? 'ON ' : 'OFF';
+            const color = breakerState ? this.palette.primary : this.palette.muted;
             ctx.fillStyle = color;
             ctx.fillText(`[${i + 1}] ${status}`, 60 + (i % 5) * 120, y + Math.floor(i / 5) * 25);
         }
@@ -95,9 +103,10 @@ export class EngineeringPanel {
         ctx.fillText('THERMAL MANAGEMENT', 40, y);
         y += 25;
         ctx.fillStyle = this.palette.secondary;
-        ctx.fillText(`Coolant Pump: ${this.coolantPumpOn ? 'ON' : 'OFF'}`, 60, y);
+        const reactorTemp = thermalState.nodes?.reactor?.temperature || 293;
+        ctx.fillText(`Reactor Temp: ${reactorTemp.toFixed(0)}K`, 60, y);
         y += 25;
-        ctx.fillText(`Radiators: ${this.radiatorsDeployed ? 'DEPLOYED' : 'RETRACTED'}  (G)`, 60, y);
+        ctx.fillText(`Radiators: DEPLOYED  (G)`, 60, y);
 
         // Keyboard hints
         const hintsY = ctx.canvas.height - 30;

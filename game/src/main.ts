@@ -28,7 +28,7 @@ window.addEventListener('DOMContentLoaded', () => {
     try {
         // Initialize game
         const game = new Game(canvas);
-        const ui = new UIManager(canvas);
+        const ui = new UIManager(canvas, game.spacecraft);
         const input = new InputManager();
 
         // Link input to UI

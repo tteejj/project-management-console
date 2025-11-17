@@ -4,32 +4,24 @@
  * Based on design: 01-CONTROL-STATIONS.md
  */
 
+import { SpacecraftAdapter } from '../../spacecraft-adapter';
+
 export class HelmPanel {
     private ctx: CanvasRenderingContext2D;
     private palette: any;
+    private spacecraft: SpacecraftAdapter;
 
-    // Control state
-    private fuelValveOpen: boolean = false;
-    private ignitionArmed: boolean = false;
-    private engineFiring: boolean = false;
-    private throttle: number = 0; // 0-100%
+    // Control state (local UI state)
     private gimbalX: number = 0; // -15 to +15 degrees
     private gimbalY: number = 0; // -15 to +15 degrees
-
-    // Fuel tanks (3 tanks)
-    private tankLevels: number[] = [70, 55, 95]; // Percentages
 
     // RCS thrusters (12 thrusters)
     private rcsActive: boolean[] = new Array(12).fill(false);
 
-    // Engine status
-    private engineTemp: number = 425; // Kelvin
-    private fuelPressure: number = 2.1; // bar
-    private fuelFlow: number = 85; // percent
-
-    constructor(ctx: CanvasRenderingContext2D, palette: any) {
+    constructor(ctx: CanvasRenderingContext2D, palette: any, spacecraft: SpacecraftAdapter) {
         this.ctx = ctx;
         this.palette = palette;
+        this.spacecraft = spacecraft;
     }
 
     /**
@@ -37,65 +29,69 @@ export class HelmPanel {
      */
     handleInput(key: string): void {
         const keyLower = key.toLowerCase();
+        const engineState = this.spacecraft.getMainEngineState();
 
         switch (keyLower) {
             // Main Engine Controls
             case 'f':
-                this.fuelValveOpen = !this.fuelValveOpen;
-                console.log(`Fuel valve: ${this.fuelValveOpen ? 'OPEN' : 'CLOSED'}`);
+                const currentValve = engineState.fuelValveOpen;
+                this.spacecraft.setFuelValve(!currentValve);
+                console.log(`Fuel valve: ${!currentValve ? 'OPEN' : 'CLOSED'}`);
                 break;
             case 'g':
-                this.ignitionArmed = !this.ignitionArmed;
-                console.log(`Ignition: ${this.ignitionArmed ? 'ARMED' : 'DISARMED'}`);
+                this.spacecraft.armIgnition();
+                console.log('Ignition ARMED');
                 break;
             case 'h':
-                if (this.ignitionArmed && this.fuelValveOpen && this.fuelPressure > 1.5) {
-                    this.engineFiring = true;
-                    console.log('Engine FIRING!');
-                } else {
-                    console.log('Cannot fire: Check valve, ignition, and pressure');
-                }
+                this.spacecraft.fireEngine();
+                console.log('Ignition FIRE!');
                 break;
             case 'r':
-                this.engineFiring = false;
-                this.ignitionArmed = false;
+                this.spacecraft.cutoffEngine();
                 console.log('EMERGENCY CUTOFF!');
                 break;
 
             // Throttle
             case 'q':
-                this.throttle = Math.min(100, this.throttle + 5);
-                console.log(`Throttle: ${this.throttle}%`);
+                const newThrottle = Math.min(100, (engineState.throttle * 100) + 5);
+                this.spacecraft.setThrottle(newThrottle);
+                console.log(`Throttle: ${newThrottle.toFixed(0)}%`);
                 break;
             case 'a':
-                this.throttle = Math.max(0, this.throttle - 5);
-                console.log(`Throttle: ${this.throttle}%`);
+                const lowerThrottle = Math.max(0, (engineState.throttle * 100) - 5);
+                this.spacecraft.setThrottle(lowerThrottle);
+                console.log(`Throttle: ${lowerThrottle.toFixed(0)}%`);
                 break;
 
             // Gimbal
             case 'w':
                 this.gimbalX = Math.min(15, this.gimbalX + 1);
+                this.spacecraft.setGimbal(this.gimbalX, this.gimbalY);
                 console.log(`Gimbal X: ${this.gimbalX}°`);
                 break;
             case 's':
                 this.gimbalX = Math.max(-15, this.gimbalX - 1);
+                this.spacecraft.setGimbal(this.gimbalX, this.gimbalY);
                 console.log(`Gimbal X: ${this.gimbalX}°`);
                 break;
             case 'e':
                 this.gimbalY = Math.min(15, this.gimbalY + 1);
+                this.spacecraft.setGimbal(this.gimbalX, this.gimbalY);
                 console.log(`Gimbal Y: ${this.gimbalY}°`);
                 break;
             case 'd':
                 this.gimbalY = Math.max(-15, this.gimbalY - 1);
+                this.spacecraft.setGimbal(this.gimbalX, this.gimbalY);
                 console.log(`Gimbal Y: ${this.gimbalY}°`);
                 break;
 
-            // RCS Thrusters (1-9, 0, -, =)
+            // RCS Thrusters (1-9, 0)
             case '1': case '2': case '3': case '4':
             case '5': case '6': case '7': case '8':
             case '9': case '0':
                 const num = key === '0' ? 9 : parseInt(key) - 1;
                 this.rcsActive[num] = !this.rcsActive[num];
+                this.spacecraft.fireRCS(num, this.rcsActive[num]);
                 console.log(`RCS Thruster ${num + 1}: ${this.rcsActive[num] ? 'FIRING' : 'OFF'}`);
                 break;
         }
@@ -108,6 +104,11 @@ export class HelmPanel {
         const ctx = this.ctx;
         const width = ctx.canvas.width;
         const height = ctx.canvas.height;
+
+        // Get live spacecraft data
+        const engineState = this.spacecraft.getMainEngineState();
+        const fuelState = this.spacecraft.getFuelState();
+        const thermalState = this.spacecraft.getThermalState();
 
         // Set up text rendering
         ctx.font = '14px "Courier New"';
@@ -128,25 +129,28 @@ export class HelmPanel {
         // Fuel Valve
         ctx.fillStyle = this.palette.primary;
         ctx.fillText('FUEL VALVE', 60, y);
-        ctx.fillStyle = this.fuelValveOpen ? this.palette.primary : this.palette.muted;
-        ctx.fillText(this.fuelValveOpen ? '● OPEN' : '○ CLOSED', 80, y + 25);
+        ctx.fillStyle = engineState.fuelValveOpen ? this.palette.primary : this.palette.muted;
+        ctx.fillText(engineState.fuelValveOpen ? '● OPEN' : '○ CLOSED', 80, y + 25);
         y += 60;
 
         // Ignition
         ctx.fillStyle = this.palette.primary;
         ctx.fillText('IGNITION', 60, y);
-        ctx.fillStyle = this.ignitionArmed ? this.palette.warning : this.palette.muted;
-        ctx.fillText(this.ignitionArmed ? '[  ARMED  ]' : '[ DISARM  ]', 80, y + 25);
-        ctx.fillStyle = this.engineFiring ? this.palette.danger : this.palette.muted;
-        ctx.fillText(this.engineFiring ? '[  FIRE!  ]' : '[  FIRE   ]', 80, y + 45);
+        const isArmed = engineState.status === 'armed' || engineState.status === 'igniting' || engineState.status === 'running';
+        ctx.fillStyle = isArmed ? this.palette.warning : this.palette.muted;
+        ctx.fillText(isArmed ? '[  ARMED  ]' : '[ DISARM  ]', 80, y + 25);
+        const isRunning = engineState.status === 'running';
+        ctx.fillStyle = isRunning ? this.palette.danger : this.palette.muted;
+        ctx.fillText(isRunning ? '[  FIRE!  ]' : '[  FIRE   ]', 80, y + 45);
         y += 85;
 
         // Throttle
         ctx.fillStyle = this.palette.primary;
         ctx.fillText('THROTTLE', 60, y);
-        this.drawGauge(80, y + 10, 200, 20, this.throttle, 100);
+        const throttlePct = engineState.throttle * 100;
+        this.drawGauge(80, y + 10, 200, 20, throttlePct, 100);
         ctx.fillStyle = this.palette.secondary;
-        ctx.fillText(`${this.throttle}%  (Q/A)`, 80, y + 50);
+        ctx.fillText(`${throttlePct.toFixed(0)}%  (Q/A)`, 80, y + 50);
         y += 75;
 
         // Gimbal
@@ -176,12 +180,21 @@ export class HelmPanel {
         // Fuel Status Section (right side, bottom)
         this.drawBox(420, 330, 420, 250, 'FUEL STATUS');
         y = 370;
+
+        // Get fuel levels (approximation - fuel system may not have individual tank tracking)
+        const totalFuel = fuelState.totalFuel;
+        const capacity = fuelState.capacity;
+        const fuelPercent = (totalFuel / capacity) * 100;
+
+        // Show as 3 tanks (visual approximation)
         for (let i = 0; i < 3; i++) {
             ctx.fillStyle = this.palette.primary;
             ctx.fillText(`TANK ${i + 1}`, 440, y);
-            this.drawGauge(550, y - 12, 150, 16, this.tankLevels[i], 100);
+            // Approximate distribution
+            const tankPercent = Math.max(0, Math.min(100, fuelPercent + (i - 1) * 10));
+            this.drawGauge(550, y - 12, 150, 16, tankPercent, 100);
             ctx.fillStyle = this.palette.secondary;
-            ctx.fillText(`${this.tankLevels[i]}%`, 720, y);
+            ctx.fillText(`${tankPercent.toFixed(0)}%`, 720, y);
             y += 40;
         }
 
@@ -190,14 +203,20 @@ export class HelmPanel {
         ctx.fillStyle = this.palette.primary;
         ctx.fillText('ENGINE STATUS', 440, y);
         y += 25;
-        const tempColor = this.engineTemp > 500 ? this.palette.danger : this.palette.primary;
+
+        // Get engine temperature from thermal system
+        const engineTemp = thermalState.nodes?.engine?.temperature || 293;
+        const tempColor = engineTemp > 500 ? this.palette.danger : this.palette.primary;
         ctx.fillStyle = tempColor;
-        ctx.fillText(`TEMP:  ${this.engineTemp}K`, 460, y);
+        ctx.fillText(`TEMP:  ${engineTemp.toFixed(0)}K`, 460, y);
         y += 20;
         ctx.fillStyle = this.palette.secondary;
-        ctx.fillText(`PRESS: ${this.fuelPressure.toFixed(1)}bar`, 460, y);
+        const fuelPressure = engineState.fuelPressure || 2.1;
+        ctx.fillText(`PRESS: ${fuelPressure.toFixed(1)}bar`, 460, y);
         y += 20;
-        ctx.fillText(`FLOW:  ${this.fuelFlow}%`, 460, y);
+        const thrust = engineState.thrust || 0;
+        const thrustPercent = (thrust / 45000) * 100; // Max thrust ~45kN
+        ctx.fillText(`THRUST: ${thrustPercent.toFixed(0)}%`, 460, y);
 
         // Keyboard hints at bottom
         this.renderKeyboardHints();
