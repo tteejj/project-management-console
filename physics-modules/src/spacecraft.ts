@@ -36,6 +36,7 @@ import { ShipPhysics } from './ship-physics';
 import { FlightControlSystem, type SASMode, type AutopilotMode } from './flight-control';
 import { NavigationSystem } from './navigation';
 import { MissionSystem, type Mission } from './mission';
+import { LifeSupportSystem } from './life-support-system';
 
 export interface SpacecraftConfig {
   // Optional system configurations
@@ -50,6 +51,7 @@ export interface SpacecraftConfig {
   flightControlConfig?: any;
   navigationConfig?: any;
   missionConfig?: any;
+  lifeSupportConfig?: any;
 }
 
 export class Spacecraft {
@@ -62,6 +64,7 @@ export class Spacecraft {
   public mainEngine: MainEngine;
   public rcs: RCSSystem;
   public physics: ShipPhysics;
+  public lifeSupport: LifeSupportSystem;
 
   // Advanced flight systems
   public flightControl: FlightControlSystem;
@@ -84,6 +87,7 @@ export class Spacecraft {
     this.mainEngine = new MainEngine(config?.mainEngineConfig);
     this.rcs = new RCSSystem(config?.rcsConfig);
     this.physics = new ShipPhysics(config?.shipPhysicsConfig);
+    this.lifeSupport = new LifeSupportSystem(config?.lifeSupportConfig);
 
     // Initialize advanced flight systems
     this.flightControl = new FlightControlSystem(config?.flightControlConfig);
@@ -223,7 +227,10 @@ export class Spacecraft {
     // 17. Update mission checklists (if mission loaded)
     this.mission.updateChecklists();
 
-    // 18. Increment time
+    // 18. Update life support system
+    this.lifeSupport.update(dt);
+
+    // 19. Increment time
     this.simulationTime += dt;
   }
 
@@ -251,7 +258,8 @@ export class Spacecraft {
       rcs: this.rcs.getState(),
       flightControl: this.flightControl.getState(),
       navigation: this.getNavigationTelemetry(),
-      mission: this.mission.getCurrentMission()
+      mission: this.mission.getCurrentMission(),
+      lifeSupport: this.lifeSupport.getState()
     };
   }
 
