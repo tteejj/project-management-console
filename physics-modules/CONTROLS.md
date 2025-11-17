@@ -88,17 +88,36 @@ All controls are keyboard-driven. No mouse required.
 | **X** | Toggle coolant cross-connect (shares coolant between loops) |
 
 ### Electrical System (Engineering Station Only)
-**Circuit Breakers** - Toggle critical systems on/off:
+**Circuit Breakers** - Toggle ALL 19 systems on/off:
 
-| Key | Breaker | System |
-|-----|---------|--------|
-| **A** | O2 Generator | Life support oxygen generation |
-| **B** | CO2 Scrubber | Life support CO2 removal |
-| **H** | Nav Computer | Navigation systems |
-| **J** | Hydraulic Pump 1 | Primary hydraulics |
-| **L** | Comms | Communications system |
-| **N** | Fuel Pump Main | Main engine fuel pump |
-| **M** | Bus Crosstie | Connect power bus A & B for load balancing |
+| Key | Breaker | System | Essential? |
+|-----|---------|--------|------------|
+| **A** | O2 Generator | Life support oxygen generation | 🔒 Yes |
+| **B** | CO2 Scrubber | Life support CO2 removal | 🔒 Yes |
+| **C** | Coolant Pump Primary | Primary coolant loop | 🔒 Yes |
+| **D** | Coolant Pump Backup | Secondary coolant loop | No |
+| **E** | Fuel Pump Main | Main engine fuel pump | No |
+| **F** | Gimbal Actuators | Engine thrust vectoring | No |
+| **G** | RCS Valves | Reaction control valves | No |
+| **H** | Nav Computer | Navigation systems | No |
+| **I** | Radar | Radar system | No |
+| **J** | LIDAR | LIDAR system | No |
+| **K** | Hydraulic Pump 1 | Primary hydraulics | No |
+| **L** | Hydraulic Pump 2 | Secondary hydraulics | No |
+| **N** | Heater 1 | Compartment heater 1 | No |
+| **O** | Heater 2 | Compartment heater 2 | No |
+| **P** | Heater 3 | Compartment heater 3 | No |
+| **Q** | Lighting | Interior lighting | No |
+| **S** | Door Actuators | Bulkhead door motors | No |
+| **U** | Valve Actuators | Fuel/coolant valve motors | No |
+| **V** | Comms | Communications system | No |
+
+**Power Management:**
+| Key | Action |
+|-----|--------|
+| **M** | Bus Crosstie - Connect power bus A & B for load balancing |
+
+**Note:** Essential breakers (🔒) cannot be manually turned off, only reset if tripped.
 
 ---
 
@@ -117,6 +136,17 @@ All controls are keyboard-driven. No mouse required.
 | **N** | Engine Feed | Toggle valve connecting tank to main engine |
 | **M** | RCS Feed | Toggle valve connecting tank to RCS manifold |
 | **U** | Vent | Toggle emergency vent valve (dumps fuel to space) |
+
+### Fuel Crossfeed
+| Key | Action |
+|-----|--------|
+| **Z** | Cycle crossfeed destination (Off → Tank 1 → Tank 2 → Off) |
+
+**Crossfeed Use Cases:**
+- **Center of Mass Control:** Transfer fuel between tanks to balance ship
+- **Emergency:** Feed engine from RCS tank if main tanks depleted
+- **Fuel Balancing:** Equalize fuel levels across multiple tanks
+- Crossfeed is pressure-driven - source tank must have higher pressure than destination
 
 **Note:** Tank must have valve open AND pressure >1.5 bar to feed systems. Venting is permanent - fuel cannot be recovered!
 
@@ -147,12 +177,24 @@ All controls are keyboard-driven. No mouse required.
 | **6** | Stern (also switches to Helm station) |
 | **Tab** | Cycle compartment selection (Bow → Bridge → ...) |
 
+### Bulkhead Door Control (Life Support Station Only)
+| Key | Action |
+|-----|--------|
+| **W** | Cycle door target - Select which door to toggle |
+| **D** | Toggle selected door - Opens/closes the targeted door |
+
+**Door Control Details:**
+- Each compartment has 1-3 doors connecting to adjacent compartments
+- **W** cycles through all doors of the selected compartment
+- Display shows: "Door Target: BRIDGE [OPEN/CLOSED]"
+- Use closed doors to isolate fires, breaches, or contamination
+- Use open doors to equalize pressure between compartments
+
 ### Emergency Operations (Life Support Station Only)
 | Key | Action |
 |-----|--------|
 | **F** | Fire suppression - Deploy Halon in selected compartment |
 | **V** | Emergency vent - Vent selected compartment to space (kills fire instantly) |
-| **D** | Toggle bulkhead door - Opens/closes first door of selected compartment |
 | **L** | Seal hull breach in selected compartment |
 
 **Note:** Fire suppression and venting target the currently selected compartment. Use **1-6** for direct selection or **Tab** to cycle.
@@ -182,17 +224,18 @@ Many keys have different functions depending on which station you're viewing:
 - **Life Support Station:** Cycle compartment selection
 - **Other Stations:** Inactive
 
-### Letters A, B, H, J, L, N, M, X, Y
-- **Engineering Station:** Circuit breakers, bus crosstie, coolant cross-connect, reactor controls
+### Letters A-V
+- **Engineering Station:** ALL 19 circuit breakers mapped to A-V keys
+- **Helm Station:** N = Engine valve, M = RCS valve, U = Vent valve
+- **Life Support Station:** D = Toggle door, F = Fire suppress, L = Seal breach, V = Emergency vent, W = Cycle door target
 - **Other Stations:** Most inactive (see station-specific sections)
 
-### Letters D, F, L, V
-- **Life Support Station:** Bulkhead doors, fire suppression, breach sealing, emergency vent
-- **Other Stations:** Inactive
+### Letter W
+- **Life Support Station:** Cycle door target
+- **Other Stations:** RCS pitch up
 
-### Letters N, M, U
-- **Helm Station:** Fuel valve controls (Engine, RCS, Vent)
-- **Engineering Station:** N = Fuel Pump breaker, M = Bus crosstie
+### Letter Z
+- **Helm Station:** Cycle fuel crossfeed destination
 - **Other Stations:** Inactive
 
 ### Arrow Keys ↑/↓
