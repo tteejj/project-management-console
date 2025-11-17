@@ -110,6 +110,103 @@ export {
   EconomySystem
 } from './EconomySystem';
 
+// NPC Ship AI
+export {
+  ShipType,
+  ShipState,
+  ShipCargo,
+  ShipStats,
+  NPCShip,
+  ShipPersonality,
+  ShipMemory,
+  NavigationPath,
+  NPCShipAI
+} from './NPCShipAI';
+
+// Traffic Control
+export {
+  SpaceLane,
+  TrafficZone,
+  DockingQueue,
+  TrafficWarning,
+  CollisionPrediction,
+  TrafficControl
+} from './TrafficControl';
+
+// Faction System
+export {
+  Faction,
+  GovernmentType,
+  Ideology,
+  Territory,
+  DiplomaticRelation,
+  DiplomaticState,
+  Treaty,
+  TreatyType,
+  DiplomaticEvent,
+  EventType,
+  Reputation,
+  ReputationRank,
+  ReputationAction,
+  ActionType,
+  Conflict,
+  FactionSystem
+} from './FactionSystem';
+
+// Weather System
+export {
+  WeatherPattern,
+  WeatherType,
+  Storm,
+  StormType,
+  WindPattern,
+  PrecipitationEvent,
+  ClimateZone,
+  WeatherSystem
+} from './WeatherSystem';
+
+// Geological Activity
+export {
+  TectonicPlate,
+  PlateType,
+  PlateBoundary,
+  BoundaryType,
+  Volcano,
+  VolcanoType,
+  VolcanoActivity,
+  MagmaType,
+  Eruption,
+  Earthquake,
+  HotSpot,
+  GeothermalVent,
+  GeologicalActivity
+} from './GeologicalActivity';
+
+// Sensor System
+export {
+  SensorSuite,
+  RadarSensor,
+  InfraredSensor,
+  OpticalSensor,
+  GraviticSensor,
+  NeutrinoSensor,
+  DetectedObject,
+  Signature,
+  ScanResult,
+  SensorSystem
+} from './SensorSystem';
+
+// Communication System
+export {
+  Message,
+  MessagePriority,
+  CommunicationDevice,
+  SignalRelay,
+  BroadcastMessage,
+  DataPacket,
+  CommunicationSystem
+} from './CommunicationSystem';
+
 // Examples
 export {
   createSandboxUniverse,
