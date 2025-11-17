@@ -382,54 +382,53 @@ export class TerrainSystem {
   getSlope(lat: number, lon: number): number {
     const normal = this.getSurfaceNormal(lat, lon);
 
-    // Slope is angle from vertical (up vector)
-    // For a sphere, up = normalized position vector
-    const latRad = (lat * Math.PI) / 180;
-    const lonRad = (lon * Math.PI) / 180;
+    // For local tangent plane, up is (0, 0, 1)
+    // Slope is the angle between the normal and vertical
+    // This is simply the angle from vertical, which equals angle from horizontal
+    // When normal.z = 1 (flat), angleFromVertical = 0°, slope = 0°
+    // When normal.z = 0 (vertical cliff), angleFromVertical = 90°, slope = 90°
+    const angleFromVertical = Math.acos(Math.max(-1, Math.min(1, normal.z)));
+    const slope = (angleFromVertical * 180) / Math.PI;
 
-    const up = {
-      x: Math.cos(latRad) * Math.cos(lonRad),
-      y: Math.cos(latRad) * Math.sin(lonRad),
-      z: Math.sin(latRad)
-    };
-
-    const dotProduct = normal.x * up.x + normal.y * up.y + normal.z * up.z;
-    const angleFromVertical = Math.acos(Math.max(-1, Math.min(1, dotProduct)));
-
-    return (angleFromVertical * 180) / Math.PI;
+    return slope;
   }
 
   /**
    * Get surface normal at a location
    * Uses finite difference to compute gradient
+   * Returns normal in local tangent plane coordinates (x=east, y=north, z=up)
    */
   getSurfaceNormal(lat: number, lon: number): Vector3 {
-    const delta = 0.001; // ~100m spacing
+    const delta = 0.001; // ~0.1 degree spacing (~170m at equator)
 
     // Get elevations at nearby points
     const elevCenter = this.getElevation(lat, lon);
     const elevEast = this.getElevation(lat, lon + delta);
+    const elevWest = this.getElevation(lat, lon - delta);
     const elevNorth = this.getElevation(lat + delta, lon);
+    const elevSouth = this.getElevation(lat - delta, lon);
 
-    // Compute gradient
-    const dElevEast = elevEast - elevCenter;
-    const dElevNorth = elevNorth - elevCenter;
+    // Compute gradients (central difference for better accuracy)
+    const dElevEast = (elevEast - elevWest) / (2 * delta);
+    const dElevNorth = (elevNorth - elevSouth) / (2 * delta);
 
-    // Convert to 3D vectors (approximate for small distances)
-    const distDelta = (delta * Math.PI / 180) * this.MOON_RADIUS; // meters
+    // Convert gradient to meters per degree
+    const latRad = (lat * Math.PI) / 180;
+    const metersPerDegLat = (Math.PI / 180) * this.MOON_RADIUS;
+    const metersPerDegLon = metersPerDegLat * Math.cos(latRad);
 
-    // Tangent vectors
-    const east = { x: distDelta, y: 0, z: dElevEast };
-    const north = { x: 0, y: distDelta, z: dElevNorth };
+    // Slope in radians
+    const slopeEast = Math.atan(dElevEast / metersPerDegLon);
+    const slopeNorth = Math.atan(dElevNorth / metersPerDegLat);
 
-    // Cross product gives normal
+    // Normal in local tangent plane (before normalization)
     const normal = {
-      x: east.y * north.z - east.z * north.y,
-      y: east.z * north.x - east.x * north.z,
-      z: east.x * north.y - east.y * north.x
+      x: -Math.sin(slopeEast),
+      y: -Math.sin(slopeNorth),
+      z: 1.0
     };
 
-    // Normalize
+    // Normalize to unit vector
     const mag = Math.sqrt(normal.x * normal.x + normal.y * normal.y + normal.z * normal.z);
     return {
       x: normal.x / mag,
@@ -594,6 +593,38 @@ export class TerrainSystem {
       cacheSize: this.heightMapCache.size,
       config: this.config
     };
+  }
+
+  /**
+   * Find nearest crater to a given position
+   */
+  getNearestCrater(lat: number, lon: number): { crater: Crater; distance: number } | null {
+    let nearest: { crater: Crater; distance: number } | null = null;
+    let minDistance = Infinity;
+
+    // Check major craters
+    for (const crater of this.majorCraters) {
+      const dist = this.haversineDistance(lat, lon, crater.centerLat, crater.centerLon);
+      if (dist < minDistance) {
+        minDistance = dist;
+        nearest = { crater, distance: dist };
+      }
+    }
+
+    // Check procedural craters (only nearby ones)
+    for (const crater of this.proceduralCraters) {
+      // Quick distance check first
+      const roughDist = Math.abs(lat - crater.centerLat) + Math.abs(lon - crater.centerLon);
+      if (roughDist < 10) {
+        const dist = this.haversineDistance(lat, lon, crater.centerLat, crater.centerLon);
+        if (dist < minDistance) {
+          minDistance = dist;
+          nearest = { crater, distance: dist };
+        }
+      }
+    }
+
+    return nearest;
   }
 
   /**
