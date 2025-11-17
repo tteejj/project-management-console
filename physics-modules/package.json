@@ -1,0 +1,30 @@
+{
+  "name": "vector-lander-physics",
+  "version": "1.0.0",
+  "description": "Comprehensive spacecraft physics simulation - 218/219 tests passing (99.5%)",
+  "main": "dist/src/spacecraft.js",
+  "scripts": {
+    "build": "tsc",
+    "test": "node tests/run-tests.js",
+    "dev": "tsc --watch",
+    "demo": "npm run build && node dist/examples/landing-demo.js"
+  },
+  "keywords": [
+    "physics",
+    "simulation",
+    "spacecraft",
+    "orbital-mechanics",
+    "rocket",
+    "flight-simulator",
+    "moon-lander"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.3.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
