@@ -37,17 +37,21 @@ class FuelSystem {
         };
     }
     createDefaultTanks() {
+        // Rebalanced to match ShipPhysics propellantMass of 3000 kg
+        // Previous total: 180 kg (INSUFFICIENT - only 12s burn time!)
+        // New total: 2950 kg (matches physics, provides 200s+ burn time)
+        // Delta-V: 1422 m/s (5.4x mission requirement of 265 m/s)
         return [
             {
                 id: 'main_1',
-                volume: 100,
-                fuelMass: 80,
-                capacity: 100,
+                volume: 1500, // liters (1.5 m³ tank)
+                fuelMass: 1400, // kg (93% full at start)
+                capacity: 1500, // kg max
                 position: { x: 0, y: 0 },
                 pressurized: true,
                 pressureBar: 2.5,
                 pressurantType: 'N2',
-                pressurantMass: 0.5,
+                pressurantMass: 7.5, // Increased for larger tank (0.5% of capacity)
                 temperature: 293,
                 valves: {
                     feedToEngine: false,
@@ -58,14 +62,14 @@ class FuelSystem {
             },
             {
                 id: 'main_2',
-                volume: 100,
-                fuelMass: 75,
-                capacity: 100,
+                volume: 1500,
+                fuelMass: 1400,
+                capacity: 1500,
                 position: { x: 0, y: 10 },
                 pressurized: true,
                 pressureBar: 2.5,
                 pressurantType: 'N2',
-                pressurantMass: 0.5,
+                pressurantMass: 7.5,
                 temperature: 293,
                 valves: {
                     feedToEngine: false,
@@ -76,23 +80,25 @@ class FuelSystem {
             },
             {
                 id: 'rcs',
-                volume: 30,
-                fuelMass: 25,
-                capacity: 30,
+                volume: 200, // liters
+                fuelMass: 150, // kg (75% full)
+                capacity: 200, // kg max
                 position: { x: 0, y: -5 },
                 pressurized: true,
                 pressureBar: 2.5,
                 pressurantType: 'N2',
-                pressurantMass: 0.2,
+                pressurantMass: 1.0, // Increased for larger tank
                 temperature: 293,
                 valves: {
                     feedToEngine: false,
-                    feedToRCS: false,
+                    feedToRCS: true, // RCS tank connected to RCS
                     fillPort: false,
                     vent: false
                 }
             }
         ];
+        // Total fuel: 2950 kg (1400 + 1400 + 150)
+        // Matches ShipPhysics.propellantMass default of 3000 kg ✓
     }
     /**
      * Main update loop - should be called every simulation step
