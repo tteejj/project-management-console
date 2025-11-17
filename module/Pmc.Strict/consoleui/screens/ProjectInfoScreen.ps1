@@ -168,11 +168,6 @@ class ProjectInfoScreen : PmcScreen {
     }
 
     [string] RenderContent() {
-        # If editor is showing, render it instead
-        if ($this.ShowEditor -and $this.Editor) {
-            return $this.Editor.Render()
-        }
-
         $sb = [System.Text.StringBuilder]::new(4096)
 
         if (-not $this.LayoutManager) {
@@ -454,13 +449,6 @@ class ProjectInfoScreen : PmcScreen {
     }
 
     [bool] HandleKeyPress([ConsoleKeyInfo]$keyInfo) {
-        # If editor is showing, route input to it
-        if ($this.ShowEditor -and $this.Editor) {
-            $handled = $this.Editor.HandleInput($keyInfo)
-            # InlineEditor handles its own OnConfirmed/OnCancelled callbacks
-            return $true
-        }
-
         $keyChar = [char]::ToLower($keyInfo.KeyChar)
         $key = $keyInfo.Key
 

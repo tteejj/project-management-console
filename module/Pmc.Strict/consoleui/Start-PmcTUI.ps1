@@ -402,11 +402,9 @@ function Start-PmcTUI {
                 Write-PmcTuiLog "Screen pushed successfully" "INFO"
             }
             'BlockedTasks' {
-                Write-PmcTuiLog "Creating BlockedTasksScreen (not yet containerized)..." "INFO"
-                # TODO: Containerize BlockedTasksScreen
-                $null = $global:PmcContainer.Resolve('Theme')
-                $null = $global:PmcContainer.Resolve('TaskStore')
-                $screen = [BlockedTasksScreen]::new()
+                Write-PmcTuiLog "Creating BlockedTasksScreen..." "INFO"
+                # BlockedTasksScreen supports container constructor
+                $screen = [BlockedTasksScreen]::new($global:PmcContainer)
                 Write-PmcTuiLog "Pushing screen to app..." "INFO"
                 $global:PmcApp.PushScreen($screen)
                 Write-PmcTuiLog "Screen pushed successfully" "INFO"
