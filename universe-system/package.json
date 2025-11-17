@@ -1,0 +1,27 @@
+{
+  "name": "universe-system",
+  "version": "1.0.0",
+  "description": "Procedural universe generation system for space games",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "demo": "ts-node src/examples.ts",
+    "test": "node dist/examples.js"
+  },
+  "keywords": [
+    "procedural-generation",
+    "space",
+    "universe",
+    "game",
+    "physics",
+    "astronomy"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0",
+    "ts-node": "^10.9.0"
+  }
+}
