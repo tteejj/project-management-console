@@ -8,7 +8,8 @@
     "build": "tsc",
     "test": "npm run build && node dist/tests/integration.test.js",
     "demo": "npm run build && node dist/examples/complete-demo.js",
-    "game": "npm run build && node dist/examples/simple-game.js"
+    "game": "npm run build && node dist/examples/simple-game.js",
+    "play": "npm run build && node dist/examples/interactive-game.js"
   },
   "dependencies": {
     "simplex-noise": "^4.0.3"
