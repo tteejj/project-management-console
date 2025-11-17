@@ -1,5 +1,19 @@
 {
+  "name": "moon-lander-physics",
+  "version": "1.0.0",
+  "description": "Complete physics simulation for Vector Moon Lander",
+  "main": "dist/src/index.js",
+  "types": "dist/src/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "npm run build && node dist/tests/integration.test.js",
+    "demo": "npm run build && node dist/examples/complete-demo.js"
+  },
   "dependencies": {
     "simplex-noise": "^4.0.3"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
   }
 }
