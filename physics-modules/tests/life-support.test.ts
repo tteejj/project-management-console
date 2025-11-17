@@ -269,10 +269,11 @@ describe('Life Support System', () => {
         co2ScrubberRate: 0
       });
 
-      lifeSupport.update(60);  // 1 minute in low pressure
+      lifeSupport.update(5);  // 5 seconds in low pressure
 
       const crewMember = crew[0];
       expect(crewMember.oxygenLevel).toBeLessThan(1.0);
+      expect(crewMember.oxygenLevel).toBeGreaterThan(0);  // Not fully depleted
       expect(crewMember.status).toBe(CrewStatus.HYPOXIA);
     });
 
