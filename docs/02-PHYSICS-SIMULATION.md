@@ -1,0 +1,737 @@
+# Physics & Simulation Systems
+
+## Philosophy
+
+**"Simplified but Believable"**
+
+We're NOT simulating reality - we're simulating what FEELS right for engaging gameplay. Physics should be:
+- Understandable through experimentation
+- Consistent and deterministic
+- Complex enough to create interesting challenges
+- Simple enough to run at 60fps in a browser
+
+## Core Physics Systems
+
+### 1. Orbital Mechanics (Simplified 2D)
+
+**What we simulate:**
+- 2D space (top-down view)
+- Newtonian physics (F=ma, momentum conservation)
+- Gravity from large bodies (planets, stations)
+- Velocity-based movement
+
+**What we DON'T simulate:**
+- 3D orbital mechanics
+- Actual Kepler orbits
+- N-body gravitational interactions
+- Relativity
+
+**Implementation:**
+
+```typescript
+// Simple 2D physics
+class Ship {
+  position: Vector2 = {x: 0, y: 0};
+  velocity: Vector2 = {x: 0, y: 0};
+  rotation: number = 0; // radians
+  mass: number = 5000; // kg
+
+  update(dt: number) {
+    // Apply forces → acceleration
+    const acceleration = {
+      x: this.totalForce.x / this.mass,
+      y: this.totalForce.y / this.mass
+    };
+
+    // Integrate velocity
+    this.velocity.x += acceleration.x * dt;
+    this.velocity.y += acceleration.y * dt;
+
+    // Integrate position
+    this.position.x += this.velocity.x * dt;
+    this.position.y += this.velocity.y * dt;
+
+    // Apply gravity from nearby bodies
+    for (let body of this.nearbyBodies) {
+      const gravityForce = this.calculateGravity(body);
+      this.applyForce(gravityForce);
+    }
+  }
+
+  calculateGravity(body: CelestialBody): Vector2 {
+    const dx = body.position.x - this.position.x;
+    const dy = body.position.y - this.position.y;
+    const distSquared = dx*dx + dy*dy;
+    const dist = Math.sqrt(distSquared);
+
+    // F = G * m1 * m2 / r^2
+    const forceMagnitude = (G * body.mass * this.mass) / distSquared;
+
+    // Direction vector
+    return {
+      x: (dx / dist) * forceMagnitude,
+      y: (dy / dist) * forceMagnitude
+    };
+  }
+}
+```
+
+**Gravity Constant**: Adjusted for gameplay, not real physics. Make it feel right.
+
+**Time Scale**: Variable based on mission phase
+- Close maneuvering: 1x real-time
+- Transit: 2x-10x time compression option
+- Player can pause anytime
+
+---
+
+### 2. Propulsion Physics
+
+**Main Engine:**
+- Thrust vector based on gimbal angle and ship rotation
+- Fuel consumption proportional to thrust
+- Engine must be ignited (has startup sequence)
+- Overheating reduces thrust and can cause shutdown
+- Thrust = mass flow rate × exhaust velocity (simplified)
+
+**RCS Thrusters:**
+- Each thruster produces force at specific location on ship
+- Creates both translation and rotation (torque)
+- Much weaker than main engine
+- Fast response time
+- Limited by fuel flow rate
+
+**Fuel Physics:**
+- Fuel has mass (affects ship mass as fuel consumed)
+- Fuel slosh in tanks (simplified - just affects balance)
+- Unbalanced fuel creates rotation tendency
+- Can transfer fuel between tanks to rebalance
+
+**Implementation:**
+
+```typescript
+class ThrusterSystem {
+  mainEngine = {
+    thrust: 50000, // Newtons
+    fuelRate: 5, // kg/s at 100% throttle
+    gimbalX: 0, // degrees
+    gimbalY: 0,
+    temperature: 293, // Kelvin
+    maxTemp: 800,
+    overheatThreshold: 700
+  };
+
+  rcsThruster = {
+    thrust: 500, // Newtons each
+    fuelRate: 0.1, // kg/s
+    positions: [ /* Vector2 positions on ship */ ],
+    temperatures: [] // each can overheat
+  };
+
+  applyMainEngine(ship: Ship, throttle: number, dt: number) {
+    if (!this.isIgnited || !this.fuelValveOpen) return;
+
+    // Calculate actual thrust (reduced if overheating)
+    let actualThrust = this.mainEngine.thrust * throttle;
+    if (this.mainEngine.temperature > this.mainEngine.overheatThreshold) {
+      const overheatFactor = 1 - ((this.mainEngine.temperature - this.mainEngine.overheatThreshold) /
+                                   (this.mainEngine.maxTemp - this.mainEngine.overheatThreshold));
+      actualThrust *= Math.max(0, overheatFactor);
+    }
+
+    // Apply gimbal angle
+    const thrustAngle = ship.rotation +
+                        degToRad(this.mainEngine.gimbalX) +
+                        degToRad(this.mainEngine.gimbalY);
+
+    const force = {
+      x: Math.cos(thrustAngle) * actualThrust,
+      y: Math.sin(thrustAngle) * actualThrust
+    };
+
+    ship.applyForce(force);
+
+    // Consume fuel
+    const fuelConsumed = this.mainEngine.fuelRate * throttle * dt;
+    ship.consumeFuel(fuelConsumed);
+
+    // Generate heat
+    this.mainEngine.temperature += (throttle * 10) * dt;
+  }
+
+  applyRCS(ship: Ship, thrusterIndex: number, dt: number) {
+    const thruster = this.rcsThruster.positions[thrusterIndex];
+    const force = thruster.direction * this.rcsThruster.thrust;
+
+    ship.applyForce(force, thruster.position); // position causes torque
+
+    const fuelConsumed = this.rcsThruster.fuelRate * dt;
+    ship.consumeFuel(fuelConsumed);
+
+    this.rcsThruster.temperatures[thrusterIndex] += 5 * dt;
+  }
+}
+```
+
+---
+
+### 3. Thermal Physics
+
+Heat is generated by:
+- Engines (main and RCS)
+- Reactor
+- Electronics
+- Solar radiation (near stars)
+- Friction (if in atmosphere - not MVP)
+
+Heat is removed by:
+- Coolant circulation
+- Radiators (passive radiation to space)
+- Emergency heat dump (vents hot coolant)
+
+**Heat Propagation:**
+- Between adjacent compartments (conduction)
+- Within systems (coolant flow)
+- To space (radiation from radiators)
+
+**Implementation:**
+
+```typescript
+class ThermalSystem {
+  compartments = [
+    { temp: 293, mass: 500, specificHeat: 1000 }, // J/(kg·K)
+    // ... more compartments
+  ];
+
+  coolantFlow = {
+    active: true,
+    flowRate: 10, // L/min
+    efficiency: 0.85
+  };
+
+  radiators = {
+    deployed: true,
+    area: 20, // m²
+    emissivity: 0.9
+  };
+
+  update(dt: number) {
+    // Generate heat from active systems
+    this.generateHeat(dt);
+
+    // Propagate heat between compartments
+    this.propagateHeat(dt);
+
+    // Remove heat via coolant
+    if (this.coolantFlow.active) {
+      this.coolantCooling(dt);
+    }
+
+    // Radiate heat to space
+    if (this.radiators.deployed) {
+      this.radiateCooling(dt);
+    }
+  }
+
+  propagateHeat(dt: number) {
+    // Simple conduction between adjacent compartments
+    for (let i = 0; i < this.compartments.length; i++) {
+      for (let neighbor of this.compartments[i].neighbors) {
+        const tempDiff = neighbor.temp - this.compartments[i].temp;
+        const heatFlow = tempDiff * CONDUCTIVITY * dt;
+
+        const comp1Heat = heatFlow / (this.compartments[i].mass * this.compartments[i].specificHeat);
+        const comp2Heat = -heatFlow / (neighbor.mass * neighbor.specificHeat);
+
+        this.compartments[i].temp += comp1Heat;
+        neighbor.temp += comp2Heat;
+      }
+    }
+  }
+
+  radiateCooling(dt: number) {
+    // Stefan-Boltzmann law (simplified)
+    const STEFAN_BOLTZMANN = 5.67e-8;
+    const SPACE_TEMP = 2.7; // Kelvin (cosmic background)
+
+    for (let comp of this.compartments) {
+      const radiatedPower = this.radiators.emissivity *
+                           STEFAN_BOLTZMANN *
+                           this.radiators.area *
+                           (Math.pow(comp.temp, 4) - Math.pow(SPACE_TEMP, 4));
+
+      const heatLoss = radiatedPower * dt;
+      const tempDrop = heatLoss / (comp.mass * comp.specificHeat);
+      comp.temp -= tempDrop;
+    }
+  }
+}
+```
+
+---
+
+### 4. Atmosphere & Life Support Physics
+
+**Atmosphere Model:**
+- Each compartment is a pressure vessel
+- Track O2, CO2, N2 partial pressures
+- Temperature affects pressure (ideal gas law)
+- Gas mixing when doors open
+- Venting creates thrust (momentum conservation)
+
+**Gas Exchange:**
+- Crew consumes O2, produces CO2 (when crew added)
+- O2 generator adds O2
+- CO2 scrubber removes CO2
+- Fires consume O2, produce CO2 and heat
+
+**Implementation:**
+
+```typescript
+class AtmosphereSystem {
+  compartments = [
+    {
+      volume: 50, // m³
+      O2: 10.5, // kg
+      CO2: 0.02, // kg
+      N2: 39.0, // kg
+      temp: 293, // K
+      doorsOpen: [true, false, true] // to neighbors
+    },
+    // ... more compartments
+  ];
+
+  update(dt: number) {
+    // Gas mixing between compartments with open doors
+    this.mixGases(dt);
+
+    // O2 generation
+    if (this.o2GeneratorActive) {
+      this.generateO2(dt);
+    }
+
+    // CO2 scrubbing
+    if (this.co2ScrubberActive) {
+      this.scrubCO2(dt);
+    }
+
+    // Fire effects
+    for (let i = 0; i < this.compartments.length; i++) {
+      if (this.compartments[i].onFire) {
+        this.burnFire(i, dt);
+      }
+    }
+  }
+
+  mixGases(dt: number) {
+    for (let i = 0; i < this.compartments.length; i++) {
+      const comp = this.compartments[i];
+
+      for (let neighborIdx of comp.neighbors) {
+        if (!comp.doorsOpen[neighborIdx]) continue;
+
+        const neighbor = this.compartments[neighborIdx];
+
+        // Calculate pressure differential
+        const p1 = this.calculatePressure(comp);
+        const p2 = this.calculatePressure(neighbor);
+
+        // Flow rate proportional to pressure diff
+        const flowRate = (p1 - p2) * FLOW_CONSTANT * dt;
+
+        // Transfer gases proportionally
+        if (flowRate > 0) {
+          this.transferGas(comp, neighbor, flowRate);
+        } else {
+          this.transferGas(neighbor, comp, -flowRate);
+        }
+      }
+    }
+  }
+
+  calculatePressure(comp: Compartment): number {
+    // Ideal gas law: PV = nRT
+    // P = (n * R * T) / V
+    const totalMoles = (comp.O2 / 32) + (comp.CO2 / 44) + (comp.N2 / 28);
+    const R = 8.314; // J/(mol·K)
+    return (totalMoles * R * comp.temp) / comp.volume;
+  }
+
+  ventToSpace(compIndex: number, dt: number) {
+    const comp = this.compartments[compIndex];
+
+    // Calculate thrust from venting
+    const ventRate = 10; // kg/s (fast vent)
+    const totalMass = comp.O2 + comp.CO2 + comp.N2;
+    const massVented = Math.min(totalMass, ventRate * dt);
+
+    // Remove gas proportionally
+    const fraction = massVented / totalMass;
+    comp.O2 *= (1 - fraction);
+    comp.CO2 *= (1 - fraction);
+    comp.N2 *= (1 - fraction);
+
+    // Apply thrust force (opposite of vent direction)
+    const ventVelocity = 300; // m/s (escaping gas velocity)
+    const thrust = massVented * ventVelocity / dt;
+
+    return thrust; // Applied to ship in vent direction
+  }
+}
+```
+
+---
+
+### 5. Fire & Damage Physics
+
+**Fire Simulation:**
+- Requires: O2, heat source, fuel
+- Consumes: O2 at high rate
+- Produces: CO2, heat, smoke (visual only)
+- Spreads: to adjacent compartments if doors open and conditions right
+- Suppression: Halon displaces O2, or vent to vacuum
+
+**Damage Model:**
+- Systems have health (0-100%)
+- Damage reduces efficiency
+- Below 50%: degraded performance
+- Below 25%: unreliable (random failures)
+- 0%: complete failure
+- Can repair with spare parts
+
+**Hull Breaches:**
+- Micrometeorite impacts (random events)
+- Collision damage
+- Creates slow or fast leak
+- Vents atmosphere until sealed or compartment empty
+- Creates small thrust vector
+
+**Implementation:**
+
+```typescript
+class DamageSystem {
+  systems = {
+    propulsion: { health: 100, efficiency: 1.0 },
+    reactor: { health: 100, efficiency: 1.0 },
+    lifesupport: { health: 100, efficiency: 1.0 },
+    navcomputer: { health: 100, efficiency: 1.0 },
+    // ... more systems
+  };
+
+  fires = [
+    { compartment: -1, intensity: 0 } // -1 = no fire
+  ];
+
+  breaches = [
+    { compartment: -1, size: 0 } // kg/s leak rate
+  ];
+
+  updateFire(fireIndex: number, dt: number) {
+    const fire = this.fires[fireIndex];
+    const comp = atmosphere.compartments[fire.compartment];
+
+    // Check if fire can sustain
+    const o2Pressure = (comp.O2 / 32) * 8.314 * comp.temp / comp.volume;
+    if (o2Pressure < MIN_O2_FOR_FIRE) {
+      fire.intensity *= 0.9; // dying out
+      if (fire.intensity < 0.1) {
+        fire.compartment = -1; // extinguished
+      }
+      return;
+    }
+
+    // Fire consumes O2
+    const o2Consumed = fire.intensity * FIRE_O2_RATE * dt;
+    comp.O2 -= o2Consumed;
+    comp.CO2 += o2Consumed * (44/32); // stoichiometry
+
+    // Fire generates heat
+    const heatGenerated = fire.intensity * FIRE_HEAT_RATE * dt;
+    thermal.addHeat(fire.compartment, heatGenerated);
+
+    // Fire can spread if conditions right
+    if (fire.intensity > 0.7 && comp.temp > 400) {
+      this.trySpreadFire(fire.compartment);
+    }
+  }
+
+  applyDamage(system: string, amount: number) {
+    this.systems[system].health = Math.max(0, this.systems[system].health - amount);
+
+    // Update efficiency based on health
+    if (this.systems[system].health > 50) {
+      this.systems[system].efficiency = this.systems[system].health / 100;
+    } else if (this.systems[system].health > 25) {
+      this.systems[system].efficiency = 0.5 * (this.systems[system].health / 50);
+    } else if (this.systems[system].health > 0) {
+      // Unreliable - random failures
+      this.systems[system].efficiency = Math.random() < 0.3 ? 0 : 0.25;
+    } else {
+      this.systems[system].efficiency = 0;
+    }
+  }
+
+  updateBreach(breachIndex: number, dt: number) {
+    const breach = this.breaches[breachIndex];
+    if (breach.compartment === -1) return;
+
+    const comp = atmosphere.compartments[breach.compartment];
+    const pressure = atmosphere.calculatePressure(comp);
+
+    // Leak rate proportional to pressure
+    const actualLeakRate = breach.size * (pressure / 101); // normalized to 1 atm
+
+    const thrust = atmosphere.ventToSpace(breach.compartment, actualLeakRate * dt);
+
+    // Apply thrust to ship (creates unintended movement)
+    ship.applyForce(thrust);
+  }
+}
+```
+
+---
+
+### 6. Electrical System Physics
+
+**Power Generation:**
+- Reactor generates power (kW) based on throttle
+- Reactor has startup time (not instant)
+- Reactor generates heat proportional to output
+
+**Power Distribution:**
+- Two buses (A and B) for redundancy
+- Circuit breakers can route systems to either bus
+- Drawing more than reactor produces drains battery
+- Drawing more than bus capacity trips breaker (random)
+
+**Battery:**
+- Finite capacity (kWh)
+- Charge/discharge rate limited
+- Fully discharged = all systems offline
+- Recharged by excess reactor power
+
+**Implementation:**
+
+```typescript
+class ElectricalSystem {
+  reactor = {
+    active: false,
+    throttle: 0,
+    outputKW: 0,
+    maxOutputKW: 5.0,
+    startupTimer: 0,
+    startupTime: 10, // seconds
+    heatPerKW: 50 // Watts of heat per kW electrical
+  };
+
+  battery = {
+    chargeKWh: 5.0,
+    capacityKWh: 10.0,
+    maxChargeRate: 1.0, // kW
+    maxDischargeRate: 2.0 // kW
+  };
+
+  busA = { voltage: 28, loadKW: 0 };
+  busB = { voltage: 28, loadKW: 0 };
+
+  circuitBreakers = {
+    lifesupport: { on: true, bus: 'A', loadKW: 0.5 },
+    propulsion: { on: true, bus: 'A', loadKW: 0.3 },
+    navcomputer: { on: true, bus: 'B', loadKW: 0.2 },
+    // ... more systems
+  };
+
+  update(dt: number) {
+    // Reactor startup
+    if (this.reactor.active && this.reactor.startupTimer < this.reactor.startupTime) {
+      this.reactor.startupTimer += dt;
+      this.reactor.outputKW = 0; // no power during startup
+    } else if (this.reactor.active) {
+      this.reactor.outputKW = this.reactor.maxOutputKW * this.reactor.throttle;
+    } else {
+      this.reactor.outputKW = 0;
+    }
+
+    // Calculate loads
+    this.busA.loadKW = 0;
+    this.busB.loadKW = 0;
+    for (let [name, breaker] of Object.entries(this.circuitBreakers)) {
+      if (breaker.on) {
+        if (breaker.bus === 'A') this.busA.loadKW += breaker.loadKW;
+        else this.busB.loadKW += breaker.loadKW;
+      }
+    }
+
+    const totalLoadKW = this.busA.loadKW + this.busB.loadKW;
+
+    // Power balance
+    const netPowerKW = this.reactor.outputKW - totalLoadKW;
+
+    if (netPowerKW < 0) {
+      // Deficit - drain battery
+      const drain = Math.min(-netPowerKW, this.battery.maxDischargeRate) * (dt / 3600);
+      this.battery.chargeKWh -= drain;
+
+      if (this.battery.chargeKWh <= 0) {
+        this.battery.chargeKWh = 0;
+        // BLACKOUT - trip all breakers
+        this.blackout();
+      }
+    } else {
+      // Surplus - charge battery
+      const charge = Math.min(netPowerKW, this.battery.maxChargeRate) * (dt / 3600);
+      this.battery.chargeKWh = Math.min(
+        this.battery.capacityKWh,
+        this.battery.chargeKWh + charge
+      );
+    }
+
+    // Reactor generates heat
+    thermal.addHeat(ENGINEERING_COMPARTMENT, this.reactor.outputKW * this.reactor.heatPerKW * dt);
+  }
+
+  blackout() {
+    for (let breaker of Object.values(this.circuitBreakers)) {
+      breaker.on = false;
+    }
+    // Player must manually restore power by turning breakers back on
+  }
+}
+```
+
+---
+
+## System Interconnections (Emergent Gameplay)
+
+This is where the magic happens - systems affect each other in realistic ways:
+
+### Example Cascades
+
+**1. Engine Overheat → Thermal Failure → Power Loss**
+```
+Main engine running at 100% throttle
+→ Generates massive heat
+→ Coolant system can't keep up
+→ Temperature rises in engineering
+→ Reactor overheats
+→ Reactor SCRAMs (emergency shutdown)
+→ Battery drains quickly
+→ Must choose: life support or navigation?
+```
+
+**2. Fire → Atmosphere Loss → Thrust Vector**
+```
+Fire starts in center compartment
+→ Consumes O2, generates CO2 and heat
+→ Player seals compartment doors
+→ Fire continues, pressure builds
+→ Player vents compartment to space
+→ Atmosphere venting creates thrust
+→ Ship begins uncontrolled spin
+→ Must use RCS to counter while managing fire
+```
+
+**3. Hull Breach → Creative Solution**
+```
+Micrometeorite hits bow compartment
+→ Slow leak venting atmosphere
+→ Creates small forward thrust
+→ Player realizes: "I can use this!"
+→ Vents stern compartment intentionally
+→ Creates opposing thrust for free
+→ Balances ship while conserving fuel
+→ But now two compartments are airless
+```
+
+**4. Power Management Cascade**
+```
+Reactor damaged by debris hit
+→ Output reduced to 60%
+→ Total load exceeds reactor output
+→ Battery draining
+→ Player must trip breakers to reduce load
+→ Turns off lights, comms, sensors
+→ Flying partially blind to save power
+→ Must reach destination before battery dies
+```
+
+---
+
+## Performance Considerations
+
+**Target**: 60 FPS in browser
+
+**Update Frequency:**
+- Physics: 60 Hz (every frame)
+- Atmosphere mixing: 10 Hz (every 6 frames)
+- Thermal propagation: 10 Hz
+- Damage checks: 1 Hz
+- Event system: 1 Hz
+
+**Optimization Strategies:**
+- Only simulate active compartments
+- Spatial partitioning for collision detection
+- Event-driven damage (not continuous checks)
+- Cached calculations where possible
+- Fixed timestep for determinism
+
+**Estimated CPU Budget:**
+```
+Physics integration:      1-2ms
+System updates:           2-3ms
+Rendering:                3-4ms
+Input processing:         <1ms
+Event handling:           <1ms
+-----------------------------
+Total:                    7-11ms (well under 16ms budget)
+```
+
+---
+
+## Tuning & Balance
+
+All constants will need tuning for gameplay:
+
+**Too Realistic = Boring:**
+- Real orbital mechanics: too slow
+- Real heat dissipation: too fast
+- Real battery capacity: too large
+
+**Too Arcadey = Shallow:**
+- Instant engine response: no skill needed
+- No heat buildup: removes challenge
+- Infinite fuel: no decisions
+
+**Sweet Spot:**
+- Fast enough to be engaging
+- Realistic enough to be satisfying
+- Complex enough to master
+- Forgiving enough to learn
+
+**Tuning Process:**
+1. Start with "feels right" values
+2. Playtest extensively
+3. Adjust based on: too hard? too easy? too boring?
+4. Iterate
+
+**Metrics to Monitor:**
+- Average mission completion time
+- Fuel usage (should be 70-90% consumed)
+- System failures per mission (should be 2-3)
+- Player deaths (should fail 30-50% of early runs)
+
+---
+
+## Debug & Developer Tools
+
+**Essential for development:**
+- Physics visualization overlay
+- System state inspector
+- Force vector visualization
+- Heat map overlay
+- Atmosphere composition readout
+- Event trigger console
+- Value tweaking UI
+- Scenario loader (test specific situations)
+
+**Will create separate dev panel for this.**
