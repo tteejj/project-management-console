@@ -54,6 +54,7 @@ import { CommunicationsSystem } from './communications';
 import { CargoManagementSystem } from './cargo-management';
 import { ElectronicWarfareSystem } from './electronic-warfare';
 import { EnvironmentalSystem } from './environmental-systems';
+import { SystemsIntegrator } from './systems-integrator';
 
 export interface SpacecraftConfig {
   // Optional system configurations
@@ -104,6 +105,9 @@ export class Spacecraft {
   public ew: ElectronicWarfareSystem;
   public environmental: EnvironmentalSystem;
 
+  // Systems integration and management
+  public systemsIntegrator: SystemsIntegrator;
+
   // Simulation time
   public simulationTime: number = 0;
 
@@ -135,6 +139,9 @@ export class Spacecraft {
     this.cargo = new CargoManagementSystem(config?.cargoConfig);
     this.ew = new ElectronicWarfareSystem(config?.ewConfig);
     this.environmental = new EnvironmentalSystem(config?.environmentalConfig);
+
+    // Initialize systems integrator (MUST be last - needs all systems initialized)
+    this.systemsIntegrator = new SystemsIntegrator(this);
 
     // Store initial fuel capacity for delta-V calculations
     this.initialFuelCapacity = this.fuel.getState().totalFuel;
@@ -279,7 +286,10 @@ export class Spacecraft {
     this.ew.update(dt);
     this.environmental.update(dt);
 
-    // 19. Check for high-G cargo damage
+    // 19. Update systems integrator (power management, damage propagation, automation)
+    this.systemsIntegrator.update(dt);
+
+    // 20. Check for high-G cargo damage
     // Calculate acceleration from thrust and mass
     const totalThrust = Math.sqrt(
       (mainEngineThrust.x + rcsThrust.x) ** 2 +
@@ -291,7 +301,7 @@ export class Spacecraft {
       this.cargo.checkCargoIntegrity(gForce);
     }
 
-    // 20. Increment time
+    // 21. Increment time
     this.simulationTime += dt;
   }
 
@@ -327,7 +337,8 @@ export class Spacecraft {
       communications: this.communications.getState(),
       cargo: this.cargo.getState(),
       ew: this.ew.getState(),
-      environmental: this.environmental.getState()
+      environmental: this.environmental.getState(),
+      systemsIntegration: this.systemsIntegrator.getState()
     };
   }
 
