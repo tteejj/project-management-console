@@ -474,6 +474,10 @@ export class Spacecraft {
     const rcsThrust = this.rcs.getTotalThrustVector();
     const rcsTorque = this.rcs.getTotalTorque();
 
+    // 11.4. Get weapon recoil (Critical Fix #4: Weapons Physics Integration)
+    const weaponRecoil = this.weapons.getRecoilForce();
+    // Note: Recoil is opposite to projectile direction, already signed correctly
+
     // 11.5. Update physics with current CoM and moment of inertia
     const comOffset = this.comSystem.getCoM();
     const momentOfInertia = this.comSystem.getMomentOfInertia();
@@ -483,14 +487,21 @@ export class Spacecraft {
     // Also update the dry mass from CoM system (more accurate than hardcoded)
     this.physics.dryMass = this.comSystem.getTotalMass() - totalPropellantMass;
 
-    // 12. Update ship physics
+    // 12. Update ship physics (with weapon recoil applied)
     const totalPropellantConsumed = mainFuelAmount + mainOxidizerAmount + rcsFuelConsumption;
+
+    // Apply weapon recoil as additional thrust (recoil pushes ship in opposite direction)
+    const totalRCSplusRecoil = {
+      x: rcsThrust.x + weaponRecoil.x,
+      y: rcsThrust.y + weaponRecoil.y,
+      z: rcsThrust.z + weaponRecoil.z
+    };
 
     this.physics.update(
       dt,
       mainEngineThrust,
       mainEngineTorque,
-      rcsThrust,
+      totalRCSplusRecoil,  // RCS + weapon recoil
       rcsTorque,
       totalPropellantConsumed
     );
@@ -510,6 +521,10 @@ export class Spacecraft {
     // Heat generation proportional to discharge rate
     const batteryHeat = this.electrical.battery.chargeKWh < this.electrical.battery.capacityKWh ? 50 : 0;
     this.thermal.setHeatGeneration('battery', batteryHeat);
+
+    // Weapons generate heat (Critical Fix #3: Weapons Thermal Integration)
+    const weaponsHeat = this.weapons.getHeatGeneration();
+    this.thermal.setHeatGeneration('weapons', weaponsHeat);
 
     this.thermal.update(dt, t);
 

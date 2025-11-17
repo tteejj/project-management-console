@@ -294,6 +294,123 @@ export class WeaponsControlSystem {
     // Check hits
     this.checkProjectileHits();
     this.checkMissileHits();
+
+    // Update power and heat tracking
+    this.updatePowerAndHeat();
+  }
+
+  /**
+   * Calculate total power draw and heat generation from all weapons
+   */
+  private updatePowerAndHeat(): void {
+    let totalPower = 0;
+    let totalHeat = 0;
+
+    // Kinetic weapons
+    this.kineticWeapons.forEach(weapon => {
+      const state = weapon.getState();
+      if (state.status === 'ready' || state.status === 'tracking') {
+        totalPower += 100; // Tracking power
+      }
+      if (state.status === 'firing') {
+        // Autocannons: ~500W, Railguns: 15 MW (from capacitor)
+        if (weapon.type === 'railgun') {
+          totalPower += 15000000; // 15 MW
+          totalHeat += 10000000;   // 10 MW waste heat
+        } else {
+          totalPower += 500;  // Autocannon
+          totalHeat += 50000; // 50 kW barrel heat
+        }
+      }
+    });
+
+    // Missile launchers
+    this.missileLaunchers.forEach(launcher => {
+      totalPower += 500; // Standby power
+    });
+
+    // Laser weapons
+    this.laserWeapons.forEach(laser => {
+      const state = laser.getState();
+      if (state.firing) {
+        totalPower += 10000000; // 10 MW (20% efficient, 5 MW beam output)
+        totalHeat += 8000000;    // 8 MW waste heat
+      } else {
+        totalPower += 1000; // Standby
+      }
+    });
+
+    // Particle beams
+    this.particleBeams.forEach(beam => {
+      const state = beam.getState();
+      if (state.firing) {
+        totalPower += 50000000; // 50 MW pulse
+        totalHeat += 40000000;   // 40 MW waste heat
+      } else {
+        totalPower += 5000; // Standby for magnets
+      }
+    });
+
+    this.totalPowerDraw = totalPower;
+  }
+
+  /**
+   * Get total heat generation from weapons (Watts)
+   */
+  public getHeatGeneration(): number {
+    let totalHeat = 0;
+
+    this.kineticWeapons.forEach(weapon => {
+      const state = weapon.getState();
+      if (state.status === 'firing') {
+        if (weapon.type === 'railgun') {
+          totalHeat += 10000000; // 10 MW
+        } else {
+          totalHeat += 50000; // 50 kW
+        }
+      }
+    });
+
+    this.laserWeapons.forEach(laser => {
+      const state = laser.getState();
+      if (state.firing) {
+        totalHeat += 8000000; // 8 MW
+      }
+    });
+
+    this.particleBeams.forEach(beam => {
+      const state = beam.getState();
+      if (state.firing) {
+        totalHeat += 40000000; // 40 MW
+      }
+    });
+
+    return totalHeat;
+  }
+
+  /**
+   * Get accumulated recoil force since last query
+   * Returns force in Newtons and clears accumulator
+   */
+  public getRecoilForce(): { x: number; y: number; z: number } {
+    let totalRecoil = { x: 0, y: 0, z: 0 };
+
+    // Sum recoil from all kinetic weapons that fired this frame
+    this.kineticWeapons.forEach(weapon => {
+      const recoil = weapon.getRecoilForce();
+      totalRecoil.x += recoil.x;
+      totalRecoil.y += recoil.y;
+      totalRecoil.z += recoil.z;
+    });
+
+    return totalRecoil;
+  }
+
+  /**
+   * Get power draw (Watts)
+   */
+  public getPowerDraw(): number {
+    return this.totalPowerDraw;
   }
 
   /**
