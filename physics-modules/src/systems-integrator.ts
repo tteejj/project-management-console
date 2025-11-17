@@ -117,6 +117,20 @@ export class SystemsIntegrator {
       dependsOn: ['electrical'],
       criticalDependency: false
     });
+
+    // Weapons system (Critical Integration: Weapons Power Management)
+    this.dependencies.set('weapons', {
+      systemId: 'weapons',
+      dependsOn: ['electrical', 'thermal', 'centerOfMass'],
+      criticalDependency: true // Weapons offline if power or thermal management fails
+    });
+
+    // Center of Mass system (Critical Integration: CoM Tracking)
+    this.dependencies.set('centerOfMass', {
+      systemId: 'centerOfMass',
+      dependsOn: ['fuel', 'cargo'], // CoM depends on fuel and cargo changes
+      criticalDependency: false
+    });
   }
 
   private registerAllPowerConsumers(): void {
@@ -272,6 +286,20 @@ export class SystemsIntegrator {
       powered: true,
       busAssignment: 'A'
     });
+
+    // Weapons system (Critical Integration: Weapons Power Management)
+    // Priority 7 - Below life support and navigation, above comms
+    this.powerManagement.registerConsumer({
+      id: 'weapons',
+      name: 'Weapons Control System',
+      priority: 7,
+      basePowerW: 100, // Tracking and control systems
+      currentPowerW: 100,
+      maxPowerW: 75000000, // 75 MW max (particle beam 50 MW + railgun 15 MW + laser 10 MW)
+      essential: false, // Can be shed in brownout
+      powered: true,
+      busAssignment: 'B'
+    });
   }
 
   private initializeSystemHealth(): void {
@@ -279,7 +307,7 @@ export class SystemsIntegrator {
     const systems = [
       'mainEngine', 'rcs', 'fuel', 'electrical', 'thermal', 'coolant',
       'navComputer', 'communications', 'environmental', 'landing', 'docking',
-      'cargo', 'ew', 'countermeasures'
+      'cargo', 'ew', 'countermeasures', 'weapons', 'centerOfMass'
     ];
 
     systems.forEach(sys => {
@@ -335,6 +363,10 @@ export class SystemsIntegrator {
       coolantPower += loop.pumpPowerW;
     });
     this.powerManagement.updateConsumerDraw('coolant', coolantPower);
+
+    // Critical Integration: Weapons power draw (includes tracking + firing power)
+    const weaponsPower = this.spacecraft.weapons.getPowerDraw();
+    this.powerManagement.updateConsumerDraw('weapons', weaponsPower);
   }
 
   private applyPowerStateToSubsystems(): void {
@@ -366,6 +398,11 @@ export class SystemsIntegrator {
           break;
         case 'countermeasures':
           this.spacecraft.countermeasures.setPower(consumer.powered);
+          break;
+        case 'weapons':
+          // Critical Integration: Weapons power management
+          // If powered is false, weapons master safety is enabled
+          this.spacecraft.weapons.weaponsSafety = !consumer.powered;
           break;
       }
     });
@@ -409,6 +446,17 @@ export class SystemsIntegrator {
         break;
       case 'thermal':
         this.spacecraft.thermal.setHeatGeneration('damage_heat', severity * 1000);
+        break;
+      case 'weapons':
+        // Critical Integration: Weapons damage handling
+        // Severe damage activates weapons safety
+        if (severity > 0.5) {
+          this.spacecraft.weapons.weaponsSafety = true;
+        }
+        break;
+      case 'centerOfMass':
+        // CoM system is computational - damage doesn't apply directly
+        // But we track health for cascading failures
         break;
     }
 
