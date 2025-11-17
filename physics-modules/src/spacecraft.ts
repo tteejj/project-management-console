@@ -60,6 +60,7 @@ import { KineticWeapon } from './kinetic-weapons';
 import { MissileLauncherSystem } from './missile-weapons';
 import { LaserWeapon } from './energy-weapons';
 import { ParticleBeamWeapon } from './energy-weapons';
+import { CenterOfMassSystem } from './center-of-mass';
 
 export interface SpacecraftConfig {
   // Optional system configurations
@@ -116,6 +117,9 @@ export class Spacecraft {
   // Weapons systems
   public weapons: WeaponsControlSystem;
 
+  // Center of Mass tracking
+  public comSystem: CenterOfMassSystem;
+
   // Simulation time
   public simulationTime: number = 0;
 
@@ -147,6 +151,13 @@ export class Spacecraft {
     this.cargo = new CargoManagementSystem(config?.cargoConfig);
     this.ew = new ElectronicWarfareSystem(config?.ewConfig);
     this.environmental = new EnvironmentalSystem(config?.environmentalConfig);
+
+    // Initialize Center of Mass tracking FIRST (before weapons and integrator)
+    this.comSystem = new CenterOfMassSystem();
+    this.initializeMassComponents();
+
+    // Register cargo system with CoM tracking
+    this.cargo.registerCoMSystem(this.comSystem);
 
     // Initialize weapons control system
     this.weapons = new WeaponsControlSystem();
@@ -262,6 +273,113 @@ export class Spacecraft {
   }
 
   /**
+   * Initialize all mass components for Center of Mass tracking
+   * Based on SPACECRAFT_INTEGRATION.md mass budget (Lines 312-326)
+   */
+  private initializeMassComponents(): void {
+    // Fixed structural components
+    this.comSystem.registerComponent({
+      id: 'hull_structure',
+      name: 'Hull Structure',
+      mass: 15000, // kg
+      position: { x: 0, y: 0, z: 0 }, // Distributed, use origin
+      fixed: true
+    });
+
+    this.comSystem.registerComponent({
+      id: 'reactor',
+      name: 'Reactor + Shielding',
+      mass: 8000,
+      position: { x: 0, y: -2, z: -5 },
+      fixed: true
+    });
+
+    this.comSystem.registerComponent({
+      id: 'main_engine',
+      name: 'Main Engine',
+      mass: 5000,
+      position: { x: 0, y: -3, z: -22 },
+      fixed: true
+    });
+
+    this.comSystem.registerComponent({
+      id: 'weapons_systems',
+      name: 'Weapons Systems',
+      mass: 4000,
+      position: { x: 0, y: 1, z: 10 }, // Average of weapon locations
+      fixed: true
+    });
+
+    this.comSystem.registerComponent({
+      id: 'sensors_comms',
+      name: 'Sensors/Communications',
+      mass: 1000,
+      position: { x: 0, y: 5, z: 20 }, // Forward/dorsal
+      fixed: true
+    });
+
+    this.comSystem.registerComponent({
+      id: 'life_support',
+      name: 'Life Support',
+      mass: 2000,
+      position: { x: 0, y: 5, z: 12 }, // Deck 1
+      fixed: true
+    });
+
+    this.comSystem.registerComponent({
+      id: 'crew_supplies',
+      name: 'Crew + Supplies',
+      mass: 1000,
+      position: { x: 0, y: 5, z: 15 }, // Crew quarters
+      fixed: false // Can move slightly
+    });
+
+    // Fuel tanks (variable mass)
+    // Register with initial full mass, will be updated as fuel is consumed
+    const fuelState = this.fuel.getState();
+    for (const tank of fuelState.tanks) {
+      const position = this.getFuelTankPosition(tank.id);
+      this.comSystem.registerComponent({
+        id: `fuel_${tank.id}`,
+        name: `Fuel Tank ${tank.id}`,
+        mass: tank.fuelMass,
+        position: position,
+        fixed: true // Tank location is fixed, mass changes
+      });
+    }
+
+    // RCS propellant (distributed)
+    this.comSystem.registerComponent({
+      id: 'rcs_propellant',
+      name: 'RCS Propellant',
+      mass: 1000, // Initial estimate, will be updated
+      position: { x: 0, y: 0, z: 0 }, // Distributed around ship
+      fixed: true
+    });
+
+    // Cargo (initial empty)
+    this.comSystem.registerComponent({
+      id: 'cargo',
+      name: 'Cargo Mass',
+      mass: 0, // Start empty
+      position: { x: 0, y: 1, z: 0 }, // Cargo bay
+      fixed: false // Can be repositioned
+    });
+  }
+
+  /**
+   * Map fuel tank IDs to physical positions from ship layout
+   */
+  private getFuelTankPosition(tankId: string): { x: number; y: number; z: number } {
+    const positions: Record<string, { x: number; y: number; z: number }> = {
+      'main_1': { x: -3, y: -2, z: -10 }, // Port main tank
+      'main_2': { x: 3, y: -2, z: -10 },  // Starboard main tank (oxidizer)
+      'rcs': { x: 0, y: -1, z: 0 }        // RCS tank (distributed, use average)
+    };
+    return positions[tankId] || { x: 0, y: 0, z: 0 };
+  }
+
+  /**
    * Master update loop - integrates all systems
    */
   update(dt: number): void {
@@ -333,6 +451,18 @@ export class Spacecraft {
 
     this.fuel.consumeFuel('rcs', rcsFuelConsumption);
 
+    // 9.5. Update Center of Mass with new fuel masses
+    const fuelStateAfterConsumption = this.fuel.getState();
+    for (const tank of fuelStateAfterConsumption.tanks) {
+      this.comSystem.updateMass(`fuel_${tank.id}`, tank.fuelMass);
+    }
+
+    // Also update RCS propellant mass (from fuel tank)
+    const rcsTankState = this.fuel.getTank('rcs');
+    if (rcsTankState) {
+      this.comSystem.updateMass('rcs_propellant', rcsTankState.fuelMass);
+    }
+
     // 10. Update ship mass in physics
     const totalPropellantMass = this.fuel.getTotalFuelMass();
     this.physics.propellantMass = totalPropellantMass;
@@ -343,6 +473,15 @@ export class Spacecraft {
 
     const rcsThrust = this.rcs.getTotalThrustVector();
     const rcsTorque = this.rcs.getTotalTorque();
+
+    // 11.5. Update physics with current CoM and moment of inertia
+    const comOffset = this.comSystem.getCoM();
+    const momentOfInertia = this.comSystem.getMomentOfInertia();
+    this.physics.setCoMOffset(comOffset);
+    this.physics.setMomentOfInertia(momentOfInertia);
+
+    // Also update the dry mass from CoM system (more accurate than hardcoded)
+    this.physics.dryMass = this.comSystem.getTotalMass() - totalPropellantMass;
 
     // 12. Update ship physics
     const totalPropellantConsumed = mainFuelAmount + mainOxidizerAmount + rcsFuelConsumption;
@@ -461,7 +600,8 @@ export class Spacecraft {
       ew: this.ew.getState(),
       environmental: this.environmental.getState(),
       weapons: this.weapons.getState(),
-      systemsIntegration: this.systemsIntegrator.getState()
+      systemsIntegration: this.systemsIntegrator.getState(),
+      centerOfMass: this.comSystem.getState()
     };
   }
 

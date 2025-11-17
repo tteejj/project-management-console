@@ -11,6 +11,8 @@
  * - Inventory tracking and consumption rates
  */
 
+import type { CenterOfMassSystem } from './center-of-mass';
+
 export interface CargoItem {
   id: string;
   type: 'consumable' | 'equipment' | 'spare_part' | 'payload' | 'cargo';
@@ -81,6 +83,9 @@ export class CargoManagementSystem {
 
   // Events
   public events: Array<{ time: number; type: string; data: any }> = [];
+
+  // Center of Mass integration
+  private comSystem?: CenterOfMassSystem;
 
   constructor(config?: CargoManagementConfig) {
     this.bays = new Map();
@@ -288,7 +293,15 @@ export class CargoManagementSystem {
   }
 
   /**
+   * Register with spacecraft CoM system
+   */
+  public registerCoMSystem(comSystem: CenterOfMassSystem): void {
+    this.comSystem = comSystem;
+  }
+
+  /**
    * Update center of mass calculations
+   * Also updates the spacecraft's CoM system if registered
    */
   private updateCenterOfMass(): void {
     let totalMass = 0;
@@ -314,6 +327,15 @@ export class CargoManagementSystem {
     }
 
     this.totalMass = totalMass;
+
+    // Update spacecraft CoM system if registered
+    if (this.comSystem) {
+      this.comSystem.updateMass('cargo', this.totalMass);
+      // Also update position if cargo CoM has shifted
+      if (this.totalMass > 0) {
+        this.comSystem.updatePosition('cargo', this.overallCenterOfMass);
+      }
+    }
   }
 
   /**

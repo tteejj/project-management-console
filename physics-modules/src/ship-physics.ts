@@ -63,6 +63,9 @@ export class ShipPhysics {
   public planetMass: number;
   public planetRadius: number;
 
+  // Center of Mass offset from origin (body frame)
+  public comOffset: Vector3 = { x: 0, y: 0, z: 0 };
+
   // Tracking
   public simulationTime: number = 0;
   public events: Array<{ time: number; type: string; data: any }> = [];
@@ -424,6 +427,58 @@ export class ShipPhysics {
       totalMass: this.getTotalMass(),
       simulationTime: this.simulationTime
     };
+  }
+
+  /**
+   * Set center of mass offset from origin (body frame)
+   * Called by spacecraft.ts every update with data from CenterOfMassSystem
+   */
+  public setCoMOffset(offset: Vector3): void {
+    this.comOffset = { ...offset };
+  }
+
+  /**
+   * Set moment of inertia from CoM system
+   * Accepts either simple diagonal components or full tensor
+   */
+  public setMomentOfInertia(inertia: Vector3 | {
+    Ixx: number; Iyy: number; Izz: number;
+    Ixy: number; Ixz: number; Iyz: number;
+  }): void {
+    if ('Ixx' in inertia) {
+      // Full tensor provided, use diagonal components
+      // TODO: Use full 3x3 tensor for coupled rotation
+      this.momentOfInertia = {
+        x: inertia.Ixx,
+        y: inertia.Iyy,
+        z: inertia.Izz
+      };
+    } else {
+      // Simple vector provided
+      this.momentOfInertia = { ...inertia };
+    }
+  }
+
+  /**
+   * Calculate torque produced by a force applied at a position
+   * relative to the current center of mass
+   *
+   * Torque = r × F (cross product)
+   * where r is position relative to CoM
+   */
+  public calculateTorqueFromForce(
+    forcePosition: Vector3,
+    force: Vector3
+  ): Vector3 {
+    // Vector from CoM to force application point
+    const r = {
+      x: forcePosition.x - this.comOffset.x,
+      y: forcePosition.y - this.comOffset.y,
+      z: forcePosition.z - this.comOffset.z
+    };
+
+    // Cross product: r × F
+    return this.crossProduct(r, force);
   }
 
   /**
