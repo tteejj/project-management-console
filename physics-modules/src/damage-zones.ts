@@ -10,7 +10,10 @@
  * - Armor penetration calculations
  * - Critical hit probability per zone
  * - Damage propagation to affected systems
+ * - Crew casualty tracking
  */
+
+import { CrewSystem } from './crew-system';
 
 export interface DamageZone {
   id: string;
@@ -21,6 +24,7 @@ export interface DamageZone {
     zMin: number; zMax: number;
   };
   criticalSystems: string[]; // System IDs in this zone
+  crewPositions: number; // Number of crew normally in this zone
   criticalHitChance: number; // 0-1 probability
   armorThickness: number; // mm
   description: string;
@@ -41,9 +45,17 @@ export interface DamageReport {
 export class DamageZoneSystem {
   private zones: DamageZone[] = [];
   private damageHistory: DamageReport[] = [];
+  private crewSystem: CrewSystem | null = null;
 
   constructor() {
     this.initializeZones();
+  }
+
+  /**
+   * Register crew system for casualty tracking
+   */
+  public registerCrewSystem(crewSystem: CrewSystem): void {
+    this.crewSystem = crewSystem;
   }
 
   /**
@@ -57,6 +69,7 @@ export class DamageZoneSystem {
         name: 'Forward Nose',
         bounds: { xMin: -5, xMax: 5, yMin: -2, yMax: 6, zMin: 18, zMax: 25 },
         criticalSystems: ['radar', 'docking_port', 'forward_sensors', 'particle_beam'],
+        crewPositions: 0, // No crew normally stationed here
         criticalHitChance: 0.3,
         armorThickness: 50,
         description: 'Sensors, radar, docking port, particle beam weapon'
@@ -68,6 +81,7 @@ export class DamageZoneSystem {
         name: 'Bridge/Command',
         bounds: { xMin: -6, xMax: 6, yMin: 4, yMax: 6, zMin: 10, zMax: 18 },
         criticalSystems: ['flight_control', 'nav_computer', 'crew', 'observation_dome'],
+        crewPositions: 3, // Bridge: 3 crew (Commander, Pilot, Sensors)
         criticalHitChance: 0.8, // Very high - crew casualties likely
         armorThickness: 100,
         description: 'Command center, crew quarters, critical control systems'
@@ -79,6 +93,7 @@ export class DamageZoneSystem {
         name: 'Forward Weapons',
         bounds: { xMin: -7, xMax: 7, yMin: -1, yMax: 4, zMin: 5, zMax: 15 },
         criticalSystems: ['forward_railgun', 'port_vls', 'starboard_vls', 'dorsal_autocannon'],
+        crewPositions: 1, // Weapons: 1 crew (Weapons Officer)
         criticalHitChance: 0.5,
         armorThickness: 150, // Well armored weapons
         description: 'Railgun, missile launchers, autocannon turret'
@@ -90,6 +105,7 @@ export class DamageZoneSystem {
         name: 'Port Wing',
         bounds: { xMin: -9, xMax: -6, yMin: -4, yMax: 4, zMin: -10, zMax: 10 },
         criticalSystems: ['port_radiator', 'port_fuel_tank', 'port_rcs'],
+        crewPositions: 0, // No crew normally stationed here
         criticalHitChance: 0.4,
         armorThickness: 30, // Thin armor on radiators
         description: 'Port radiator panels, fuel tank, RCS thrusters'
@@ -101,6 +117,7 @@ export class DamageZoneSystem {
         name: 'Starboard Wing',
         bounds: { xMin: 6, xMax: 9, yMin: -4, yMax: 4, zMin: -10, zMax: 10 },
         criticalSystems: ['starboard_radiator', 'starboard_fuel_tank', 'starboard_rcs'],
+        crewPositions: 0, // No crew normally stationed here
         criticalHitChance: 0.4,
         armorThickness: 30,
         description: 'Starboard radiator panels, fuel tank, RCS thrusters'
@@ -112,6 +129,7 @@ export class DamageZoneSystem {
         name: 'Cargo Bay',
         bounds: { xMin: -6, xMax: 6, yMin: -2, yMax: 2, zMin: -5, zMax: 5 },
         criticalSystems: ['cargo_bay', 'cargo_crane'],
+        crewPositions: 0, // No crew normally stationed here
         criticalHitChance: 0.2, // Low criticality
         armorThickness: 80,
         description: 'Main cargo storage, minimal critical systems'
@@ -123,6 +141,7 @@ export class DamageZoneSystem {
         name: 'Engineering Core',
         bounds: { xMin: -5, xMax: 5, yMin: -4, yMax: 0, zMin: -10, zMax: 0 },
         criticalSystems: ['reactor', 'batteries', 'coolant_system', 'thermal_control'],
+        crewPositions: 1, // Engineering: 1 crew (Engineer)
         criticalHitChance: 0.9, // CATASTROPHIC if hit
         armorThickness: 200, // Heavily armored
         description: 'Reactor, batteries, critical power systems'
@@ -134,6 +153,7 @@ export class DamageZoneSystem {
         name: 'Propulsion',
         bounds: { xMin: -6, xMax: 6, yMin: -4, yMax: 0, zMin: -25, zMax: -15 },
         criticalSystems: ['main_engine', 'fuel_feeds', 'engine_gimbal'],
+        crewPositions: 0, // No crew normally stationed here
         criticalHitChance: 0.7,
         armorThickness: 120,
         description: 'Main engine, fuel feeds, propulsion systems'
@@ -145,6 +165,7 @@ export class DamageZoneSystem {
         name: 'Dorsal Hull',
         bounds: { xMin: -6, xMax: 6, yMin: 4, yMax: 7, zMin: -10, zMax: 10 },
         criticalSystems: ['dorsal_pd_turret', 's_band_antenna', 'esm_array'],
+        crewPositions: 0, // No crew normally stationed here
         criticalHitChance: 0.3,
         armorThickness: 60,
         description: 'PD turret, antennas, sensor arrays'
@@ -156,6 +177,7 @@ export class DamageZoneSystem {
         name: 'Ventral Hull',
         bounds: { xMin: -6, xMax: 6, yMin: -5, yMax: -2, zMin: -10, zMax: 10 },
         criticalSystems: ['ventral_laser', 'landing_gear', 'vhf_antenna'],
+        crewPositions: 0, // No crew normally stationed here
         criticalHitChance: 0.4,
         armorThickness: 70,
         description: 'Laser turret, landing gear, lower antennas'
@@ -167,6 +189,7 @@ export class DamageZoneSystem {
         name: 'Port Systems',
         bounds: { xMin: -6, xMax: -4, yMin: -2, yMax: 4, zMin: -15, zMax: 15 },
         criticalSystems: ['port_subsystems', 'port_power_bus'],
+        crewPositions: 0, // No crew normally stationed here
         criticalHitChance: 0.3,
         armorThickness: 70,
         description: 'Port-side subsystems and power distribution'
@@ -178,6 +201,7 @@ export class DamageZoneSystem {
         name: 'Starboard Systems',
         bounds: { xMin: 4, xMax: 6, yMin: -2, yMax: 4, zMin: -15, zMax: 15 },
         criticalSystems: ['starboard_subsystems', 'starboard_power_bus'],
+        crewPositions: 0, // No crew normally stationed here
         criticalHitChance: 0.3,
         armorThickness: 70,
         description: 'Starboard-side subsystems and power distribution'
@@ -281,6 +305,9 @@ export class DamageZoneSystem {
       hitPosition
     };
 
+    // Apply crew casualties if applicable
+    this.applyCrewCasualties(zone, finalDamage, isCritical);
+
     this.damageHistory.push(report);
     return report;
   }
@@ -360,6 +387,9 @@ export class DamageZoneSystem {
       hitPosition
     };
 
+    // Apply crew casualties if applicable
+    this.applyCrewCasualties(zone, finalDamage, isCritical);
+
     this.damageHistory.push(report);
     return report;
   }
@@ -426,6 +456,9 @@ export class DamageZoneSystem {
       effects,
       hitPosition
     };
+
+    // Apply crew casualties if applicable
+    this.applyCrewCasualties(zone, finalDamage, isCritical);
 
     this.damageHistory.push(report);
     return report;
@@ -497,6 +530,30 @@ export class DamageZoneSystem {
     };
 
     return criticalEffects[zone.id] || [];
+  }
+
+  /**
+   * Apply crew casualties from zone damage
+   */
+  private applyCrewCasualties(zone: DamageZone, damage: number, isCritical: boolean): void {
+    if (!this.crewSystem || zone.crewPositions === 0) {
+      return; // No crew system registered or no crew in this zone
+    }
+
+    // Calculate casualty probability based on damage and critical hit
+    // Higher damage and critical hits increase casualty risk
+    const baseCasualtyChance = Math.min(0.8, damage / 100); // Max 80% base chance
+    const criticalMultiplier = isCritical ? 2.0 : 1.0;
+    const casualtyChance = Math.min(0.95, baseCasualtyChance * criticalMultiplier);
+
+    // Only apply casualties if random roll succeeds
+    if (Math.random() < casualtyChance) {
+      // Calculate severity based on damage amount
+      const severity = Math.min(1.0, damage / 200); // Normalize to 0-1
+
+      // Apply damage to crew in this zone
+      this.crewSystem.applyCrewDamage(zone.id, severity);
+    }
   }
 
   /**

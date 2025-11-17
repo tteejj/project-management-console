@@ -327,23 +327,24 @@ export class SystemsIntegrator {
     });
 
     // Sensor systems (Critical Gap Fill: Sensor Systems)
-    // Priority 6 - Below weapons, critical for targeting but can be shed in brownout
+    // Radar: Priority 8 - High priority active sensor, Bus A
     this.powerManagement.registerConsumer({
       id: 'radar',
       name: 'Radar System',
-      priority: 6,
-      basePowerW: 500, // 500W idle
+      priority: 8,
+      basePowerW: 500, // 500W standby
       currentPowerW: 500,
       maxPowerW: 100000, // 100 kW peak transmit power
       essential: false, // Can operate on passive sensors only
       powered: true,
-      busAssignment: 'B'
+      busAssignment: 'A'
     });
 
+    // Optical: Priority 7 - High priority passive sensor, Bus B
     this.powerManagement.registerConsumer({
       id: 'opticalSensors',
       name: 'Optical/IR Sensors',
-      priority: 6,
+      priority: 7,
       basePowerW: 200, // 200W for cooling and processors
       currentPowerW: 200,
       maxPowerW: 200, // Passive sensors, fixed power
@@ -352,10 +353,11 @@ export class SystemsIntegrator {
       busAssignment: 'B'
     });
 
+    // ESM: Priority 6 - Medium priority passive sensor, Bus B
     this.powerManagement.registerConsumer({
       id: 'esm',
       name: 'ESM/ELINT System',
-      priority: 5,
+      priority: 6,
       basePowerW: 80, // 80W for receivers
       currentPowerW: 80,
       maxPowerW: 100, // Passive sensors, low power
@@ -364,16 +366,17 @@ export class SystemsIntegrator {
       busAssignment: 'B'
     });
 
+    // Sensor Fusion: Priority 7 - High priority data fusion, Bus A
     this.powerManagement.registerConsumer({
       id: 'sensorFusion',
       name: 'Sensor Fusion Computer',
-      priority: 6,
+      priority: 7,
       basePowerW: 150, // 150W for track processing
       currentPowerW: 150,
       maxPowerW: 300, // Can increase for complex track scenarios
       essential: false,
       powered: true,
-      busAssignment: 'B'
+      busAssignment: 'A'
     });
   }
 

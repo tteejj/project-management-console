@@ -65,6 +65,8 @@ import { RadarSystem } from './radar-system';
 import { OpticalSensorsSystem } from './optical-sensors';
 import { ESMSystem } from './esm-system';
 import { SensorFusionSystem } from './sensor-fusion';
+import { CrewSystem } from './crew-system';
+import { OrbitalMechanicsSystem } from './orbital-mechanics';
 
 export interface SpacecraftConfig {
   // Optional system configurations
@@ -129,6 +131,12 @@ export class Spacecraft {
   public opticalSensors: OpticalSensorsSystem;
   public esm: ESMSystem;
   public sensorFusion: SensorFusionSystem;
+
+  // Crew management
+  public crew: CrewSystem;
+
+  // Orbital mechanics
+  public orbitalMechanics: OrbitalMechanicsSystem;
 
   // Simulation time
   public simulationTime: number = 0;
@@ -202,6 +210,12 @@ export class Spacecraft {
       correlationThresholdDegrees: 10, // 10 degree correlation threshold
       trackConfirmationTime: 2 // 2 seconds to confirm track
     });
+
+    // Initialize crew management system
+    this.crew = new CrewSystem();
+
+    // Initialize orbital mechanics system (default to Earth)
+    this.orbitalMechanics = new OrbitalMechanicsSystem();
 
     // Initialize systems integrator (MUST be last - needs all systems initialized)
     this.systemsIntegrator = new SystemsIntegrator(this);
@@ -621,6 +635,7 @@ export class Spacecraft {
     this.cargo.update(dt);
     this.ew.update(dt);
     this.environmental.update(dt);
+    this.crew.update(dt);
 
     // 18.5. Update weapons control system
     this.weapons.updateShipState(physicsState.position, {
@@ -762,6 +777,11 @@ export class Spacecraft {
         optical: this.opticalSensors.getState(),
         esm: this.esm.getState(),
         fusion: this.sensorFusion.getState()
+      },
+      crew: this.crew.getState(),
+      orbitalMechanics: {
+        centralBody: this.orbitalMechanics.getCentralBody().name,
+        mu: this.orbitalMechanics.getCentralBody().mu
       }
     };
   }
@@ -1037,7 +1057,8 @@ export class Spacecraft {
       radar: this.radar.getEvents(),
       opticalSensors: this.opticalSensors.getEvents(),
       esm: this.esm.getEvents(),
-      sensorFusion: this.sensorFusion.getEvents()
+      sensorFusion: this.sensorFusion.getEvents(),
+      crew: this.crew.getEvents()
     };
   }
 }
