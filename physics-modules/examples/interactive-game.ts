@@ -705,7 +705,7 @@ class MoonLanderGame {
           break;
         case 't':
           // SCRAM reactor
-          this.spacecraft.electrical.scram();
+          this.spacecraft.electrical.SCRAM();
           break;
 
         // Life Support specific controls
