@@ -70,6 +70,46 @@ export {
   createUniverse
 } from './UniverseDesigner';
 
+// Atmospheric Physics
+export {
+  AtmosphericLayer,
+  AtmosphericProfile,
+  AtmosphericPhysics
+} from './AtmosphericPhysics';
+
+// Radiation Physics
+export {
+  RadiationDose,
+  RadiationEnvironment,
+  RadiationType,
+  RadiationPhysics,
+  RadiationTracker
+} from './RadiationPhysics';
+
+// Thermal Balance
+export {
+  ThermalEnvironment,
+  SurfaceEnergyBalance,
+  ThermalBalance
+} from './ThermalBalance';
+
+// Habitability Analysis
+export {
+  HabitabilityScore,
+  BiosphereCapability,
+  HabitabilityAnalysis
+} from './HabitabilityAnalysis';
+
+// Economy System
+export {
+  Commodity,
+  MarketData,
+  TradeRoute,
+  EconomicZone,
+  COMMODITIES,
+  EconomySystem
+} from './EconomySystem';
+
 // Examples
 export {
   createSandboxUniverse,
