@@ -83,9 +83,17 @@ All controls are keyboard-driven. No mouse required.
 
 | Key | Action |
 |-----|--------|
-| **1** | Toggle coolant loop 1 pump on/off |
-| **2** | Toggle coolant loop 2 pump on/off |
+| **1** | Select and toggle coolant loop 1 pump on/off |
+| **2** | Select and toggle coolant loop 2 pump on/off |
 | **X** | Toggle coolant cross-connect (shares coolant between loops) |
+
+**Coolant Maintenance:**
+| Key | Action |
+|-----|--------|
+| **,** (comma) | Refill selected coolant loop (+5kg) |
+| **.** (period) | Repair leak in selected coolant loop |
+
+**Note:** Use keys 1-2 to select which loop to maintain. Display shows coolant level, percentage, and leak rate warnings.
 
 ### Electrical System (Engineering Station Only)
 **Circuit Breakers** - Toggle ALL 19 systems on/off:
@@ -128,13 +136,27 @@ All controls are keyboard-driven. No mouse required.
 |-----|--------|
 | **Tab** | Cycle fuel tank selection (Main 1 → Main 2 → RCS) |
 
+### Fuel Line Connections
+**CRITICAL:** Controls which tank is physically connected to each system
+
+| Key | Action |
+|-----|--------|
+| **H** | Connect selected tank to main engine fuel line |
+| **J** | Connect selected tank to RCS manifold fuel line |
+
+**Important:** For fuel to flow, BOTH conditions must be met:
+1. **Fuel line** must be connected to the tank (H/J keys)
+2. **Tank valve** must be open (N/M keys)
+
+Think of it as: Line connection = which pipe leads where, Valve = turning the tap on/off
+
 ### Fuel Valves
 **Context:** Controls apply to currently selected tank
 
 | Key | Valve | Action |
 |-----|-------|--------|
-| **N** | Engine Feed | Toggle valve connecting tank to main engine |
-| **M** | RCS Feed | Toggle valve connecting tank to RCS manifold |
+| **N** | Engine Feed | Toggle valve controlling flow from tank |
+| **M** | RCS Feed | Toggle valve controlling flow from tank |
 | **U** | Vent | Toggle emergency vent valve (dumps fuel to space) |
 
 ### Fuel Crossfeed
@@ -143,10 +165,14 @@ All controls are keyboard-driven. No mouse required.
 | **Z** | Cycle crossfeed destination (Off → Tank 1 → Tank 2 → Off) |
 
 **Crossfeed Use Cases:**
-- **Center of Mass Control:** Transfer fuel between tanks to balance ship
+- **Center of Mass Control:** Transfer fuel between tanks to balance ship (see Fuel Balance display)
 - **Emergency:** Feed engine from RCS tank if main tanks depleted
 - **Fuel Balancing:** Equalize fuel levels across multiple tanks
 - Crossfeed is pressure-driven - source tank must have higher pressure than destination
+
+**Display Information:**
+- **Fuel Line Connections:** Shows which tank feeds engine vs RCS, with line pressure
+- **Fuel Balance:** Shows center of mass offset from ship centerline (important for stability)
 
 **Note:** Tank must have valve open AND pressure >1.5 bar to feed systems. Venting is permanent - fuel cannot be recovered!
 

@@ -51,6 +51,9 @@ class MoonLanderGame {
   // Fuel system interaction state
   private selectedFuelTank: string = 'main_1';
 
+  // Coolant system interaction state
+  private selectedCoolantLoop: number = 0; // 0 or 1
+
   // Engineering station modes
   private engineeringMode: 'overview' | 'electrical' | 'fuel' = 'overview';
 
@@ -355,6 +358,21 @@ class MoonLanderGame {
     console.log();
 
     // Fuel Tanks - Individual tank status with crossfeed
+    // Fuel Line Connections - Shows which tank is connected to which system
+    const engineLineConnected = state.fuel.fuelLines?.mainEngine?.connectedTank || 'NONE';
+    const rcsLineConnected = state.fuel.fuelLines?.rcsManifold?.connectedTank || 'NONE';
+    const engineLinePressure = state.fuel.fuelLines?.mainEngine?.pressure || 0;
+    const rcsLinePressure = state.fuel.fuelLines?.rcsManifold?.pressure || 0;
+
+    console.log(colors.magenta + '┌─ FUEL LINE CONNECTIONS ────────────────────────────────────┐' + colors.reset);
+    const engineLineColor = engineLinePressure > 1.5 ? colors.green : colors.red;
+    const rcsLineColor = rcsLinePressure > 1.5 ? colors.green : colors.red;
+    console.log(`│ Engine Line:    ${colors.bright}${engineLineConnected.toUpperCase().padEnd(8)}${colors.reset} ${engineLineColor}${engineLinePressure.toFixed(1).padStart(4)}${colors.reset}bar`);
+    console.log(`│ RCS Manifold:   ${colors.bright}${rcsLineConnected.toUpperCase().padEnd(8)}${colors.reset} ${rcsLineColor}${rcsLinePressure.toFixed(1).padStart(4)}${colors.reset}bar`);
+    console.log(colors.magenta + '└────────────────────────────────────────────────────────────┘' + colors.reset);
+    console.log();
+
+    // Fuel Tanks - Individual tank status with valves and crossfeed
     console.log(colors.cyan + '┌─ FUEL TANKS ───────────────────────────────────────────────┐' + colors.reset);
     if (state.fuel.tanks && state.fuel.tanks.length > 0) {
       for (const tank of state.fuel.tanks) {
@@ -380,6 +398,11 @@ class MoonLanderGame {
         }
       }
     }
+
+    // Fuel Balance (Center of Mass)
+    const fuelBalance = state.fuel.balance;
+    const balanceColor = fuelBalance.magnitude > 1.0 ? colors.yellow : colors.green;
+    console.log(`│ Fuel Balance: ${balanceColor}${fuelBalance.magnitude.toFixed(2)}m${colors.reset} off-center` + ' '.padEnd(16) + '│');
     console.log(colors.cyan + '└────────────────────────────────────────────────────────────┘' + colors.reset);
     console.log();
 
@@ -418,8 +441,9 @@ class MoonLanderGame {
     console.log('│ RCS:     [W/S]Pitch [A/D]Yaw [Q/E]Roll                   │');
     console.log('│ SAS:     [1]Off [2]Stability [3]Prograde [4]Retrograde  │');
     console.log('│ AUTO:    [F1]Off [F2]AltHold [F3]V/S [F4]Suicide [F5]Hvr│');
-    console.log('│ FUEL:    [Tab]Select Tank  [Z]Cycle Crossfeed Dest      │');
-    console.log('│ VALVES:  [N]Engine [M]RCS [U]Vent (selected tank)       │');
+    console.log('│ TANK:    [Tab]Select Tank  [Z]Cycle Crossfeed Dest      │');
+    console.log('│ VALVES:  [N]Engine [M]RCS [U]Vent (tank valves)         │');
+    console.log('│ LINES:   [H]Connect to Engine  [J]Connect to RCS        │');
     console.log('│ OTHER:   [G]imbal [P]ause                                │');
     console.log('│ STATION: [5]Captain [6]Helm [7]Engineering [8]LifeSupport│');
     console.log(colors.cyan + '└────────────────────────────────────────────────────────────┘' + colors.reset);
@@ -504,13 +528,18 @@ class MoonLanderGame {
     console.log(colors.magenta + '└────────────────────────────────────────────────────────────┘' + colors.reset);
     console.log();
 
-    // Coolant System - Enhanced with cross-connect
+    // Coolant System - Enhanced with maintenance info
     console.log(colors.cyan + '┌─ COOLANT SYSTEM ───────────────────────────────────────────┐' + colors.reset);
     for (let i = 0; i < state.coolant.loops.length && i < 2; i++) {
       const loop = state.coolant.loops[i];
       const pumpStatus = loop.pumpActive ? colors.green + 'ACTIVE' : colors.dim + 'INACTIVE';
+      const coolantPercent = (loop.coolantMassKg / loop.maxCapacityKg) * 100;
+      const coolantColor = coolantPercent < 50 ? colors.red : coolantPercent < 80 ? colors.yellow : colors.green;
+      const leakWarning = loop.leakRateLPerMin > 0 ? colors.red + ` LEAK: ${loop.leakRateLPerMin.toFixed(1)}L/min` : '';
+
       console.log(`│ Loop ${i + 1}:`);
       console.log(`│   Pump:       ${pumpStatus}${colors.reset}`);
+      console.log(`│   Coolant:    ${coolantColor}${loop.coolantMassKg.toFixed(1).padStart(4)}${colors.reset}/${loop.maxCapacityKg.toFixed(0)}kg (${coolantColor}${coolantPercent.toFixed(0)}%${colors.reset})${leakWarning}${colors.reset}`);
       console.log(`│   Temp:       ${loop.temperature.toFixed(0).padStart(10)} K`);
       console.log(`│   Flow:       ${loop.flowRateLPerMin.toFixed(1).padStart(10)} L/min`);
     }
@@ -533,6 +562,7 @@ class MoonLanderGame {
     console.log(colors.cyan + '┌─ ENGINEERING CONTROLS ─────────────────────────────────────┐' + colors.reset);
     console.log('│ REACTOR:   [R]Start [T]SCRAM  [↑/↓]Throttle [Y]Reset     │');
     console.log('│ COOLANT:   [1]Loop1 [2]Loop2  [X]Cross-Connect           │');
+    console.log('│ MAINT:     [,]Refill Loop  [.]Repair Leak                │');
     console.log('│ BREAKERS:  [A-V] Toggle (see list above, 🔒=essential)   │');
     console.log('│ POWER:     [M]Bus Crosstie                               │');
     console.log('│ STATION:   [5]Captain [6]Helm [7]Engineering [8]LifeSuprt│');
@@ -747,7 +777,8 @@ class MoonLanderGame {
         // Context-sensitive controls for keys 1-6
         case '1':
           if (this.currentStation === 3) {
-            // Engineering: Toggle coolant loop 1
+            // Engineering: Select and toggle coolant loop 1
+            this.selectedCoolantLoop = 0;
             const loop1 = this.spacecraft.coolant.loops[0];
             if (loop1.pumpActive) {
               this.spacecraft.coolant.stopPump(0);
@@ -765,7 +796,8 @@ class MoonLanderGame {
           break;
         case '2':
           if (this.currentStation === 3) {
-            // Engineering: Toggle coolant loop 2
+            // Engineering: Select and toggle coolant loop 2
+            this.selectedCoolantLoop = 1;
             const loop2 = this.spacecraft.coolant.loops[1];
             if (loop2.pumpActive) {
               this.spacecraft.coolant.stopPump(1);
@@ -892,6 +924,12 @@ class MoonLanderGame {
             if (breaker) {
               this.spacecraft.electrical.toggleBreaker(breakerKey, !breaker.on);
             }
+          } else if (this.currentStation === 2 && key.name === 'h') {
+            // Helm: Connect selected tank to main engine fuel line
+            this.spacecraft.fuel.connectFuelLine('mainEngine', this.selectedFuelTank);
+          } else if (this.currentStation === 2 && key.name === 'j') {
+            // Helm: Connect selected tank to RCS manifold
+            this.spacecraft.fuel.connectFuelLine('rcsManifold', this.selectedFuelTank);
           } else if (this.currentStation === 2 && key.name === 'n') {
             // Helm: Toggle engine feed valve
             const tank = this.spacecraft.fuel.getTank(this.selectedFuelTank);
@@ -1011,6 +1049,20 @@ class MoonLanderGame {
                 }
               }
             }
+          }
+          break;
+
+        // Engineering Station - Coolant maintenance
+        case ',':
+          if (this.currentStation === 3) {
+            // Refill selected coolant loop (5kg at a time)
+            this.spacecraft.coolant.addCoolant(this.selectedCoolantLoop, 5.0);
+          }
+          break;
+        case '.':
+          if (this.currentStation === 3) {
+            // Repair leak in selected coolant loop
+            this.spacecraft.coolant.repairLeak(this.selectedCoolantLoop);
           }
           break;
 
