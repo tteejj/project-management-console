@@ -55,6 +55,11 @@ import { CargoManagementSystem } from './cargo-management';
 import { ElectronicWarfareSystem } from './electronic-warfare';
 import { EnvironmentalSystem } from './environmental-systems';
 import { SystemsIntegrator } from './systems-integrator';
+import { WeaponsControlSystem } from './weapons-control';
+import { KineticWeapon } from './kinetic-weapons';
+import { MissileLauncherSystem } from './missile-weapons';
+import { LaserWeapon } from './energy-weapons';
+import { ParticleBeamWeapon } from './energy-weapons';
 
 export interface SpacecraftConfig {
   // Optional system configurations
@@ -108,6 +113,9 @@ export class Spacecraft {
   // Systems integration and management
   public systemsIntegrator: SystemsIntegrator;
 
+  // Weapons systems
+  public weapons: WeaponsControlSystem;
+
   // Simulation time
   public simulationTime: number = 0;
 
@@ -140,11 +148,117 @@ export class Spacecraft {
     this.ew = new ElectronicWarfareSystem(config?.ewConfig);
     this.environmental = new EnvironmentalSystem(config?.environmentalConfig);
 
+    // Initialize weapons control system
+    this.weapons = new WeaponsControlSystem();
+    this.initializeWeapons();
+
     // Initialize systems integrator (MUST be last - needs all systems initialized)
     this.systemsIntegrator = new SystemsIntegrator(this);
 
     // Store initial fuel capacity for delta-V calculations
     this.initialFuelCapacity = this.fuel.getState().totalFuel;
+  }
+
+  /**
+   * Initialize weapons based on MC-550 "Valkyrie" layout
+   */
+  private initializeWeapons(): void {
+    // 1. Dorsal Autocannon (PD-20) - Point Defense
+    const pdGun = new KineticWeapon({
+      id: 'pd_autocannon',
+      name: 'PD-20 Dorsal Autocannon',
+      type: 'autocannon',
+      caliber: 20,
+      rateOfFire: 600,
+      maxRange: 5,
+      muzzleVelocity: 1500,
+      turretConfig: {
+        location: { x: 0, y: 6, z: 10 },
+        maxAzimuthRate: 60,
+        maxElevationRate: 60,
+        azimuthMin: -180,
+        azimuthMax: 180,
+        elevationMin: -30,
+        elevationMax: 80,
+        gyroStabilized: true,
+        trackingAccuracy: 0.5
+      },
+      magazineConfig: {
+        capacity: 500,
+        reloadTimeSeconds: 10
+      }
+    });
+    this.weapons.addKineticWeapon(pdGun);
+
+    // 2. Forward Railgun (RG-100) - Anti-Ship
+    const railgun = new KineticWeapon({
+      id: 'forward_railgun',
+      name: 'RG-100 Forward Railgun',
+      type: 'railgun',
+      caliber: 100,
+      rateOfFire: 6,
+      maxRange: 1000,
+      muzzleVelocity: 8000,
+      turretConfig: {
+        location: { x: 0, y: 1, z: 18 },
+        maxAzimuthRate: 20,
+        maxElevationRate: 20,
+        azimuthMin: -20,
+        azimuthMax: 20,
+        elevationMin: -15,
+        elevationMax: 15,
+        gyroStabilized: true,
+        trackingAccuracy: 0.3
+      },
+      magazineConfig: {
+        capacity: 30,
+        reloadTimeSeconds: 45
+      }
+    });
+    this.weapons.addKineticWeapon(railgun);
+
+    // 3. Port VLS Missiles
+    const portVLS = new MissileLauncherSystem({
+      id: 'port_vls',
+      type: 'VLS',
+      capacity: 4,
+      missileType: 'MRM',
+      reloadTime: 30
+    });
+    portVLS.launcher.location = { x: -6, y: 2, z: 8 };
+    this.weapons.addMissileLauncher(portVLS);
+
+    // 4. Starboard VLS Missiles
+    const starboardVLS = new MissileLauncherSystem({
+      id: 'starboard_vls',
+      type: 'VLS',
+      capacity: 4,
+      missileType: 'MRM',
+      reloadTime: 30
+    });
+    starboardVLS.launcher.location = { x: 6, y: 2, z: 8 };
+    this.weapons.addMissileLauncher(starboardVLS);
+
+    // 5. Ventral Pulse Laser (PL-5) - Point Defense
+    const pulseLaser = new LaserWeapon({
+      id: 'ventral_laser',
+      name: 'PL-5 Ventral Pulse Laser',
+      type: 'pulse_laser',
+      peakPower: 5000000, // 5 MW
+      wavelength: 'IR',
+      apertureDiameter: 0.5
+    });
+    this.weapons.addLaserWeapon(pulseLaser);
+
+    // 6. Forward Particle Beam (NPB-50) - Heavy Anti-Ship
+    const particleBeam = new ParticleBeamWeapon({
+      id: 'forward_pbeam',
+      name: 'NPB-50 Forward Particle Beam',
+      type: 'neutral',
+      particleEnergy: 50,
+      beamCurrent: 100
+    });
+    this.weapons.addParticleBeam(particleBeam);
   }
 
   /**
@@ -286,6 +400,14 @@ export class Spacecraft {
     this.ew.update(dt);
     this.environmental.update(dt);
 
+    // 18.5. Update weapons control system
+    this.weapons.updateShipState(physicsState.position, {
+      x: physicsState.velocity.x,
+      y: physicsState.velocity.y,
+      z: physicsState.velocity.z
+    });
+    this.weapons.update(dt);
+
     // 19. Update systems integrator (power management, damage propagation, automation)
     this.systemsIntegrator.update(dt);
 
@@ -338,6 +460,7 @@ export class Spacecraft {
       cargo: this.cargo.getState(),
       ew: this.ew.getState(),
       environmental: this.environmental.getState(),
+      weapons: this.weapons.getState(),
       systemsIntegration: this.systemsIntegrator.getState()
     };
   }
