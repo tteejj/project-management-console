@@ -13,6 +13,7 @@ import { KineticWeapon, ProjectileManager, Target as KineticTarget } from './kin
 import { Missile, MissileLauncherSystem, MissileType } from './missile-weapons';
 import { LaserWeapon, ParticleBeamWeapon, EnergyDamage } from './energy-weapons';
 import { DamageZoneSystem, DamageReport } from './damage-zones';
+import { FusedTrack, ThreatLevel as SensorThreatLevel } from './sensor-fusion';
 
 export type TargetType = 'spacecraft' | 'missile' | 'station' | 'debris';
 export type ThreatLevel = 'none' | 'low' | 'medium' | 'high' | 'critical';
@@ -140,6 +141,80 @@ export class WeaponsControlSystem {
   public removeTarget(targetId: string): void {
     this.targets.delete(targetId);
     this.engagements = this.engagements.filter(e => e.targetId !== targetId);
+  }
+
+  /**
+   * Import tracks from sensor fusion system
+   * (Critical Gap Fill: Sensor-Weapons Integration)
+   */
+  public importSensorTracks(fusedTracks: FusedTrack[]): void {
+    // Clear targets that are no longer tracked
+    const currentTrackIds = new Set(fusedTracks.map(t => t.id));
+    const targetsToRemove: string[] = [];
+
+    this.targets.forEach((target, id) => {
+      if (!currentTrackIds.has(id)) {
+        targetsToRemove.push(id);
+      }
+    });
+
+    targetsToRemove.forEach(id => this.removeTarget(id));
+
+    // Import/update all fused tracks
+    fusedTracks.forEach(track => {
+      const target = this.convertFusedTrackToTarget(track);
+      this.trackTarget(target);
+    });
+  }
+
+  /**
+   * Convert sensor fusion track to weapons target
+   * (Critical Gap Fill: Sensor-Weapons Integration)
+   */
+  private convertFusedTrackToTarget(track: FusedTrack): TrackedTarget {
+    // Convert sensor threat level to weapons threat level
+    const threatMap: Record<SensorThreatLevel, ThreatLevel> = {
+      'none': 'none',
+      'low': 'low',
+      'medium': 'medium',
+      'high': 'high',
+      'critical': 'critical'
+    };
+
+    // Convert sensor classification to target type
+    let targetType: TargetType = 'spacecraft';
+    if (track.classification === 'missile') {
+      targetType = 'missile';
+    } else if (track.classification === 'debris') {
+      targetType = 'debris';
+    } else if (track.classification === 'station') {
+      targetType = 'station';
+    }
+
+    // Estimate target radius from RCS if available (rough approximation)
+    let radius = 10; // Default 10m
+    if (track.radarContact && track.radarContact.rcs) {
+      // RCS ≈ π * r^2 for a sphere, so r ≈ sqrt(RCS / π)
+      radius = Math.sqrt(track.radarContact.rcs / Math.PI);
+    }
+
+    // Ensure we have valid position
+    const position = track.position || { x: 0, y: 0, z: 0 };
+    const velocity = track.velocity || { x: 0, y: 0, z: 0 };
+
+    return {
+      id: track.id,
+      type: targetType,
+      position: { ...position },
+      velocity: { ...velocity },
+      radius: radius,
+      threat: threatMap[track.threatLevel],
+      health: 1.0, // Assume full health initially
+      hostile: track.threatLevel !== 'none', // Anything with a threat is considered hostile
+      locked: false, // Will be set by engagement system
+      timeToIntercept: null, // Will be calculated
+      inRange: { kinetic: false, missile: false, laser: false } // Will be updated
+    };
   }
 
   /**

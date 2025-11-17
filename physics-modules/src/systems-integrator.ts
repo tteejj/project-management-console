@@ -131,6 +131,31 @@ export class SystemsIntegrator {
       dependsOn: ['fuel', 'cargo'], // CoM depends on fuel and cargo changes
       criticalDependency: false
     });
+
+    // Sensor systems (Critical Gap Fill: Sensor Systems)
+    this.dependencies.set('radar', {
+      systemId: 'radar',
+      dependsOn: ['electrical'],
+      criticalDependency: true
+    });
+
+    this.dependencies.set('opticalSensors', {
+      systemId: 'opticalSensors',
+      dependsOn: ['electrical', 'thermal'], // IR sensors need cooling
+      criticalDependency: true
+    });
+
+    this.dependencies.set('esm', {
+      systemId: 'esm',
+      dependsOn: ['electrical'],
+      criticalDependency: true
+    });
+
+    this.dependencies.set('sensorFusion', {
+      systemId: 'sensorFusion',
+      dependsOn: ['radar', 'opticalSensors', 'esm'],
+      criticalDependency: false // Can work with degraded sensors
+    });
   }
 
   private registerAllPowerConsumers(): void {
@@ -300,6 +325,56 @@ export class SystemsIntegrator {
       powered: true,
       busAssignment: 'B'
     });
+
+    // Sensor systems (Critical Gap Fill: Sensor Systems)
+    // Priority 6 - Below weapons, critical for targeting but can be shed in brownout
+    this.powerManagement.registerConsumer({
+      id: 'radar',
+      name: 'Radar System',
+      priority: 6,
+      basePowerW: 500, // 500W idle
+      currentPowerW: 500,
+      maxPowerW: 100000, // 100 kW peak transmit power
+      essential: false, // Can operate on passive sensors only
+      powered: true,
+      busAssignment: 'B'
+    });
+
+    this.powerManagement.registerConsumer({
+      id: 'opticalSensors',
+      name: 'Optical/IR Sensors',
+      priority: 6,
+      basePowerW: 200, // 200W for cooling and processors
+      currentPowerW: 200,
+      maxPowerW: 200, // Passive sensors, fixed power
+      essential: false,
+      powered: true,
+      busAssignment: 'B'
+    });
+
+    this.powerManagement.registerConsumer({
+      id: 'esm',
+      name: 'ESM/ELINT System',
+      priority: 5,
+      basePowerW: 80, // 80W for receivers
+      currentPowerW: 80,
+      maxPowerW: 100, // Passive sensors, low power
+      essential: false,
+      powered: true,
+      busAssignment: 'B'
+    });
+
+    this.powerManagement.registerConsumer({
+      id: 'sensorFusion',
+      name: 'Sensor Fusion Computer',
+      priority: 6,
+      basePowerW: 150, // 150W for track processing
+      currentPowerW: 150,
+      maxPowerW: 300, // Can increase for complex track scenarios
+      essential: false,
+      powered: true,
+      busAssignment: 'B'
+    });
   }
 
   private initializeSystemHealth(): void {
@@ -307,7 +382,8 @@ export class SystemsIntegrator {
     const systems = [
       'mainEngine', 'rcs', 'fuel', 'electrical', 'thermal', 'coolant',
       'navComputer', 'communications', 'environmental', 'landing', 'docking',
-      'cargo', 'ew', 'countermeasures', 'weapons', 'centerOfMass'
+      'cargo', 'ew', 'countermeasures', 'weapons', 'centerOfMass',
+      'radar', 'opticalSensors', 'esm', 'sensorFusion'
     ];
 
     systems.forEach(sys => {
@@ -367,6 +443,12 @@ export class SystemsIntegrator {
     // Critical Integration: Weapons power draw (includes tracking + firing power)
     const weaponsPower = this.spacecraft.weapons.getPowerDraw();
     this.powerManagement.updateConsumerDraw('weapons', weaponsPower);
+
+    // Critical Gap Fill: Sensor systems power draw
+    this.powerManagement.updateConsumerDraw('radar', this.spacecraft.radar.getPowerDraw());
+    this.powerManagement.updateConsumerDraw('opticalSensors', this.spacecraft.opticalSensors.getPowerDraw());
+    this.powerManagement.updateConsumerDraw('esm', this.spacecraft.esm.getPowerDraw());
+    // Sensor fusion has constant power draw, doesn't need update
   }
 
   private applyPowerStateToSubsystems(): void {
@@ -404,6 +486,16 @@ export class SystemsIntegrator {
           // If powered is false, weapons master safety is enabled
           this.spacecraft.weapons.weaponsSafety = !consumer.powered;
           break;
+        case 'radar':
+          this.spacecraft.radar.setPower(consumer.powered);
+          break;
+        case 'opticalSensors':
+          this.spacecraft.opticalSensors.setPower(consumer.powered);
+          break;
+        case 'esm':
+          this.spacecraft.esm.setPower(consumer.powered);
+          break;
+        // Sensor fusion doesn't have power control, always on if powered
       }
     });
   }
@@ -457,6 +549,39 @@ export class SystemsIntegrator {
       case 'centerOfMass':
         // CoM system is computational - damage doesn't apply directly
         // But we track health for cascading failures
+        break;
+      case 'radar':
+        // Critical Gap Fill: Radar damage handling
+        // Moderate damage reduces effectiveness, severe damage disables
+        if (severity > 0.7) {
+          this.spacecraft.radar.operational = false;
+        } else if (severity > 0.3) {
+          this.spacecraft.radar.operational = true; // Still working but degraded
+        }
+        break;
+      case 'opticalSensors':
+        // Critical Gap Fill: Optical sensors damage handling
+        if (severity > 0.7) {
+          this.spacecraft.opticalSensors.operational = false;
+        } else if (severity > 0.3) {
+          this.spacecraft.opticalSensors.operational = true;
+        }
+        break;
+      case 'esm':
+        // Critical Gap Fill: ESM damage handling
+        if (severity > 0.7) {
+          this.spacecraft.esm.operational = false;
+        } else if (severity > 0.3) {
+          this.spacecraft.esm.operational = true;
+        }
+        break;
+      case 'sensorFusion':
+        // Sensor fusion can work with degraded sensors
+        // Only completely fail if severely damaged
+        if (severity > 0.8) {
+          // No operational flag in sensor fusion, just reduce track quality
+          this.logEvent('sensor_fusion_degraded', { severity });
+        }
         break;
     }
 

@@ -61,6 +61,10 @@ import { MissileLauncherSystem } from './missile-weapons';
 import { LaserWeapon } from './energy-weapons';
 import { ParticleBeamWeapon } from './energy-weapons';
 import { CenterOfMassSystem } from './center-of-mass';
+import { RadarSystem } from './radar-system';
+import { OpticalSensorsSystem } from './optical-sensors';
+import { ESMSystem } from './esm-system';
+import { SensorFusionSystem } from './sensor-fusion';
 
 export interface SpacecraftConfig {
   // Optional system configurations
@@ -120,6 +124,12 @@ export class Spacecraft {
   // Center of Mass tracking
   public comSystem: CenterOfMassSystem;
 
+  // Sensor systems
+  public radar: RadarSystem;
+  public opticalSensors: OpticalSensorsSystem;
+  public esm: ESMSystem;
+  public sensorFusion: SensorFusionSystem;
+
   // Simulation time
   public simulationTime: number = 0;
 
@@ -165,6 +175,33 @@ export class Spacecraft {
 
     // Register ammunition mass components AFTER weapons (Critical Fix: Ammunition CoM Tracking)
     this.registerAmmunitionMass();
+
+    // Initialize sensor systems
+    this.radar = new RadarSystem({
+      peakPowerKW: 100, // 100 kW peak power
+      antennaGainDB: 35, // 35 dB antenna gain
+      frequencyGHz: 10, // X-band radar (10 GHz)
+      maxRangeKm: 1000 // 1000 km maximum range
+    });
+
+    this.opticalSensors = new OpticalSensorsSystem({
+      visualApertureM: 0.2, // 20cm telescope
+      irApertureM: 0.15, // 15cm IR sensor
+      fieldOfViewDegrees: 10, // 10 degree FOV
+      minDetectableFlux: 1e-12 // W/m^2
+    });
+
+    this.esm = new ESMSystem({
+      frequencyRangeGHz: [1, 40], // 1-40 GHz coverage
+      antennaGainDB: 10, // 10 dB antenna gain
+      sensitivityDBm: -90, // -90 dBm sensitivity
+      directionFindingAccuracy: 5 // ±5 degrees
+    });
+
+    this.sensorFusion = new SensorFusionSystem({
+      correlationThresholdDegrees: 10, // 10 degree correlation threshold
+      trackConfirmationTime: 2 // 2 seconds to confirm track
+    });
 
     // Initialize systems integrator (MUST be last - needs all systems initialized)
     this.systemsIntegrator = new SystemsIntegrator(this);
@@ -605,6 +642,66 @@ export class Spacecraft {
 
     this.weapons.update(dt);
 
+    // 18.6. Update sensor systems
+    const orientation = {
+      pitch: physicsState.eulerAngles.pitch,
+      roll: physicsState.eulerAngles.roll,
+      yaw: physicsState.eulerAngles.yaw
+    };
+
+    // Get potential targets from universe/environment
+    // For now, use empty arrays - will be populated by game/universe
+    const radarTargets: Array<{
+      id: string;
+      position: { x: number; y: number; z: number };
+      velocity: { x: number; y: number; z: number };
+      rcs: number;
+    }> = [];
+
+    const opticalTargets: Array<{
+      id: string;
+      position: { x: number; y: number; z: number };
+      velocity: { x: number; y: number; z: number };
+      radius: number;
+      temperature: number;
+      engineFiring: boolean;
+    }> = [];
+
+    const esmEmitters: Array<{
+      id: string;
+      position: { x: number; y: number; z: number };
+      emitting: boolean;
+      emissionType: 'radar' | 'communications' | 'jammer';
+      frequencyGHz: number;
+      powerKW: number;
+    }> = [];
+
+    // Update individual sensor systems
+    this.radar.update(dt, physicsState.position, orientation, radarTargets);
+    this.opticalSensors.update(dt, physicsState.position, orientation, opticalTargets);
+    this.esm.update(dt, physicsState.position, orientation, esmEmitters);
+
+    // Sensor fusion - combine all sensor contacts
+    const radarContacts = this.radar.getContacts();
+    const radarTracks = this.radar.getTracks();
+    const opticalContacts = this.opticalSensors.getContacts();
+    const esmContacts = this.esm.getContacts();
+
+    this.sensorFusion.update(
+      dt,
+      radarContacts,
+      radarTracks,
+      opticalContacts,
+      esmContacts,
+      physicsState.position,
+      physicsState.velocity
+    );
+
+    // 18.7. Import sensor fusion tracks into weapons control
+    // (Critical Gap Fill: Sensor-Weapons Integration)
+    const fusedTracks = this.sensorFusion.getTracks();
+    this.weapons.importSensorTracks(fusedTracks);
+
     // 19. Update systems integrator (power management, damage propagation, automation)
     this.systemsIntegrator.update(dt);
 
@@ -659,7 +756,13 @@ export class Spacecraft {
       environmental: this.environmental.getState(),
       weapons: this.weapons.getState(),
       systemsIntegration: this.systemsIntegrator.getState(),
-      centerOfMass: this.comSystem.getState()
+      centerOfMass: this.comSystem.getState(),
+      sensors: {
+        radar: this.radar.getState(),
+        optical: this.opticalSensors.getState(),
+        esm: this.esm.getState(),
+        fusion: this.sensorFusion.getState()
+      }
     };
   }
 
@@ -930,7 +1033,11 @@ export class Spacecraft {
       communications: this.communications.events,
       cargo: this.cargo.events,
       ew: this.ew.events,
-      environmental: this.environmental.events
+      environmental: this.environmental.events,
+      radar: this.radar.getEvents(),
+      opticalSensors: this.opticalSensors.getEvents(),
+      esm: this.esm.getEvents(),
+      sensorFusion: this.sensorFusion.getEvents()
     };
   }
 }
