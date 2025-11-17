@@ -207,6 +207,61 @@ export {
   CommunicationSystem
 } from './CommunicationSystem';
 
+// Propulsion System
+export {
+  FuelType,
+  FUEL_TYPES,
+  PropulsionEngine,
+  EngineType,
+  FuelTank,
+  Maneuver,
+  ManeuverType,
+  TransferOrbit,
+  PropulsionSystem
+} from './PropulsionSystem';
+
+// Life Support System
+export {
+  CrewMember,
+  CrewRole,
+  CrewStatus,
+  AtmosphereComposition,
+  OxygenGenerator,
+  CO2Scrubber,
+  TemperatureControl,
+  WaterSystem,
+  FoodSupply,
+  WasteManagement,
+  MedicalBay,
+  LifeSupportAlert,
+  LifeSupportSystem
+} from './LifeSupportSystem';
+
+// Dynamic Event System
+export {
+  GameEvent,
+  EventType,
+  EventCategory,
+  EventSeverity,
+  EventChoice,
+  EventConsequence,
+  EventOutcome,
+  EventRewards,
+  DerelictShip,
+  Anomaly,
+  AnomalyType,
+  AnomalyEffect,
+  DynamicEventSystem
+} from './DynamicEventSystem';
+
+// Universe State Manager
+export {
+  PlayerShip,
+  UniverseConfig,
+  UniverseState,
+  UniverseStateManager
+} from './UniverseStateManager';
+
 // Examples
 export {
   createSandboxUniverse,
