@@ -46,6 +46,7 @@ class MoonLanderGame {
 
   // Life support interaction state
   private compartmentSelection: string = 'center';
+  private doorTargetIndex: number = 0; // Which door connection to toggle
 
   // Fuel system interaction state
   private selectedFuelTank: string = 'main_1';
@@ -353,7 +354,7 @@ class MoonLanderGame {
     console.log(colors.green + '└────────────────────────────────────────────────────────────┘' + colors.reset);
     console.log();
 
-    // Fuel Tanks - Individual tank status
+    // Fuel Tanks - Individual tank status with crossfeed
     console.log(colors.cyan + '┌─ FUEL TANKS ───────────────────────────────────────────────┐' + colors.reset);
     if (state.fuel.tanks && state.fuel.tanks.length > 0) {
       for (const tank of state.fuel.tanks) {
@@ -364,14 +365,17 @@ class MoonLanderGame {
 
         console.log(`│${selectedMarker} ${tank.id.padEnd(8)} ${tankColor}${tank.fuelMass.toFixed(1).padStart(6)}${colors.reset}kg (${tankPercent.toFixed(0).padStart(2)}%) ${pressColor}${tank.pressureBar.toFixed(1)}${colors.reset}bar`);
 
-        // Show valve status for selected tank
+        // Show valve status and crossfeed for selected tank
         if (tank.id === this.selectedFuelTank) {
           const valves = this.spacecraft.fuel.getTank(tank.id)?.valves;
           if (valves) {
             const engineValve = valves.feedToEngine ? colors.green + 'ENG✓' : colors.dim + 'ENG✗';
             const rcsValve = valves.feedToRCS ? colors.green + 'RCS✓' : colors.dim + 'RCS✗';
             const ventValve = valves.vent ? colors.red + 'VENT!' : colors.dim + 'VENT✗';
-            console.log(`│   Valves: ${engineValve}${colors.reset} ${rcsValve}${colors.reset} ${ventValve}${colors.reset}` + ' '.padEnd(22) + '│');
+            const crossfeedTo = valves.crossfeedTo;
+            const crossfeed = crossfeedTo ? colors.yellow + '→' + crossfeedTo.toUpperCase() : colors.dim + 'X-FEED✗';
+            console.log(`│   Valves: ${engineValve}${colors.reset} ${rcsValve}${colors.reset} ${ventValve}${colors.reset}`);
+            console.log(`│   Crossfeed: ${crossfeed}${colors.reset}` + ' '.padEnd(34) + '│');
           }
         }
       }
@@ -414,7 +418,8 @@ class MoonLanderGame {
     console.log('│ RCS:     [W/S]Pitch [A/D]Yaw [Q/E]Roll                   │');
     console.log('│ SAS:     [1]Off [2]Stability [3]Prograde [4]Retrograde  │');
     console.log('│ AUTO:    [F1]Off [F2]AltHold [F3]V/S [F4]Suicide [F5]Hvr│');
-    console.log('│ FUEL:    [Tab]Cycle Tank  [N/M/U]Toggle Engine/RCS/Vent │');
+    console.log('│ FUEL:    [Tab]Select Tank  [Z]Cycle Crossfeed Dest      │');
+    console.log('│ VALVES:  [N]Engine [M]RCS [U]Vent (selected tank)       │');
     console.log('│ OTHER:   [G]imbal [P]ause                                │');
     console.log('│ STATION: [5]Captain [6]Helm [7]Engineering [8]LifeSupport│');
     console.log(colors.cyan + '└────────────────────────────────────────────────────────────┘' + colors.reset);
@@ -462,22 +467,38 @@ class MoonLanderGame {
     console.log(colors.yellow + '└────────────────────────────────────────────────────────────┘' + colors.reset);
     console.log();
 
-    // Circuit Breakers - Show critical breakers
-    console.log(colors.magenta + '┌─ CIRCUIT BREAKERS ─────────────────────────────────────────┐' + colors.reset);
-    const criticalBreakers = [
-      'o2_generator', 'co2_scrubber', 'coolant_pump_primary', 'coolant_pump_backup',
-      'fuel_pump_main', 'gimbal_actuators', 'rcs_valves', 'nav_computer',
-      'radar', 'hydraulic_pump_1', 'hydraulic_pump_2', 'comms'
+    // Circuit Breakers - Show ALL breakers with keyboard shortcuts
+    console.log(colors.magenta + '┌─ CIRCUIT BREAKERS (ALL 19) ────────────────────────────────┐' + colors.reset);
+    const allBreakers = [
+      { key: 'A', id: 'o2_generator' },
+      { key: 'B', id: 'co2_scrubber' },
+      { key: 'C', id: 'coolant_pump_primary' },
+      { key: 'D', id: 'coolant_pump_backup' },
+      { key: 'E', id: 'fuel_pump_main' },
+      { key: 'F', id: 'gimbal_actuators' },
+      { key: 'G', id: 'rcs_valves' },
+      { key: 'H', id: 'nav_computer' },
+      { key: 'I', id: 'radar' },
+      { key: 'J', id: 'lidar' },
+      { key: 'K', id: 'hydraulic_pump_1' },
+      { key: 'L', id: 'hydraulic_pump_2' },
+      { key: 'N', id: 'heater_1' },
+      { key: 'O', id: 'heater_2' },
+      { key: 'P', id: 'heater_3' },
+      { key: 'Q', id: 'lighting' },
+      { key: 'S', id: 'door_actuators' },
+      { key: 'U', id: 'valve_actuators' },
+      { key: 'V', id: 'comms' }
     ];
 
-    for (let i = 0; i < criticalBreakers.length && i < 12; i++) {
-      const breakerKey = criticalBreakers[i];
-      const breaker = state.electrical.breakerStatus.find((b: any) => b.key === breakerKey);
+    for (const mapping of allBreakers) {
+      const breaker = state.electrical.breakerStatus.find((b: any) => b.key === mapping.id);
       if (breaker) {
         const statusColor = breaker.on ? colors.green : colors.dim;
-        const trippedWarning = breaker.tripped ? colors.red + ' [TRIPPED]' : '';
+        const trippedWarning = breaker.tripped ? colors.red + ' [TRIP]' : '';
+        const essentialMark = breaker.essential ? '🔒' : '  ';
         const status = breaker.on ? 'ON ' : 'OFF';
-        console.log(`│ [${String.fromCharCode(65 + i)}] ${breaker.name.padEnd(12)} ${statusColor}${status}${colors.reset} ${breaker.bus}${trippedWarning}${colors.reset.padEnd(20)}`);
+        console.log(`│[${mapping.key}]${essentialMark}${breaker.name.padEnd(11)} ${statusColor}${status}${colors.reset} ${breaker.bus}${trippedWarning}${colors.reset.padEnd(18)}`);
       }
     }
     console.log(colors.magenta + '└────────────────────────────────────────────────────────────┘' + colors.reset);
@@ -512,7 +533,8 @@ class MoonLanderGame {
     console.log(colors.cyan + '┌─ ENGINEERING CONTROLS ─────────────────────────────────────┐' + colors.reset);
     console.log('│ REACTOR:   [R]Start [T]SCRAM  [↑/↓]Throttle [Y]Reset     │');
     console.log('│ COOLANT:   [1]Loop1 [2]Loop2  [X]Cross-Connect           │');
-    console.log('│ ELECTRIC:  [A-L]Toggle Breakers  [M]Bus Crosstie         │');
+    console.log('│ BREAKERS:  [A-V] Toggle (see list above, 🔒=essential)   │');
+    console.log('│ POWER:     [M]Bus Crosstie                               │');
     console.log('│ STATION:   [5]Captain [6]Helm [7]Engineering [8]LifeSuprt│');
     console.log(colors.cyan + '└────────────────────────────────────────────────────────────┘' + colors.reset);
   }
@@ -610,10 +632,20 @@ class MoonLanderGame {
     console.log(colors.yellow + '└────────────────────────────────────────────────────────────┘' + colors.reset);
     console.log();
 
-    // Active compartment selection indicator
+    // Active compartment selection indicator with door targeting
     console.log(colors.magenta + '┌─ SELECTED COMPARTMENT ─────────────────────────────────────┐' + colors.reset);
     console.log(`│ Target: ${colors.bright}${this.compartmentSelection.toUpperCase().padEnd(50)}${colors.reset}│`);
     console.log(`│ [1]Bow [2]Bridge [3]Engineering [4]Port [5]Center [6]Stern│`);
+
+    // Show door target for selected compartment
+    const selectedComp = ls.compartments.find((c: any) => c.id === this.compartmentSelection);
+    if (selectedComp && selectedComp.doors.length > 0) {
+      const targetDoor = selectedComp.doors[this.doorTargetIndex % selectedComp.doors.length];
+      const doorStatus = targetDoor.open ? colors.green + 'OPEN' : colors.red + 'CLOSED';
+      console.log(`│ Door Target: ${this.getCompartmentName(targetDoor.to).padEnd(12)} ${doorStatus}${colors.reset}` + ' '.padEnd(15) + '│');
+    } else {
+      console.log(`│ Door Target: ${colors.dim}NONE${colors.reset}` + ' '.padEnd(37) + '│');
+    }
     console.log(colors.magenta + '└────────────────────────────────────────────────────────────┘' + colors.reset);
     console.log();
 
@@ -622,8 +654,8 @@ class MoonLanderGame {
     console.log('│ O2 GEN:    [O]n/Off  [[]Decrease  []]Increase             │');
     console.log('│ CO2 SCRUB: [C]O2 Scrubber On/Off                          │');
     console.log('│ SELECT:    [1-6]Direct Select  [Tab]Cycle Compartment    │');
+    console.log('│ DOORS:     [W]Cycle Door Target  [D]Toggle Selected Door │');
     console.log('│ EMERGENCY: [F]ire Suppress  [V]ent  [L]Seal Breach       │');
-    console.log('│ DOORS:     [D]Toggle Door (cycles target compartment)    │');
     console.log('│ STATION:   [5-8] - Hold SHIFT then press station number  │');
     console.log(colors.cyan + '└────────────────────────────────────────────────────────────┘' + colors.reset);
   }
@@ -677,10 +709,19 @@ class MoonLanderGame {
           this.throttleTarget = Math.max(0.0, this.throttleTarget - 0.1);
           break;
 
-        // RCS controls
+        // RCS controls (W is context-sensitive for Life Support)
         case 'w':
-          this.spacecraft.activateRCS('pitch_up');
-          setTimeout(() => this.spacecraft.deactivateRCS('pitch_up'), 200);
+          if (this.currentStation === 4) {
+            // Life Support: Cycle door target
+            const comp = this.spacecraft.lifeSupport.compartments.find(c => c.id === this.compartmentSelection);
+            if (comp && comp.connections.length > 0) {
+              this.doorTargetIndex = (this.doorTargetIndex + 1) % comp.connections.length;
+            }
+          } else {
+            // Other stations: RCS pitch up
+            this.spacecraft.activateRCS('pitch_up');
+            setTimeout(() => this.spacecraft.deactivateRCS('pitch_up'), 200);
+          }
           break;
         case 's':
           this.spacecraft.activateRCS('pitch_down');
@@ -716,6 +757,7 @@ class MoonLanderGame {
           } else if (this.currentStation === 4) {
             // Life Support: Select Bow compartment
             this.compartmentSelection = 'bow';
+            this.doorTargetIndex = 0; // Reset door target
           } else {
             // Other stations: SAS off
             this.spacecraft.setSASMode('off');
@@ -733,6 +775,7 @@ class MoonLanderGame {
           } else if (this.currentStation === 4) {
             // Life Support: Select Bridge compartment
             this.compartmentSelection = 'bridge';
+            this.doorTargetIndex = 0; // Reset door target
           } else {
             // Other stations: SAS stability
             this.spacecraft.setSASMode('stability');
@@ -742,6 +785,7 @@ class MoonLanderGame {
           if (this.currentStation === 4) {
             // Life Support: Select Engineering compartment
             this.compartmentSelection = 'engineering';
+            this.doorTargetIndex = 0; // Reset door target
           } else if (this.currentStation !== 3) {
             this.spacecraft.setSASMode('prograde');
           }
@@ -750,6 +794,7 @@ class MoonLanderGame {
           if (this.currentStation === 4) {
             // Life Support: Select Port compartment
             this.compartmentSelection = 'port';
+            this.doorTargetIndex = 0; // Reset door target
           } else if (this.currentStation !== 3) {
             this.spacecraft.setSASMode('retrograde');
           }
@@ -828,32 +873,53 @@ class MoonLanderGame {
           this.spacecraft.electrical.SCRAM(this.spacecraft.simulationTime);
           break;
 
-        // Engineering Station - Circuit Breakers (A-L)
-        case 'a': case 'b': case 'h': case 'j': case 'l':
+        // Engineering Station - ALL 19 Circuit Breakers (context-sensitive)
+        case 'a': case 'b': case 'c': case 'd': case 'e': case 'f': case 'g': case 'h':
+        case 'i': case 'j': case 'k': case 'l': case 'n': case 'o': case 'p': case 'q':
+        case 's': case 'u': case 'v':
           if (this.currentStation === 3) {
+            // Engineering: Circuit breaker control
             const breakerMap: {[key: string]: string} = {
-              'a': 'o2_generator', 'b': 'co2_scrubber', 'h': 'nav_computer',
-              'j': 'hydraulic_pump_1', 'l': 'comms'
+              'a': 'o2_generator', 'b': 'co2_scrubber', 'c': 'coolant_pump_primary',
+              'd': 'coolant_pump_backup', 'e': 'fuel_pump_main', 'f': 'gimbal_actuators',
+              'g': 'rcs_valves', 'h': 'nav_computer', 'i': 'radar', 'j': 'lidar',
+              'k': 'hydraulic_pump_1', 'l': 'hydraulic_pump_2', 'n': 'heater_1',
+              'o': 'heater_2', 'p': 'heater_3', 'q': 'lighting', 's': 'door_actuators',
+              'u': 'valve_actuators', 'v': 'comms'
             };
             const breakerKey = breakerMap[key.name];
             const breaker = this.spacecraft.electrical.breakers.get(breakerKey);
             if (breaker) {
               this.spacecraft.electrical.toggleBreaker(breakerKey, !breaker.on);
             }
-          }
-          break;
-
-        // Engineering Station - More Circuit Breakers
-        case 'n':
-          if (this.currentStation === 3) {
-            const breaker = this.spacecraft.electrical.breakers.get('fuel_pump_main');
-            if (breaker) this.spacecraft.electrical.toggleBreaker('fuel_pump_main', !breaker.on);
-          } else if (this.currentStation === 2) {
+          } else if (this.currentStation === 2 && key.name === 'n') {
             // Helm: Toggle engine feed valve
             const tank = this.spacecraft.fuel.getTank(this.selectedFuelTank);
             if (tank) {
               this.spacecraft.fuel.setValve(this.selectedFuelTank, 'feedToEngine', !tank.valves.feedToEngine);
             }
+          } else if (this.currentStation === 2 && key.name === 'u') {
+            // Helm: Toggle vent valve (moved from separate case)
+            const tank = this.spacecraft.fuel.getTank(this.selectedFuelTank);
+            if (tank) {
+              this.spacecraft.fuel.setValve(this.selectedFuelTank, 'vent', !tank.valves.vent);
+            }
+          } else if (this.currentStation === 4 && key.name === 'f') {
+            // Life Support: Fire suppression
+            this.spacecraft.lifeSupport.fireSuppress(this.compartmentSelection);
+          } else if (this.currentStation === 4 && key.name === 'v') {
+            // Life Support: Emergency vent
+            this.spacecraft.lifeSupport.emergencyVent(this.compartmentSelection);
+          } else if (this.currentStation === 4 && key.name === 'd') {
+            // Life Support: Toggle selected door
+            const comp = this.spacecraft.lifeSupport.compartments.find(c => c.id === this.compartmentSelection);
+            if (comp && comp.connections.length > 0) {
+              const targetConnection = comp.connections[this.doorTargetIndex % comp.connections.length];
+              this.spacecraft.lifeSupport.toggleDoor(this.compartmentSelection, targetConnection.compartmentId);
+            }
+          } else if (this.currentStation === 4 && key.name === 'l') {
+            // Life Support: Seal breach
+            this.spacecraft.lifeSupport.sealBreach(this.compartmentSelection);
           }
           break;
 
@@ -905,16 +971,6 @@ class MoonLanderGame {
           }
           break;
 
-        // Helm Station - Fuel vent valve
-        case 'u':
-          if (this.currentStation === 2) {
-            const tank = this.spacecraft.fuel.getTank(this.selectedFuelTank);
-            if (tank) {
-              this.spacecraft.fuel.setValve(this.selectedFuelTank, 'vent', !tank.valves.vent);
-            }
-          }
-          break;
-
         // Tab key - context sensitive (Helm: cycle fuel tank, Life Support: cycle compartment)
         case 'tab':
           if (this.currentStation === 2) {
@@ -927,38 +983,34 @@ class MoonLanderGame {
             const compartments = ['bow', 'bridge', 'engineering', 'port', 'center', 'stern'];
             const currentIndex = compartments.indexOf(this.compartmentSelection);
             this.compartmentSelection = compartments[(currentIndex + 1) % compartments.length];
+            this.doorTargetIndex = 0; // Reset door target
           }
           break;
 
-        // Life Support specific controls
-        case 'f':
-          // Fire suppression - suppress in selected compartment
-          if (this.currentStation === 4) {
-            this.spacecraft.lifeSupport.fireSuppress(this.compartmentSelection);
-          }
-          break;
-        case 'v':
-          // Emergency vent - vent selected compartment
-          if (this.currentStation === 4) {
-            this.spacecraft.lifeSupport.emergencyVent(this.compartmentSelection);
-          }
-          break;
-        case 'd':
-          // Toggle bulkhead door - need to specify which connection
-          if (this.currentStation === 4) {
-            // Cycle through connections of selected compartment and toggle first one
-            const comp = this.spacecraft.lifeSupport.compartments.find(c => c.id === this.compartmentSelection);
-            if (comp && comp.connections.length > 0) {
-              // Toggle first door for now (simplified)
-              const firstConnection = comp.connections[0].compartmentId;
-              this.spacecraft.lifeSupport.toggleDoor(this.compartmentSelection, firstConnection);
+        // Helm Station - Fuel crossfeed control
+        case 'z':
+          if (this.currentStation === 2) {
+            // Cycle crossfeed destination for selected tank
+            const sourceTank = this.spacecraft.fuel.getTank(this.selectedFuelTank);
+            if (sourceTank) {
+              const allTanks = ['main_1', 'main_2', 'rcs'];
+              const otherTanks = allTanks.filter(t => t !== this.selectedFuelTank);
+              const currentCrossfeed = sourceTank.valves.crossfeedTo;
+
+              if (!currentCrossfeed) {
+                // Start crossfeed to first other tank
+                this.spacecraft.fuel.setCrossfeed(this.selectedFuelTank, otherTanks[0]);
+              } else {
+                const currentIndex = otherTanks.indexOf(currentCrossfeed);
+                if (currentIndex === otherTanks.length - 1) {
+                  // Last option, turn off crossfeed
+                  this.spacecraft.fuel.setCrossfeed(this.selectedFuelTank, undefined);
+                } else {
+                  // Cycle to next tank
+                  this.spacecraft.fuel.setCrossfeed(this.selectedFuelTank, otherTanks[currentIndex + 1]);
+                }
+              }
             }
-          }
-          break;
-        case 'l':
-          // Seal breach in selected compartment
-          if (this.currentStation === 4) {
-            this.spacecraft.lifeSupport.sealBreach(this.compartmentSelection);
           }
           break;
 
