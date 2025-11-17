@@ -44,6 +44,9 @@ class MoonLanderGame {
   // Station view (1-4: different control stations)
   private currentStation: number = 1; // 1=CAPTAIN, 2=HELM, 3=ENGINEERING, 4=LIFE SUPPORT
 
+  // Life support interaction state
+  private compartmentSelection: string = 'center';
+
   constructor() {
     // Initialize spacecraft at 15km altitude
     this.spacecraft = new Spacecraft({
@@ -447,8 +450,10 @@ class MoonLanderGame {
 
     // Controls
     console.log(colors.cyan + '┌─ ENGINEERING CONTROLS ─────────────────────────────────────┐' + colors.reset);
-    console.log('│ (Engineering controls to be implemented)                  │');
-    console.log('│ STATION:[5]Captain [6]Helm [7]Engineering [8]LifeSupport│');
+    console.log('│ REACTOR:   [R]eactor Start  [T]SCRAM (emergency shutdown)│');
+    console.log('│ COOLANT:   [1]Toggle Loop 1  [2]Toggle Loop 2             │');
+    console.log('│ NOTE:      Keys 1-2 control pumps in Engineering only     │');
+    console.log('│ STATION:   [5]Captain [6]Helm [7]Engineering [8]LifeSuprt│');
     console.log(colors.cyan + '└────────────────────────────────────────────────────────────┘' + colors.reset);
   }
 
@@ -516,10 +521,19 @@ class MoonLanderGame {
     console.log(colors.red + '└────────────────────────────────────────────────────────────┘' + colors.reset);
     console.log();
 
+    // Active compartment selection indicator
+    console.log(colors.magenta + '┌─ SELECTED COMPARTMENT ─────────────────────────────────────┐' + colors.reset);
+    console.log(`│ Target: ${colors.bright}${this.compartmentSelection.toUpperCase().padEnd(50)}${colors.reset}│`);
+    console.log(colors.magenta + '└────────────────────────────────────────────────────────────┘' + colors.reset);
+    console.log();
+
     // Controls
     console.log(colors.cyan + '┌─ LIFE SUPPORT CONTROLS ────────────────────────────────────┐' + colors.reset);
-    console.log('│ (Life Support controls to be implemented)                 │');
-    console.log('│ STATION:[5]Captain [6]Helm [7]Engineering [8]LifeSupport│');
+    console.log('│ O2 GEN:    [O]n/Off  [[]Decrease Rate  []]Increase Rate   │');
+    console.log('│ CO2 SCRUB: [C]O2 Scrubber On/Off                          │');
+    console.log('│ SELECT:    [B]Cycle Compartment (for Fire/Vent ops)       │');
+    console.log('│ EMERGENCY: [F]ire Suppress  [V]ent Selected Compartment   │');
+    console.log('│ STATION:   [5]Captain [6]Helm [7]Engineering [8]LifeSuprt│');
     console.log(colors.cyan + '└────────────────────────────────────────────────────────────┘' + colors.reset);
   }
 
@@ -583,18 +597,44 @@ class MoonLanderGame {
           setTimeout(() => this.spacecraft.deactivateRCS('roll_cw'), 200);
           break;
 
-        // SAS controls
+        // Context-sensitive controls for keys 1-4
         case '1':
-          this.spacecraft.setSASMode('off');
+          if (this.currentStation === 3) {
+            // Engineering: Toggle coolant loop 1
+            const loop1 = this.spacecraft.coolant.loops[0];
+            if (loop1.pumpActive) {
+              this.spacecraft.coolant.stopPump(0);
+            } else {
+              this.spacecraft.startCoolantPump(0);
+            }
+          } else {
+            // Other stations: SAS off
+            this.spacecraft.setSASMode('off');
+          }
           break;
         case '2':
-          this.spacecraft.setSASMode('stability');
+          if (this.currentStation === 3) {
+            // Engineering: Toggle coolant loop 2
+            const loop2 = this.spacecraft.coolant.loops[1];
+            if (loop2.pumpActive) {
+              this.spacecraft.coolant.stopPump(1);
+            } else {
+              this.spacecraft.startCoolantPump(1);
+            }
+          } else {
+            // Other stations: SAS stability
+            this.spacecraft.setSASMode('stability');
+          }
           break;
         case '3':
-          this.spacecraft.setSASMode('prograde');
+          if (this.currentStation !== 3) {
+            this.spacecraft.setSASMode('prograde');
+          }
           break;
         case '4':
-          this.spacecraft.setSASMode('retrograde');
+          if (this.currentStation !== 3) {
+            this.spacecraft.setSASMode('retrograde');
+          }
           break;
 
         // Station switching
@@ -636,6 +676,58 @@ class MoonLanderGame {
         case 'g':
           const currentGimbal = this.spacecraft.flightControl.isGimbalAutopilotEnabled();
           this.spacecraft.setGimbalAutopilot(!currentGimbal);
+          break;
+
+        // Life Support controls (accessible from any station)
+        case 'o':
+          // Toggle O2 generator
+          this.spacecraft.lifeSupport.o2GeneratorActive = !this.spacecraft.lifeSupport.o2GeneratorActive;
+          break;
+        case '[':
+          // Decrease O2 generation rate
+          const currentRate = this.spacecraft.lifeSupport.o2GeneratorRateLPerMin;
+          this.spacecraft.lifeSupport.setO2GeneratorRate(Math.max(0, currentRate - 0.5));
+          break;
+        case ']':
+          // Increase O2 generation rate
+          const currentRate2 = this.spacecraft.lifeSupport.o2GeneratorRateLPerMin;
+          this.spacecraft.lifeSupport.setO2GeneratorRate(Math.min(3.0, currentRate2 + 0.5));
+          break;
+        case 'c':
+          // Toggle CO2 scrubber
+          this.spacecraft.lifeSupport.co2ScrubberActive = !this.spacecraft.lifeSupport.co2ScrubberActive;
+          break;
+
+        // Engineering controls (accessible from any station)
+        case 'r':
+          // Start reactor
+          this.spacecraft.startReactor();
+          break;
+        case 't':
+          // SCRAM reactor
+          this.spacecraft.electrical.scram();
+          break;
+
+        // Life Support specific controls
+        case 'f':
+          // Fire suppression - suppress in selected compartment
+          if (this.currentStation === 4) {
+            this.spacecraft.lifeSupport.fireSuppress(this.compartmentSelection);
+          }
+          break;
+        case 'v':
+          // Emergency vent - vent selected compartment
+          if (this.currentStation === 4) {
+            this.spacecraft.lifeSupport.emergencyVent(this.compartmentSelection);
+          }
+          break;
+        case 'b':
+          // Cycle compartment selection for life support operations
+          if (this.currentStation === 4) {
+            const compartments = ['bow', 'bridge', 'engineering', 'port', 'center', 'stern'];
+            const currentIndex = compartments.indexOf(this.compartmentSelection);
+            this.compartmentSelection = compartments[(currentIndex + 1) % compartments.length];
+          }
           break;
 
         // Game controls
