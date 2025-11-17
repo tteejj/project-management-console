@@ -283,6 +283,43 @@ export class LandingGear {
     return [...this.legs];
   }
 
+  /**
+   * Check if landing gear is deployed
+   */
+  isDeployed(): boolean {
+    return this.deployed;
+  }
+
+  /**
+   * Get contact status
+   */
+  getContactStatus() {
+    const legsInContact = this.legs.filter(leg => leg.inContact).length;
+    const isStable = this.checkStability(this.legs.filter(leg => leg.inContact));
+
+    return {
+      legsInContact,
+      isStable,
+      deployed: this.deployed,
+    };
+  }
+
+  /**
+   * Get health status
+   */
+  getHealthStatus() {
+    const totalHealth = this.legs.reduce((sum, leg) => sum + leg.health, 0) / this.legs.length;
+    const damagedLegs = this.legs.filter(leg => leg.health < 100).length;
+    const brokenLegs = this.legs.filter(leg => leg.health === 0).length;
+
+    return {
+      totalHealth,
+      damagedLegs,
+      brokenLegs,
+      legs: this.legs.map(leg => ({ health: leg.health, inContact: leg.inContact })),
+    };
+  }
+
   // ========== Vector Math Utilities ==========
 
   private rotateVector(v: Vector3, q: { w: number; x: number; y: number; z: number }): Vector3 {
