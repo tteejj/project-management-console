@@ -9,10 +9,10 @@
 
 **Physics Core:** ✅ **COMPLETE** (6,989 lines, 387/390 tests passing - 99.2%)
 **Game Systems:** 🟢 **55% COMPLETE** (Mission/Navigation/Life Support done, missing Events/Campaign)
-**UI Layer:** 🟡 **35% COMPLETE** (4 terminal stations working, missing event UI)
+**UI Layer:** 🟢 **75% COMPLETE** (4 stations with comprehensive controls, missing event UI)
 **Content:** 🔴 **5% COMPLETE** (Single landing mission, missing campaign/events)
 
-**LATEST UPDATE:** Life Support system integrated, multi-station UI implemented
+**LATEST UPDATE:** Comprehensive granular controls added - circuit breakers, fuel valves, bulkhead doors, reactor throttle
 
 ---
 
@@ -35,14 +35,28 @@
 - ✅ Navigation Computer (590 lines) - Suicide burn, delta-V, TWR calculations
 - ✅ Mission System (654 lines) - Objectives, checklists, scoring, landing zones
 
-### Multi-Station Terminal UI (NEW! ✅)
+### Multi-Station Terminal UI (✅ 100%)
 - ✅ **Station Switching** - Keys 5-8 to switch between stations
 - ✅ **Captain Screen** - Overview of all 13 systems
-- ✅ **Helm Station** - Propulsion, flight controls, fuel management
-- ✅ **Engineering Station** - Power, thermal, coolant systems
-- ✅ **Life Support Station** - Atmosphere, O2/CO2, fire suppression, compartments
+- ✅ **Helm Station** - Propulsion, flight controls, **fuel tank selection, valve controls**
+  - Tank selection (Tab to cycle): main_1, main_2, rcs
+  - Valve controls: Engine feed (N), RCS feed (M), Emergency vent (U)
+  - Real-time tank status: mass, pressure, valve states
+- ✅ **Engineering Station** - Power, thermal, coolant, **circuit breakers, reactor throttle**
+  - 12 circuit breakers (A-L): O2 gen, CO2 scrubber, nav, hydraulics, comms, fuel pump
+  - Bus crosstie control (M): Balance electrical load across power buses
+  - Reactor throttle (↑/↓): 0-100% power output control
+  - Coolant cross-connect (X): Share coolant between loops
+  - Reactor reset (Y): Recover from SCRAM
+- ✅ **Life Support Station** - Atmosphere, O2/CO2, fire suppression, **bulkhead doors, compartment selection**
+  - Direct compartment selection (1-6): Bow, Bridge, Engineering, Port, Center, Stern
+  - Bulkhead door control (D): Toggle doors to isolate compartments
+  - Breach sealing (L): Repair hull breaches
+  - Fire/vent operations (F/V): Target selected compartment
+  - Door status display: All connections with open/closed indicators
 - ✅ Color-coded status indicators throughout
 - ✅ Real-time telemetry at 10 FPS
+- ✅ Context-sensitive controls (same keys, different functions per station)
 
 ### Demo/Examples (100%)
 - ✅ Interactive Game (809 lines) - **EXPANDED** with 4 stations
