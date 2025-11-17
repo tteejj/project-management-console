@@ -8,6 +8,7 @@ import { describe, it, expect } from 'vitest';
 import { CompleteShip, ShipTemplates } from '../src/ship-configuration';
 import { World } from '../src/world';
 import { IntegratedShip, SimulationController } from '../src/integrated-ship';
+import { UnifiedShip } from '../src/unified-ship';
 
 describe('Complete Ship Simulation', () => {
   it('should simulate a ship as a celestial body in the universe', () => {
@@ -270,5 +271,259 @@ describe('Complete Ship Simulation', () => {
     expect(status.lifeSupport).toHaveProperty('crewTotal');
 
     expect(status.combat).toHaveProperty('tracks');
+  });
+});
+
+describe('Unified Ship Integration', () => {
+  it('should automatically sync physics and subsystems without manual intervention', () => {
+    // This test demonstrates the SOLUTION to the manual syncing problem
+
+    // STEP 1: Create the universe
+    const world = new World();
+    world.addBody({
+      id: 'moon',
+      name: 'Moon',
+      mass: 7.342e22,
+      radius: 1737400,
+      position: { x: 0, y: 0, z: 0 },
+      velocity: { x: 0, y: 0, z: 0 },
+      type: 'planet'
+    });
+
+    // STEP 2: Create UnifiedShip (physics + subsystems integrated)
+    const shipConfig = {
+      id: 'unified-frigate',
+      name: 'Unified Test Ship',
+      class: 'Frigate-class',
+      mass: 50000,
+      position: { x: 0, y: 0, z: 1737400 + 100000 },  // 100km above moon
+      velocity: { x: 1700, y: 0, z: 0 },               // Orbital velocity
+
+      // Use same config as ShipTemplates.createFrigate
+      compartments: [
+        {
+          id: 'bridge',
+          name: 'Bridge',
+          volume: 30,
+          pressure: 101325,
+          atmosphereIntegrity: 1.0,
+          structuralIntegrity: 1.0,
+          breaches: [],
+          systems: [],
+          connectedCompartments: ['engineering']
+        },
+        {
+          id: 'engineering',
+          name: 'Engineering',
+          volume: 50,
+          pressure: 101325,
+          atmosphereIntegrity: 1.0,
+          structuralIntegrity: 1.0,
+          breaches: [],
+          systems: [],
+          connectedCompartments: ['bridge']
+        }
+      ],
+      armorLayers: [{
+        id: 'hull-armor-1',
+        material: 'titanium',  // MaterialType.TITANIUM
+        thickness: 0.05,
+        density: 4500,
+        hardness: 6.0,
+        integrity: 1.0,
+        ablationDepth: 0
+      }],
+      powerSources: [{
+        id: 'reactor-1',
+        type: 'reactor',  // PowerSourceType.REACTOR
+        maxOutput: 50,
+        currentOutput: 0,
+        efficiency: 0.90,
+        powered: true
+      }],
+      powerConsumers: [{
+        id: 'life-support',
+        name: 'Life Support',
+        powerDraw: 5,
+        priority: 0,  // PowerPriority.CRITICAL
+        powered: true,
+        actualPower: 0
+      }],
+      batteries: [{
+        id: 'battery-1',
+        capacity: 100,
+        currentCharge: 80,
+        maxChargeRate: 20,
+        maxDischargeRate: 30,
+        efficiency: 0.95
+      }],
+      thermalComponents: [{
+        id: 'reactor-thermal',
+        name: 'Reactor',
+        temperature: 400,
+        mass: 1000,
+        specificHeat: 500,
+        surfaceArea: 5,
+        heatGeneration: 5000,
+        compartmentId: 'engineering'
+      }],
+      thermalCompartments: [{
+        id: 'engineering',
+        name: 'Engineering',
+        temperature: 293,
+        volume: 50,
+        airMass: 60,
+        connectedCompartments: ['bridge']
+      }],
+      coolingSystems: [],
+      systems: [{
+        id: 'reactor-sys',
+        name: 'Main Reactor',
+        type: 0,  // POWER
+        compartmentId: 'engineering',
+        integrity: 1.0,
+        status: 0,  // ONLINE
+        powerDraw: 0,
+        operational: true,
+        isCritical: true
+      }],
+      crew: [{
+        id: 'captain',
+        name: 'Captain',
+        location: 'bridge',
+        health: 1.0,
+        oxygenLevel: 1.0,
+        status: 0  // HEALTHY
+      }],
+      lifeSupport: {
+        oxygenGenerationRate: 0.5,
+        co2ScrubberRate: 0.5,
+        powered: true
+      }
+    };
+
+    const ship = new UnifiedShip(shipConfig, world);
+
+    // STEP 3: Create simulation controller
+    const sim = new SimulationController(world);
+    sim.addShip(ship.physicsBody);
+
+    // STEP 4: Run simulation - NO MANUAL SYNCING!
+    const initialPos = ship.getPosition();
+
+    for (let i = 0; i < 60; i++) {
+      sim.update(1);   // World physics (gravity, orbits)
+      ship.update(1);  // Automatically syncs physics → subsystems → updates all systems
+    }
+
+    const finalPos = ship.getPosition();
+    const status = ship.getStatus();
+
+    // VERIFY: Ship is functioning (subsystems working)
+    expect(status.power.generation).toBeGreaterThan(0);
+    expect(status.power.brownout).toBe(false);
+    expect(status.lifeSupport.crewHealthy).toBe(1);
+    expect(status.damage.operational).toBeGreaterThan(0);
+
+    // VERIFY: Ship is in orbit (physics working)
+    expect(finalPos).toBeDefined();
+    expect(ship.getVelocity()).toBeDefined();
+
+    // VERIFY: Position changed due to orbital motion
+    const moved = (finalPos.x !== initialPos.x) || (finalPos.y !== initialPos.y) || (finalPos.z !== initialPos.z);
+    expect(moved).toBe(true);
+
+    // VERIFY: Status includes physics state (integration successful)
+    expect(status.ship.position).toEqual(finalPos);
+    expect(status.ship.velocity).toBeDefined();
+  });
+
+  it('should handle damage cascades in integrated ship', () => {
+    const world = new World();
+
+    const shipConfig = {
+      id: 'damage-test',
+      name: 'Damage Test Ship',
+      class: 'Frigate-class',
+      mass: 50000,
+      position: { x: 0, y: 0, z: 2000000 },
+      velocity: { x: 0, y: 0, z: 0 },
+      compartments: [{
+        id: 'engineering',
+        name: 'Engineering',
+        volume: 50,
+        pressure: 101325,
+        atmosphereIntegrity: 1.0,
+        structuralIntegrity: 1.0,
+        breaches: [],
+        systems: [],
+        connectedCompartments: []
+      }],
+      armorLayers: [{
+        id: 'hull-armor-1',
+        material: 'titanium',  // MaterialType.TITANIUM
+        thickness: 0.05,
+        density: 4500,
+        hardness: 6.0,
+        integrity: 1.0,
+        ablationDepth: 0
+      }],
+      powerSources: [{
+        id: 'reactor-1',
+        type: 'reactor',
+        maxOutput: 50,
+        currentOutput: 0,
+        efficiency: 0.90,
+        powered: true
+      }],
+      powerConsumers: [],
+      batteries: [],
+      thermalComponents: [],
+      thermalCompartments: [],
+      coolingSystems: [],
+      systems: [{
+        id: 'reactor-sys',
+        name: 'Main Reactor',
+        type: 0,
+        compartmentId: 'engineering',
+        integrity: 1.0,
+        status: 0,
+        powerDraw: 0,
+        operational: true,
+        isCritical: true
+      }],
+      crew: [],
+      lifeSupport: {
+        oxygenGenerationRate: 0.5,
+        co2ScrubberRate: 0.5,
+        powered: true
+      }
+    };
+
+    const ship = new UnifiedShip(shipConfig, world);
+
+    // DAMAGE: Breach the hull via the integrated physics representation
+    const engineering = ship.hull.getCompartment('engineering')!;
+    engineering.breaches.push({
+      id: 'breach-1',
+      position: { x: 0, y: 0, z: 0 },
+      area: 0.5,
+      sealed: false,
+      damageType: 0
+    });
+    engineering.structuralIntegrity = 0.5;
+
+    // Simulate damage propagation
+    for (let i = 0; i < 10; i++) {
+      ship.update(1);
+    }
+
+    const status = ship.getStatus();
+
+    // VERIFY: Damage cascade propagated through integrated systems
+    expect(engineering.pressure).toBeLessThan(101325);
+
+    const reactorSystem = ship.systemDamage.getSystem('reactor-sys')!;
+    expect(reactorSystem.integrity).toBeLessThan(1.0);
   });
 });

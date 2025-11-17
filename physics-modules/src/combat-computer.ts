@@ -5,8 +5,20 @@
  */
 
 import { Vector3, VectorMath } from './math-utils';
-import { SensorContact } from './sensors';
+import { SensorType } from './sensors';
 import { LeadCalculator, LeadSolution } from './targeting';
+
+/**
+ * Combat sensor contact - processed sensor data for fire control
+ * (Different from raw SensorContact which has range/bearing)
+ */
+export interface CombatSensorContact {
+  targetId: string;
+  position: Vector3;
+  velocity?: Vector3;
+  signalStrength: number;
+  sensorType: SensorType | 'fused';
+}
 
 export enum ThreatLevel {
   NONE = 'none',
@@ -100,7 +112,7 @@ export class CombatComputer {
   /**
    * Update sensor contacts (sensor fusion)
    */
-  updateSensorContacts(contacts: SensorContact[]): void {
+  updateSensorContacts(contacts: CombatSensorContact[]): void {
     // Group contacts by proximity (fusion)
     const fusedContacts = this.fuseContacts(contacts);
 
@@ -142,16 +154,16 @@ export class CombatComputer {
   /**
    * Fuse nearby contacts into single tracks
    */
-  private fuseContacts(contacts: SensorContact[]): SensorContact[] {
+  private fuseContacts(contacts: CombatSensorContact[]): CombatSensorContact[] {
     if (contacts.length === 0) return [];
 
-    const fused: SensorContact[] = [];
+    const fused: CombatSensorContact[] = [];
     const used = new Set<number>();
 
     for (let i = 0; i < contacts.length; i++) {
       if (used.has(i)) continue;
 
-      const cluster: SensorContact[] = [contacts[i]];
+      const cluster: CombatSensorContact[] = [contacts[i]];
       used.add(i);
 
       // Find nearby contacts

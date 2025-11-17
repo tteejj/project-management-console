@@ -7,31 +7,32 @@
 import { describe, it, expect } from 'vitest';
 import {
   CombatComputer,
+  CombatSensorContact,
   Track,
   TargetPriority,
   FireSolution,
   ThreatLevel
 } from '../src/combat-computer';
-import { SensorContact } from '../src/sensors';
+import { SensorType } from '../src/sensors';
 import { Vector3 } from '../src/math-utils';
 
 describe('Combat Computer System', () => {
   describe('Sensor Fusion', () => {
     it('should fuse contacts from multiple sensors', () => {
-      const radarContact: SensorContact = {
+      const radarContact: CombatSensorContact = {
         targetId: 'target-1',
         position: { x: 10000, y: 0, z: 0 },
         velocity: { x: 0, y: 0, z: 0 },
         signalStrength: 0.8,
-        sensorType: 'radar'
+        sensorType: SensorType.RADAR
       };
 
-      const thermalContact: SensorContact = {
+      const thermalContact: CombatSensorContact = {
         targetId: 'target-1',
         position: { x: 10100, y: 0, z: 0 },  // Slightly different position
         velocity: { x: 0, y: 0, z: 0 },
         signalStrength: 0.6,
-        sensorType: 'thermal'
+        sensorType: SensorType.THERMAL
       };
 
       const combatComputer = new CombatComputer({
@@ -46,20 +47,20 @@ describe('Combat Computer System', () => {
     });
 
     it('should track multiple separate targets', () => {
-      const contact1: SensorContact = {
+      const contact1: CombatSensorContact = {
         targetId: 'target-1',
         position: { x: 10000, y: 0, z: 0 },
         velocity: { x: 0, y: 0, z: 0 },
         signalStrength: 0.8,
-        sensorType: 'radar'
+        sensorType: SensorType.RADAR
       };
 
-      const contact2: SensorContact = {
+      const contact2: CombatSensorContact = {
         targetId: 'target-2',
         position: { x: 0, y: 20000, z: 0 },
         velocity: { x: 0, y: 0, z: 0 },
         signalStrength: 0.7,
-        sensorType: 'radar'
+        sensorType: SensorType.RADAR
       };
 
       const combatComputer = new CombatComputer({
@@ -87,7 +88,7 @@ describe('Combat Computer System', () => {
         position: { x: 10000, y: 0, z: 0 },
         velocity: { x: 100, y: 0, z: 0 },
         signalStrength: 0.8,
-        sensorType: 'radar'
+        sensorType: SensorType.RADAR
       }]);
 
       combatComputer.update(10);
@@ -98,7 +99,7 @@ describe('Combat Computer System', () => {
         position: { x: 11000, y: 0, z: 0 },  // Moved 1000m in 10s = 100 m/s
         velocity: { x: 100, y: 0, z: 0 },
         signalStrength: 0.8,
-        sensorType: 'radar'
+        sensorType: SensorType.RADAR
       }]);
 
       const tracks = combatComputer.getTracks();
@@ -116,7 +117,7 @@ describe('Combat Computer System', () => {
         position: { x: 10000, y: 0, z: 0 },
         velocity: { x: 0, y: 0, z: 0 },
         signalStrength: 0.8,
-        sensorType: 'radar'
+        sensorType: SensorType.RADAR
       }]);
 
       // Update with no new contacts for long time
@@ -143,7 +144,7 @@ describe('Combat Computer System', () => {
         position: { x: 5000, y: 0, z: 0 },    // 5km away
         velocity: { x: -500, y: 0, z: 0 },    // Approaching at 500 m/s
         signalStrength: 0.9,
-        sensorType: 'radar'
+        sensorType: SensorType.RADAR
       }]);
 
       combatComputer.update(1);
@@ -163,7 +164,7 @@ describe('Combat Computer System', () => {
         position: { x: 100000, y: 0, z: 0 },  // 100km away
         velocity: { x: 0, y: 0, z: 0 },       // Not moving
         signalStrength: 0.3,
-        sensorType: 'radar'
+        sensorType: SensorType.RADAR
       }]);
 
       combatComputer.update(1);
@@ -185,7 +186,7 @@ describe('Combat Computer System', () => {
         position: { x: 10000, y: 10000, z: 0 },
         velocity: { x: 0, y: 100, z: 0 },      // Moving perpendicular
         signalStrength: 0.8,
-        sensorType: 'radar'
+        sensorType: SensorType.RADAR
       }]);
 
       combatComputer.update(1);
@@ -207,7 +208,7 @@ describe('Combat Computer System', () => {
         position: { x: 10000, y: 0, z: 0 },
         velocity: { x: 3000, y: 0, z: 0 },     // Faster than projectile
         signalStrength: 0.8,
-        sensorType: 'radar'
+        sensorType: SensorType.RADAR
       }]);
 
       combatComputer.update(1);
@@ -233,14 +234,14 @@ describe('Combat Computer System', () => {
           position: { x: 3000, y: 0, z: 0 },
           velocity: { x: -100, y: 0, z: 0 },
           signalStrength: 0.9,
-          sensorType: 'radar'
+          sensorType: SensorType.RADAR
         },
         {
           targetId: 'distant-target',
           position: { x: 50000, y: 0, z: 0 },
           velocity: { x: 0, y: 0, z: 0 },
           signalStrength: 0.5,
-          sensorType: 'radar'
+          sensorType: SensorType.RADAR
         }
       ]);
 
@@ -264,7 +265,7 @@ describe('Combat Computer System', () => {
         position: { x: 10000, y: 0, z: 0 },
         velocity: { x: 0, y: 0, z: 0 },
         signalStrength: 0.8,
-        sensorType: 'radar'
+        sensorType: SensorType.RADAR
       }]);
 
       combatComputer.update(1);
@@ -311,7 +312,7 @@ describe('Combat Computer System', () => {
         position: { x: 10000, y: 0, z: 0 },
         velocity: { x: 0, y: 0, z: 0 },
         signalStrength: 0.9,  // Strong signal
-        sensorType: 'radar'
+        sensorType: SensorType.RADAR
       }]);
 
       combatComputer.update(1);

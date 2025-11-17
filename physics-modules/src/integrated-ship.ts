@@ -75,7 +75,7 @@ export class IntegratedShip {
     this.worldBody = {
       id: this.id,
       name: `Ship ${this.id}`,
-      type: 'ship',
+      type: 'satellite',  // Ships are satellites in the celestial body system
       mass: config.mass,
       radius: config.radius,
       position: { ...config.position },

@@ -5,7 +5,7 @@
  */
 
 import { Vector3 } from './math-utils';
-import { HullStructure, Compartment, ArmorLayer } from './hull-damage';
+import { HullStructure, Compartment, ArmorLayer, MaterialType } from './hull-damage';
 import { LifeSupportSystem, CrewMember, LifeSupportConfig, CrewStatus } from './life-support';
 import { PowerBudgetSystem, PowerSource, PowerConsumer, BatteryBank, PowerSourceType, PowerPriority } from './power-budget';
 import { ThermalBudgetSystem, ThermalComponent, ThermalCompartment, CoolingSystem } from './thermal-budget';
@@ -264,10 +264,13 @@ export class ShipTemplates {
 
       armorLayers: [
         {
-          material: 'titanium-alloy',
+          id: 'hull-armor-1',
+          material: MaterialType.TITANIUM,
           thickness: 0.05,  // 5cm
           density: 4500,
-          hardness: 6.0
+          hardness: 6.0,
+          integrity: 1.0,
+          ablationDepth: 0
         }
       ],
 
