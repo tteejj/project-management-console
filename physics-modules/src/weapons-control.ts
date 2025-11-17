@@ -12,6 +12,7 @@
 import { KineticWeapon, ProjectileManager, Target as KineticTarget } from './kinetic-weapons';
 import { Missile, MissileLauncherSystem, MissileType } from './missile-weapons';
 import { LaserWeapon, ParticleBeamWeapon, EnergyDamage } from './energy-weapons';
+import { DamageZoneSystem, DamageReport } from './damage-zones';
 
 export type TargetType = 'spacecraft' | 'missile' | 'station' | 'debris';
 export type ThreatLevel = 'none' | 'low' | 'medium' | 'high' | 'critical';
@@ -75,8 +76,15 @@ export class WeaponsControlSystem {
   private totalPowerDraw: number = 0;
   private powerAvailable: number = 100000; // 100 kW default
 
+  // Damage zone system
+  private damageZones: DamageZoneSystem;
+
+  // Events
+  public events: Array<{ time: number; type: string; data: any }> = [];
+
   constructor() {
     // Default weapons will be added by spacecraft
+    this.damageZones = new DamageZoneSystem();
   }
 
   /**
@@ -430,9 +438,53 @@ export class WeaponsControlSystem {
     for (const hit of hits) {
       const target = this.targets.get(hit.targetId);
       if (target) {
-        // Apply damage
-        const damagePercent = hit.damage / 1000; // Normalize
-        target.health = Math.max(0, target.health - damagePercent);
+        // Get projectile details for damage calculation
+        const projectiles = this.projectileManager.getProjectiles();
+        const projectile = projectiles.find(p => p.id === hit.projectileId);
+        if (projectile) {
+          // Calculate zone-based damage
+          const velocity = Math.sqrt(
+            projectile.velocity.x ** 2 +
+            projectile.velocity.y ** 2 +
+            projectile.velocity.z ** 2
+          );
+
+          // Use target position as hit position (close enough)
+          const damageReport = this.damageZones.calculateKineticDamage(
+            target.position,
+            projectile.mass,
+            velocity
+          );
+
+          // Apply zone-based damage
+          if (damageReport.hit) {
+            const damagePercent = damageReport.damage / 1000; // Normalize
+            target.health = Math.max(0, target.health - damagePercent);
+
+            // Log damage event
+            this.events.push({
+              time: Date.now(),
+              type: 'KINETIC_HIT',
+              data: {
+                targetId: target.id,
+                zone: damageReport.zoneName,
+                damage: damageReport.damage,
+                critical: damageReport.isCritical,
+                effects: damageReport.effects,
+                affectedSystems: damageReport.affectedSystems
+              }
+            });
+
+            // Process critical effects
+            this.processCriticalEffects(damageReport, target);
+          }
+        }
+
+        // Apply legacy damage if projectile not found
+        if (!projectile) {
+          const damagePercent = hit.damage / 1000;
+          target.health = Math.max(0, target.health - damagePercent);
+        }
 
         // Destroy if health depleted
         if (target.health <= 0) {
@@ -459,9 +511,39 @@ export class WeaponsControlSystem {
         // Check hit
         const hit = missile.checkHit(target.position, target.radius);
         if (hit) {
-          // Apply damage
           const state = missile.getState();
-          target.health = Math.max(0, target.health - 0.5); // Missiles do massive damage
+
+          // Calculate explosive damage based on warhead yield from missile state
+          const warheadMass = state.warheadYield || 50; // Default 50kg
+
+          const damageReport = this.damageZones.calculateExplosiveDamage(
+            missile.position,
+            warheadMass
+          );
+
+          // Apply zone-based damage
+          if (damageReport.hit) {
+            const damagePercent = damageReport.damage / 1000;
+            target.health = Math.max(0, target.health - damagePercent);
+
+            // Log damage event
+            this.events.push({
+              time: Date.now(),
+              type: 'MISSILE_HIT',
+              data: {
+                targetId: target.id,
+                zone: damageReport.zoneName,
+                damage: damageReport.damage,
+                critical: damageReport.isCritical,
+                effects: damageReport.effects,
+                affectedSystems: damageReport.affectedSystems,
+                warheadYield: warheadMass
+              }
+            });
+
+            // Process critical effects
+            this.processCriticalEffects(damageReport, target);
+          }
 
           if (target.health <= 0) {
             this.removeTarget(target.id);
@@ -469,6 +551,72 @@ export class WeaponsControlSystem {
         }
       }
     });
+  }
+
+  /**
+   * Process critical hit effects
+   */
+  private processCriticalEffects(damageReport: DamageReport, target: TrackedTarget): void {
+    if (!damageReport.effects) return;
+
+    for (const effect of damageReport.effects) {
+      switch (effect) {
+        case 'HULL_BREACH':
+          // Target is venting atmosphere
+          this.events.push({
+            time: Date.now(),
+            type: 'HULL_BREACH',
+            data: { targetId: target.id, zone: damageReport.zoneName }
+          });
+          break;
+
+        case 'MAGAZINE_EXPLOSION_RISK':
+          // Roll for secondary explosion
+          if (Math.random() < 0.3) {
+            target.health = Math.max(0, target.health - 0.3);
+            this.events.push({
+              time: Date.now(),
+              type: 'MAGAZINE_EXPLOSION',
+              data: { targetId: target.id }
+            });
+          }
+          break;
+
+        case 'MELTDOWN_RISK':
+          // Catastrophic reactor damage
+          if (Math.random() < 0.2) {
+            target.health = 0; // Reactor meltdown destroys ship
+            this.events.push({
+              time: Date.now(),
+              type: 'REACTOR_MELTDOWN',
+              data: { targetId: target.id }
+            });
+          }
+          break;
+
+        case 'FIRE':
+          // Fire spreads over time
+          this.events.push({
+            time: Date.now(),
+            type: 'FIRE_STARTED',
+            data: { targetId: target.id, zone: damageReport.zoneName }
+          });
+          break;
+
+        case 'CREW_CASUALTIES':
+          // Crew hit - control degraded
+          this.events.push({
+            time: Date.now(),
+            type: 'CREW_HIT',
+            data: { targetId: target.id }
+          });
+          break;
+
+        default:
+          // Log other effects
+          break;
+      }
+    }
   }
 
   /**
@@ -557,7 +705,9 @@ export class WeaponsControlSystem {
       projectiles: this.projectileManager.getProjectiles(),
       targets: Array.from(this.targets.values()),
       engagements: this.engagements,
-      threatAssessment: this.getThreatAssessment()
+      threatAssessment: this.getThreatAssessment(),
+      damageZones: this.damageZones.getState(),
+      events: this.events
     };
   }
 }
