@@ -13,6 +13,14 @@
  * - Flight Control System (PID, SAS, Autopilot)
  * - Navigation System (Trajectory, Telemetry)
  * - Mission System (Objectives, Scoring)
+ * - Navigation Computer
+ * - Countermeasures
+ * - Docking System
+ * - Landing System
+ * - Communications
+ * - Cargo Management
+ * - Electronic Warfare
+ * - Environmental Systems
  *
  * Handles:
  * - System interconnections
@@ -22,6 +30,8 @@
  * - Flight automation
  * - Navigation and guidance
  * - Mission management
+ * - Combat and defensive systems
+ * - Life support and environmental control
  * - Complete update loop
  */
 
@@ -36,6 +46,14 @@ import { ShipPhysics } from './ship-physics';
 import { FlightControlSystem, type SASMode, type AutopilotMode } from './flight-control';
 import { NavigationSystem } from './navigation';
 import { MissionSystem, type Mission } from './mission';
+import { NavigationComputer } from './nav-computer';
+import { CountermeasureSystem } from './countermeasures';
+import { DockingSystem } from './docking-system';
+import { LandingSystem } from './landing-system';
+import { CommunicationsSystem } from './communications';
+import { CargoManagementSystem } from './cargo-management';
+import { ElectronicWarfareSystem } from './electronic-warfare';
+import { EnvironmentalSystem } from './environmental-systems';
 
 export interface SpacecraftConfig {
   // Optional system configurations
@@ -50,6 +68,14 @@ export interface SpacecraftConfig {
   flightControlConfig?: any;
   navigationConfig?: any;
   missionConfig?: any;
+  navComputerConfig?: any;
+  countermeasuresConfig?: any;
+  dockingConfig?: any;
+  landingConfig?: any;
+  communicationsConfig?: any;
+  cargoConfig?: any;
+  ewConfig?: any;
+  environmentalConfig?: any;
 }
 
 export class Spacecraft {
@@ -67,6 +93,16 @@ export class Spacecraft {
   public flightControl: FlightControlSystem;
   public navigation: NavigationSystem;
   public mission: MissionSystem;
+
+  // Additional spacecraft subsystems
+  public navComputer: NavigationComputer;
+  public countermeasures: CountermeasureSystem;
+  public docking: DockingSystem;
+  public landing: LandingSystem;
+  public communications: CommunicationsSystem;
+  public cargo: CargoManagementSystem;
+  public ew: ElectronicWarfareSystem;
+  public environmental: EnvironmentalSystem;
 
   // Simulation time
   public simulationTime: number = 0;
@@ -89,6 +125,16 @@ export class Spacecraft {
     this.flightControl = new FlightControlSystem(config?.flightControlConfig);
     this.navigation = new NavigationSystem();
     this.mission = new MissionSystem();
+
+    // Initialize additional subsystems
+    this.navComputer = new NavigationComputer(config?.navComputerConfig);
+    this.countermeasures = new CountermeasureSystem(config?.countermeasuresConfig);
+    this.docking = new DockingSystem(config?.dockingConfig);
+    this.landing = new LandingSystem(config?.landingConfig);
+    this.communications = new CommunicationsSystem(config?.communicationsConfig);
+    this.cargo = new CargoManagementSystem(config?.cargoConfig);
+    this.ew = new ElectronicWarfareSystem(config?.ewConfig);
+    this.environmental = new EnvironmentalSystem(config?.environmentalConfig);
 
     // Store initial fuel capacity for delta-V calculations
     this.initialFuelCapacity = this.fuel.getState().totalFuel;
@@ -223,7 +269,29 @@ export class Spacecraft {
     // 17. Update mission checklists (if mission loaded)
     this.mission.updateChecklists();
 
-    // 18. Increment time
+    // 18. Update additional subsystems
+    this.navComputer.updateNavSolution(1.0, dt); // Assume full star visibility for now
+    this.countermeasures.update(dt);
+    this.docking.update(dt);
+    this.landing.update(dt);
+    this.communications.update(dt);
+    this.cargo.update(dt);
+    this.ew.update(dt);
+    this.environmental.update(dt);
+
+    // 19. Check for high-G cargo damage
+    // Calculate acceleration from thrust and mass
+    const totalThrust = Math.sqrt(
+      (mainEngineThrust.x + rcsThrust.x) ** 2 +
+      (mainEngineThrust.y + rcsThrust.y) ** 2 +
+      (mainEngineThrust.z + rcsThrust.z) ** 2
+    );
+    const gForce = (totalThrust / totalMass) / 9.81;
+    if (gForce > 1.5) {
+      this.cargo.checkCargoIntegrity(gForce);
+    }
+
+    // 20. Increment time
     this.simulationTime += dt;
   }
 
@@ -251,7 +319,15 @@ export class Spacecraft {
       rcs: this.rcs.getState(),
       flightControl: this.flightControl.getState(),
       navigation: this.getNavigationTelemetry(),
-      mission: this.mission.getCurrentMission()
+      mission: this.mission.getCurrentMission(),
+      navComputer: this.navComputer.getState(),
+      countermeasures: this.countermeasures.getState(),
+      docking: this.docking.getState(),
+      landing: this.landing.getState(),
+      communications: this.communications.getState(),
+      cargo: this.cargo.getState(),
+      ew: this.ew.getState(),
+      environmental: this.environmental.getState()
     };
   }
 
@@ -514,7 +590,15 @@ export class Spacecraft {
       coolant: this.coolant.getEvents(),
       mainEngine: this.mainEngine.getEvents(),
       rcs: this.rcs.getEvents(),
-      physics: this.physics.getEvents()
+      physics: this.physics.getEvents(),
+      navComputer: this.navComputer.events,
+      countermeasures: this.countermeasures.events,
+      docking: this.docking.events,
+      landing: this.landing.events,
+      communications: this.communications.events,
+      cargo: this.cargo.events,
+      ew: this.ew.events,
+      environmental: this.environmental.events
     };
   }
 }
