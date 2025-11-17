@@ -8,7 +8,7 @@
  * - Environment interaction
  */
 
-import { IntegratedShip, ShipConfiguration } from '../dist/src/integrated-ship';
+import { IntegratedShip, ShipConfiguration } from './integrated-ship';
 import { LandingGear, LandingGearConfig } from './landing-gear';
 import { GameWorld } from './game-world';
 import { Vector3, Quaternion } from './types';

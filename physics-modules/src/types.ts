@@ -7,6 +7,19 @@ export interface Vector2 {
   y: number;
 }
 
+export interface Vector3 {
+  x: number;
+  y: number;
+  z: number;
+}
+
+export interface Quaternion {
+  w: number;
+  x: number;
+  y: number;
+  z: number;
+}
+
 export interface FuelTank {
   id: string;
   volume: number; // liters

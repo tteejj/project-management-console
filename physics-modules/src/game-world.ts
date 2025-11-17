@@ -10,7 +10,7 @@
  * - Landing Gear (4-leg suspension system)
  */
 
-import { World, CelestialBody, CelestialBodyFactory } from '../dist/src/world';
+import { World, CelestialBody, CelestialBodyFactory } from './world';
 import { TerrainSystem } from './terrain-system';
 import { EnvironmentSystem } from './environment';
 import { OrbitalBodiesManager, createDefaultSatellite } from './orbital-bodies';
