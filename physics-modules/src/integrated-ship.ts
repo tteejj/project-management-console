@@ -8,7 +8,7 @@
 import { Vector3, VectorMath, Quaternion, QuaternionMath } from './math-utils';
 import { World, CelestialBody } from './world';
 import { HullStructure, HullDamageSystem, DamageType } from './hull-damage';
-import { CollisionDetector, CollisionResult } from './collision';
+import { CollisionDetector, CollisionResult, CollisionResponse, PhysicsBody } from './collision';
 import { SpacecraftPhysics } from './spacecraft-physics';
 
 export interface ShipConfiguration {
@@ -163,26 +163,67 @@ export class IntegratedShip {
   }
 
   /**
-   * Handle collision with another body
+   * Handle collision with another body using advanced collision response
    */
   private handleCollision(otherBody: CelestialBody, collision: CollisionResult): void {
+    const shipPos = this.spacecraftPhysics.getPosition();
     const shipVel = this.spacecraftPhysics.getVelocity();
+    const shipMass = this.spacecraftPhysics.getMass();
+
+    // Create physics bodies for collision response
+    const shipBody: PhysicsBody = {
+      position: shipPos,
+      velocity: shipVel,
+      angularVelocity: this.spacecraftPhysics.getAngularVelocity(),
+      mass: shipMass,
+      momentOfInertia: this.spacecraftPhysics.getMomentOfInertia(),
+      restitution: 0.3,  // Semi-elastic (metal hull)
+      friction: 0.5,     // Moderate friction
+      isStatic: false
+    };
+
+    const otherBodyPhysics: PhysicsBody = {
+      position: otherBody.position,
+      velocity: otherBody.velocity,
+      angularVelocity: { x: 0, y: 0, z: 0 },
+      mass: otherBody.mass,
+      momentOfInertia: { x: otherBody.mass, y: otherBody.mass, z: otherBody.mass },
+      restitution: 0.2,  // Rock/asteroid is less elastic
+      friction: 0.7,     // Rough surface
+      isStatic: otherBody.type === 'planet' || otherBody.type === 'moon'  // Planets are immovable
+    };
+
+    // Calculate collision response using impulse-based physics
+    const response = CollisionResponse.resolve(shipBody, otherBodyPhysics, collision);
+
+    // Apply linear impulse to ship velocity
+    CollisionResponse.applyImpulse(shipBody, response.linearImpulse, response.angularImpulseA);
+    this.spacecraftPhysics.setVelocity(shipBody.velocity);
+
+    // Apply angular impulse if available
+    if (response.angularImpulseA) {
+      const newAngularVel = VectorMath.add(
+        this.spacecraftPhysics.getAngularVelocity(),
+        response.angularImpulseA
+      );
+      this.spacecraftPhysics.setAngularVelocity(newAngularVel);
+    }
+
+    // Separate penetrating bodies
+    CollisionResponse.separateBodies(shipBody, otherBodyPhysics, collision);
+    this.spacecraftPhysics.setPosition(shipBody.position);
+
+    // Calculate relative velocity for damage
     const relVel = VectorMath.subtract(shipVel, otherBody.velocity);
     const relSpeed = VectorMath.magnitude(relVel);
 
-    // Calculate collision impulse (simplified elastic collision)
-    const totalMass = this.spacecraftPhysics.getMass() + otherBody.mass;
-    const impulse = VectorMath.scale(
-      collision.normal,
-      -2 * relSpeed * (otherBody.mass / totalMass)
-    );
-
-    // Apply impulse to ship
-    this.applyImpulse(impulse);
-
-    // Apply damage
+    // Apply damage based on impact energy
     let damageApplied = 0;
     if (this.hullDamageSystem) {
+      // Use impact energy from collision response
+      const impactEnergy = response.impactEnergy;
+      const damageScale = Math.min(1.0, impactEnergy / 1000000);  // Scale to 0-1 (1 MJ = full damage)
+
       const impactResult = this.hullDamageSystem.processImpact({
         position: collision.point,
         velocity: relVel,
@@ -190,10 +231,10 @@ export class IntegratedShip {
         damageType: DamageType.COLLISION,
         impactAngle: 0
       });
-      damageApplied = impactResult.damageApplied;
+      damageApplied = impactResult.damageApplied * damageScale;
     }
 
-    // Record collision
+    // Record collision event
     const event: CollisionEvent = {
       timestamp: Date.now(),
       otherBody,
@@ -205,8 +246,12 @@ export class IntegratedShip {
 
     this.collisionHistory.push(event);
 
-    // Emit event
-    this.emit('collision', event);
+    // Emit event with collision response data
+    this.emit('collision', {
+      ...event,
+      impactEnergy: response.impactEnergy,
+      separationVelocity: response.separationVelocity
+    });
   }
 
   /**
@@ -382,24 +427,39 @@ export class SimulationController {
         );
 
         if (collision && collision.collided) {
-          // Apply symmetric collision response
-          const relVel = VectorMath.subtract(ship1.getVelocity(), ship2.getVelocity());
-          const relSpeed = VectorMath.magnitude(relVel);
+          // Create physics bodies for both ships
+          const body1: PhysicsBody = {
+            position: ship1.getPosition(),
+            velocity: ship1.getVelocity(),
+            mass: ship1.getWorldBody().mass,
+            restitution: 0.3,
+            friction: 0.5,
+            isStatic: false
+          };
 
-          const totalMass = ship1.getWorldBody().mass + ship2.getWorldBody().mass;
+          const body2: PhysicsBody = {
+            position: ship2.getPosition(),
+            velocity: ship2.getVelocity(),
+            mass: ship2.getWorldBody().mass,
+            restitution: 0.3,
+            friction: 0.5,
+            isStatic: false
+          };
 
-          const impulse1 = VectorMath.scale(
-            collision.normal,
-            -relSpeed * (ship2.getWorldBody().mass / totalMass)
-          );
+          // Calculate collision response
+          const response = CollisionResponse.resolve(body1, body2, collision);
 
-          const impulse2 = VectorMath.scale(
-            collision.normal,
-            relSpeed * (ship1.getWorldBody().mass / totalMass)
-          );
+          // Apply impulses to both ships
+          CollisionResponse.applyImpulse(body1, response.linearImpulse, response.angularImpulseA);
+          CollisionResponse.applyImpulse(body2, VectorMath.scale(response.linearImpulse, -1), response.angularImpulseB);
 
-          ship1.applyImpulse(impulse1);
-          ship2.applyImpulse(impulse2);
+          ship1['spacecraftPhysics'].setVelocity(body1.velocity);
+          ship2['spacecraftPhysics'].setVelocity(body2.velocity);
+
+          // Separate bodies
+          CollisionResponse.separateBodies(body1, body2, collision);
+          ship1['spacecraftPhysics'].setPosition(body1.position);
+          ship2['spacecraftPhysics'].setPosition(body2.position);
         }
       }
     }

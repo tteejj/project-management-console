@@ -36,6 +36,7 @@ import { ShipPhysics } from './ship-physics';
 import { FlightControlSystem, type SASMode, type AutopilotMode } from './flight-control';
 import { NavigationSystem } from './navigation';
 import { MissionSystem, type Mission } from './mission';
+import { CrewSimulation } from './crew-simulation';
 
 export interface SpacecraftConfig {
   // Optional system configurations
@@ -67,9 +68,13 @@ export class Spacecraft {
   public flightControl: FlightControlSystem;
   public navigation: NavigationSystem;
   public mission: MissionSystem;
+  public crew: CrewSimulation;
 
   // Simulation time
   public simulationTime: number = 0;
+
+  // Environment tracking
+  private radiationExposureRate: number = 0;  // Sv/hour
 
   // Initial fuel capacity (for delta-V calculations)
   private initialFuelCapacity: number = 0;
@@ -89,9 +94,60 @@ export class Spacecraft {
     this.flightControl = new FlightControlSystem(config?.flightControlConfig);
     this.navigation = new NavigationSystem();
     this.mission = new MissionSystem();
+    this.crew = new CrewSimulation();
+
+    // Add default crew members
+    this.initializeDefaultCrew();
 
     // Store initial fuel capacity for delta-V calculations
     this.initialFuelCapacity = this.fuel.getState().totalFuel;
+  }
+
+  /**
+   * Initialize default crew
+   */
+  private initializeDefaultCrew(): void {
+    // Add pilot
+    this.crew.addCrewMember({
+      id: 'pilot-001',
+      name: 'Commander Sarah Chen',
+      role: 'pilot',
+      location: 'cockpit',
+      skills: {
+        pilot: 0.9,
+        engineer: 0.6,
+        medic: 0.4,
+        scientist: 0.5
+      }
+    });
+
+    // Add engineer
+    this.crew.addCrewMember({
+      id: 'engineer-001',
+      name: 'Engineer Marcus Rodriguez',
+      role: 'engineer',
+      location: 'engineering',
+      skills: {
+        pilot: 0.5,
+        engineer: 0.95,
+        medic: 0.3,
+        scientist: 0.6
+      }
+    });
+
+    // Add medic
+    this.crew.addCrewMember({
+      id: 'medic-001',
+      name: 'Dr. Amara Okafor',
+      role: 'medic',
+      location: 'medbay',
+      skills: {
+        pilot: 0.3,
+        engineer: 0.4,
+        medic: 0.95,
+        scientist: 0.7
+      }
+    });
   }
 
   /**
@@ -220,11 +276,65 @@ export class Spacecraft {
     // 16. Update fuel system
     this.fuel.update(dt, t);
 
-    // 17. Update mission checklists (if mission loaded)
+    // 17. Update crew simulation with environmental effects
+    this.updateCrewPhysics();
+    this.crew.update(dt);
+
+    // 18. Calculate radiation exposure based on environment
+    this.updateRadiationEnvironment();
+
+    // 19. Update mission checklists (if mission loaded)
     this.mission.updateChecklists();
 
-    // 18. Increment time
+    // 20. Increment time
     this.simulationTime += dt;
+  }
+
+  /**
+   * Update crew with current physics conditions
+   */
+  private updateCrewPhysics(): void {
+    const physicsState = this.physics.getState();
+
+    // Calculate current G-force from acceleration
+    const gForce = physicsState.peakGForce;
+
+    // Update all crew members with current G-force
+    const crewMembers = this.crew.getCrewMembers();
+    for (const member of crewMembers) {
+      this.crew.setCrewGForce(member.id, gForce);
+      this.crew.setCrewRadiationRate(member.id, this.radiationExposureRate);
+    }
+  }
+
+  /**
+   * Update radiation environment based on ship state
+   */
+  private updateRadiationEnvironment(): void {
+    const physicsState = this.physics.getState();
+    const altitude = physicsState.altitude;
+
+    // Base cosmic radiation at high altitude
+    let baseRadiation = 0.0001;  // Sv/hour (0.1 mSv/hour)
+
+    // Solar radiation increases in sunlight
+    if (this.thermal.inSunlight) {
+      baseRadiation += 0.0002;  // Additional 0.2 mSv/hour from solar
+    }
+
+    // Van Allen belt simulation (increased radiation at certain altitudes)
+    // For Moon, no magnetosphere, but we can simulate solar storms
+    if (altitude > 100000 && altitude < 500000) {  // 100-500km altitude band
+      baseRadiation *= 3;  // 3x radiation in this zone
+    }
+
+    // Reactor leaks add radiation
+    const reactorState = this.electrical.getState().reactor;
+    if (reactorState.status === 'scrammed' || reactorState.temperature > 850) {
+      baseRadiation += 0.001;  // +1 mSv/hour from reactor issues
+    }
+
+    this.radiationExposureRate = baseRadiation;
   }
 
   /**
@@ -251,7 +361,12 @@ export class Spacecraft {
       rcs: this.rcs.getState(),
       flightControl: this.flightControl.getState(),
       navigation: this.getNavigationTelemetry(),
-      mission: this.mission.getCurrentMission()
+      mission: this.mission.getCurrentMission(),
+      crew: this.crew.getStatus(),
+      environment: {
+        radiationRate: this.radiationExposureRate,
+        inSunlight: this.thermal.inSunlight
+      }
     };
   }
 
@@ -514,7 +629,58 @@ export class Spacecraft {
       coolant: this.coolant.getEvents(),
       mainEngine: this.mainEngine.getEvents(),
       rcs: this.rcs.getEvents(),
-      physics: this.physics.getEvents()
+      physics: this.physics.getEvents(),
+      crew: this.crew.getEvents()
     };
+  }
+
+  // =============================================================================
+  // Crew System Commands
+  // =============================================================================
+
+  /**
+   * Get crew member by ID
+   */
+  getCrewMember(id: string) {
+    return this.crew.getCrewMember(id);
+  }
+
+  /**
+   * Get all crew members
+   */
+  getCrewMembers() {
+    return this.crew.getCrewMembers();
+  }
+
+  /**
+   * Treat crew member injury
+   */
+  treatCrewMember(crewId: string, injuryIndex: number, medic: string): boolean {
+    return this.crew.treatInjury(crewId, injuryIndex, medic);
+  }
+
+  /**
+   * Get crew status summary
+   */
+  getCrewStatus() {
+    return this.crew.getStatus();
+  }
+
+  // =============================================================================
+  // Environment Control
+  // =============================================================================
+
+  /**
+   * Set sunlight exposure (affects thermal and radiation)
+   */
+  setSunlight(inSunlight: boolean): void {
+    this.thermal.setSunlight(inSunlight);
+  }
+
+  /**
+   * Get current radiation exposure rate
+   */
+  getRadiationRate(): number {
+    return this.radiationExposureRate;
   }
 }
