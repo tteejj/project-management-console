@@ -91,6 +91,13 @@ export class World {
   }
 
   /**
+   * Get all celestial bodies
+   */
+  getAllBodies(): CelestialBody[] {
+    return Array.from(this.bodies.values());
+  }
+
+  /**
    * Update world physics (orbital mechanics, n-body gravity)
    */
   update(dt: number): void {
