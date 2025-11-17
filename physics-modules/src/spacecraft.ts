@@ -163,6 +163,9 @@ export class Spacecraft {
     this.weapons = new WeaponsControlSystem();
     this.initializeWeapons();
 
+    // Register ammunition mass components AFTER weapons (Critical Fix: Ammunition CoM Tracking)
+    this.registerAmmunitionMass();
+
     // Initialize systems integrator (MUST be last - needs all systems initialized)
     this.systemsIntegrator = new SystemsIntegrator(this);
 
@@ -368,6 +371,24 @@ export class Spacecraft {
   }
 
   /**
+   * Register ammunition mass components with CoM system
+   * Called after weapons are initialized
+   */
+  private registerAmmunitionMass(): void {
+    const magazines = this.weapons.getMagazines();
+
+    for (const mag of magazines) {
+      this.comSystem.registerComponent({
+        id: `ammo_${mag.id}`,
+        name: `Ammunition (${mag.weaponId})`,
+        mass: mag.mass,
+        position: mag.location,
+        fixed: true // Magazine location is fixed, mass changes
+      });
+    }
+  }
+
+  /**
    * Map fuel tank IDs to physical positions from ship layout
    */
   private getFuelTankPosition(tankId: string): { x: number; y: number; z: number } {
@@ -463,6 +484,12 @@ export class Spacecraft {
       this.comSystem.updateMass('rcs_propellant', rcsTankState.fuelMass);
     }
 
+    // 9.6. Update ammunition mass (Critical Fix: Ammunition CoM Tracking)
+    const magazines = this.weapons.getMagazines();
+    for (const mag of magazines) {
+      this.comSystem.updateMass(`ammo_${mag.id}`, mag.mass);
+    }
+
     // 10. Update ship mass in physics
     const totalPropellantMass = this.fuel.getTotalFuelMass();
     this.physics.propellantMass = totalPropellantMass;
@@ -470,6 +497,11 @@ export class Spacecraft {
     // 11. Get thrust and torque vectors
     const mainEngineThrust = this.mainEngine.getThrustVector();
     const mainEngineTorque = { x: 0, y: 0, z: 0 };  // Gimbal torque (simplified for now)
+
+    // 11.3. Update RCS with current CoM for proper torque compensation
+    // (Critical Fix: RCS CoM Compensation)
+    const comOffset = this.comSystem.getCoM();
+    this.rcs.setCoMOffset(comOffset);
 
     const rcsThrust = this.rcs.getTotalThrustVector();
     const rcsTorque = this.rcs.getTotalTorque();
@@ -479,7 +511,6 @@ export class Spacecraft {
     // Note: Recoil is opposite to projectile direction, already signed correctly
 
     // 11.5. Update physics with current CoM and moment of inertia
-    const comOffset = this.comSystem.getCoM();
     const momentOfInertia = this.comSystem.getMomentOfInertia();
     this.physics.setCoMOffset(comOffset);
     this.physics.setMomentOfInertia(momentOfInertia);
@@ -560,6 +591,18 @@ export class Spacecraft {
       y: physicsState.velocity.y,
       z: physicsState.velocity.z
     });
+
+    // Set available power for brownout enforcement (Critical Fix: Power Brownout Enforcement)
+    const reactorPowerW = this.electrical.reactor.currentOutputKW * 1000;
+    const batteryPowerW = this.electrical.battery.maxDischargeRateKW * 1000;
+    const totalAvailablePowerW = reactorPowerW + batteryPowerW;
+    this.weapons.setPowerAvailable(totalAvailablePowerW);
+
+    // Set gravity for projectile ballistics (Critical Fix: Projectile Gravity Physics)
+    // Default to zero (deep space). Spacecraft can set this based on proximity to planetary bodies.
+    // Example: Near Earth surface would be { x: 0, y: 0, z: -9.80665 }
+    this.weapons.setGravity({ x: 0, y: 0, z: 0 });
+
     this.weapons.update(dt);
 
     // 19. Update systems integrator (power management, damage propagation, automation)

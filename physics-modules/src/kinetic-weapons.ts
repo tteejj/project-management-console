@@ -744,6 +744,19 @@ export class ProjectileManager {
   private projectiles: Map<string, Projectile> = new Map();
   private simulationTime: number = 0;
 
+  // Gravitational acceleration vector (Critical Fix: Projectile Gravity Physics)
+  // Default to zero gravity (deep space), set by spacecraft for planetary operations
+  private gravity: { x: number; y: number; z: number } = { x: 0, y: 0, z: 0 };
+
+  /**
+   * Set gravitational acceleration
+   * Called by spacecraft to set local gravity field
+   * Critical Fix: Projectile Gravity Physics
+   */
+  public setGravity(gravity: { x: number; y: number; z: number }): void {
+    this.gravity = { ...gravity };
+  }
+
   /**
    * Add projectile to simulation
    */
@@ -764,7 +777,14 @@ export class ProjectileManager {
         continue;
       }
 
-      // Update position (simple ballistic trajectory, no gravity for now)
+      // Update velocity with gravity (Critical Fix: Projectile Gravity Physics)
+      // v = v0 + a*t
+      proj.velocity.x += this.gravity.x * dt;
+      proj.velocity.y += this.gravity.y * dt;
+      proj.velocity.z += this.gravity.z * dt;
+
+      // Update position using current velocity
+      // s = v*t (using updated velocity for semi-implicit Euler integration)
       proj.position.x += proj.velocity.x * dt / 1000; // m/s to km
       proj.position.y += proj.velocity.y * dt / 1000;
       proj.position.z += proj.velocity.z * dt / 1000;

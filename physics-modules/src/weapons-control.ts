@@ -414,6 +414,126 @@ export class WeaponsControlSystem {
   }
 
   /**
+   * Set available power from power management system
+   * Called by spacecraft each frame
+   */
+  public setPowerAvailable(powerW: number): void {
+    this.powerAvailable = powerW;
+  }
+
+  /**
+   * Set gravitational acceleration for projectile ballistics
+   * Critical Fix: Projectile Gravity Physics
+   */
+  public setGravity(gravity: { x: number; y: number; z: number }): void {
+    this.projectileManager.setGravity(gravity);
+  }
+
+  /**
+   * Get all magazines with their current ammunition mass
+   * Used for center of mass tracking
+   */
+  public getMagazines(): Array<{
+    id: string;
+    weaponId: string;
+    mass: number; // kg
+    location: { x: number; y: number; z: number };
+  }> {
+    const magazines: Array<{
+      id: string;
+      weaponId: string;
+      mass: number;
+      location: { x: number; y: number; z: number };
+    }> = [];
+
+    // Get magazines from kinetic weapons
+    this.kineticWeapons.forEach((weapon) => {
+      if (weapon.magazine) {
+        let totalMass = 0;
+
+        // Calculate total ammunition mass
+        weapon.magazine.ammunition.forEach((ammo: { count: number; mass: number }) => {
+          totalMass += ammo.count * ammo.mass;
+        });
+
+        magazines.push({
+          id: weapon.magazine.id,
+          weaponId: weapon.id,
+          mass: totalMass,
+          location: weapon.magazine.location
+        });
+      }
+    });
+
+    // Get missile masses from launchers
+    this.missileLaunchers.forEach((launcher) => {
+      // Each missile is ~200 kg average
+      const missileMass = launcher.launcher.loaded * 200;
+
+      magazines.push({
+        id: `missile_bay_${launcher.launcher.id}`,
+        weaponId: launcher.launcher.id,
+        mass: missileMass,
+        location: launcher.launcher.location
+      });
+    });
+
+    return magazines;
+  }
+
+  /**
+   * Check if enough power is available to fire a weapon
+   * Returns true if power available, false if insufficient
+   */
+  private checkPowerForWeapon(weaponType: 'kinetic' | 'missile' | 'laser' | 'particle'): boolean {
+    // Calculate power required for this weapon type
+    let requiredPower = 0;
+
+    switch (weaponType) {
+      case 'kinetic':
+        // Railgun: 15 MW, Autocannon: 500W
+        // Assume railgun as worst case
+        requiredPower = 15000000; // 15 MW
+        break;
+
+      case 'missile':
+        // Missile launcher requires minimal power
+        requiredPower = 500; // 500W
+        break;
+
+      case 'laser':
+        // Laser: 10 MW
+        requiredPower = 10000000;
+        break;
+
+      case 'particle':
+        // Particle beam: 50 MW
+        requiredPower = 50000000;
+        break;
+    }
+
+    // Check if we have enough surplus power
+    const powerSurplus = this.powerAvailable - this.totalPowerDraw;
+
+    if (powerSurplus < requiredPower) {
+      // Insufficient power
+      this.events.push({
+        time: Date.now(),
+        type: 'POWER_INSUFFICIENT',
+        data: {
+          weaponType,
+          required: requiredPower,
+          available: powerSurplus,
+          deficit: requiredPower - powerSurplus
+        }
+      });
+      return false;
+    }
+
+    return true;
+  }
+
+  /**
    * Process engagement orders
    */
   private processEngagements(dt: number): void {
@@ -477,6 +597,11 @@ export class WeaponsControlSystem {
     // Fire if conditions met
     if (engagement.autoFire && !this.weaponsSafety && solution.valid) {
       if (solution.hitProbability > 0.3) { // Minimum hit probability
+        // Check power availability before firing (Critical Fix: Power Brownout Enforcement)
+        if (!this.checkPowerForWeapon('kinetic')) {
+          return; // Insufficient power - skip firing
+        }
+
         const projectile = weapon.fire(solution, this.shipPosition, this.shipVelocity);
         if (projectile) {
           this.projectileManager.addProjectile(projectile);
@@ -497,6 +622,11 @@ export class WeaponsControlSystem {
     const locked = launcher.lockTarget(target.id, target.position, target.velocity);
 
     if (locked && engagement.autoFire && !this.weaponsSafety) {
+      // Check power availability before firing (Critical Fix: Power Brownout Enforcement)
+      if (!this.checkPowerForWeapon('missile')) {
+        return; // Insufficient power - skip firing
+      }
+
       // Launch
       const missile = launcher.launch(this.shipPosition, this.shipVelocity);
       // Missile is now tracking in launcher's list
@@ -512,6 +642,11 @@ export class WeaponsControlSystem {
     engagement: EngagementOrder
   ): void {
     if (engagement.autoFire && !this.weaponsSafety) {
+      // Check power availability before firing (Critical Fix: Power Brownout Enforcement)
+      if (!this.checkPowerForWeapon('laser')) {
+        return; // Insufficient power - skip firing
+      }
+
       laser.startFiring(target.position);
     }
   }

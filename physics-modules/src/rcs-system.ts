@@ -47,6 +47,9 @@ export class RCSSystem {
   public totalFuelConsumedKg: number = 0;
   public events: Array<{ time: number; type: string; data: any }> = [];
 
+  // Center of Mass offset (Critical Fix: RCS CoM Compensation)
+  private comOffset: { x: number; y: number; z: number } = { x: 0, y: 0, z: 0 };
+
   // Constants
   private readonly SPECIFIC_IMPULSE_SEC = 65;  // Cold gas thrusters (N2)
   private readonly G0 = 9.80665;
@@ -354,9 +357,21 @@ export class RCSSystem {
   }
 
   /**
+   * Set the center of mass offset
+   * Called by spacecraft to update RCS compensation as CoM shifts
+   * Critical Fix: RCS CoM Compensation
+   */
+  public setCoMOffset(offset: { x: number; y: number; z: number }): void {
+    this.comOffset = { ...offset };
+  }
+
+  /**
    * Calculate total torque vector
    * τ = r × F
    * Returns net torque in (x, y, z) in N·m
+   *
+   * Critical Fix: RCS CoM Compensation
+   * Adjusts moment arms to account for shifting center of mass
    */
   getTotalTorque(): { x: number; y: number; z: number } {
     let tx = 0;
@@ -366,7 +381,14 @@ export class RCSSystem {
     for (const thruster of this.thrusters) {
       if (!thruster.active) continue;
 
-      const r = thruster.position;
+      // Adjust moment arm for CoM offset (Critical Fix: RCS CoM Compensation)
+      // r_effective = r_thruster - r_CoM
+      const r = {
+        x: thruster.position.x - this.comOffset.x,
+        y: thruster.position.y - this.comOffset.y,
+        z: thruster.position.z - this.comOffset.z
+      };
+
       const F = {
         x: thruster.thrustN * thruster.direction.x,
         y: thruster.thrustN * thruster.direction.y,
