@@ -1,15 +1,17 @@
-# Enhanced Captain Screen
+# Enhanced Captain Screen  ✅ 100% IMPLEMENTED
 
-The Vector Moon Lander now features a comprehensive **Captain Screen** interface that integrates all 12 physics and flight systems into a unified real-time display with advanced automation and telemetry.
+The Vector Moon Lander features a comprehensive **Captain Screen** interface that integrates all 12 physics and flight systems into a unified real-time display with advanced automation and telemetry.
 
 ## Overview
 
-The Captain Screen is the main flight interface that provides:
-- Real-time telemetry across all spacecraft systems
-- Flight Control System (SAS, Autopilot, Gimbal Control)
-- Navigation Computer (Trajectory, Delta-V, Suicide Burn)
-- Mission Management (Objectives, Scoring, Landing Zones)
-- Comprehensive keyboard controls for all systems
+The Captain Screen is the main flight interface providing:
+- ✅ Real-time telemetry across all spacecraft systems
+- ✅ Flight Control System (SAS, Autopilot, Gimbal Control)
+- ✅ Navigation Computer (Trajectory, Delta-V, Suicide Burn)
+- ✅ Mission Management (Objectives, Scoring, Landing Zones)
+- ✅ Visual System Health Bars
+- ✅ Navball Attitude Display
+- ✅ Comprehensive keyboard controls for all systems
 
 ## Display Sections
 
@@ -52,28 +54,31 @@ The Captain Screen is the main flight interface that provides:
 - **Throttle**: Engine throttle setting (0-100%)
 - **Health**: Engine condition (degrades over time)
 
-### 4. Resources
+### 4. Resources ⭐ WITH VISUAL BARS
 ```
 ┌─ RESOURCES ────────────────────────────────────────────────┐
-│ Propellant:            160 kg (100%)
-│ Reactor:               8.0 kW
-│ Battery:               100%
+│ Propellant:        160 kg ████████████████████ 100%
+│ Reactor:           8.0 kW ████████████████████ 100%
+│ Battery:            100%  ████████████████████
 └────────────────────────────────────────────────────────────┘
 ```
-- **Propellant**: Remaining fuel mass and percentage (color-coded)
-- **Reactor**: Nuclear reactor power output
-- **Battery**: Battery charge level (color-coded)
+- **Propellant**: Remaining fuel mass with 20-char visual bar (green>50%, yellow>20%, red<20%)
+- **Reactor**: Power output vs 8kW max capacity with visual bar
+- **Battery**: Charge level with visual bar (green>20%, red<20%)
+- **Visual Bars**: █ = filled, ░ = empty, color-coded by status
 
-### 5. Thermal
+### 5. Thermal ⭐ WITH HEALTH BARS
 ```
 ┌─ THERMAL ──────────────────────────────────────────────────┐
-│ Reactor Temp:         400 K
-│ Engine Temp:          300 K
-│ Coolant Temp:         293 K
+│ Reactor Temp:    400 K ██████░░░░░░░░░
+│ Engine Temp:     300 K ████░░░░░░░░░░░
+│ Coolant Temp:    293 K ███░░░░░░░░░░░░
 └────────────────────────────────────────────────────────────┘
 ```
-- Component temperatures from thermal simulation
-- Managed by dual coolant loops
+- **Reactor**: Normal 400K, warning >500K (yellow), critical >700K (red), max 900K
+- **Engine**: Normal 300-600K, warning >600K (yellow), critical >800K (red), max 1000K
+- **Coolant**: Normal 293K, warning >330K (yellow), critical >370K (red), boil 393K
+- Visual bars show proximity to danger thresholds
 
 ### 6. Flight Control ⭐ NEW
 ```
@@ -89,21 +94,61 @@ The Captain Screen is the main flight interface that provides:
 - **Gimbal Ctrl**: Gimbal autopilot status
 - **Target**: Target altitude or vertical speed (when applicable)
 
-### 7. Navigation ⭐ NEW
+### 7. Navigation ⭐ ENHANCED
 ```
 ┌─ NAVIGATION ───────────────────────────────────────────────┐
+│ Horiz Speed:           15.5 m/s
+│ Vert Speed:           -40.2 m/s
 │ Time to Impact:       112.1 s
+│ Impact Speed:         135.8 m/s
+│ Impact Coords:    0.67°N 23.47°E
 │ Suicide Burn:          152 m
-│ ⚠️  INITIATE SUICIDE BURN NOW!
-│ Delta-V Remain:        108 m/s
-│ TWR:                  0.56
+│ Burn in:              28.5 s
+│ Delta-V Remain:        108 m/s (green/yellow/red coded)
+│ TWR:                  0.56 (green if >=1.0, yellow if <1.0)
 └────────────────────────────────────────────────────────────┘
 ```
+- **Velocity Breakdown**: Horizontal vs vertical components
 - **Time to Impact**: Predicted time until surface impact
+- **Impact Speed**: Predicted impact velocity magnitude
+- **Impact Coordinates**: Landing lat/lon prediction
 - **Suicide Burn**: Altitude at which to begin deceleration burn
-- **Burn Warning**: Real-time alert when burn should begin (red)
-- **Delta-V Remaining**: Propulsive capability with current fuel
-- **TWR**: Thrust-to-Weight Ratio at current throttle
+- **Burn Countdown**: Time remaining until burn (red if shouldBurn, yellow if <60s)
+- **Delta-V**: Remaining propulsive capability (red <50, yellow <150, green >150)
+- **TWR**: Thrust-to-Weight Ratio (yellow <1.0, green >=1.0)
+
+### 8. Mission Status ⭐ NEW (if mission loaded)
+```
+┌─ MISSION ──────────────────────────────────────────────────┐
+│ Mission:        Training Flight
+│ Difficulty:     EASY
+│ Objectives:     2/4 ████████████░░░░░░░░
+│ Next:           Ignite main engine
+│ Par Time:       300s (Current: 45s)
+└────────────────────────────────────────────────────────────┘
+```
+- **Mission Name**: Current mission loaded
+- **Difficulty**: Landing zone difficulty level (easy/medium/hard/extreme)
+- **Objectives**: Progress bar showing completed objectives
+- **Next Objective**: First incomplete objective description
+- **Par Time**: Target time vs current elapsed time (green if under, yellow if over)
+
+### 9. Navball Display ⭐ NEW
+```
+┌─ NAVBALL ──────────────────────────────────────────────────┐
+│          N                                                 │
+│        W + E      Prograde: ⊕                              │
+│          S        Retrograde: ⊗                            │
+│                                                            │
+│   Current Heading: 0° (North)                              │
+│   Angle from Vertical: 5.2°                                │
+└────────────────────────────────────────────────────────────┘
+```
+- **KSP-Style Navball**: ASCII art attitude reference sphere
+- **Cardinal Directions**: N/S/E/W/NE/NW/SE/SW markers
+- **Prograde/Retrograde**: Velocity vector indicators
+- **Heading**: Compass direction (0°=North, 90°=East, etc.)
+- **Angle from Vertical**: Tilt angle from local vertical
 
 ## Keyboard Controls
 
@@ -117,16 +162,16 @@ The Captain Screen is the main flight interface that provides:
 - **A/D**: Yaw left/right
 - **Q/E**: Roll counter-clockwise/clockwise
 
-### SAS Modes ⭐ NEW
-- **1**: SAS Off (manual control)
-- **2**: Stability (dampen rotation, hold attitude)
-- **3**: Prograde (point along velocity vector)
-- **4**: Retrograde (point opposite velocity - for braking)
-
-Additional SAS modes available via API:
-- Radial In/Out (point toward/away from planet)
-- Normal/Anti-Normal (orbital plane control)
-- Target/Anti-Target (point toward/away from target)
+### SAS Modes ⭐ ALL 9 MODES MAPPED
+- **1**: SAS Off - Manual control only
+- **2**: Stability - Dampen rotation, hold current attitude
+- **3**: Prograde - Point along velocity vector (forward flight)
+- **4**: Retrograde - Point opposite velocity (for braking burns)
+- **5**: Radial In - Point toward planet center (gravity turns)
+- **6**: Radial Out - Point away from planet center
+- **7**: Normal - Point normal to orbital plane
+- **8**: Anti-Normal - Point anti-normal to orbital plane
+- **9**: Attitude Hold - Lock current orientation
 
 ### Autopilot Modes ⭐ NEW
 - **F1**: Autopilot Off (manual throttle control)
@@ -367,17 +412,56 @@ Potential enhancements for future development:
 9. **Custom Missions**: User-created landing scenarios
 10. **Multiplayer**: Compete for best landing scores
 
+## Mission End Screen with Scoring ⭐ NEW
+
+When landing is complete, a comprehensive scoring screen displays:
+
+```
+═══════════════════════════════════════════════════════════
+                    MISSION COMPLETE
+═══════════════════════════════════════════════════════════
+
+🌟 PERFECT LANDING!
+
+📊 LANDING STATISTICS:
+   Impact Speed:    1.85 m/s
+   Mission Time:    287.5 seconds
+   Fuel Used:       142 kg (88.8%)
+   Fuel Remaining:  18 kg
+
+🔧 SYSTEM STATUS:
+   Main Engine:     98.2% health
+   Battery:         45%
+   Reactor:         online
+
+🏆 MISSION SCORE:
+   Landing Quality: 395 + 300 + 285 = 980
+   Resources:       120 (fuel) + 180 (time)
+   Systems:         190 (health)
+
+   TOTAL SCORE:     1470 points - Grade B
+```
+
+**Scoring Components:**
+- **Landing Quality** (0-1000): Speed + Angle + Precision scores
+- **Resources** (0-500): Fuel efficiency + Time bonus
+- **Systems** (0-300): Component health scores
+- **Multiplier**: 1.0x (easy) to 3.0x (extreme) based on landing zone difficulty
+- **Grade**: S (2500+), A (2000+), B (1500+), C (1000+), D (500+), F (<500)
+
 ## Summary
 
 The Enhanced Captain Screen transforms the Vector Moon Lander from a basic physics demo into a fully-featured flight simulator with:
 
 ✅ **12 integrated physics systems** (9 core + 3 flight)
 ✅ **369 passing tests** (100% test coverage)
-✅ **10 SAS modes** for automated attitude control
+✅ **All 9 SAS modes** keyboard accessible (was 4, now 9)
 ✅ **5 autopilot modes** for automated flight management
-✅ **Real-time navigation telemetry** (delta-V, TWR, impact prediction)
-✅ **Suicide burn automation** for fuel-efficient landings
-✅ **Mission system** ready for objectives and scoring
-✅ **Comprehensive keyboard controls** for all systems
+✅ **Visual system health bars** for at-a-glance status
+✅ **Enhanced navigation display** with impact prediction and color-coded warnings
+✅ **Navball attitude display** for intuitive orientation reference
+✅ **Mission tracking** with objectives, progress, and par time
+✅ **Comprehensive scoring system** with detailed breakdown and grades
+✅ **Full keyboard controls** for all systems
 
-The result is a realistic, challenging, and educational spacecraft simulator that demonstrates the complexity of actual spaceflight operations.
+The result is a realistic, challenging, and educational spacecraft simulator that demonstrates the complexity of actual spaceflight operations with professional-grade telemetry and automation.
