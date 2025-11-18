@@ -244,7 +244,22 @@ function Get-PmcData {
         $init | Set-Content -Path $file -Encoding UTF8
     }
     # Load with optional strict recovery policy
-    $cfg = Get-PmcConfig; $strict = $true; try { if ($cfg.Behavior -and $cfg.Behavior.StrictDataMode -ne $null) { $strict = [bool]$cfg.Behavior.StrictDataMode } } catch {}
+    # KR-M1 FIX: Add type validation before casting JSON boolean field
+    $cfg = Get-PmcConfig; $strict = $true
+    try {
+        if ($cfg.Behavior -and $cfg.Behavior.StrictDataMode -ne $null) {
+            # Validate and safely convert to boolean
+            if ($cfg.Behavior.StrictDataMode -is [bool]) {
+                $strict = $cfg.Behavior.StrictDataMode
+            } elseif ($cfg.Behavior.StrictDataMode -is [string]) {
+                $strict = $cfg.Behavior.StrictDataMode -eq 'true'
+            } elseif ($cfg.Behavior.StrictDataMode -is [int]) {
+                $strict = $cfg.Behavior.StrictDataMode -ne 0
+            } else {
+                $strict = [bool]$cfg.Behavior.StrictDataMode
+            }
+        }
+    } catch {}
     try {
         $raw = Get-Content $file -Raw
         $data = $raw | ConvertFrom-Json

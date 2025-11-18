@@ -56,6 +56,11 @@ class ExcelImportScreen : PmcScreen {
         # CRITICAL FIX #1: Initialize TaskStore for AddProject() call at line 379
         $this.Store = [TaskStore]::GetInstance()
 
+        # ES-H4 FIX: Validate Store initialization
+        if ($null -eq $this.Store) {
+            throw "Failed to initialize TaskStore singleton. Cannot proceed with Excel import."
+        }
+
         # Configure header
         $this.Header.SetBreadcrumb(@("Projects", "Import from Excel"))
 
@@ -247,7 +252,8 @@ class ExcelImportScreen : PmcScreen {
 
         if ($keyInfo.Key -eq ([ConsoleKey]::DownArrow)) {
             $maxOptions = $this._GetMaxOptions()
-            if ($this._selectedOption -lt $maxOptions - 1) {
+            # ES-M2 FIX: Guard against invalid maxOptions (0 or negative)
+            if ($maxOptions -gt 0 -and $this._selectedOption -lt $maxOptions - 1) {
                 $this._selectedOption++
             }
             return $true
@@ -273,6 +279,7 @@ class ExcelImportScreen : PmcScreen {
         return $false
     }
 
+    # KSV2-M2 FIX: Add proper bounds for steps 3 and 4
     hidden [int] _GetMaxOptions() {
         switch ($this._step) {
             1 { return 2 }  # 2 options: attach to running Excel OR open file
@@ -280,6 +287,8 @@ class ExcelImportScreen : PmcScreen {
                 $profiles = @($this._mappingService.GetAllProfiles())
                 return $profiles.Count
             }
+            3 { return 1 }  # Step 3 (preview): 1 option (Enter to continue)
+            4 { return 1 }  # Step 4 (complete): 1 option (Esc to exit)
             default { return 0 }
         }
         return 0  # Explicit return to satisfy PowerShell strict mode
@@ -294,6 +303,10 @@ class ExcelImportScreen : PmcScreen {
                         # Option 1: Attach to running Excel
                         try {
                             $this._reader.AttachToRunningExcel()
+                            # ES-M3 FIX: Validate workbook has accessible sheets
+                            if ($null -eq $this._reader.GetWorkbook() -or $null -eq $this._reader.GetWorkbook().Sheets -or $this._reader.GetWorkbook().Sheets.Count -eq 0) {
+                                throw "Workbook has no accessible sheets"
+                            }
                             $this._step = 2
                             $this._selectedOption = 0
                             $this._errorMessage = ""
@@ -307,6 +320,10 @@ class ExcelImportScreen : PmcScreen {
                             $filePath = $this._ShowFilePicker()
                             if ($filePath) {
                                 $this._reader.OpenFile($filePath)
+                                # ES-M3 FIX: Validate workbook has accessible sheets
+                                if ($null -eq $this._reader.GetWorkbook() -or $null -eq $this._reader.GetWorkbook().Sheets -or $this._reader.GetWorkbook().Sheets.Count -eq 0) {
+                                    throw "Workbook has no accessible sheets"
+                                }
                                 $this._step = 2
                                 $this._selectedOption = 0
                                 $this._errorMessage = ""
@@ -325,8 +342,22 @@ class ExcelImportScreen : PmcScreen {
                     if ($this._selectedOption -lt $profiles.Count) {
                         $this._activeProfile = $profiles[$this._selectedOption]
 
+                        # ES-M1 FIX: Validate mappings exist before iteration
+                        if ($null -eq $this._activeProfile['mappings'] -or
+                            $this._activeProfile['mappings'].Count -eq 0) {
+                            throw "Selected profile has no field mappings configured"
+                        }
+
                         # Read all mapped cells
                         $cellsToRead = @($this._activeProfile['mappings'] | ForEach-Object { $_['excel_cell'] })
+
+                        # ES-M6 FIX: Add limit for large range COM iteration to prevent performance issues
+                        $maxCellsToRead = 100
+                        if ($cellsToRead.Count -gt $maxCellsToRead) {
+                            Write-PmcTuiLog "Warning: Profile has $($cellsToRead.Count) cell mappings, limiting to $maxCellsToRead to prevent performance issues" "WARN"
+                            $cellsToRead = $cellsToRead | Select-Object -First $maxCellsToRead
+                        }
+
                         $this._previewData = $this._reader.ReadCells($cellsToRead)
 
                         $this._step = 3
@@ -384,8 +415,11 @@ class ExcelImportScreen : PmcScreen {
             }
 
             # Type conversion with error handling - throw on failure for data integrity
+            # CRITICAL FIX ES-C4: Preserve original value and type for better error context
             $convertedValue = switch ($mapping['data_type']) {
                 'int' {
+                    $originalValue = $value
+                    $originalType = if ($null -eq $value) { "null" } else { $value.GetType().Name }
                     try {
                         if ($null -eq $value -or $value -eq '') {
                             0
@@ -393,11 +427,13 @@ class ExcelImportScreen : PmcScreen {
                             [int]$value
                         }
                     } catch {
-                        Write-PmcTuiLog "Failed to convert '$value' to int for field $($mapping['display_name']): $_" "ERROR"
-                        throw "Cannot convert '$value' to integer for field '$($mapping['display_name'])'"
+                        Write-PmcTuiLog "Failed to convert '$originalValue' (type: $originalType) to int for field $($mapping['display_name']): $_" "ERROR"
+                        throw "Cannot convert '$originalValue' (type: $originalType) to integer for field '$($mapping['display_name'])'"
                     }
                 }
                 'bool' {
+                    $originalValue = $value
+                    $originalType = if ($null -eq $value) { "null" } else { $value.GetType().Name }
                     try {
                         if ($null -eq $value -or $value -eq '') {
                             $false
@@ -405,20 +441,28 @@ class ExcelImportScreen : PmcScreen {
                             [bool]$value
                         }
                     } catch {
-                        Write-PmcTuiLog "Failed to convert '$value' to bool for field $($mapping['display_name']): $_" "ERROR"
-                        throw "Cannot convert '$value' to boolean for field '$($mapping['display_name'])'"
+                        Write-PmcTuiLog "Failed to convert '$originalValue' (type: $originalType) to bool for field $($mapping['display_name']): $_" "ERROR"
+                        throw "Cannot convert '$originalValue' (type: $originalType) to boolean for field '$($mapping['display_name'])'"
                     }
                 }
                 'date' {
+                    $originalValue = $value
+                    $originalType = if ($null -eq $value) { "null" } else { $value.GetType().Name }
                     try {
                         if ($null -eq $value -or $value -eq '') {
                             $null
                         } else {
-                            [datetime]$value
+                            $dateValue = [datetime]$value
+                            # LOW FIX ES-L2: Validate date is in reasonable range (not year 1900/9999)
+                            if ($dateValue.Year -lt 1950 -or $dateValue.Year -gt 2100) {
+                                Write-PmcTuiLog "Date value '$dateValue' for field $($mapping['display_name']) is outside reasonable range (1950-2100)" "WARNING"
+                                throw "Date '$dateValue' is outside reasonable range (1950-2100) for field '$($mapping['display_name'])'"
+                            }
+                            $dateValue
                         }
                     } catch {
-                        Write-PmcTuiLog "Failed to convert '$value' to date for field $($mapping['display_name']): $_" "ERROR"
-                        throw "Cannot convert '$value' to date for field '$($mapping['display_name'])'"
+                        Write-PmcTuiLog "Failed to convert '$originalValue' (type: $originalType) to date for field $($mapping['display_name']): $_" "ERROR"
+                        throw "Cannot convert '$originalValue' (type: $originalType) to date for field '$($mapping['display_name'])'"
                     }
                 }
                 default {
@@ -438,18 +482,41 @@ class ExcelImportScreen : PmcScreen {
         # TaskStore handles ID generation and timestamps automatically
         $success = $this.Store.AddProject($projectData)
 
+        # CRITICAL FIX ES-C1: Add explicit null check for AddProject return
+        if ($null -eq $success) {
+            $this._errorMessage = "Failed to add project: Store.AddProject returned null"
+            Write-PmcTuiLog "ExcelImportScreen: AddProject returned null for '$($projectData['name'])'" "ERROR"
+            $this._step = 3  # Stay on step 3
+            throw "Failed to add project: AddProject returned null"
+        }
+
         if ($success) {
             Write-PmcTuiLog "ExcelImportScreen: Imported project '$($projectData['name'])'" "INFO"
-            # Flush to disk since this is a user-initiated import
-            $this.Store.Flush()
+            # ES-M9 FIX: Check Flush() return value to ensure data is persisted
+            $flushResult = $this.Store.Flush()
+            if ($flushResult -eq $false) {
+                Write-PmcTuiLog "ExcelImportScreen: Warning - Flush() returned false after importing project '$($projectData['name'])'" "WARN"
+            }
         } else {
-            Write-PmcTuiLog "ExcelImportScreen: Failed to import project: $($this.Store.LastError)" "ERROR"
-            throw "Failed to import project: $($this.Store.LastError)"
+            # ES-H7 FIX: Check Store is not null before accessing LastError
+            $errorMsg = if ($null -ne $this.Store) {
+                $this.Store.LastError
+            } else {
+                "Store is null"
+            }
+            Write-PmcTuiLog "ExcelImportScreen: Failed to import project: $errorMsg" "ERROR"
+            throw "Failed to import project: $errorMsg"
         }
     }
 
     hidden [string] _ShowFilePicker() {
-        . "$PSScriptRoot/../widgets/PmcFilePicker.ps1"
+        # LOW FIX ES-L3: Validate script sourcing path exists
+        $pickerPath = "$PSScriptRoot/../widgets/PmcFilePicker.ps1"
+        if (-not (Test-Path $pickerPath)) {
+            Write-PmcTuiLog "PmcFilePicker.ps1 not found at: $pickerPath" "ERROR"
+            throw "File picker widget not found. Please ensure PmcFilePicker.ps1 exists."
+        }
+        . $pickerPath
 
         # Start at user's home directory
         $startPath = [Environment]::GetFolderPath('UserProfile')
@@ -457,8 +524,14 @@ class ExcelImportScreen : PmcScreen {
 
         # Manual render loop
         while (-not $picker.IsComplete) {
-            # Get theme
+            # ES-M8 FIX: Add null check for PmcThemeManager.GetInstance()
             $themeManager = [PmcThemeManager]::GetInstance()
+            if ($null -eq $themeManager) {
+                Write-PmcTuiLog "PmcThemeManager.GetInstance() returned null in file picker" "ERROR"
+                $picker.IsComplete = $true
+                $picker.Result = $false
+                break
+            }
             $theme = $themeManager.GetTheme()
 
             # Render picker
@@ -468,16 +541,33 @@ class ExcelImportScreen : PmcScreen {
             Write-Host -NoNewline $pickerOutput
 
             # Handle input
-            if ([Console]::KeyAvailable) {
-                $key = [Console]::ReadKey($true)
-                $picker.HandleInput($key)
+            # ES-H1 FIX: Protect against non-interactive mode crash
+            try {
+                if ([Console]::KeyAvailable) {
+                    $key = [Console]::ReadKey($true)
+                    $picker.HandleInput($key)
+                }
+            } catch [System.InvalidOperationException] {
+                # Not in interactive mode - cancel picker
+                Write-PmcTuiLog "File picker cannot run in non-interactive mode" "ERROR"
+                $picker.IsComplete = $true
+                $picker.Result = $false
             }
 
             Start-Sleep -Milliseconds 50
         }
 
-        # Return selected path (or empty string if cancelled)
-        if ($picker.Result) {
+        # ES-H2 FIX: Check Result before accessing SelectedPath to avoid null reference
+        if ($picker.Result -and $null -ne $picker.SelectedPath) {
+            # ES-M5 FIX: Validate selection is a file, not a directory
+            if (Test-Path -Path $picker.SelectedPath -PathType Container) {
+                Write-PmcTuiLog "Selected path is a directory, not a file: $($picker.SelectedPath)" "ERROR"
+                return ''
+            }
+            if (-not (Test-Path -Path $picker.SelectedPath -PathType Leaf)) {
+                Write-PmcTuiLog "Selected path is not a valid file: $($picker.SelectedPath)" "ERROR"
+                return ''
+            }
             return $picker.SelectedPath
         } else {
             return ''

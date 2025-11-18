@@ -31,20 +31,48 @@ class ExcelComReader {
         # Nothing to initialize
     }
 
-    # Validate Excel cell address format (e.g., "A1", "W3", "AA100")
+    # Validate Excel cell address format (e.g., "A1", "W3", "AA100", "AAA1")
+    # ES-H5 FIX: Make regex case-insensitive and add null check
+    # The [A-Z]+ pattern with + quantifier properly matches multi-letter columns
     hidden [bool] IsValidCellAddress([string]$address) {
-        return $address -match '^[A-Z]+\d+$'
+        if ([string]::IsNullOrWhiteSpace($address)) {
+            return $false
+        }
+        # Case-insensitive match: accepts A1, AA1, AAA1, a1, aa1, etc.
+        return $address -match '(?i)^[A-Z]+\d+$'
     }
 
     # Attach to running Excel instance
     [void] AttachToRunningExcel() {
         try {
             $this._excelApp = [Marshal]::GetActiveObject("Excel.Application")
+
+            # CRITICAL FIX ES-C2: Validate COM object is functional
+            if ($null -eq $this._excelApp) {
+                throw "Excel COM object is null"
+            }
+            # Test if Excel is responsive
+            $null = $this._excelApp.Name  # Will throw if Excel is not responsive
+
+            # LOW FIX ES-L1: Validate Excel is not in edit mode
+            try {
+                $isInEditMode = $this._excelApp.Interactive -eq $false
+                if ($isInEditMode) {
+                    Write-PmcTuiLog "Excel may be in edit mode or protected view - attempting to continue" "WARNING"
+                }
+            } catch {
+                # If we can't check edit mode, log warning but continue
+                Write-PmcTuiLog "Cannot verify Excel edit mode status: $($_.Exception.Message)" "WARNING"
+            }
+
             $this._isAttached = $true
 
+            # KSV2-M3 FIX: Validate Worksheets collection exists before access
             if ($this._excelApp.Workbooks.Count -gt 0) {
                 $this._workbook = $this._excelApp.ActiveWorkbook
-                if ($this._workbook.Worksheets.Count -gt 0) {
+                if ($null -ne $this._workbook -and
+                    $null -ne $this._workbook.Worksheets -and
+                    $this._workbook.Worksheets.Count -gt 0) {
                     $this._worksheet = $this._workbook.ActiveSheet
                     $this.ActiveSheet = $this._worksheet.Index
                 }
@@ -55,7 +83,7 @@ class ExcelComReader {
 
         } catch {
             Write-PmcTuiLog "ExcelComReader: Failed to attach to Excel - $_" "ERROR"
-            throw "Could not attach to running Excel. Is Excel running?"
+            throw "Excel is not running or not accessible. Please open Excel first and try again."
         }
     }
 
@@ -67,6 +95,14 @@ class ExcelComReader {
 
         try {
             $this._excelApp = New-Object -ComObject Excel.Application
+
+            # CRITICAL FIX ES-C2: Validate COM object is functional
+            if ($null -eq $this._excelApp) {
+                throw "Excel COM object is null"
+            }
+            # Test if Excel is responsive
+            $null = $this._excelApp.Name  # Will throw if Excel is not responsive
+
             $this._excelApp.Visible = $false
             $this._excelApp.DisplayAlerts = $false
             $this._isAttached = $false
@@ -85,7 +121,10 @@ class ExcelComReader {
                 throw
             }
 
-            if ($this._workbook.Worksheets.Count -gt 0) {
+            # KSV2-M3 FIX: Validate Worksheets collection exists before access
+            if ($null -ne $this._workbook -and
+                $null -ne $this._workbook.Worksheets -and
+                $this._workbook.Worksheets.Count -gt 0) {
                 $this._worksheet = $this._workbook.Worksheets.Item(1)
                 $this.ActiveSheet = 1
             }
@@ -107,6 +146,11 @@ class ExcelComReader {
             throw "No workbook is open"
         }
 
+        # KSV2-M3 FIX: Validate Worksheets collection exists before access
+        if ($null -eq $this._workbook.Worksheets) {
+            throw "Workbook has no Worksheets collection"
+        }
+
         if ($sheetIndex -lt 1 -or $sheetIndex -gt $this._workbook.Worksheets.Count) {
             throw "Sheet index out of range: $sheetIndex (workbook has $($this._workbook.Worksheets.Count) sheets)"
         }
@@ -119,6 +163,11 @@ class ExcelComReader {
     [void] SetActiveSheetByName([string]$sheetName) {
         if (-not $this.IsOpen -or $null -eq $this._workbook) {
             throw "No workbook is open"
+        }
+
+        # KSV2-M3 FIX: Validate Worksheets collection exists before access
+        if ($null -eq $this._workbook.Worksheets) {
+            throw "Workbook has no Worksheets collection"
         }
 
         try {
@@ -151,6 +200,11 @@ class ExcelComReader {
             if ($null -ne $cell) {
                 [Marshal]::ReleaseComObject($cell) | Out-Null
             }
+
+            # CRITICAL FIX ES-C5: Aggressive COM cleanup to prevent memory leaks
+            [System.GC]::Collect()
+            [System.GC]::WaitForPendingFinalizers()
+            [System.GC]::Collect()
         }
     }
 
@@ -247,14 +301,25 @@ class ExcelComReader {
             return @()
         }
 
+        # KSV2-M3 FIX: Validate Worksheets collection exists before access
+        if ($null -eq $this._workbook.Worksheets) {
+            Write-PmcTuiLog "Workbook has no Worksheets collection" "WARNING"
+            return @()
+        }
+
         $names = @()
         $sheets = $null
         try {
             $sheets = $this._workbook.Worksheets
             foreach ($sheet in $sheets) {
-                $names += $sheet.Name
+                # LOW FIX ES-L4: Add null check in GetSheetNames loop
+                if ($null -ne $sheet -and $null -ne $sheet.Name) {
+                    $names += $sheet.Name
+                }
                 try {
-                    [Marshal]::ReleaseComObject($sheet) | Out-Null
+                    if ($null -ne $sheet) {
+                        [Marshal]::ReleaseComObject($sheet) | Out-Null
+                    }
                 } catch {
                     Write-PmcTuiLog "Failed to release COM object (sheet): $($_.Exception.Message)" "WARNING"
                 }
@@ -284,40 +349,49 @@ class ExcelComReader {
                 } catch {
                     Write-PmcTuiLog "ExcelComReader: Error releasing worksheet COM object - $_" "WARN"
                 }
+                $this._worksheet = $null
             }
 
             # Close and release workbook
-            if ($null -ne $this._workbook -and -not $this._isAttached) {
-                try {
-                    $this._workbook.Close($false)  # Don't save changes
-                } catch {
-                    Write-PmcTuiLog "ExcelComReader: Error closing workbook - $_" "WARN"
+            if ($null -ne $this._workbook) {
+                if (-not $this._isAttached) {
+                    try {
+                        $this._workbook.Close($false)  # Don't save changes
+                    } catch {
+                        Write-PmcTuiLog "ExcelComReader: Error closing workbook - $_" "WARN"
+                    }
                 }
                 try {
                     [Marshal]::ReleaseComObject($this._workbook) | Out-Null
                 } catch {
                     Write-PmcTuiLog "ExcelComReader: Error releasing workbook COM object - $_" "WARN"
                 }
+                $this._workbook = $null
             }
 
             # Quit and release Excel app
-            if ($null -ne $this._excelApp -and -not $this._isAttached) {
-                try {
-                    $this._excelApp.Quit()
-                } catch {
-                    Write-PmcTuiLog "ExcelComReader: Error quitting Excel - $_" "WARN"
+            if ($null -ne $this._excelApp) {
+                if (-not $this._isAttached) {
+                    try {
+                        $this._excelApp.Quit()
+                    } catch {
+                        Write-PmcTuiLog "ExcelComReader: Error quitting Excel - $_" "WARN"
+                    }
                 }
                 try {
                     [Marshal]::ReleaseComObject($this._excelApp) | Out-Null
                 } catch {
                     Write-PmcTuiLog "ExcelComReader: Error releasing Excel COM object - $_" "WARN"
                 }
+                $this._excelApp = $null
             }
 
-            $this._workbook = $null
-            $this._worksheet = $null
-            $this._excelApp = $null
             $this.IsOpen = $false
+
+            # CRITICAL FIX ES-C5: Aggressive COM cleanup to ensure all resources are released
+            [System.GC]::Collect()
+            [System.GC]::WaitForPendingFinalizers()
+            [System.GC]::Collect()
 
             Write-PmcTuiLog "ExcelComReader: Closed" "INFO"
         }

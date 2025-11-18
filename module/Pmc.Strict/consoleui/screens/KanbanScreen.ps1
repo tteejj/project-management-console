@@ -90,7 +90,7 @@ class KanbanScreen : PmcScreen {
                 -not $taskCompleted -and
                 ($taskStatus -eq 'pending' -or $taskStatus -eq 'blocked' -or $taskStatus -eq 'waiting' -or -not $taskStatus)
             })
-            $this.TodoTasks = @($this.TodoTasks | Sort-Object { Get-SafeProperty $_ 'priority' }, { Get-SafeProperty $_ 'id' } -Descending)
+            $this.TodoTasks = @($this.TodoTasks | Sort-Object { Get-SafeProperty $_ 'priority' }, { Get-SafeProperty $_ 'id' })
 
             # In Progress column: in-progress (not completed)
             $this.InProgressTasks = @($allTasks | Where-Object {
@@ -98,7 +98,7 @@ class KanbanScreen : PmcScreen {
                 $taskStatus = Get-SafeProperty $_ 'status'
                 -not $taskCompleted -and $taskStatus -eq 'in-progress'
             })
-            $this.InProgressTasks = @($this.InProgressTasks | Sort-Object { Get-SafeProperty $_ 'priority' }, { Get-SafeProperty $_ 'id' } -Descending)
+            $this.InProgressTasks = @($this.InProgressTasks | Sort-Object { Get-SafeProperty $_ 'priority' }, { Get-SafeProperty $_ 'id' })
 
             # Done column: completed in last 7 days OR status=done
             $this.DoneTasks = @($allTasks | Where-Object {
@@ -108,7 +108,7 @@ class KanbanScreen : PmcScreen {
                 ($taskCompleted -and $taskCompletedDate -and ([DateTime]$taskCompletedDate) -gt $sevenDaysAgo) -or
                 ($taskStatus -eq 'done')
             })
-            $this.DoneTasks = @($this.DoneTasks | Sort-Object { Get-SafeProperty $_ 'completedDate' }, { Get-SafeProperty $_ 'id' } -Descending)
+            $this.DoneTasks = @($this.DoneTasks | Sort-Object { Get-SafeProperty $_ 'completedDate' }, { Get-SafeProperty $_ 'id' })
 
             # Reset selections if out of bounds
             if ($this.SelectedIndexTodo -ge $this.TodoTasks.Count) {
@@ -440,17 +440,18 @@ class KanbanScreen : PmcScreen {
 
     hidden [void] _ShowTaskDetail() {
         $task = $this._GetSelectedTask()
-        if ($task) {
-            $taskId = Get-SafeProperty $task 'id'
-            if ($taskId) {
-                . "$PSScriptRoot/TaskDetailScreen.ps1"
-                $detailScreen = [TaskDetailScreen]::new($taskId)
-                $global:PmcApp.PushScreen($detailScreen)
-            } else {
-                $this.ShowError("Selected task has no ID")
-            }
+        if ($null -eq $task) {
+            $this.ShowStatus("No task selected", "warning")
+            return
+        }
+
+        $taskId = Get-SafeProperty $task 'id'
+        if ($taskId) {
+            . "$PSScriptRoot/TaskDetailScreen.ps1"
+            $detailScreen = [TaskDetailScreen]::new($taskId)
+            $global:PmcApp.PushScreen($detailScreen)
         } else {
-            $this.ShowStatus("No task selected")
+            $this.ShowError("Selected task has no ID")
         }
     }
 }

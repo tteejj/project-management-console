@@ -34,6 +34,11 @@ class WeeklyTimeReportScreen : PmcScreen {
     [string]$WeekIndicator = ""
     [TaskStore]$Store = $null
 
+    # TS-M4/TS-M5 FIX: Make week days configurable
+    # Set to 7 for full week (Mon-Sun), or 5 for business week (Mon-Fri)
+    [int]$WeekDays = 7
+    [bool]$IncludeWeekends = $true
+
     # Static: Register menu items
     static [void] RegisterMenuItems([object]$registry) {
         $registry.AddMenuItem('Time', 'Weekly Report', 'W', {
@@ -92,12 +97,13 @@ class WeeklyTimeReportScreen : PmcScreen {
         $this.ShowStatus("Loading weekly time report...")
 
         try {
-            # Calculate week start (Monday) and end (Friday)
+            # Calculate week start (Monday) and end (Friday or Sunday based on config)
             $today = Get-Date
             $daysFromMonday = ($today.DayOfWeek.value__ + 6) % 7
             $thisMonday = $today.AddDays(-$daysFromMonday).Date
             $this.WeekStart = $thisMonday.AddDays($this.WeekOffset * 7)
-            $this.WeekEnd = $this.WeekStart.AddDays(4)
+            # TS-M4/TS-M5 FIX: Week end depends on configured week length
+            $this.WeekEnd = $this.WeekStart.AddDays($this.WeekDays - 1)
 
             # Format week header
             $this.WeekHeader = "Week of {0} - {1}" -f $this.WeekStart.ToString('MMM dd'), $this.WeekEnd.ToString('MMM dd, yyyy')
@@ -117,9 +123,9 @@ class WeeklyTimeReportScreen : PmcScreen {
             # Use TaskStore singleton instead of loading from disk
             $logs = $this.Store.GetAllTimeLogs()
 
-            # Filter logs for the week (Monday-Friday)
+            # TS-M4/TS-M5 FIX: Filter logs for the week (configurable: Mon-Fri or Mon-Sun)
             $weekLogs = @()
-            for ($d = 0; $d -lt 5; $d++) {
+            for ($d = 0; $d -lt $this.WeekDays; $d++) {
                 $dayDate = $this.WeekStart.AddDays($d).ToString('yyyy-MM-dd')
                 $dayLogs = $logs | Where-Object {
                     $dateStr = if ($_.date -is [DateTime]) {
@@ -160,6 +166,7 @@ class WeeklyTimeReportScreen : PmcScreen {
                         if (-not $name) { $name = 'Unknown' }
                     }
 
+                    # TS-M4/TS-M5 FIX: Include Sat/Sun columns
                     $this.ProjectSummaries[$key] = @{
                         Name = $name
                         ID1 = $id1
@@ -168,21 +175,41 @@ class WeeklyTimeReportScreen : PmcScreen {
                         Wed = 0.0
                         Thu = 0.0
                         Fri = 0.0
+                        Sat = 0.0
+                        Sun = 0.0
                         Total = 0.0
                     }
                 }
 
                 # Add hours to appropriate day
-                $logDate = [datetime]$log.date
-                $dayIndex = ($logDate.DayOfWeek.value__ + 6) % 7  # 0=Mon, 1=Tue, etc.
+                # TS-H3 FIX: Add error handling for unsafe DateTime cast
+                $logDate = $null
+                try {
+                    $logDate = if ($log.date -is [DateTime]) {
+                        $log.date
+                    } else {
+                        [datetime]::Parse($log.date)
+                    }
+                } catch {
+                    Write-PmcTuiLog "WeeklyTimeReportScreen: Failed to parse date '$($log.date)': $_" "WARNING"
+                    continue  # Skip this log entry
+                }
+
+                $dayIndex = ($logDate.DayOfWeek.value__ + 6) % 7  # 0=Mon, 1=Tue, ..., 5=Sat, 6=Sun
                 $hours = [Math]::Round($log.minutes / 60.0, 1)
 
+                # TS-M4/TS-M5 FIX: Handle all 7 days including Saturday and Sunday
                 switch ($dayIndex) {
                     0 { $this.ProjectSummaries[$key].Mon += $hours }
                     1 { $this.ProjectSummaries[$key].Tue += $hours }
                     2 { $this.ProjectSummaries[$key].Wed += $hours }
                     3 { $this.ProjectSummaries[$key].Thu += $hours }
                     4 { $this.ProjectSummaries[$key].Fri += $hours }
+                    5 { $this.ProjectSummaries[$key].Sat += $hours }
+                    6 { $this.ProjectSummaries[$key].Sun += $hours }
+                    default {
+                        Write-PmcTuiLog "WeeklyTimeReportScreen: Unexpected day index $dayIndex" "WARNING"
+                    }
                 }
                 $this.ProjectSummaries[$key].Total += $hours
                 $this.GrandTotal += $hours
@@ -272,19 +299,26 @@ class WeeklyTimeReportScreen : PmcScreen {
         $sb.Append($reset)
         $y += 2
 
-        # Column headers - matching old renderer format
-        # "Name                 ID1   Mon    Tue    Wed    Thu    Fri    Total"
+        # TS-M4/TS-M5 FIX: Column headers - include Sat/Sun if configured
         $headerY = $y
         $sb.Append($this.Header.BuildMoveTo($contentRect.X + 4, $headerY))
         $sb.Append($headerColor)
-        $sb.Append("Name                 ID1   Mon    Tue    Wed    Thu    Fri    Total")
+        if ($this.IncludeWeekends) {
+            $sb.Append("Name                 ID1   Mon    Tue    Wed    Thu    Fri    Sat    Sun    Total")
+        } else {
+            $sb.Append("Name                 ID1   Mon    Tue    Wed    Thu    Fri    Total")
+        }
         $sb.Append($reset)
         $y++
 
         # Separator line
         $sb.Append($this.Header.BuildMoveTo($contentRect.X + 4, $y))
         $sb.Append($mutedColor)
-        $sb.Append([string]::new([char]0x2500, 75))  # Unicode line character
+        if ($this.IncludeWeekends) {
+            $sb.Append([string]::new([char]0x2500, 89))  # Unicode line character (longer for weekends)
+        } else {
+            $sb.Append([string]::new([char]0x2500, 75))  # Unicode line character
+        }
         $sb.Append($reset)
         $y++
 
@@ -314,7 +348,7 @@ class WeeklyTimeReportScreen : PmcScreen {
             $sb.Append($id1Display.PadRight(5))
             $sb.Append(" ")
 
-            # Day columns (6 chars each, right-aligned with 1 decimal)
+            # TS-M4/TS-M5 FIX: Day columns (6 chars each, right-aligned with 1 decimal)
             $sb.Append($successColor)
             $sb.Append($d.Mon.ToString("0.0").PadLeft(6))
             $sb.Append(" ")
@@ -326,6 +360,14 @@ class WeeklyTimeReportScreen : PmcScreen {
             $sb.Append(" ")
             $sb.Append($d.Fri.ToString("0.0").PadLeft(6))
             $sb.Append(" ")
+
+            # Include Sat/Sun if configured
+            if ($this.IncludeWeekends) {
+                $sb.Append($d.Sat.ToString("0.0").PadLeft(6))
+                $sb.Append(" ")
+                $sb.Append($d.Sun.ToString("0.0").PadLeft(6))
+                $sb.Append(" ")
+            }
 
             # Total (8 chars, right-aligned with 1 decimal)
             $sb.Append($warningColor)
@@ -339,15 +381,22 @@ class WeeklyTimeReportScreen : PmcScreen {
         $y++
         $sb.Append($this.Header.BuildMoveTo($contentRect.X + 4, $y))
         $sb.Append($mutedColor)
-        $sb.Append([string]::new([char]0x2500, 75))
+        if ($this.IncludeWeekends) {
+            $sb.Append([string]::new([char]0x2500, 89))
+        } else {
+            $sb.Append([string]::new([char]0x2500, 75))
+        }
         $sb.Append($reset)
         $y++
 
-        # Total row - matching old format
-        # "                                                          Total: {0,8:F1}"
+        # Total row - matching old format but adjusted for weekend columns
         $sb.Append($this.Header.BuildMoveTo($contentRect.X + 4, $y))
         $sb.Append($highlightColor)
-        $sb.Append(" " * 58)
+        if ($this.IncludeWeekends) {
+            $sb.Append(" " * 72)  # More padding for weekend columns
+        } else {
+            $sb.Append(" " * 58)
+        }
         $sb.Append("Total: ")
         $sb.Append($this.GrandTotal.ToString("0.0").PadLeft(8))
         $sb.Append($reset)

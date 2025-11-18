@@ -60,9 +60,16 @@ class ExcelMappingService {
     # === Profile Management ===
     hidden [void] LoadProfiles() {
         if (Test-Path $this._profilesFile) {
+            # CRITICAL FIX ES-C3: Robust JSON parsing with null validation
             try {
-                $json = Get-Content $this._profilesFile -Raw | ConvertFrom-Json
+                $jsonContent = Get-Content $this._profilesFile -Raw -ErrorAction Stop
+                $json = $jsonContent | ConvertFrom-Json -ErrorAction Stop
 
+                if ($null -eq $json) {
+                    throw "JSON deserialization returned null"
+                }
+
+                $this._profilesCache = @{}
                 $this._activeProfileId = $json.active_profile_id
 
                 foreach ($profile in $json.profiles) {
@@ -70,16 +77,44 @@ class ExcelMappingService {
                     # Check if mappings property exists and is not null - JSON deserialization can omit empty arrays
                     if ($profile.PSObject.Properties['mappings'] -and $null -ne $profile.mappings) {
                         foreach ($mapping in $profile.mappings) {
+                            # ES-M4 FIX: Type validation before casting JSON booleans
+                            $requiredValue = $false
+                            if ($mapping.PSObject.Properties['required']) {
+                                try {
+                                    $requiredValue = [bool]$mapping.required
+                                } catch {
+                                    Write-PmcTuiLog "Invalid 'required' value for mapping $($mapping.id), defaulting to false: $_" "WARN"
+                                }
+                            }
+
+                            $includeInExportValue = $true
+                            if ($mapping.PSObject.Properties['include_in_export']) {
+                                try {
+                                    $includeInExportValue = [bool]$mapping.include_in_export
+                                } catch {
+                                    Write-PmcTuiLog "Invalid 'include_in_export' value for mapping $($mapping.id), defaulting to true: $_" "WARN"
+                                }
+                            }
+
+                            $sortOrderValue = 0
+                            if ($mapping.PSObject.Properties['sort_order']) {
+                                try {
+                                    $sortOrderValue = [int]$mapping.sort_order
+                                } catch {
+                                    Write-PmcTuiLog "Invalid 'sort_order' value for mapping $($mapping.id), defaulting to 0: $_" "WARN"
+                                }
+                            }
+
                             # Force type conversion for boolean and int values from JSON
                             $mappings += @{
                                 id = $mapping.id
                                 display_name = $mapping.display_name
                                 excel_cell = $mapping.excel_cell
                                 project_property = $mapping.project_property
-                                required = [bool]$mapping.required
+                                required = $requiredValue
                                 data_type = $mapping.data_type
-                                include_in_export = [bool]$mapping.include_in_export
-                                sort_order = [int]$mapping.sort_order
+                                include_in_export = $includeInExportValue
+                                sort_order = $sortOrderValue
                             }
                         }
                     }
@@ -151,15 +186,27 @@ class ExcelMappingService {
                 profiles = $profiles
             }
 
-            # Atomic save
+            # ES-H6 FIX: Atomic save with proper cleanup of temp file on failure
             $tempFile = "$($this._profilesFile).tmp"
             $metadata | ConvertTo-Json -Depth 10 | Set-Content -Path $tempFile -Encoding UTF8
 
-            if (Test-Path $this._profilesFile) {
-                Copy-Item $this._profilesFile "$($this._profilesFile).bak" -Force
-            }
+            try {
+                if (Test-Path $this._profilesFile) {
+                    Copy-Item $this._profilesFile "$($this._profilesFile).bak" -Force
+                }
 
-            Move-Item -Path $tempFile -Destination $this._profilesFile -Force
+                Move-Item -Path $tempFile -Destination $this._profilesFile -Force
+            } catch {
+                # Clean up orphaned temp file if move fails
+                if (Test-Path $tempFile) {
+                    try {
+                        Remove-Item $tempFile -Force -ErrorAction SilentlyContinue
+                    } catch {
+                        Write-PmcTuiLog "Failed to clean up temp file $tempFile : $_" "WARNING"
+                    }
+                }
+                throw
+            }
 
         } catch {
             Write-PmcTuiLog "Failed to save Excel profiles: $_" "ERROR"
@@ -206,9 +253,9 @@ class ExcelMappingService {
     }
 
     [object] CreateProfile([string]$name, [string]$description, [string]$startCell) {
-        # Check for duplicate name
-        $existing = $this._profilesCache.Values | Where-Object { $_['name'] -eq $name }
-        if ($existing) {
+        # ES-H3 FIX: Check for duplicate name with proper count validation
+        $existing = @($this._profilesCache.Values | Where-Object { $_['name'] -eq $name })
+        if ($existing.Count -gt 0) {
             throw "Profile with name '$name' already exists"
         }
 
@@ -252,8 +299,9 @@ class ExcelMappingService {
 
         # Check for duplicate name if name is being changed
         if ($changes.ContainsKey('name') -and $changes.name -ne $profile['name']) {
-            $existing = $this._profilesCache.Values | Where-Object { $_['name'] -eq $changes.name -and $_['id'] -ne $profileId }
-            if ($existing) {
+            # ES-M7 FIX: Validate Where-Object returns expected result count
+            $existing = @($this._profilesCache.Values | Where-Object { $_['name'] -eq $changes.name -and $_['id'] -ne $profileId })
+            if ($existing.Count -gt 0) {
                 throw "Profile with name '$($changes.name)' already exists"
             }
         }
@@ -348,11 +396,15 @@ class ExcelMappingService {
         }
 
         $profile = $this._profilesCache[$profileId]
-        $mapping = $profile.mappings | Where-Object { $_.id -eq $mappingId } | Select-Object -First 1
-
-        if (-not $mapping) {
+        # ES-M7 FIX: Validate Where-Object returns exactly one result
+        $matchingMappings = @($profile.mappings | Where-Object { $_.id -eq $mappingId })
+        if ($matchingMappings.Count -eq 0) {
             throw "Mapping not found: $mappingId"
         }
+        if ($matchingMappings.Count -gt 1) {
+            Write-PmcTuiLog "WARNING: Multiple mappings found with ID $mappingId in profile $profileId. Using first match." "WARN"
+        }
+        $mapping = $matchingMappings[0]
 
         if ($changes.ContainsKey('display_name')) { $mapping.display_name = $changes.display_name }
         if ($changes.ContainsKey('excel_cell')) { $mapping.excel_cell = $changes.excel_cell }

@@ -92,6 +92,9 @@ class TimeListScreen : StandardListScreen {
     [array] LoadItems() {
         $entries = $this.Store.GetAllTimeLogs()
 
+        # TS-M1 FIX: Track failed date parses to provide user feedback
+        $failedDateParses = 0
+
         # Group entries by date, project, and timecode
         $grouped = @{}
         foreach ($entry in $entries) {
@@ -107,15 +110,25 @@ class TimeListScreen : StandardListScreen {
                         $dateStr = $parsedDate.ToString('yyyy-MM-dd')
                     }
                 } catch {
+                    # TS-M1 FIX: Instead of empty string, use original date value with marker
+                    # This preserves data context and prevents incorrect grouping
+                    $dateStr = "INVALID:$($entry.date)"
+                    $failedDateParses++
                     Write-PmcTuiLog "TimeListScreen.LoadItems: Failed to parse date '$($entry.date)': $_" "WARNING"
-                    $dateStr = ''
                 }
             }
 
             # Create grouping key
+            # TS-M3 FIX: Sanitize components to prevent pipe character breaking grouping
             $project = if ($entry.ContainsKey('project')) { $entry.project } else { '' }
             $timecode = if ($entry.ContainsKey('timecode')) { $entry.timecode } else { '' }
-            $groupKey = "$dateStr|$project|$timecode"
+
+            # Replace pipe characters in components to prevent grouping key corruption
+            $dateStrSafe = $dateStr -replace '\|', '_'
+            $projectSafe = $project -replace '\|', '_'
+            $timecodeSafe = $timecode -replace '\|', '_'
+
+            $groupKey = "$dateStrSafe|$projectSafe|$timecodeSafe"
 
             # Initialize group if needed
             if (-not $grouped.ContainsKey($groupKey)) {
@@ -147,21 +160,34 @@ class TimeListScreen : StandardListScreen {
             }
             $grouped[$groupKey].original_entries += $entry
 
-            # Concatenate tasks if multiple
+            # TS-M3 FIX: Simplify task/notes concatenation and prevent excessive string length
+            # Concatenate tasks if multiple (with length limit to prevent memory issues)
             if ($entry.ContainsKey('task') -and $entry.task) {
                 $currentTask = $grouped[$groupKey].task
                 if ($currentTask -and $currentTask -ne $entry.task) {
-                    $grouped[$groupKey].task = "$currentTask; $($entry.task)"
+                    # Limit concatenated task length to 200 chars to prevent excessive growth
+                    $newTask = "$currentTask; $($entry.task)"
+                    $grouped[$groupKey].task = if ($newTask.Length -gt 200) {
+                        $newTask.Substring(0, 197) + "..."
+                    } else {
+                        $newTask
+                    }
                 } elseif (-not $currentTask) {
                     $grouped[$groupKey].task = $entry.task
                 }
             }
 
-            # Concatenate notes if multiple
+            # Concatenate notes if multiple (with length limit to prevent memory issues)
             if ($entry.ContainsKey('notes') -and $entry.notes) {
                 $currentNotes = $grouped[$groupKey].notes
                 if ($currentNotes -and $currentNotes -ne $entry.notes) {
-                    $grouped[$groupKey].notes = "$currentNotes; $($entry.notes)"
+                    # Limit concatenated notes length to 300 chars to prevent excessive growth
+                    $newNotes = "$currentNotes; $($entry.notes)"
+                    $grouped[$groupKey].notes = if ($newNotes.Length -gt 300) {
+                        $newNotes.Substring(0, 297) + "..."
+                    } else {
+                        $newNotes
+                    }
                 } elseif (-not $currentNotes) {
                     $grouped[$groupKey].notes = $entry.notes
                 }
@@ -173,10 +199,14 @@ class TimeListScreen : StandardListScreen {
         foreach ($key in $grouped.Keys) {
             $entry = $grouped[$key]
 
-            # Format duration as HH:MM
-            $hours = [int][Math]::Floor($entry.minutes / 60)
-            $mins = [int]($entry.minutes % 60)
-            $entry['duration'] = "{0:D2}:{1:D2}" -f $hours, $mins
+            # Format duration as HH:MM with null checks
+            if ($entry.ContainsKey('minutes') -and $null -ne $entry.minutes) {
+                $hours = [int][Math]::Floor($entry.minutes / 60)
+                $mins = [int]($entry.minutes % 60)
+                $entry['duration'] = "{0:D2}:{1:D2}" -f $hours, $mins
+            } else {
+                $entry['duration'] = "00:00"
+            }
 
             # Add indicator if aggregated
             if ($entry.entry_count -gt 1) {
@@ -184,6 +214,12 @@ class TimeListScreen : StandardListScreen {
             }
 
             $aggregated += $entry
+        }
+
+        # TS-M1 FIX: Notify user if there were failed date parses
+        if ($failedDateParses -gt 0) {
+            Write-PmcTuiLog "TimeListScreen.LoadItems: $failedDateParses time entries had unparseable dates" "WARNING"
+            $this.SetStatusMessage("Warning: $failedDateParses entries have invalid dates", "warning")
         }
 
         # Sort by date descending (most recent first)
@@ -346,7 +382,9 @@ class TimeListScreen : StandardListScreen {
                 $success = $this.Store.UpdateTimeLog($item.id, $changes)
                 if ($success) {
                     $this.SetStatusMessage("Time entry updated", "success")
-                    $this.LoadData()  # Refresh to show updated data
+                    # TS-M6 FIX: Use RefreshList() instead of LoadData() for incremental refresh
+                    # RefreshList() is more efficient than full LoadData() for single item updates
+                    $this.RefreshList()
                 } else {
                     $this.SetStatusMessage("Failed to update time entry: $($this.Store.LastError)", "error")
                 }
@@ -383,7 +421,7 @@ class TimeListScreen : StandardListScreen {
             }.GetNewClosure() }
             @{ Key='w'; Label='Week Report'; Callback={
                 . "$PSScriptRoot/WeeklyTimeReportScreen.ps1"
-                $screen = Invoke-Expression '[WeeklyTimeReportScreen]::new()'
+                $screen = [WeeklyTimeReportScreen]::new()
                 $self.App.PushScreen($screen)
             }.GetNewClosure() }
             @{ Key='g'; Label='Generate'; Callback={
@@ -407,11 +445,18 @@ class TimeListScreen : StandardListScreen {
         }
         $title += " ($($item.entry_count) entries)"
 
-        # Create and show dialog
-        $dialog = [TimeEntryDetailDialog]::new($title, $item.original_entries)
+        # LOW FIX TS-L1: Add error handling on dialog creation
+        try {
+            $dialog = [TimeEntryDetailDialog]::new($title, $item.original_entries)
+        } catch {
+            $this.SetStatusMessage("Failed to create detail dialog: $($_.Exception.Message)", "error")
+            Write-PmcTuiLog "TimeListScreen: Dialog creation failed - $_" "ERROR"
+            return
+        }
 
         # TIM-7 FIX: Dialog render loop with timeout protection
-        $maxIterations = 120000  # 120000 * 50ms = 100 minutes max
+        # TS-M2 FIX: Reduced timeout from 120000 to 3600 (3 minutes instead of 100 minutes)
+        $maxIterations = 3600  # 3600 * 50ms = 180 seconds = 3 minutes max
         $iterations = 0
 
         while (-not $dialog.IsComplete -and $iterations -lt $maxIterations) {
@@ -442,9 +487,10 @@ class TimeListScreen : StandardListScreen {
             Start-Sleep -Milliseconds 50
         }
 
-        # Log if timeout occurred
+        # TS-M2 FIX: Show user-visible warning if timeout occurred
         if ($iterations -ge $maxIterations) {
-            Write-PmcTuiLog "TimeListScreen.ShowDetailDialog: Timeout after $maxIterations iterations" "WARNING"
+            Write-PmcTuiLog "TimeListScreen.ShowDetailDialog: Timeout after $maxIterations iterations (3 minutes)" "WARNING"
+            $this.SetStatusMessage("Dialog closed due to timeout (3 minutes)", "warning")
         }
 
         # Redraw screen after dialog closes
