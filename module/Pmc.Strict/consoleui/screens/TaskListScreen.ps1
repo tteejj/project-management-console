@@ -877,7 +877,8 @@ class TaskListScreen : StandardListScreen {
             }
 
             # Validate text length
-            if ($taskText.Length -gt 500) {
+            # MEDIUM FIX TLS-M4: Match MaxLength=200 from field definition (was 500)
+            if ($taskText.Length -gt 200) {
                 $this.SetStatusMessage("Task description must be 500 characters or less", "error")
                 return
             }
@@ -1017,7 +1018,8 @@ class TaskListScreen : StandardListScreen {
             }
 
             # Validate text length
-            if ($taskText.Length -gt 500) {
+            # MEDIUM FIX TLS-M4: Match MaxLength=200 from field definition (was 500)
+            if ($taskText.Length -gt 200) {
                 $this.SetStatusMessage("Task description must be 500 characters or less", "error")
                 return
             }

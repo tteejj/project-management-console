@@ -246,7 +246,8 @@ class TimeListScreen : StandardListScreen {
                 @{ Name='task'; Type='text'; Label='Task'; Value='' }
                 @{ Name='project'; Type='project'; Label='Project (or leave blank for timecode)'; Value='' }
                 @{ Name='timecode'; Type='text'; Label='Timecode (2-5 digits, or leave blank for project)'; Value=''; MaxLength=5 }
-                @{ Name='hours'; Type='number'; Label='Hours'; Min=0.25; Max=8; Step=0.25; Value=0.25 }
+                # MEDIUM FIX TMS-M3: Increase max from 8 to 24 to allow overtime/full-day logging
+                @{ Name='hours'; Type='number'; Label='Hours'; Min=0.25; Max=24; Step=0.25; Value=0.25 }
                 @{ Name='notes'; Type='text'; Label='Notes'; Value='' }
             )
         } else {
@@ -260,7 +261,8 @@ class TimeListScreen : StandardListScreen {
                 @{ Name='task'; Type='text'; Label='Task'; Value=$item.task }
                 @{ Name='project'; Type='project'; Label='Project (or leave blank for timecode)'; Value=$projectVal }
                 @{ Name='timecode'; Type='text'; Label='Timecode (2-5 digits, or leave blank for project)'; Value=$timecodeVal; MaxLength=5 }
-                @{ Name='hours'; Type='number'; Label='Hours'; Min=0.25; Max=8; Step=0.25; Value=$hoursVal }
+                # MEDIUM FIX TMS-M3: Increase max from 8 to 24 to allow overtime/full-day logging
+                @{ Name='hours'; Type='number'; Label='Hours'; Min=0.25; Max=24; Step=0.25; Value=$hoursVal }
                 @{ Name='notes'; Type='text'; Label='Notes'; Value=$item.notes }
             )
         }
