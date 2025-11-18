@@ -231,7 +231,7 @@ class SettingsScreen : PmcScreen {
         return $sb.ToString()
     }
 
-    [bool] HandleInput([ConsoleKeyInfo]$keyInfo) {
+    [bool] HandleKeyPress([ConsoleKeyInfo]$keyInfo) {
         # Handle input mode
         if ($this.InputMode -eq 'edit') {
             return $this._HandleEditMode($keyInfo)
@@ -275,10 +275,15 @@ class SettingsScreen : PmcScreen {
             switch ($setting.action) {
                 'launchThemeEditor' {
                     # Lazy-load Theme Editor screen
-                    . "$PSScriptRoot/ThemeEditorScreen.ps1"
-                    if ($global:PmcApp) {
-                        $themeScreen = New-Object ThemeEditorScreen
-                        $global:PmcApp.PushScreen($themeScreen)
+                    try {
+                        . "$PSScriptRoot/ThemeEditorScreen.ps1"
+                        if ($global:PmcApp) {
+                            $themeScreen = [ThemeEditorScreen]::new()
+                            $global:PmcApp.PushScreen($themeScreen)
+                        }
+                    } catch {
+                        try { $this.ShowError("Failed to load theme editor: $($_.Exception.Message)") } catch { }
+                        Write-PmcTuiLog "Failed to load ThemeEditorScreen: $_" "ERROR"
                     }
                     return
                 }
@@ -334,6 +339,10 @@ class SettingsScreen : PmcScreen {
         switch ($setting.key) {
             'defaultProject' {
                 try {
+                    # Check if Set-PmcFocus command exists
+                    if (-not (Get-Command -Name 'Set-PmcFocus' -ErrorAction SilentlyContinue)) {
+                        throw "Set-PmcFocus command not available"
+                    }
                     # Use Set-PmcFocus to change the current context
                     Set-PmcFocus -Project $newValue
                     $this.ShowSuccess("Default project updated to '$newValue'")

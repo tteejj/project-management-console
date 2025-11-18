@@ -98,6 +98,9 @@ class TaskListScreen : StandardListScreen {
     # L-POL-14: Strikethrough support detection
     hidden [bool]$_supportsStrikethrough = $true  # Assume support, can be overridden
 
+    # Debug logging flag - set to $false to disable debug file writes
+    hidden [bool]$_enableDebugLogging = $false
+
     # Constructor with optional view mode
     TaskListScreen() : base("TaskList", "Task List") {
         $this._viewMode = 'active'
@@ -171,7 +174,9 @@ class TaskListScreen : StandardListScreen {
             $result = $itemId -eq $selectedId
 
             # DEBUG
-            Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') GetIsInEditMode: _isEditingRow=$($self._isEditingRow) itemId=$itemId selectedId=$selectedId result=$result"
+            if ($self._enableDebugLogging) {
+                Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') GetIsInEditMode: _isEditingRow=$($self._isEditingRow) itemId=$itemId selectedId=$selectedId result=$result"
+            }
 
             return $result
         }.GetNewClosure()
@@ -187,7 +192,9 @@ class TaskListScreen : StandardListScreen {
             if ($itemId -ne $selectedId) { return -1 }
 
             # DEBUG
-            Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') GetFocusedColumnIndex: returning $($self._currentColumnIndex)"
+            if ($self._enableDebugLogging) {
+                Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') GetFocusedColumnIndex: returning $($self._currentColumnIndex)"
+            }
 
             return $self._currentColumnIndex
         }.GetNewClosure()
@@ -334,9 +341,11 @@ class TaskListScreen : StandardListScreen {
         $allTasks = $this.Store.GetAllTasks()
 
         # DEBUG: Log loaded task priorities
-        $targetTask = $allTasks | Where-Object { $_.id -eq 'c6f2bed5-6246-4be9-afc8-161bbb3ebcb0' } | Select-Object -First 1
-        if ($targetTask) {
-            Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') LoadData: Loaded task c6f2bed5 - priority=$(Get-SafeProperty $targetTask 'priority') project=$(Get-SafeProperty $targetTask 'project') tags=$(Get-SafeProperty $targetTask 'tags')"
+        if ($this._enableDebugLogging) {
+            $targetTask = $allTasks | Where-Object { $_.id -eq 'c6f2bed5-6246-4be9-afc8-161bbb3ebcb0' } | Select-Object -First 1
+            if ($targetTask) {
+                Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') LoadData: Loaded task c6f2bed5 - priority=$(Get-SafeProperty $targetTask 'priority') project=$(Get-SafeProperty $targetTask 'project') tags=$(Get-SafeProperty $targetTask 'tags')"
+            }
         }
 
         # Null check to prevent crashes
@@ -559,7 +568,9 @@ class TaskListScreen : StandardListScreen {
         $separator = "`e[90m│`e[0m"  # Gray separator between cells
 
         # DEBUG: Log the actual color codes
-        Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') cellColor='$cellColor' focusColor='$focusColor'"
+        if ($this._enableDebugLogging) {
+            Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') cellColor='$cellColor' focusColor='$focusColor'"
+        }
 
         return @(
             @{

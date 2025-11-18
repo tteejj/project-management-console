@@ -275,9 +275,14 @@ class ExcelImportScreen : PmcScreen {
                 1 {
                     # Step 1: Connect to Excel
                     if ($this._selectedOption -eq 0) {
-                        $this._reader.AttachToRunningExcel()
-                        $this._step = 2
-                        $this._selectedOption = 0
+                        try {
+                            $this._reader.AttachToRunningExcel()
+                            $this._step = 2
+                            $this._selectedOption = 0
+                        } catch {
+                            $this._errorMessage = "Failed to attach to Excel: $($_.Exception.Message). Make sure Excel is running and has a workbook open."
+                            Write-PmcTuiLog "AttachToRunningExcel failed: $_" "ERROR"
+                        }
                     } else {
                         $this._errorMessage = "File picker not implemented. Please use option 1."
                     }

@@ -237,6 +237,16 @@ class TimeListScreen : StandardListScreen {
                 return
             }
 
+            # Validate hour range
+            if ($hoursValue -le 0) {
+                $this.SetStatusMessage("Hours must be greater than 0", "error")
+                return
+            }
+            if ($hoursValue -gt 24) {
+                $this.SetStatusMessage("Hours must be 24 or less", "error")
+                return
+            }
+
             $minutes = [int]($hoursValue * 60)
 
             # Safe date conversion
@@ -287,6 +297,16 @@ class TimeListScreen : StandardListScreen {
                 $hoursValue = [double]$values.hours
             } catch {
                 $this.SetStatusMessage("Invalid hours value: $($values.hours)", "error")
+                return
+            }
+
+            # Validate hour range
+            if ($hoursValue -le 0) {
+                $this.SetStatusMessage("Hours must be greater than 0", "error")
+                return
+            }
+            if ($hoursValue -gt 24) {
+                $this.SetStatusMessage("Hours must be 24 or less", "error")
                 return
             }
 
@@ -409,7 +429,7 @@ class TimeListScreen : StandardListScreen {
     [void] GenerateReport() {
         # Navigate to time report screen
         . "$PSScriptRoot/TimeReportScreen.ps1"
-        $screen = Invoke-Expression '[TimeReportScreen]::new()'
+        $screen = [TimeReportScreen]::new()
         $this.App.PushScreen($screen)
     }
 
@@ -438,7 +458,7 @@ class TimeListScreen : StandardListScreen {
         # Custom key: W = Weekly time report
         if ($keyInfo.KeyChar -eq 'w' -or $keyInfo.KeyChar -eq 'W') {
             . "$PSScriptRoot/WeeklyTimeReportScreen.ps1"
-            $screen = Invoke-Expression '[WeeklyTimeReportScreen]::new()'
+            $screen = [WeeklyTimeReportScreen]::new()
             $this.App.PushScreen($screen)
             return $true
         }

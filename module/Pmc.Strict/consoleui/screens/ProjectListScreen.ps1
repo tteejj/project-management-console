@@ -82,10 +82,26 @@ class ProjectListScreen : StandardListScreen {
     [array] LoadItems() {
         $projects = $this.Store.GetAllProjects()
 
-        # Add computed fields
+        # PERFORMANCE FIX: Load all tasks once and build hashtable index - O(n) instead of O(n*m)
+        $allTasks = $this.Store.GetAllTasks()
+        $tasksByProject = @{}
+        foreach ($task in $allTasks) {
+            $projName = Get-SafeProperty $task 'project'
+            if ($projName) {
+                if (-not $tasksByProject.ContainsKey($projName)) {
+                    $tasksByProject[$projName] = 0
+                }
+                $tasksByProject[$projName]++
+            }
+        }
+
+        # Add computed fields with O(1) lookup
         foreach ($project in $projects) {
-            # Count tasks in this project
-            $project['task_count'] = @($this.Store.GetAllTasks() | Where-Object { (Get-SafeProperty $_ 'project') -eq (Get-SafeProperty $project 'name') }).Count
+            # Count tasks in this project using hashtable lookup
+            $projName = Get-SafeProperty $project 'name'
+            $project['task_count'] = if ($tasksByProject.ContainsKey($projName)) {
+                $tasksByProject[$projName]
+            } else { 0 }
 
             # Ensure status field exists
             if (-not $project.ContainsKey('status')) {
@@ -427,9 +443,9 @@ class ProjectListScreen : StandardListScreen {
             $validationResult = Test-ProjectValid $projectData -existingProjects $existingProjects
 
             if (-not $validationResult.IsValid) {
-                # Show first validation error
+                # Show ALL validation errors
                 $errorMsg = if ($validationResult.Errors.Count -gt 0) {
-                    $validationResult.Errors[0]
+                    $validationResult.Errors -join '; '
                 } else {
                     "Validation failed"
                 }
@@ -840,7 +856,11 @@ class ProjectListScreen : StandardListScreen {
     }
 
     [bool] HandleKeyPress([ConsoleKeyInfo]$keyInfo) {
-        # Handle custom project keys FIRST before menu bar can intercept them
+        # CRITICAL: Call parent FIRST for MenuBar, F10, Alt+keys
+        $handled = ([PmcScreen]$this).HandleKeyPress($keyInfo)
+        if ($handled) { return $true }
+
+        # Handle custom project keys after menu bar
 
         # Custom key: V = View project details/stats
         if ($keyInfo.KeyChar -eq 'v' -or $keyInfo.KeyChar -eq 'V') {
@@ -893,10 +913,6 @@ class ProjectListScreen : StandardListScreen {
             $this.ImportFromExcel()
             return $true
         }
-
-        # CRITICAL: Call parent FIRST for MenuBar, F10, Alt+keys, content widgets
-        $handled = ([PmcScreen]$this).HandleKeyPress($keyInfo)
-        if ($handled) { return $true }
 
         # If file picker is showing, route input to it
         if ($this.ShowFilePicker -and $null -ne $this.FilePicker) {

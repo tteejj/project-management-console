@@ -33,8 +33,13 @@ class KanbanScreen : PmcScreen {
     [int]$SelectedIndexInProgress = 0
     [int]$SelectedIndexDone = 0
 
+    # TaskStore for data access
+    [TaskStore]$Store = $null
+
     # Constructor
     KanbanScreen() : base("Kanban", "Kanban Board") {
+        # Initialize TaskStore
+        $this.Store = [TaskStore]::GetInstance()
         # Configure header
         $this.Header.SetBreadcrumb(@("Home", "Tasks", "Kanban"))
 
@@ -52,6 +57,9 @@ class KanbanScreen : PmcScreen {
 
     # Constructor with container
     KanbanScreen([object]$container) : base("Kanban", "Kanban Board", $container) {
+        # Initialize TaskStore
+        $this.Store = [TaskStore]::GetInstance()
+
         # Configure header
         $this.Header.SetBreadcrumb(@("Home", "Tasks", "Kanban"))
 
@@ -71,12 +79,12 @@ class KanbanScreen : PmcScreen {
         $this.ShowStatus("Loading kanban board...")
 
         try {
-            # Load PMC data
-            $data = Get-PmcData
+            # Load tasks from TaskStore
+            $allTasks = $this.Store.GetAllTasks()
             $sevenDaysAgo = (Get-Date).AddDays(-7)
 
             # TODO column: pending, blocked, waiting (not completed)
-            $this.TodoTasks = @($data.tasks | Where-Object {
+            $this.TodoTasks = @($allTasks | Where-Object {
                 $taskCompleted = Get-SafeProperty $_ 'completed'
                 $taskStatus = Get-SafeProperty $_ 'status'
                 -not $taskCompleted -and
@@ -85,7 +93,7 @@ class KanbanScreen : PmcScreen {
             $this.TodoTasks = @($this.TodoTasks | Sort-Object { Get-SafeProperty $_ 'priority' }, { Get-SafeProperty $_ 'id' } -Descending)
 
             # In Progress column: in-progress (not completed)
-            $this.InProgressTasks = @($data.tasks | Where-Object {
+            $this.InProgressTasks = @($allTasks | Where-Object {
                 $taskCompleted = Get-SafeProperty $_ 'completed'
                 $taskStatus = Get-SafeProperty $_ 'status'
                 -not $taskCompleted -and $taskStatus -eq 'in-progress'
@@ -93,7 +101,7 @@ class KanbanScreen : PmcScreen {
             $this.InProgressTasks = @($this.InProgressTasks | Sort-Object { Get-SafeProperty $_ 'priority' }, { Get-SafeProperty $_ 'id' } -Descending)
 
             # Done column: completed in last 7 days OR status=done
-            $this.DoneTasks = @($data.tasks | Where-Object {
+            $this.DoneTasks = @($allTasks | Where-Object {
                 $taskCompleted = Get-SafeProperty $_ 'completed'
                 $taskCompletedDate = Get-SafeProperty $_ 'completedDate'
                 $taskStatus = Get-SafeProperty $_ 'status'
@@ -390,24 +398,24 @@ class KanbanScreen : PmcScreen {
                 default { $newStatus = 'in-progress' }
             }
 
-            # Update storage
-            $allData = Get-PmcData
-            $taskToUpdate = $allData.tasks | Where-Object { (Get-SafeProperty $_ 'id') -eq $taskId }
-            if ($taskToUpdate) {
-                $taskToUpdate.status = $newStatus
-                if ($newStatus -eq 'done') {
-                    $taskToUpdate.completed = $true
-                    $taskToUpdate.completedDate = $completedDate
-                } elseif ($newStatus -eq 'pending') {
-                    $taskToUpdate.completed = $false
-                    $taskToUpdate.completedDate = $null
-                }
-                # FIX: Use Save-PmcData instead of Set-PmcAllData
-                Save-PmcData -Data $allData
+            # Build changes hashtable
+            $changes = @{ status = $newStatus }
+            if ($newStatus -eq 'done') {
+                $changes.completed = $true
+                $changes.completedDate = $completedDate
+            } elseif ($newStatus -eq 'pending') {
+                $changes.completed = $false
+                $changes.completedDate = $null
             }
 
-            $this.ShowSuccess("Moved task #$taskId to $newStatus")
-            $this.LoadData()  # Reload to update columns
+            # Update via TaskStore (handles validation, events, persistence, rollback)
+            $success = $this.Store.UpdateTask($taskId, $changes)
+            if ($success) {
+                $this.ShowSuccess("Moved task #$taskId to $newStatus")
+                $this.LoadData()  # Reload to update columns
+            } else {
+                $this.ShowError("Failed to move task: $($this.Store.LastError)")
+            }
         }
     }
 
