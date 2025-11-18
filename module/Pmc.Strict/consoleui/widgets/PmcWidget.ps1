@@ -501,9 +501,33 @@ class PmcWidget : Component {
     #>
     [string] TruncateText([string]$text, [int]$maxWidth) {
         if ([string]::IsNullOrEmpty($text)) { return '' }
-        if ($text.Length -le $maxWidth) { return $text }
+
+        # Use visible length for truncation decision
+        $visibleLen = $this.GetVisibleLength($text)
+        if ($visibleLen -le $maxWidth) { return $text }
         if ($maxWidth -le 1) { return '…' }
-        return $text.Substring(0, $maxWidth - 1) + '…'
+
+        # Truncation with ANSI codes is complex - strip codes, truncate, return
+        # (We lose color formatting, but that's acceptable for truncated text)
+        $stripped = $text -replace '\e\[[0-9;]*m', ''
+        return $stripped.Substring(0, $maxWidth - 1) + '…'
+    }
+
+    <#
+    .SYNOPSIS
+    Get visible length of text (excluding ANSI escape codes)
+
+    .PARAMETER text
+    Text to measure
+
+    .OUTPUTS
+    Visible character count
+    #>
+    [int] GetVisibleLength([string]$text) {
+        if ([string]::IsNullOrEmpty($text)) { return 0 }
+        # Remove ANSI escape sequences: \e[...m or \e[..;..m etc.
+        $stripped = $text -replace '\e\[[0-9;]*m', ''
+        return $stripped.Length
     }
 
     <#
@@ -511,10 +535,10 @@ class PmcWidget : Component {
     Pad text to specified width
 
     .PARAMETER text
-    Text to pad
+    Text to pad (may contain ANSI escape codes)
 
     .PARAMETER width
-    Target width
+    Target width in visible characters
 
     .PARAMETER align
     Alignment: 'left' (default), 'center', 'right'
@@ -524,8 +548,17 @@ class PmcWidget : Component {
     #>
     [string] PadText([string]$text, [int]$width, [string]$align = 'left') {
         if ([string]::IsNullOrEmpty($text)) { return (" " * $width) }
-        if ($text.Length -ge $width) { return $text.Substring(0, $width) }
-        $padding = $width - $text.Length
+
+        # Use visible length instead of raw .Length to account for ANSI codes
+        $visibleLen = $this.GetVisibleLength($text)
+
+        if ($visibleLen -ge $width) {
+            # Text is already wide enough - truncate if needed
+            # For now, just return as-is (truncation is complex with ANSI codes)
+            return $text
+        }
+
+        $padding = $width - $visibleLen
         $result = switch ($align) {
             'center' {
                 $leftPad = [Math]::Floor($padding / 2.0)

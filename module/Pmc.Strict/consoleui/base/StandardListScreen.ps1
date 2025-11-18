@@ -299,8 +299,14 @@ class StandardListScreen : PmcScreen {
         }.GetNewClosure()
 
         $this.List.OnItemEdit = {
-            param($item)
-            $self.EditItem($item)
+            param($data)
+            # Data is hashtable with Item and Values keys from inline editing
+            if ($data -is [hashtable] -and $data.ContainsKey('Values')) {
+                $self.OnItemUpdated($data.Item, $data.Values)
+            } else {
+                # Legacy callback - just open editor
+                $self.EditItem($data)
+            }
         }.GetNewClosure()
 
         $this.List.OnItemDelete = {
@@ -496,6 +502,7 @@ class StandardListScreen : PmcScreen {
 
         $this.InlineEditor.SetFields($fields)
         $this.InlineEditor.Title = "Add New"
+        $this.InlineEditor.LayoutMode = "horizontal"
 
         if ($global:PmcTuiLogFile) {
             Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] AddItem: About to set ShowInlineEditor=true (currently: $($this.ShowInlineEditor))"
@@ -830,34 +837,10 @@ class StandardListScreen : PmcScreen {
     ANSI string ready for display
     #>
     [string] RenderContent() {
-        # Priority rendering order: editor > filter panel > list
+        # Priority rendering order: editor INLINE with list > filter panel > list
 
         if ($global:PmcTuiLogFile) {
             Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] RenderContent: ENTRY - type=$($this.GetType().Name) key=$($this.ScreenKey) ShowInlineEditor=$($this.ShowInlineEditor) EditorMode=$($this.EditorMode)"
-        }
-
-        if ($this.ShowInlineEditor) {
-            if ($global:PmcTuiLogFile) {
-                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] RenderContent: Rendering InlineEditor"
-            }
-
-            # InlineEditor.Render() handles both form and expanded widgets
-            $editorContent = $this.InlineEditor.Render()
-            return $editorContent
-        }
-
-        if ($this.ShowFilterPanel) {
-            if ($global:PmcTuiLogFile) {
-                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] RenderContent: Rendering FilterPanel"
-            }
-            # Render list as background, filter panel as overlay
-            $listContent = $this.List.Render()
-            $filterContent = $this.FilterPanel.Render()
-            return $listContent + "`n" + $filterContent
-        }
-
-        if ($global:PmcTuiLogFile) {
-            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] RenderContent: Rendering List (ShowInlineEditor=$($this.ShowInlineEditor), ShowFilterPanel=$($this.ShowFilterPanel), List=$($null -ne $this.List))"
         }
 
         # HIGH FIX #8: Throw error instead of silent failure to make debugging easier
@@ -869,7 +852,34 @@ class StandardListScreen : PmcScreen {
             throw $errorMsg
         }
 
-        $listOutput = $this.List.Render()
+        # If showing inline editor, pass it to the list for inline rendering BEFORE calling Render()
+        if ($this.ShowInlineEditor -and $this.InlineEditor) {
+            # Set inline editor mode on list
+            $this.List._showInlineEditor = $true
+            $this.List._inlineEditor = $this.InlineEditor
+        } else {
+            $this.List._showInlineEditor = $false
+        }
+
+        # Render list (it will handle inline editor internally)
+        try {
+            $listOutput = $this.List.Render()
+        } catch {
+            Add-Content -Path "/tmp/pmc-list-render-error.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') ERROR in List.Render(): $($_.Exception.Message)"
+            Add-Content -Path "/tmp/pmc-list-render-error.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Line: $($_.InvocationInfo.ScriptLineNumber)"
+            Add-Content -Path "/tmp/pmc-list-render-error.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') StackTrace: $($_.ScriptStackTrace)"
+            throw
+        }
+
+        if ($this.ShowFilterPanel) {
+            if ($global:PmcTuiLogFile) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] RenderContent: Rendering FilterPanel"
+            }
+            # Render list with filter panel as overlay
+            $filterContent = $this.FilterPanel.Render()
+            return $listOutput + "`n" + $filterContent
+        }
+
         if ($global:PmcTuiLogFile) {
             Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] RenderContent: List.Render() returned length=$($listOutput.Length)"
         }

@@ -624,24 +624,53 @@ class TaskStore {
             # Create backup BEFORE any modifications
             $this._CreateBackup()
 
-            # Apply changes - use Add-Member for PSObject compatibility
+            # CRITICAL FIX: Convert PSCustomObject to hashtable to prevent PowerShell's type coercion
+            # When assigning to PSCustomObject properties, PowerShell forces type conversion based on existing property type
+            if ($task -isnot [hashtable]) {
+                Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') TaskStore.UpdateTask: Converting PSCustomObject to hashtable"
+                $taskHash = @{}
+                foreach ($prop in $task.PSObject.Properties) {
+                    $taskHash[$prop.Name] = $prop.Value
+                }
+                # Find and replace in the tasks list
+                $taskIndex = -1
+                for ($i = 0; $i -lt $this._data.tasks.Count; $i++) {
+                    if ((Get-SafeProperty $this._data.tasks[$i] 'id') -eq $id) {
+                        $taskIndex = $i
+                        break
+                    }
+                }
+                if ($taskIndex -ge 0) {
+                    $this._data.tasks[$taskIndex] = $taskHash
+                    $task = $taskHash
+                    Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') TaskStore.UpdateTask: Replaced task at index $taskIndex with hashtable"
+                }
+            }
+
+            # Apply changes - now task is guaranteed to be hashtable
             foreach ($key in $changes.Keys) {
-                if ($task.PSObject.Properties.Name -contains $key) {
-                    $task.$key = $changes[$key]
-                } else {
-                    Add-Member -InputObject $task -MemberType NoteProperty -Name $key -Value $changes[$key] -Force
+                if ($key -eq 'tags') {
+                    Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') TaskStore.UpdateTask: BEFORE setting tags - changes[$key] type=$($changes[$key].GetType().Name) isArray=$($changes[$key] -is [array]) value=$($changes[$key] -join ',')"
+                }
+                $task[$key] = $changes[$key]
+                if ($key -eq 'tags') {
+                    Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') TaskStore.UpdateTask: AFTER setting tags - task.tags type=$($task[$key].GetType().Name) isArray=$($task[$key] -is [array]) value=$($task[$key] -join ',')"
                 }
             }
 
             # Update modified timestamp
-            if ($task.PSObject.Properties.Name -contains 'modified') {
+            if ($task -is [hashtable]) {
+                $task['modified'] = Get-Date
+            } elseif ($task.PSObject.Properties.Name -contains 'modified') {
                 $task.modified = Get-Date
             } else {
                 Add-Member -InputObject $task -MemberType NoteProperty -Name 'modified' -Value (Get-Date) -Force
             }
 
             # Validate updated task
+            Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') TaskStore.UpdateTask: BEFORE VALIDATION - task.tags type=$(if ($task.ContainsKey('tags')) { $task['tags'].GetType().FullName } else { 'MISSING' }) isArray=$(if ($task.ContainsKey('tags')) { $task['tags'] -is [array] } else { 'N/A' })"
             $validationErrors = $this._ValidateEntity($task, 'task')
+            Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') TaskStore.UpdateTask: AFTER VALIDATION - errors count=$($validationErrors.Count) errors=$($validationErrors -join '; ')"
             if ($validationErrors.Count -gt 0) {
                 $this.LastError = "Task validation failed: $($validationErrors -join ', ')"
                 $this._Rollback()
@@ -1312,12 +1341,21 @@ class TaskStore {
             $hasField = Test-SafeProperty $entity $field
             if ($hasField) {
                 $value = Get-SafeProperty $entity $field
+                if ($field -eq 'tags') {
+                    Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') _ValidateEntity: Checking tags - value type=$($value.GetType().FullName) isArray=$($value -is [array]) value=$value"
+                }
                 if ($null -ne $value) {
                     $expectedType = $rules.types[$field]
 
                     $isValid = switch ($expectedType) {
                         'string' { $value -is [string] }
-                        'int' { $value -is [int] }
+                        'int' {
+                            $result = $value -is [int]
+                            if ($field -eq 'priority') {
+                                Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') TaskStore: Validating priority - value=$value type=$($value.GetType().FullName) isInt=$result"
+                            }
+                            $result
+                        }
                         'bool' { $value -is [bool] }
                         'datetime' { $value -is [DateTime] }
                         'array' { $value -is [array] }
@@ -1325,7 +1363,7 @@ class TaskStore {
                     }
 
                     if (-not $isValid) {
-                        $errors += "Field '$field' has invalid type (expected $expectedType)"
+                        $errors += "Field '$field' has invalid type (expected $expectedType, got $($value.GetType().FullName))"
                     }
                 }
             }

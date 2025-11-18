@@ -99,10 +99,10 @@ class ProjectListScreen : StandardListScreen {
     # Define columns for list display
     [array] GetColumns() {
         return @(
-            @{ Name='name'; Label='Project'; Width=30 }
-            @{ Name='status'; Label='Status'; Width=12 }
-            @{ Name='task_count'; Label='Tasks'; Width=8 }
-            @{ Name='description'; Label='Description'; Width=40 }
+            @{ Name='name'; Label='Project'; Width=30; Align='left' }
+            @{ Name='status'; Label='Status'; Width=12; Align='left' }
+            @{ Name='task_count'; Label='Tasks'; Width=8; Align='center' }
+            @{ Name='description'; Label='Description'; Width=40; Align='left' }
         )
     }
 

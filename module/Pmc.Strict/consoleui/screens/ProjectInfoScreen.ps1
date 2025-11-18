@@ -54,6 +54,15 @@ class ProjectInfoScreen : PmcScreen {
         # Get TaskStore instance
         $this.Store = [TaskStore]::GetInstance()
 
+        # Initialize ProjectStats with default values
+        $this.ProjectStats = @{
+            TotalTasks = 0
+            ActiveTasks = 0
+            CompletedTasks = 0
+            OverdueTasks = 0
+            CompletionPercent = 0
+        }
+
         # Configure header
         $this.Header.SetBreadcrumb(@("Home", "Projects", "Info"))
 
@@ -70,7 +79,7 @@ class ProjectInfoScreen : PmcScreen {
                 $this.Footer.AddShortcut("Enter", "Save Field")
                 $this.Footer.AddShortcut("Esc", "Cancel")
             } else {
-                $this.Footer.AddShortcut("↑↓", "Navigate")
+                $this.Footer.AddShortcut("Arrows", "Navigate")
                 $this.Footer.AddShortcut("Enter", "Edit Field")
                 $this.Footer.AddShortcut("E", "Save & Exit")
                 $this.Footer.AddShortcut("Esc", "Cancel")
@@ -168,19 +177,23 @@ class ProjectInfoScreen : PmcScreen {
     }
 
     [string] RenderContent() {
-        # If editor is showing, render it instead
-        if ($this.ShowEditor -and $this.Editor) {
-            return $this.Editor.Render()
-        }
+        try {
+            Add-Content -Path "/tmp/pmc-project-render.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') RenderContent START"
 
-        $sb = [System.Text.StringBuilder]::new(4096)
+            # If editor is showing, render it instead
+            if ($this.ShowEditor -and $this.Editor) {
+                return $this.Editor.Render()
+            }
 
-        if (-not $this.LayoutManager) {
-            return $sb.ToString()
-        }
+            $sb = [System.Text.StringBuilder]::new(4096)
 
-        # Get content area
-        $contentRect = $this.LayoutManager.GetRegion('Content', $this.TermWidth, $this.TermHeight)
+            if (-not $this.LayoutManager) {
+                return $sb.ToString()
+            }
+
+            Add-Content -Path "/tmp/pmc-project-render.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Getting content area"
+            # Get content area
+            $contentRect = $this.LayoutManager.GetRegion('Content', $this.TermWidth, $this.TermHeight)
 
         # Colors
         $textColor = $this.Header.GetThemedAnsi('Text', $false)
@@ -202,10 +215,12 @@ class ProjectInfoScreen : PmcScreen {
         }
 
         # Compact header: Name, Status, Created on one line
+        Add-Content -Path "/tmp/pmc-project-render.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Rendering project name"
         $sb.Append($this.Header.BuildMoveTo($contentRect.X + 4, $y++))
         $sb.Append($highlightColor)
         $name = if ($this.ProjectData -is [string]) { $this.ProjectData } else { Get-SafeProperty $this.ProjectData 'name' }
-        $sb.Append($name)
+        Add-Content -Path "/tmp/pmc-project-render.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') name=$name type=$($name.GetType().FullName)"
+        $sb.Append([string]$name)
         $sb.Append($reset)
         $sb.Append($mutedColor)
         $projectStatus = Get-SafeProperty $this.ProjectData 'status'
@@ -213,7 +228,7 @@ class ProjectInfoScreen : PmcScreen {
             $sb.Append(" | Status: ")
             $sb.Append($reset)
             $sb.Append($textColor)
-            $sb.Append($projectStatus)
+            $sb.Append([string]$projectStatus)
             $sb.Append($reset)
             $sb.Append($mutedColor)
         }
@@ -222,7 +237,7 @@ class ProjectInfoScreen : PmcScreen {
             $sb.Append(" | Created: ")
             $sb.Append($reset)
             $sb.Append($textColor)
-            $sb.Append($projectCreated)
+            $sb.Append([string]$projectCreated)
             $sb.Append($reset)
         }
 
@@ -230,31 +245,34 @@ class ProjectInfoScreen : PmcScreen {
         if ($this.ProjectData -isnot [string]) {
             $y++
 
-            # In edit mode, display ONLY the editable fields with selection highlighting
+            # In edit mode, display fields in 3 columns with selection highlighting
             if ($this.EditMode) {
                 $selectColor = "`e[30;47m"  # Black text on white background for selected field
 
-                for ($i = 0; $i -lt $this.EditableFields.Count; $i++) {
-                    $field = $this.EditableFields[$i]
-                    $isSelected = ($i -eq $this.SelectedFieldIndex)
+                # Display fields in three columns (same as view mode)
+                $colWidth = 42
+                $col1X = $contentRect.X + 6
+                $col2X = $col1X + $colWidth
+                $col3X = $col2X + $colWidth
 
-                    $sb.Append($this.Header.BuildMoveTo($contentRect.X + 4, $y))
+                for ($i = 0; $i -lt $this.EditableFields.Count; $i += 3) {
+                    # Column 1
+                    $field1 = $this.EditableFields[$i]
+                    $isSelected1 = ($i -eq $this.SelectedFieldIndex)
 
-                    # Apply selection highlight if this field is selected
-                    if ($isSelected) {
+                    $sb.Append($this.Header.BuildMoveTo($col1X, $y))
+
+                    if ($isSelected1) {
                         $sb.Append($selectColor)
-                        $sb.Append("> ")
                     } else {
                         $sb.Append($mutedColor)
-                        $sb.Append("  ")
                     }
 
-                    # Label
-                    $label = $field.Label
-                    if ($label.Length -gt 25) { $label = $label.Substring(0, 22) + "..." }
-                    $sb.Append($label.PadRight(27))
+                    $label1 = $field1.Label
+                    if ($label1.Length -gt 20) { $label1 = $label1.Substring(0, 17) + "..." }
+                    $sb.Append($label1.PadRight(22))
 
-                    if ($isSelected) {
+                    if ($isSelected1) {
                         $sb.Append($reset)
                         $sb.Append($highlightColor)
                     } else {
@@ -262,19 +280,112 @@ class ProjectInfoScreen : PmcScreen {
                         $sb.Append($textColor)
                     }
 
-                    # Value - if currently editing this field, show EditingValue
-                    $val = if ($this.IsEditingField -and $isSelected) {
-                        $this.EditingValue + "_"  # Show cursor
-                    } elseif ($field.Value) {
-                        $field.Value
+                    # Value - if currently editing this field, show EditingValue with cursor
+                    if ($this.IsEditingField -and $isSelected1) {
+                        # Show editing value with cursor
+                        $sb.Append($this.EditingValue)
+                        $sb.Append("`e[7m `e[0m")  # Block cursor
+                        $sb.Append($reset)
+                    } elseif ($field1.Value) {
+                        # Show saved value (truncate if needed)
+                        $val1 = [string]$field1.Value
+                        if ($val1.Length -gt 18) { $val1 = $val1.Substring(0, 15) + "..." }
+                        $sb.Append($val1)
+                        $sb.Append($reset)
                     } else {
-                        $mutedColor + "(empty)" + $reset + $textColor
+                        # Show empty placeholder
+                        $sb.Append($mutedColor)
+                        $sb.Append("(empty)")
+                        $sb.Append($reset)
                     }
 
-                    # Truncate value to fit
-                    if ($val.Length -gt 50) { $val = $val.Substring(0, 47) + "..." }
-                    $sb.Append($val)
-                    $sb.Append($reset)
+                    # Column 2 (if exists)
+                    if ($i + 1 -lt $this.EditableFields.Count) {
+                        $field2 = $this.EditableFields[$i + 1]
+                        $isSelected2 = (($i + 1) -eq $this.SelectedFieldIndex)
+
+                        $sb.Append($this.Header.BuildMoveTo($col2X, $y))
+
+                        if ($isSelected2) {
+                            $sb.Append($selectColor)
+                        } else {
+                            $sb.Append($mutedColor)
+                        }
+
+                        $label2 = $field2.Label
+                        if ($label2.Length -gt 20) { $label2 = $label2.Substring(0, 17) + "..." }
+                        $sb.Append($label2.PadRight(22))
+
+                        if ($isSelected2) {
+                            $sb.Append($reset)
+                            $sb.Append($highlightColor)
+                        } else {
+                            $sb.Append($reset)
+                            $sb.Append($textColor)
+                        }
+
+                        if ($this.IsEditingField -and $isSelected2) {
+                            # Show editing value with cursor
+                            $sb.Append($this.EditingValue)
+                            $sb.Append("`e[7m `e[0m")  # Block cursor
+                            $sb.Append($reset)
+                        } elseif ($field2.Value) {
+                            # Show saved value (truncate if needed)
+                            $val2 = [string]$field2.Value
+                            if ($val2.Length -gt 18) { $val2 = $val2.Substring(0, 15) + "..." }
+                            $sb.Append($val2)
+                            $sb.Append($reset)
+                        } else {
+                            # Show empty placeholder
+                            $sb.Append($mutedColor)
+                            $sb.Append("(empty)")
+                            $sb.Append($reset)
+                        }
+                    }
+
+                    # Column 3 (if exists)
+                    if ($i + 2 -lt $this.EditableFields.Count) {
+                        $field3 = $this.EditableFields[$i + 2]
+                        $isSelected3 = (($i + 2) -eq $this.SelectedFieldIndex)
+
+                        $sb.Append($this.Header.BuildMoveTo($col3X, $y))
+
+                        if ($isSelected3) {
+                            $sb.Append($selectColor)
+                        } else {
+                            $sb.Append($mutedColor)
+                        }
+
+                        $label3 = $field3.Label
+                        if ($label3.Length -gt 20) { $label3 = $label3.Substring(0, 17) + "..." }
+                        $sb.Append($label3.PadRight(22))
+
+                        if ($isSelected3) {
+                            $sb.Append($reset)
+                            $sb.Append($highlightColor)
+                        } else {
+                            $sb.Append($reset)
+                            $sb.Append($textColor)
+                        }
+
+                        if ($this.IsEditingField -and $isSelected3) {
+                            # Show editing value with cursor
+                            $sb.Append($this.EditingValue)
+                            $sb.Append("`e[7m `e[0m")  # Block cursor
+                            $sb.Append($reset)
+                        } elseif ($field3.Value) {
+                            # Show saved value (truncate if needed)
+                            $val3 = [string]$field3.Value
+                            if ($val3.Length -gt 18) { $val3 = $val3.Substring(0, 15) + "..." }
+                            $sb.Append($val3)
+                            $sb.Append($reset)
+                        } else {
+                            # Show empty placeholder
+                            $sb.Append($mutedColor)
+                            $sb.Append("(empty)")
+                            $sb.Append($reset)
+                        }
+                    }
 
                     $y++
                 }
@@ -361,7 +472,7 @@ class ProjectInfoScreen : PmcScreen {
                     $sb.Append($reset)
                     $sb.Append($textColor)
 
-                    $val1 = if ($field1.Value) { $field1.Value } else { $mutedColor + "(empty)" + $reset + $textColor }
+                    $val1 = if ($field1.Value) { [string]$field1.Value } else { $mutedColor + "(empty)" + $reset + $textColor }
                     # Truncate value to fit column
                     if ($val1.Length -gt 18) { $val1 = $val1.Substring(0, 15) + "..." }
                     $sb.Append($val1)
@@ -381,7 +492,7 @@ class ProjectInfoScreen : PmcScreen {
                         $sb.Append($reset)
                         $sb.Append($textColor)
 
-                        $val2 = if ($field2.Value) { $field2.Value } else { $mutedColor + "(empty)" + $reset + $textColor }
+                        $val2 = if ($field2.Value) { [string]$field2.Value } else { $mutedColor + "(empty)" + $reset + $textColor }
                         # Truncate value to fit column
                         if ($val2.Length -gt 18) { $val2 = $val2.Substring(0, 15) + "..." }
                         $sb.Append($val2)
@@ -402,7 +513,7 @@ class ProjectInfoScreen : PmcScreen {
                         $sb.Append($reset)
                         $sb.Append($textColor)
 
-                        $val3 = if ($field3.Value) { $field3.Value } else { $mutedColor + "(empty)" + $reset + $textColor }
+                        $val3 = if ($field3.Value) { [string]$field3.Value } else { $mutedColor + "(empty)" + $reset + $textColor }
                         # Truncate value to fit column
                         if ($val3.Length -gt 18) { $val3 = $val3.Substring(0, 15) + "..." }
                         $sb.Append($val3)
@@ -415,42 +526,51 @@ class ProjectInfoScreen : PmcScreen {
         }
 
         # Compact task summary on one line
+        Add-Content -Path "/tmp/pmc-project-render.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Rendering stats section"
         $y++
         $sb.Append($this.Header.BuildMoveTo($contentRect.X + 4, $y++))
         $sb.Append($mutedColor)
         $sb.Append("Tasks: ")
         $sb.Append($reset)
         $sb.Append($textColor)
-        $sb.Append($this.ProjectStats.TotalTasks)
+        Add-Content -Path "/tmp/pmc-project-render.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') About to append TotalTasks=$($this.ProjectStats.TotalTasks) type=$($this.ProjectStats.TotalTasks.GetType().FullName)"
+        $sb.Append($this.ProjectStats.TotalTasks.ToString())
         $sb.Append($mutedColor)
         $sb.Append(" total, ")
         $sb.Append($reset)
         $sb.Append($textColor)
-        $sb.Append($this.ProjectStats.ActiveTasks)
+        $sb.Append($this.ProjectStats.ActiveTasks.ToString())
         $sb.Append($mutedColor)
         $sb.Append(" active, ")
         $sb.Append($reset)
         $sb.Append($successColor)
-        $sb.Append($this.ProjectStats.CompletedTasks)
+        $sb.Append($this.ProjectStats.CompletedTasks.ToString())
         $sb.Append($mutedColor)
         $sb.Append(" completed")
         if ($this.ProjectStats.OverdueTasks -gt 0) {
             $sb.Append(", ")
             $sb.Append($reset)
             $sb.Append($warningColor)
-            $sb.Append($this.ProjectStats.OverdueTasks)
+            $sb.Append($this.ProjectStats.OverdueTasks.ToString())
             $sb.Append($mutedColor)
             $sb.Append(" overdue")
         }
         $sb.Append(" | ")
         $sb.Append($reset)
         $sb.Append($successColor)
-        $sb.Append("$($this.ProjectStats.CompletionPercent)%")
+        $sb.Append($this.ProjectStats.CompletionPercent.ToString())
+        $sb.Append("%")
         $sb.Append($mutedColor)
         $sb.Append(" complete")
         $sb.Append($reset)
 
+        Add-Content -Path "/tmp/pmc-project-render.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') RenderContent SUCCESS"
         return $sb.ToString()
+        } catch {
+            Add-Content -Path "/tmp/pmc-project-render.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') ERROR at line $($_.InvocationInfo.ScriptLineNumber): $($_.Exception.Message)"
+            Add-Content -Path "/tmp/pmc-project-render.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') StackTrace: $($_.ScriptStackTrace)"
+            throw
+        }
     }
 
     [bool] HandleKeyPress([ConsoleKeyInfo]$keyInfo) {
@@ -475,11 +595,14 @@ class ProjectInfoScreen : PmcScreen {
                 return $true
             }
             elseif ($key -eq [ConsoleKey]::Escape) {
-                # Cancel editing this field
+                # Cancel editing this field and restore original value
+                $originalField = $this.EditableFields[$this.SelectedFieldIndex]
                 $this.IsEditingField = $false
                 $this.EditingValue = ""
+                # Restore original value from ProjectData
+                $originalField.Value = Get-SafeProperty $this.ProjectData $originalField.Name
                 $this._UpdateFooterShortcuts()
-                $this.ShowStatus("Edit cancelled")
+                $this.ShowStatus("Edit cancelled - value restored")
                 return $true
             }
             elseif ($key -eq [ConsoleKey]::Backspace) {
@@ -500,14 +623,28 @@ class ProjectInfoScreen : PmcScreen {
         # In edit mode but not editing a specific field - handle navigation
         if ($this.EditMode) {
             if ($key -eq [ConsoleKey]::UpArrow) {
-                # Move to previous field
+                # Move up 3 positions (one row up in 3-column layout)
+                if ($this.SelectedFieldIndex -ge 3) {
+                    $this.SelectedFieldIndex -= 3
+                }
+                return $true
+            }
+            elseif ($key -eq [ConsoleKey]::DownArrow) {
+                # Move down 3 positions (one row down in 3-column layout)
+                if ($this.SelectedFieldIndex + 3 -lt $this.EditableFields.Count) {
+                    $this.SelectedFieldIndex += 3
+                }
+                return $true
+            }
+            elseif ($key -eq [ConsoleKey]::LeftArrow) {
+                # Move to previous field (left in row)
                 if ($this.SelectedFieldIndex -gt 0) {
                     $this.SelectedFieldIndex--
                 }
                 return $true
             }
-            elseif ($key -eq [ConsoleKey]::DownArrow) {
-                # Move to next field
+            elseif ($key -eq [ConsoleKey]::RightArrow) {
+                # Move to next field (right in row)
                 if ($this.SelectedFieldIndex -lt ($this.EditableFields.Count - 1)) {
                     $this.SelectedFieldIndex++
                 }
@@ -668,17 +805,26 @@ class ProjectInfoScreen : PmcScreen {
     }
 
     hidden [void] _BuildEditableFieldsList() {
-        # Build list of all editable fields
+        # Build list of ALL 48 fields for editing - matching the view display order
         $this.EditableFields = @(
-            @{Name='name'; Label='Project Name'; Value=(Get-SafeProperty $this.ProjectData 'name')}
-            @{Name='description'; Label='Description'; Value=(Get-SafeProperty $this.ProjectData 'description')}
-            @{Name='status'; Label='Status'; Value=(Get-SafeProperty $this.ProjectData 'status')}
             @{Name='ID1'; Label='ID1'; Value=(Get-SafeProperty $this.ProjectData 'ID1')}
             @{Name='ID2'; Label='ID2'; Value=(Get-SafeProperty $this.ProjectData 'ID2')}
             @{Name='ProjFolder'; Label='Project Folder'; Value=(Get-SafeProperty $this.ProjectData 'ProjFolder')}
             @{Name='CAAName'; Label='CAA Name'; Value=(Get-SafeProperty $this.ProjectData 'CAAName')}
             @{Name='RequestName'; Label='Request Name'; Value=(Get-SafeProperty $this.ProjectData 'RequestName')}
             @{Name='T2020'; Label='T2020'; Value=(Get-SafeProperty $this.ProjectData 'T2020')}
+            @{Name='AssignedDate'; Label='Assigned Date'; Value=(Get-SafeProperty $this.ProjectData 'AssignedDate')}
+            @{Name='DueDate'; Label='Due Date'; Value=(Get-SafeProperty $this.ProjectData 'DueDate')}
+            @{Name='BFDate'; Label='BF Date'; Value=(Get-SafeProperty $this.ProjectData 'BFDate')}
+            @{Name='RequestDate'; Label='Request Date'; Value=(Get-SafeProperty $this.ProjectData 'RequestDate')}
+            @{Name='AuditType'; Label='Audit Type'; Value=(Get-SafeProperty $this.ProjectData 'AuditType')}
+            @{Name='AuditorName'; Label='Auditor Name'; Value=(Get-SafeProperty $this.ProjectData 'AuditorName')}
+            @{Name='AuditorPhone'; Label='Auditor Phone'; Value=(Get-SafeProperty $this.ProjectData 'AuditorPhone')}
+            @{Name='AuditorTL'; Label='Auditor TL'; Value=(Get-SafeProperty $this.ProjectData 'AuditorTL')}
+            @{Name='AuditorTLPhone'; Label='Auditor TL Phone'; Value=(Get-SafeProperty $this.ProjectData 'AuditorTLPhone')}
+            @{Name='AuditCase'; Label='Audit Case'; Value=(Get-SafeProperty $this.ProjectData 'AuditCase')}
+            @{Name='CASCase'; Label='CAS Case'; Value=(Get-SafeProperty $this.ProjectData 'CASCase')}
+            @{Name='AuditStartDate'; Label='Audit Start Date'; Value=(Get-SafeProperty $this.ProjectData 'AuditStartDate')}
             @{Name='TPName'; Label='TP Name'; Value=(Get-SafeProperty $this.ProjectData 'TPName')}
             @{Name='TPNum'; Label='TP Number'; Value=(Get-SafeProperty $this.ProjectData 'TPNum')}
             @{Name='Address'; Label='Address'; Value=(Get-SafeProperty $this.ProjectData 'Address')}
@@ -686,11 +832,38 @@ class ProjectInfoScreen : PmcScreen {
             @{Name='Province'; Label='Province'; Value=(Get-SafeProperty $this.ProjectData 'Province')}
             @{Name='PostalCode'; Label='Postal Code'; Value=(Get-SafeProperty $this.ProjectData 'PostalCode')}
             @{Name='Country'; Label='Country'; Value=(Get-SafeProperty $this.ProjectData 'Country')}
-            @{Name='AuditType'; Label='Audit Type'; Value=(Get-SafeProperty $this.ProjectData 'AuditType')}
-            @{Name='AuditorName'; Label='Auditor Name'; Value=(Get-SafeProperty $this.ProjectData 'AuditorName')}
-            @{Name='AuditorPhone'; Label='Auditor Phone'; Value=(Get-SafeProperty $this.ProjectData 'AuditorPhone')}
-            @{Name='AuditCase'; Label='Audit Case'; Value=(Get-SafeProperty $this.ProjectData 'AuditCase')}
+            @{Name='AuditPeriodFrom'; Label='Audit Period From'; Value=(Get-SafeProperty $this.ProjectData 'AuditPeriodFrom')}
+            @{Name='AuditPeriodTo'; Label='Audit Period To'; Value=(Get-SafeProperty $this.ProjectData 'AuditPeriodTo')}
+            @{Name='AuditPeriod1Start'; Label='Audit Period 1 Start'; Value=(Get-SafeProperty $this.ProjectData 'AuditPeriod1Start')}
+            @{Name='AuditPeriod1End'; Label='Audit Period 1 End'; Value=(Get-SafeProperty $this.ProjectData 'AuditPeriod1End')}
+            @{Name='AuditPeriod2Start'; Label='Audit Period 2 Start'; Value=(Get-SafeProperty $this.ProjectData 'AuditPeriod2Start')}
+            @{Name='AuditPeriod2End'; Label='Audit Period 2 End'; Value=(Get-SafeProperty $this.ProjectData 'AuditPeriod2End')}
+            @{Name='AuditPeriod3Start'; Label='Audit Period 3 Start'; Value=(Get-SafeProperty $this.ProjectData 'AuditPeriod3Start')}
+            @{Name='AuditPeriod3End'; Label='Audit Period 3 End'; Value=(Get-SafeProperty $this.ProjectData 'AuditPeriod3End')}
+            @{Name='AuditPeriod4Start'; Label='Audit Period 4 Start'; Value=(Get-SafeProperty $this.ProjectData 'AuditPeriod4Start')}
+            @{Name='AuditPeriod4End'; Label='Audit Period 4 End'; Value=(Get-SafeProperty $this.ProjectData 'AuditPeriod4End')}
+            @{Name='AuditPeriod5Start'; Label='Audit Period 5 Start'; Value=(Get-SafeProperty $this.ProjectData 'AuditPeriod5Start')}
+            @{Name='AuditPeriod5End'; Label='Audit Period 5 End'; Value=(Get-SafeProperty $this.ProjectData 'AuditPeriod5End')}
+            @{Name='Contact1Name'; Label='Contact 1 Name'; Value=(Get-SafeProperty $this.ProjectData 'Contact1Name')}
+            @{Name='Contact1Phone'; Label='Contact 1 Phone'; Value=(Get-SafeProperty $this.ProjectData 'Contact1Phone')}
+            @{Name='Contact1Ext'; Label='Contact 1 Ext'; Value=(Get-SafeProperty $this.ProjectData 'Contact1Ext')}
+            @{Name='Contact1Address'; Label='Contact 1 Address'; Value=(Get-SafeProperty $this.ProjectData 'Contact1Address')}
+            @{Name='Contact1Title'; Label='Contact 1 Title'; Value=(Get-SafeProperty $this.ProjectData 'Contact1Title')}
+            @{Name='Contact2Name'; Label='Contact 2 Name'; Value=(Get-SafeProperty $this.ProjectData 'Contact2Name')}
+            @{Name='Contact2Phone'; Label='Contact 2 Phone'; Value=(Get-SafeProperty $this.ProjectData 'Contact2Phone')}
+            @{Name='Contact2Ext'; Label='Contact 2 Ext'; Value=(Get-SafeProperty $this.ProjectData 'Contact2Ext')}
+            @{Name='Contact2Address'; Label='Contact 2 Address'; Value=(Get-SafeProperty $this.ProjectData 'Contact2Address')}
+            @{Name='Contact2Title'; Label='Contact 2 Title'; Value=(Get-SafeProperty $this.ProjectData 'Contact2Title')}
+            @{Name='AuditProgram'; Label='Audit Program'; Value=(Get-SafeProperty $this.ProjectData 'AuditProgram')}
+            @{Name='AccountingSoftware1'; Label='Accounting Software 1'; Value=(Get-SafeProperty $this.ProjectData 'AccountingSoftware1')}
+            @{Name='AccountingSoftware1Other'; Label='Accounting Software 1 Other'; Value=(Get-SafeProperty $this.ProjectData 'AccountingSoftware1Other')}
+            @{Name='AccountingSoftware1Type'; Label='Accounting Software 1 Type'; Value=(Get-SafeProperty $this.ProjectData 'AccountingSoftware1Type')}
+            @{Name='AccountingSoftware2'; Label='Accounting Software 2'; Value=(Get-SafeProperty $this.ProjectData 'AccountingSoftware2')}
+            @{Name='AccountingSoftware2Other'; Label='Accounting Software 2 Other'; Value=(Get-SafeProperty $this.ProjectData 'AccountingSoftware2Other')}
+            @{Name='AccountingSoftware2Type'; Label='Accounting Software 2 Type'; Value=(Get-SafeProperty $this.ProjectData 'AccountingSoftware2Type')}
             @{Name='Comments'; Label='Comments'; Value=(Get-SafeProperty $this.ProjectData 'Comments')}
+            @{Name='FXInfo'; Label='FX Info'; Value=(Get-SafeProperty $this.ProjectData 'FXInfo')}
+            @{Name='ShipToAddress'; Label='Ship To Address'; Value=(Get-SafeProperty $this.ProjectData 'ShipToAddress')}
         )
     }
 

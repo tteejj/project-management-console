@@ -80,6 +80,7 @@ $values = $editor.GetValues()
 class InlineEditor : PmcWidget {
     # === Public Properties ===
     [string]$Title = "Edit"                    # Editor title
+    [string]$LayoutMode = "vertical"           # "vertical" (default) or "horizontal" (compact inline mode)
 
     # === Event Callbacks ===
     [scriptblock]$OnFieldChanged = {}          # Called when field changes: param($fieldName, $value)

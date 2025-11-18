@@ -81,12 +81,16 @@ function Get-SafeProperty {
     if ($null -eq $obj) { return $default }
 
     if ($obj -is [hashtable]) {
-        if ($obj.ContainsKey($name)) { return $obj[$name] }
+        if ($obj.ContainsKey($name)) {
+            # CRITICAL: Use comma operator to prevent PowerShell from unwrapping single-element arrays
+            return ,$obj[$name]
+        }
         return $default
     }
 
     if ($null -ne ($obj.PSObject.Properties | Where-Object Name -eq $name)) {
-        return $obj.$name
+        # CRITICAL: Use comma operator to prevent PowerShell from unwrapping single-element arrays
+        return ,$obj.$name
     }
 
     return $default

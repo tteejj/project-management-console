@@ -375,6 +375,9 @@ class TagEditor : PmcWidget {
         $successColor = $this.GetThemedAnsi('Success', $false)
         $reset = "`e[0m"
 
+        # Reset any inherited formatting from parent
+        $sb.Append($reset)
+
         # Draw top border
         $sb.Append($this.BuildMoveTo($this.X, $this.Y))
         $sb.Append($borderColor)

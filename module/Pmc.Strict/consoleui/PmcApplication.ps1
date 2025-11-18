@@ -435,6 +435,16 @@ class PmcApplication {
                         break
                     }
 
+                    # DEBUG: Log E key presses
+                    if ($key.Key -eq [ConsoleKey]::E) {
+                        if ($global:PmcTuiLogFile) {
+                            Add-Content -Path $global:PmcTuiLogFile -Value "[DEBUG] E KEY RECEIVED IN EVENT LOOP - CurrentScreen type: $($this.CurrentScreen.GetType().Name)"
+                        }
+                        # Force display to console too
+                        [Console]::SetCursorPosition(0, [Console]::WindowHeight - 1)
+                        Write-Host "*** E KEY PRESSED ***" -NoNewline
+                    }
+
                     # Pass to current screen (screen handles its own menu)
                     if ($this.CurrentScreen -and $this.CurrentScreen.PSObject.Methods['HandleKeyPress']) {
                         $handled = $this.CurrentScreen.HandleKeyPress($key)

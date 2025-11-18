@@ -73,6 +73,9 @@ class DatePicker : PmcWidget {
     hidden [int]$_cursorPosition = 0                      # Text cursor position
 
     # === Constructor ===
+    # NOTE: This widget shows ONLY the calendar mode for visual date selection.
+    # For text-based date entry (parsing "today", "next friday", etc.), use DateTextEntry widget.
+    # DatePicker is designed for inline display at column positions in list views.
     DatePicker() : base("DatePicker") {
         $this.Width = 35
         $this.Height = 14
@@ -80,6 +83,7 @@ class DatePicker : PmcWidget {
         $this._calendarMonth = [DateTime]::Today
         $this._textInput = $this._selectedDate.ToString("yyyy-MM-dd")
         $this.CanFocus = $true
+        $this._isCalendarMode = $true  # ALWAYS start in calendar mode
     }
 
     # === Public API Methods ===
@@ -121,27 +125,8 @@ class DatePicker : PmcWidget {
     True if input was handled, False otherwise
     #>
     [bool] HandleInput([ConsoleKeyInfo]$keyInfo) {
-        # Mode switching (F2 or Tab toggles mode)
-        if ($keyInfo.Key -eq 'F2' -or ($keyInfo.Key -eq 'Tab' -and -not $this._isCalendarMode)) {
-            $this._ToggleMode()
-            return $true
-        }
-
         # Global keys
         if ($keyInfo.Key -eq 'Enter') {
-            # Try to parse text input if in text mode
-            if (-not $this._isCalendarMode) {
-                $parsed = $this._ParseTextInput()
-                if ($parsed) {
-                    $this._selectedDate = $parsed
-                    $this._calendarMonth = $parsed
-                    $this._errorMessage = ""
-                } else {
-                    # Don't confirm if parse failed
-                    return $true
-                }
-            }
-
             $this.IsConfirmed = $true
             $this._InvokeCallback($this.OnConfirmed, $this._selectedDate)
             return $true
@@ -153,12 +138,8 @@ class DatePicker : PmcWidget {
             return $true
         }
 
-        # Mode-specific input handling
-        if ($this._isCalendarMode) {
-            return $this._HandleCalendarInput($keyInfo)
-        } else {
-            return $this._HandleTextInput($keyInfo)
-        }
+        # Always handle as calendar mode
+        return $this._HandleCalendarInput($keyInfo)
     }
 
     <#
@@ -180,6 +161,9 @@ class DatePicker : PmcWidget {
         $successColor = $this.GetThemedAnsi('Success', $false)
         $reset = "`e[0m"
 
+        # DON'T reset inherited formatting - let cell background show through in inline edit mode
+        # $sb.Append($reset)
+
         # Title
         $title = "Select Date"
 
@@ -194,13 +178,6 @@ class DatePicker : PmcWidget {
         $sb.Append($primaryColor)
         $sb.Append($title)
 
-        # Mode indicator
-        $mode = if ($this._isCalendarMode) { "Calendar" } else { "Text" }
-        $modeText = "[$mode]"
-        $sb.Append($this.BuildMoveTo($this.X + $this.Width - $modeText.Length - 1, $this.Y))
-        $sb.Append($mutedColor)
-        $sb.Append($modeText)
-
         # Current value display (row 1)
         $currentValue = "Current: " + $this._selectedDate.ToString("yyyy-MM-dd (ddd)")
         $sb.Append($this.BuildMoveTo($this.X, $this.Y + 1))
@@ -211,15 +188,11 @@ class DatePicker : PmcWidget {
         $sb.Append($borderColor)
         $sb.Append($this.GetBoxChar('single_vertical'))
 
-        # Content area (rows 2-10)
-        if ($this._isCalendarMode) {
-            $this._RenderCalendar($sb, $borderColor, $textColor, $primaryColor, $mutedColor, $successColor, $reset)
-        } else {
-            $this._RenderTextMode($sb, $borderColor, $textColor, $primaryColor, $errorColor, $reset)
-        }
+        # Content area (rows 2-10) - ALWAYS calendar mode
+        $this._RenderCalendar($sb, $borderColor, $textColor, $primaryColor, $mutedColor, $successColor, $reset)
 
         # Help text (row 11)
-        $helpText = "Tab: Toggle mode | Enter: Confirm | Esc: Cancel"
+        $helpText = "Arrows: Navigate | PgUp/Dn: Month | Enter: Confirm | Esc: Cancel"
         $sb.Append($this.BuildMoveTo($this.X, $this.Y + 11))
         $sb.Append($borderColor)
         $sb.Append($this.GetBoxChar('single_vertical'))

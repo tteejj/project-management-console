@@ -71,6 +71,69 @@ $columns = @(
 $list.SetColumns($columns)
 $list.SetData($tasks)
 #>
+
+<#
+.SYNOPSIS
+Cell information passed to Format callbacks
+
+.DESCRIPTION
+Provides context about a cell during rendering:
+- Column metadata (name, width, alignment)
+- Screen position (X, Y coordinates)
+- Edit state (is this cell focused for editing?)
+- Row state (is the row being edited?)
+
+This allows Format callbacks to make rendering decisions based on
+cell state without needing to check global variables.
+
+.EXAMPLE
+Format = { param($item, $cellInfo)
+    if ($cellInfo.IsFocused) {
+        return "$orangeColor$($cellInfo.Value)"
+    }
+    return $cellInfo.Value
+}
+#>
+class CellInfo {
+    [string]$ColumnName        # Column identifier
+    [object]$Value             # Raw cell value (from item data)
+    [int]$X                    # Screen X position
+    [int]$Y                    # Screen Y position
+    [int]$Width                # Allocated width for this cell
+    [string]$Align             # Alignment: 'left', 'center', 'right'
+    [bool]$IsFocused           # Is this cell currently focused in edit mode?
+    [bool]$IsInEditMode        # Is the parent row in edit mode?
+    [bool]$IsSelected          # Is the parent row selected?
+    [int]$RowIndex             # Row index in the list
+    [int]$ColumnIndex          # Column index in the row
+
+    CellInfo(
+        [string]$columnName,
+        [object]$value,
+        [int]$x,
+        [int]$y,
+        [int]$width,
+        [string]$align,
+        [bool]$isFocused,
+        [bool]$isInEditMode,
+        [bool]$isSelected,
+        [int]$rowIndex,
+        [int]$columnIndex
+    ) {
+        $this.ColumnName = $columnName
+        $this.Value = $value
+        $this.X = $x
+        $this.Y = $y
+        $this.Width = $width
+        $this.Align = $align
+        $this.IsFocused = $isFocused
+        $this.IsInEditMode = $isInEditMode
+        $this.IsSelected = $isSelected
+        $this.RowIndex = $rowIndex
+        $this.ColumnIndex = $columnIndex
+    }
+}
+
 class UniversalList : PmcWidget {
     # === Public Properties ===
     [string]$Title = "List"                    # List title
@@ -87,6 +150,11 @@ class UniversalList : PmcWidget {
     [scriptblock]$OnItemActivated = {}         # Called when item activated (Enter): param($item)
     [scriptblock]$OnMultiSelectChanged = {}    # Called when multi-select changes: param($selectedItems)
     [scriptblock]$OnDataChanged = {}           # Called when data changes: param($newData)
+
+    # === Edit Mode Callbacks (for CellInfo) ===
+    # Parent screen sets these to provide edit state info to Format callbacks via CellInfo
+    [scriptblock]$GetIsInEditMode = {}         # Returns true if row is in edit mode: param($item)
+    [scriptblock]$GetFocusedColumnIndex = {}   # Returns focused column index: param($item) -> int (-1 if not focused)
 
     # === State Flags ===
     [bool]$IsInMultiSelectMode = $false        # True when in multi-select mode
@@ -231,6 +299,14 @@ class UniversalList : PmcWidget {
 
     <#
     .SYNOPSIS
+    Get currently selected index
+    #>
+    [int] GetSelectedIndex() {
+        return $this._selectedIndex
+    }
+
+    <#
+    .SYNOPSIS
     Get all selected items (multi-select mode)
 
     .OUTPUTS
@@ -254,6 +330,17 @@ class UniversalList : PmcWidget {
     #>
     [int] GetItemCount() {
         return $this._filteredData.Count
+    }
+
+    <#
+    .SYNOPSIS
+    Invalidate the row rendering cache.
+    Call this when external state that affects row rendering changes.
+    #>
+    [void] InvalidateCache() {
+        $this._cacheGeneration++
+        $this._rowCache.Clear()
+        $this._cacheAccessOrder.Clear()
     }
 
     <#
@@ -621,6 +708,7 @@ class UniversalList : PmcWidget {
     ANSI string ready for display
     #>
     [string] Render() {
+        Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') UniversalList.Render() CALLED"
         # If inline editor is shown, render it instead
         if ($this._showInlineEditor) {
             return $this._inlineEditor.Render()
@@ -825,18 +913,41 @@ class UniversalList : PmcWidget {
             # Row content
             $rowBuilder.Append($this.BuildMoveTo($this.X + 2, $rowY))
 
-            # Highlight selected row
-            if ($isSelected) {
-                $rowBuilder.Append($highlightBg)
-                $rowBuilder.Append("`e[30m")
-            } elseif ($isMultiSelected) {
-                $rowBuilder.Append($successColor)
+            # Check if row highlight should be skipped (for inline editing)
+            $skipRowHighlight = $false
+            if ($this._columns[0].ContainsKey('SkipRowHighlight') -and $null -ne $this._columns[0].SkipRowHighlight) {
+                try {
+                    $skipRowHighlight = & $this._columns[0].SkipRowHighlight $item
+                    Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') UniversalList: SkipRowHighlight callback returned: $skipRowHighlight"
+                } catch {
+                    Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') UniversalList: SkipRowHighlight callback ERROR: $($_.Exception.Message)"
+                    $skipRowHighlight = $false
+                }
             } else {
-                $rowBuilder.Append($textColor)
+                Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') UniversalList: No SkipRowHighlight callback found"
+            }
+
+            # Highlight selected row (unless skipped)
+            if (-not $skipRowHighlight) {
+                if ($isSelected) {
+                    Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') UniversalList: Applying ROW HIGHLIGHT (isSelected=true)"
+                    $rowBuilder.Append($highlightBg)
+                    $rowBuilder.Append("`e[30m")
+                } elseif ($isMultiSelected) {
+                    $rowBuilder.Append($successColor)
+                } else {
+                    $rowBuilder.Append($textColor)
+                }
+            } else {
+                # When skipping row highlight (edit mode), cells need background set
+                # Use reset to clear any previous formatting, then cells apply their own
+                Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') UniversalList: SKIPPING row highlight, resetting for cell colors"
+                $rowBuilder.Append($reset)
             }
 
             # Render columns
             $currentX = 2
+            $columnIndex = 0
             foreach ($col in $this._columns) {
                 $value = Get-SafeProperty $item $col.Name
                 # L-POL-22: Use custom width if set, otherwise use default
@@ -846,11 +957,77 @@ class UniversalList : PmcWidget {
                     $col.Width
                 }
 
+                # Determine edit state for this cell
+                $isInEditMode = $false
+                $focusedColumnIdx = -1
+                if ($null -ne $this.GetIsInEditMode -and $this.GetIsInEditMode -is [scriptblock]) {
+                    try {
+                        $result = & $this.GetIsInEditMode $item
+                        # Ensure boolean - PowerShell can return weird types
+                        $isInEditMode = if ($result) { $true } else { $false }
+                    } catch {
+                        $isInEditMode = $false
+                    }
+                }
+                if ($isInEditMode -and $null -ne $this.GetFocusedColumnIndex -and $this.GetFocusedColumnIndex -is [scriptblock]) {
+                    try {
+                        $focusedColumnIdx = & $this.GetFocusedColumnIndex $item
+                        # Ensure int
+                        if ($null -eq $focusedColumnIdx) { $focusedColumnIdx = -1 }
+                    } catch {
+                        $focusedColumnIdx = -1
+                    }
+                }
+                # Ensure boolean
+                $isFocused = if ($isInEditMode -and $focusedColumnIdx -eq $columnIndex) { $true } else { $false }
+
+                # DEBUG: Log all parameter types before CellInfo creation
+                try {
+                    Add-Content -Path "/tmp/pmc-cell-error.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') CellInfo params: col.Name=$($col.Name) type=$(if ($null -ne $col.Name) { $col.Name.GetType().FullName } else { 'NULL' })"
+                    Add-Content -Path "/tmp/pmc-cell-error.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') CellInfo params: value=$value type=$(if ($null -ne $value) { $value.GetType().FullName } else { 'NULL' })"
+                    Add-Content -Path "/tmp/pmc-cell-error.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') CellInfo params: currentX=$currentX type=$(if ($null -ne $currentX) { $currentX.GetType().FullName } else { 'NULL' })"
+                    Add-Content -Path "/tmp/pmc-cell-error.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') CellInfo params: rowY=$rowY type=$(if ($null -ne $rowY) { $rowY.GetType().FullName } else { 'NULL' })"
+                    Add-Content -Path "/tmp/pmc-cell-error.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') CellInfo params: width=$width type=$(if ($null -ne $width) { $width.GetType().FullName } else { 'NULL' })"
+                    Add-Content -Path "/tmp/pmc-cell-error.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') CellInfo params: col.Align=$($col.Align) type=$(if ($null -ne $col.Align) { $col.Align.GetType().FullName } else { 'NULL' })"
+                    Add-Content -Path "/tmp/pmc-cell-error.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') CellInfo params: isFocused=$isFocused type=$(if ($null -ne $isFocused) { $isFocused.GetType().FullName } else { 'NULL' })"
+                    Add-Content -Path "/tmp/pmc-cell-error.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') CellInfo params: isInEditMode=$isInEditMode type=$(if ($null -ne $isInEditMode) { $isInEditMode.GetType().FullName } else { 'NULL' })"
+                    Add-Content -Path "/tmp/pmc-cell-error.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') CellInfo params: isSelected=$isSelected type=$(if ($null -ne $isSelected) { $isSelected.GetType().FullName } else { 'NULL' })"
+                    Add-Content -Path "/tmp/pmc-cell-error.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') CellInfo params: i=$i type=$(if ($null -ne $i) { $i.GetType().FullName } else { 'NULL' })"
+                    Add-Content -Path "/tmp/pmc-cell-error.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') CellInfo params: columnIndex=$columnIndex type=$(if ($null -ne $columnIndex) { $columnIndex.GetType().FullName } else { 'NULL' })"
+                } catch {
+                    # Ignore logging errors
+                }
+
+                # Create CellInfo for this cell
+                try {
+                    $cellInfo = [CellInfo]::new(
+                        $col.Name,           # columnName
+                        $value,              # value
+                        $currentX,           # x
+                        $rowY,               # y
+                        $width,              # width
+                        $col.Align,          # align
+                        $isFocused,          # isFocused
+                        $isInEditMode,       # isInEditMode
+                        $isSelected,         # isSelected
+                        $i,                  # rowIndex
+                        $columnIndex         # columnIndex
+                    )
+                } catch {
+                    Add-Content -Path "/tmp/pmc-cell-error.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') ERROR creating CellInfo: $($_.Exception.Message)"
+                    throw
+                }
+
+                # DEBUG: Log CellInfo creation
+                if ($col.Name -eq 'priority') {
+                    Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') UniversalList: Created CellInfo for priority - IsInEditMode=$isInEditMode IsFocused=$isFocused"
+                }
+
                 # Format value if formatter provided
                 if ($col.ContainsKey('Format') -and $null -ne $col.Format) {
                     try {
-                        # Pass the WHOLE ITEM to formatter, not just the field value
-                        $value = & $col.Format $item
+                        # Pass the WHOLE ITEM + CellInfo to formatter
+                        $value = & $col.Format $item $cellInfo
                     } catch {
                         # HIGH FIX #7: Log error but return original value for graceful degradation
                         if (Get-Command Write-PmcTuiLog -ErrorAction SilentlyContinue) {
@@ -861,8 +1038,21 @@ class UniversalList : PmcWidget {
                     }
                 }
 
-                # Convert to string
-                $valueStr = if ($null -ne $value) { $value.ToString() } else { "" }
+                $columnIndex++
+
+                # Convert to string - handle arrays and other types safely
+                try {
+                    $valueStr = if ($null -ne $value) {
+                        if ($value -is [array]) {
+                            ($value -join ', ')
+                        } else {
+                            $value.ToString()
+                        }
+                    } else { "" }
+                } catch {
+                    Add-Content -Path "/tmp/pmc-cell-error.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') ERROR converting value to string: col=$($col.Name) value=$value type=$($value.GetType().FullName) error=$($_.Exception.Message)"
+                    $valueStr = ""
+                }
 
                 # L-POL-16: Highlight search matches if in search mode
                 if ($this.IsInSearchMode -and -not [string]::IsNullOrWhiteSpace($this._searchText)) {
@@ -893,11 +1083,36 @@ class UniversalList : PmcWidget {
                     $valueStr = $highlightedValue
                 }
 
-                # Truncate and pad (note: TruncateText needs to be aware of ANSI codes, or we apply after)
-                # For now, we'll truncate before highlighting to keep logic simple
-                $displayValue = $this.PadText($this.TruncateText($valueStr, $width), $width, $col.Align)
-                $rowBuilder.Append($displayValue)
-                $rowBuilder.Append("  ")
+                # In edit mode, Format callbacks include background colors
+                # DON'T pad or truncate - they handle their own formatting
+                if ($skipRowHighlight) {
+                    # Use value exactly as Format callback returned it
+                    try {
+                        $rowBuilder.Append([string]$valueStr)
+                    } catch {
+                        Add-Content -Path "/tmp/pmc-cell-error.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') ERROR appending to rowBuilder: col=$($col.Name) valueStr=$valueStr type=$($valueStr.GetType().FullName) error=$($_.Exception.Message)"
+                        throw
+                    }
+                    # Reset BEFORE padding to prevent color bleeding
+                    $rowBuilder.Append($reset)
+                    # Add fixed-width spacing to reach column width (now without background color)
+                    $visibleLen = $this.GetVisibleLength($valueStr)
+                    if ($visibleLen -lt $width) {
+                        $rowBuilder.Append(" " * ($width - $visibleLen))
+                    }
+                    # Separator spaces
+                    $rowBuilder.Append("  ")
+                } else {
+                    # Normal mode - use padding
+                    $displayValue = $this.PadText($this.TruncateText($valueStr, $width), $width, $col.Align)
+                    try {
+                        $rowBuilder.Append([string]$displayValue)
+                    } catch {
+                        Add-Content -Path "/tmp/pmc-cell-error.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') ERROR appending displayValue: col=$($col.Name) displayValue=$displayValue type=$($displayValue.GetType().FullName) error=$($_.Exception.Message)"
+                        throw
+                    }
+                    $rowBuilder.Append("  ")
+                }
 
                 $currentX += $width + 2
             }
@@ -908,7 +1123,7 @@ class UniversalList : PmcWidget {
             $contentWidth = $currentX - 2
             $padding = $this.Width - $contentWidth - 2
             if ($padding -gt 0) {
-                if ($isSelected) {
+                if ($isSelected -and -not $skipRowHighlight) {
                     $rowBuilder.Append($highlightBg)
                 }
                 $rowBuilder.Append(" " * $padding)
@@ -1144,7 +1359,7 @@ class UniversalList : PmcWidget {
         $this._InvokeCallback($this.OnMultiSelectChanged, $this.GetSelectedItems())
 
         # Move down to next item
-        $this._MoveSelectionDown()
+        $this._MoveSelectionDown(1)
     }
 
     <#
