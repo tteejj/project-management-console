@@ -95,11 +95,21 @@ class TimeListScreen : StandardListScreen {
         # Group entries by date, project, and timecode
         $grouped = @{}
         foreach ($entry in $entries) {
-            # Format date for grouping
-            $dateStr = if ($entry.ContainsKey('date') -and $entry.date -is [DateTime]) {
-                $entry.date.ToString('yyyy-MM-dd')
-            } else {
-                ''
+            # TIM-1 FIX: Format date for grouping with error handling
+            $dateStr = ''
+            if ($entry.ContainsKey('date') -and $entry.date) {
+                try {
+                    if ($entry.date -is [DateTime]) {
+                        $dateStr = $entry.date.ToString('yyyy-MM-dd')
+                    } else {
+                        # Try to parse as DateTime
+                        $parsedDate = [DateTime]::Parse($entry.date)
+                        $dateStr = $parsedDate.ToString('yyyy-MM-dd')
+                    }
+                } catch {
+                    Write-PmcTuiLog "TimeListScreen.LoadItems: Failed to parse date '$($entry.date)': $_" "WARNING"
+                    $dateStr = ''
+                }
             }
 
             # Create grouping key
@@ -331,12 +341,12 @@ class TimeListScreen : StandardListScreen {
                 notes = if ($values.ContainsKey('notes')) { $values.notes } else { '' }
             }
 
-            # Time logs typically don't support update in PMC - might need to delete and re-add
-            # For now, try to update by ID if it exists
-            if ($item.ContainsKey('id')) {
+            # Update time log via TaskStore
+            if ($item.ContainsKey('id') -and -not [string]::IsNullOrWhiteSpace($item.id)) {
                 $success = $this.Store.UpdateTimeLog($item.id, $changes)
                 if ($success) {
                     $this.SetStatusMessage("Time entry updated", "success")
+                    $this.LoadData()  # Refresh to show updated data
                 } else {
                     $this.SetStatusMessage("Failed to update time entry: $($this.Store.LastError)", "error")
                 }
@@ -400,8 +410,13 @@ class TimeListScreen : StandardListScreen {
         # Create and show dialog
         $dialog = [TimeEntryDetailDialog]::new($title, $item.original_entries)
 
-        # Dialog render loop
-        while (-not $dialog.IsComplete) {
+        # TIM-7 FIX: Dialog render loop with timeout protection
+        $maxIterations = 120000  # 120000 * 50ms = 100 minutes max
+        $iterations = 0
+
+        while (-not $dialog.IsComplete -and $iterations -lt $maxIterations) {
+            $iterations++
+
             # Get theme from theme manager
             $themeManager = [PmcThemeManager]::GetInstance()
             $theme = $themeManager.GetTheme()
@@ -416,9 +431,20 @@ class TimeListScreen : StandardListScreen {
             if ([Console]::KeyAvailable) {
                 $key = [Console]::ReadKey($true)
                 $dialog.HandleInput($key)
+
+                # Escape hatch: Ctrl+C or Escape should always close
+                if ($key.Key -eq 'Escape' -or ($key.Modifiers -band [ConsoleModifiers]::Control)) {
+                    $dialog.IsComplete = $true
+                    break
+                }
             }
 
             Start-Sleep -Milliseconds 50
+        }
+
+        # Log if timeout occurred
+        if ($iterations -ge $maxIterations) {
+            Write-PmcTuiLog "TimeListScreen.ShowDetailDialog: Timeout after $maxIterations iterations" "WARNING"
         }
 
         # Redraw screen after dialog closes

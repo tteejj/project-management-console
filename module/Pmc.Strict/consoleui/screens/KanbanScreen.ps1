@@ -126,10 +126,18 @@ class KanbanScreen : PmcScreen {
             $this.ShowStatus("Kanban: $($this.TodoTasks.Count) TODO, $($this.InProgressTasks.Count) In Progress, $($this.DoneTasks.Count) Done")
 
         } catch {
-            $this.ShowError("Failed to load kanban board: $_")
+            # KAN-3 FIX: Show proper error to user instead of silent failure
+            $errorMsg = "Failed to load kanban board: $($_.Exception.Message)"
+            $this.ShowError($errorMsg)
+            Write-PmcTuiLog "KanbanScreen.LoadData ERROR: $_" "ERROR"
+
+            # Reset to empty state so screen doesn't show stale data
             $this.TodoTasks = @()
             $this.InProgressTasks = @()
             $this.DoneTasks = @()
+
+            # Log the full error for debugging
+            Write-PmcTuiLog "KanbanScreen.LoadData full exception: $($_.Exception | Format-List -Force | Out-String)" "ERROR"
         }
     }
 
@@ -290,6 +298,10 @@ class KanbanScreen : PmcScreen {
     [bool] HandleKeyPress([ConsoleKeyInfo]$keyInfo) {
         $keyChar = [char]::ToLower($keyInfo.KeyChar)
         switch ($keyInfo.Key) {
+            'Enter' {
+                $this._ShowTaskDetail()
+                return $true
+            }
             'LeftArrow' {
                 if ($this.SelectedColumn -gt 0) {
                     $this.SelectedColumn--
@@ -308,10 +320,6 @@ class KanbanScreen : PmcScreen {
             }
             'DownArrow' {
                 $this._MoveSelectionDown()
-                return $true
-            }
-            'Enter' {
-                $this._ShowTaskDetail()
                 return $true
             }
         }
@@ -367,16 +375,6 @@ class KanbanScreen : PmcScreen {
                     $this.SelectedIndexDone++
                 }
             }
-        }
-    }
-
-    hidden [void] _ShowTaskDetail() {
-        $task = $this._GetSelectedTask()
-        if ($task) {
-            $taskId = Get-SafeProperty $task 'id'
-            $taskText = Get-SafeProperty $task 'text'
-            $this.ShowStatus("Task detail: [$taskId] $taskText")
-            # TODO: Push detail screen when implemented
         }
     }
 
@@ -438,6 +436,22 @@ class KanbanScreen : PmcScreen {
             }
         }
         return $null
+    }
+
+    hidden [void] _ShowTaskDetail() {
+        $task = $this._GetSelectedTask()
+        if ($task) {
+            $taskId = Get-SafeProperty $task 'id'
+            if ($taskId) {
+                . "$PSScriptRoot/TaskDetailScreen.ps1"
+                $detailScreen = [TaskDetailScreen]::new($taskId)
+                $global:PmcApp.PushScreen($detailScreen)
+            } else {
+                $this.ShowError("Selected task has no ID")
+            }
+        } else {
+            $this.ShowStatus("No task selected")
+        }
     }
 }
 

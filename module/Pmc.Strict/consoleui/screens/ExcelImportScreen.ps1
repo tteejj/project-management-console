@@ -104,26 +104,42 @@ class ExcelImportScreen : PmcScreen {
     }
 
     hidden [void] _RenderStep1([StringBuilder]$sb, [int]$y, [int]$width) {
-        # Step 1: Choose source
+        # Step 1: Connect to Excel
         $sb.Append($this.Header.BuildMoveTo(2, $y))
-        $sb.Append("`e[1mStep 1: Choose Excel Source`e[0m")
+        $sb.Append("`e[1mStep 1: Connect to Excel`e[0m")
         $y += 2
 
-        $options = @(
-            "1. Attach to running Excel instance"
-            "2. Open Excel file (not implemented - select option 1)"
-        )
-
-        for ($i = 0; $i -lt $options.Count; $i++) {
-            $sb.Append($this.Header.BuildMoveTo(4, $y + $i))
-            if ($i -eq $this._selectedOption) {
-                $sb.Append("`e[7m")  # Reverse video
-            }
-            $sb.Append($options[$i])
-            if ($i -eq $this._selectedOption) {
-                $sb.Append("`e[0m")
-            }
+        # Option 1: Attach to running Excel
+        $sb.Append($this.Header.BuildMoveTo(4, $y))
+        if ($this._selectedOption -eq 0) {
+            $sb.Append("`e[7m")  # Highlight
         }
+        $sb.Append("1. Attach to running Excel instance")
+        if ($this._selectedOption -eq 0) {
+            $sb.Append("`e[0m")
+        }
+        $y++
+
+        # Option 2: Open Excel file
+        $sb.Append($this.Header.BuildMoveTo(4, $y))
+        if ($this._selectedOption -eq 1) {
+            $sb.Append("`e[7m")  # Highlight
+        }
+        $sb.Append("2. Open Excel file...")
+        if ($this._selectedOption -eq 1) {
+            $sb.Append("`e[0m")
+        }
+        $y++
+
+        $y++
+        $sb.Append($this.Header.BuildMoveTo(4, $y))
+        $sb.Append("`e[90m")  # Gray text
+        if ($this._selectedOption -eq 0) {
+            $sb.Append("(Make sure Excel is running with your workbook open)")
+        } else {
+            $sb.Append("(Browse for an Excel file to import)")
+        }
+        $sb.Append("`e[0m")
     }
 
     hidden [void] _RenderStep2([StringBuilder]$sb, [int]$y, [int]$width) {
@@ -259,7 +275,7 @@ class ExcelImportScreen : PmcScreen {
 
     hidden [int] _GetMaxOptions() {
         switch ($this._step) {
-            1 { return 2 }  # 2 source options
+            1 { return 2 }  # 2 options: attach to running Excel OR open file
             2 {
                 $profiles = @($this._mappingService.GetAllProfiles())
                 return $profiles.Count
@@ -275,16 +291,32 @@ class ExcelImportScreen : PmcScreen {
                 1 {
                     # Step 1: Connect to Excel
                     if ($this._selectedOption -eq 0) {
+                        # Option 1: Attach to running Excel
                         try {
                             $this._reader.AttachToRunningExcel()
                             $this._step = 2
                             $this._selectedOption = 0
+                            $this._errorMessage = ""
                         } catch {
                             $this._errorMessage = "Failed to attach to Excel: $($_.Exception.Message). Make sure Excel is running and has a workbook open."
                             Write-PmcTuiLog "AttachToRunningExcel failed: $_" "ERROR"
                         }
                     } else {
-                        $this._errorMessage = "File picker not implemented. Please use option 1."
+                        # Option 2: Open Excel file
+                        try {
+                            $filePath = $this._ShowFilePicker()
+                            if ($filePath) {
+                                $this._reader.OpenFile($filePath)
+                                $this._step = 2
+                                $this._selectedOption = 0
+                                $this._errorMessage = ""
+                            } else {
+                                $this._errorMessage = "No file selected"
+                            }
+                        } catch {
+                            $this._errorMessage = "Failed to open Excel file: $($_.Exception.Message)"
+                            Write-PmcTuiLog "OpenFile failed: $_" "ERROR"
+                        }
                     }
                 }
                 2 {
@@ -413,6 +445,42 @@ class ExcelImportScreen : PmcScreen {
         } else {
             Write-PmcTuiLog "ExcelImportScreen: Failed to import project: $($this.Store.LastError)" "ERROR"
             throw "Failed to import project: $($this.Store.LastError)"
+        }
+    }
+
+    hidden [string] _ShowFilePicker() {
+        . "$PSScriptRoot/../widgets/PmcFilePicker.ps1"
+
+        # Start at user's home directory
+        $startPath = [Environment]::GetFolderPath('UserProfile')
+        $picker = [PmcFilePicker]::new($startPath, $false)  # false = allow files
+
+        # Manual render loop
+        while (-not $picker.IsComplete) {
+            # Get theme
+            $themeManager = [PmcThemeManager]::GetInstance()
+            $theme = $themeManager.GetTheme()
+
+            # Render picker
+            $termWidth = [Console]::WindowWidth
+            $termHeight = [Console]::WindowHeight
+            $pickerOutput = $picker.Render($termWidth, $termHeight)
+            Write-Host -NoNewline $pickerOutput
+
+            # Handle input
+            if ([Console]::KeyAvailable) {
+                $key = [Console]::ReadKey($true)
+                $picker.HandleInput($key)
+            }
+
+            Start-Sleep -Milliseconds 50
+        }
+
+        # Return selected path (or empty string if cancelled)
+        if ($picker.Result) {
+            return $picker.SelectedPath
+        } else {
+            return ''
         }
     }
 }
