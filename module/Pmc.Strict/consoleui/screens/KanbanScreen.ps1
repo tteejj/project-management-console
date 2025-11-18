@@ -47,7 +47,6 @@ class KanbanScreen : PmcScreen {
         $this.Footer.ClearShortcuts()
         $this.Footer.AddShortcut("Up/Down", "Select")
         $this.Footer.AddShortcut("Left/Right", "Column")
-        $this.Footer.AddShortcut("Enter", "Detail")
         $this.Footer.AddShortcut("M", "Move")
         $this.Footer.AddShortcut("R", "Refresh")
         $this.Footer.AddShortcut("Esc", "Back")
@@ -67,7 +66,6 @@ class KanbanScreen : PmcScreen {
         $this.Footer.ClearShortcuts()
         $this.Footer.AddShortcut("Up/Down", "Select")
         $this.Footer.AddShortcut("Left/Right", "Column")
-        $this.Footer.AddShortcut("Enter", "Detail")
         $this.Footer.AddShortcut("M", "Move")
         $this.Footer.AddShortcut("R", "Refresh")
         $this.Footer.AddShortcut("Esc", "Back")
@@ -310,10 +308,6 @@ class KanbanScreen : PmcScreen {
                 $this._MoveSelectionDown()
                 return $true
             }
-            'Enter' {
-                $this._ShowTaskDetail()
-                return $true
-            }
         }
 
         switch ($keyChar) {
@@ -367,16 +361,6 @@ class KanbanScreen : PmcScreen {
                     $this.SelectedIndexDone++
                 }
             }
-        }
-    }
-
-    hidden [void] _ShowTaskDetail() {
-        $task = $this._GetSelectedTask()
-        if ($task) {
-            $taskId = Get-SafeProperty $task 'id'
-            $taskText = Get-SafeProperty $task 'text'
-            $this.ShowStatus("Task detail: [$taskId] $taskText")
-            # TODO: Push detail screen when implemented
         }
     }
 

@@ -331,12 +331,12 @@ class TimeListScreen : StandardListScreen {
                 notes = if ($values.ContainsKey('notes')) { $values.notes } else { '' }
             }
 
-            # Time logs typically don't support update in PMC - might need to delete and re-add
-            # For now, try to update by ID if it exists
-            if ($item.ContainsKey('id')) {
+            # Update time log via TaskStore
+            if ($item.ContainsKey('id') -and -not [string]::IsNullOrWhiteSpace($item.id)) {
                 $success = $this.Store.UpdateTimeLog($item.id, $changes)
                 if ($success) {
                     $this.SetStatusMessage("Time entry updated", "success")
+                    $this.LoadData()  # Refresh to show updated data
                 } else {
                     $this.SetStatusMessage("Failed to update time entry: $($this.Store.LastError)", "error")
                 }

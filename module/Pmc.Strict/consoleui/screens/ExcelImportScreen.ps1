@@ -104,26 +104,22 @@ class ExcelImportScreen : PmcScreen {
     }
 
     hidden [void] _RenderStep1([StringBuilder]$sb, [int]$y, [int]$width) {
-        # Step 1: Choose source
+        # Step 1: Connect to Excel
         $sb.Append($this.Header.BuildMoveTo(2, $y))
-        $sb.Append("`e[1mStep 1: Choose Excel Source`e[0m")
+        $sb.Append("`e[1mStep 1: Connect to Excel`e[0m")
         $y += 2
 
-        $options = @(
-            "1. Attach to running Excel instance"
-            "2. Open Excel file (not implemented - select option 1)"
-        )
+        # Only show "Attach to running Excel" - file picker option removed
+        $sb.Append($this.Header.BuildMoveTo(4, $y))
+        $sb.Append("`e[7m")  # Highlight (always selected since only 1 option)
+        $sb.Append("Attach to running Excel instance")
+        $sb.Append("`e[0m")
 
-        for ($i = 0; $i -lt $options.Count; $i++) {
-            $sb.Append($this.Header.BuildMoveTo(4, $y + $i))
-            if ($i -eq $this._selectedOption) {
-                $sb.Append("`e[7m")  # Reverse video
-            }
-            $sb.Append($options[$i])
-            if ($i -eq $this._selectedOption) {
-                $sb.Append("`e[0m")
-            }
-        }
+        $y += 2
+        $sb.Append($this.Header.BuildMoveTo(4, $y))
+        $sb.Append("`e[90m")  # Gray text
+        $sb.Append("(Make sure Excel is running with your workbook open)")
+        $sb.Append("`e[0m")
     }
 
     hidden [void] _RenderStep2([StringBuilder]$sb, [int]$y, [int]$width) {
@@ -221,20 +217,22 @@ class ExcelImportScreen : PmcScreen {
         # Clear error
         $this._errorMessage = ""
 
-        # Up/Down for selection
-        if ($keyInfo.Key -eq ([ConsoleKey]::UpArrow)) {
-            if ($this._selectedOption -gt 0) {
-                $this._selectedOption--
+        # Up/Down for selection (skip if step 1 since only 1 option)
+        if ($this._step -ne 1) {
+            if ($keyInfo.Key -eq ([ConsoleKey]::UpArrow)) {
+                if ($this._selectedOption -gt 0) {
+                    $this._selectedOption--
+                }
+                return $true
             }
-            return $true
-        }
 
-        if ($keyInfo.Key -eq ([ConsoleKey]::DownArrow)) {
-            $maxOptions = $this._GetMaxOptions()
-            if ($this._selectedOption -lt $maxOptions - 1) {
-                $this._selectedOption++
+            if ($keyInfo.Key -eq ([ConsoleKey]::DownArrow)) {
+                $maxOptions = $this._GetMaxOptions()
+                if ($this._selectedOption -lt $maxOptions - 1) {
+                    $this._selectedOption++
+                }
+                return $true
             }
-            return $true
         }
 
         # Enter - Next step
@@ -259,7 +257,7 @@ class ExcelImportScreen : PmcScreen {
 
     hidden [int] _GetMaxOptions() {
         switch ($this._step) {
-            1 { return 2 }  # 2 source options
+            1 { return 1 }  # Only 1 option now: attach to running Excel
             2 {
                 $profiles = @($this._mappingService.GetAllProfiles())
                 return $profiles.Count
@@ -273,18 +271,15 @@ class ExcelImportScreen : PmcScreen {
         try {
             switch ($this._step) {
                 1 {
-                    # Step 1: Connect to Excel
-                    if ($this._selectedOption -eq 0) {
-                        try {
-                            $this._reader.AttachToRunningExcel()
-                            $this._step = 2
-                            $this._selectedOption = 0
-                        } catch {
-                            $this._errorMessage = "Failed to attach to Excel: $($_.Exception.Message). Make sure Excel is running and has a workbook open."
-                            Write-PmcTuiLog "AttachToRunningExcel failed: $_" "ERROR"
-                        }
-                    } else {
-                        $this._errorMessage = "File picker not implemented. Please use option 1."
+                    # Step 1: Connect to Excel (only one option now - attach to running instance)
+                    try {
+                        $this._reader.AttachToRunningExcel()
+                        $this._step = 2
+                        $this._selectedOption = 0
+                        $this._errorMessage = ""
+                    } catch {
+                        $this._errorMessage = "Failed to attach to Excel: $($_.Exception.Message). Make sure Excel is running and has a workbook open."
+                        Write-PmcTuiLog "AttachToRunningExcel failed: $_" "ERROR"
                     }
                 }
                 2 {
