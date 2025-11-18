@@ -403,6 +403,13 @@ class BlockedTasksScreen : PmcScreen {
         }
 
         $task = $this.BlockedTasks[$this.SelectedIndex]
+
+        # NULL GUARD: Validate task exists and has required properties
+        if ($null -eq $task -or -not $task.id) {
+            $this.ShowError("Invalid task selected")
+            return
+        }
+
         $this.InputMode = "edit-field"
         $this.EditFieldIndex = 0
         $this.EditField = $this.EditableFields[$this.EditFieldIndex]
@@ -487,6 +494,12 @@ class BlockedTasksScreen : PmcScreen {
 
         $task = $this.BlockedTasks[$this.SelectedIndex]
 
+        # NULL GUARD: Validate task exists and has required properties
+        if ($null -eq $task -or -not $task.id) {
+            $this.ShowError("Invalid task selected")
+            return
+        }
+
         try {
             # Use existing FieldSchema to normalize and validate
             $schema = Get-PmcFieldSchema -Domain 'task' -Field $field
@@ -539,6 +552,13 @@ class BlockedTasksScreen : PmcScreen {
     hidden [void] _ToggleStatus() {
         if ($this.SelectedIndex -ge 0 -and $this.SelectedIndex -lt $this.BlockedTasks.Count) {
             $task = $this.BlockedTasks[$this.SelectedIndex]
+
+            # NULL GUARD: Validate task exists and has required properties
+            if ($null -eq $task -or -not $task.id) {
+                $this.ShowError("Invalid task selected")
+                return
+            }
+
             # Toggle between blocked and waiting
             $newStatus = if ($task.status -eq 'blocked') { 'waiting' } else { 'blocked' }
 
