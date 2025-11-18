@@ -175,7 +175,7 @@ function Test-ProjectValid {
     else {
         # Check for duplicates
         $duplicate = $existingProjects | Where-Object { $_.name -eq $project.name }
-        if ($duplicate -and $duplicate.name -ne $project.name) {
+        if ($duplicate) {
             $result.AddFieldError('name', "Project with name '$($project.name)' already exists")
         }
     }

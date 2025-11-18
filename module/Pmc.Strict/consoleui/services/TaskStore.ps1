@@ -525,8 +525,28 @@ class TaskStore {
             $this._CreateBackup()
 
             # Generate ID if not present
+            # LOW FIX ES-L5: Check for GUID collision (extremely rare but validate)
             if (-not $task.ContainsKey('id') -or [string]::IsNullOrEmpty($task.id)) {
-                $task.id = [Guid]::NewGuid().ToString()
+                $maxRetries = 3
+                $retryCount = 0
+                $guidGenerated = $false
+                while (-not $guidGenerated -and $retryCount -lt $maxRetries) {
+                    $newGuid = [Guid]::NewGuid().ToString()
+                    # Check if this GUID already exists (collision check)
+                    $collision = $this._data.tasks | Where-Object { $_.id -eq $newGuid } | Select-Object -First 1
+                    if (-not $collision) {
+                        $task.id = $newGuid
+                        $guidGenerated = $true
+                    } else {
+                        Write-PmcTuiLog "GUID collision detected: $newGuid (retry $($retryCount + 1)/$maxRetries)" "WARNING"
+                        $retryCount++
+                    }
+                }
+                if (-not $guidGenerated) {
+                    $this.LastError = "Failed to generate unique GUID after $maxRetries attempts"
+                    Write-PmcTuiLog "AddTask: GUID generation failed after $maxRetries retries" "ERROR"
+                    return $false
+                }
             }
 
             # H-VAL-7: Check for duplicate ID before insert

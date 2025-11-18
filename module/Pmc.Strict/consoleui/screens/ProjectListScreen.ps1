@@ -103,9 +103,11 @@ class ProjectListScreen : StandardListScreen {
                 $tasksByProject[$projName]
             } else { 0 }
 
-            # Ensure status field exists
-            if (-not $project.ContainsKey('status')) {
-                $project['status'] = 'active'
+            # PS-M3 FIX: Don't always default status to 'active' for existing projects
+            # Only add status if it's missing (preserve archived, etc.)
+            # If status is genuinely missing, leave it empty rather than assuming 'active'
+            if (-not $project.ContainsKey('status') -or $null -eq $project['status']) {
+                $project['status'] = ''
             }
         }
 
@@ -496,10 +498,18 @@ class ProjectListScreen : StandardListScreen {
                 return ''
             }
 
+            # PS-M3 FIX: Preserve existing status if not being changed
+            $statusValue = if ($values.ContainsKey('status') -and -not [string]::IsNullOrWhiteSpace($values.status)) {
+                $values.status
+            } else {
+                # Preserve existing status from item
+                Get-SafeProperty $item 'status'
+            }
+
             $changes = @{
                 name = $values.name
                 description = if ($values.ContainsKey('description')) { $values.description } else { '' }
-                status = if ($values.ContainsKey('status')) { $values.status } else { '' }
+                status = $statusValue
                 tags = $tags
 
                 # ID fields
@@ -578,7 +588,37 @@ class ProjectListScreen : StandardListScreen {
                 ShipToAddress = if ($values.ContainsKey('ShipToAddress')) { $values.ShipToAddress } else { '' }
             }
 
-            $success = $this.Store.UpdateProject((Get-SafeProperty $item 'name'), $changes)
+            # PS-M1 FIX: Add validation before Store.UpdateProject()
+            # Validate name length
+            if ($values.name.Length -gt 100) {
+                $this.SetStatusMessage("Project name must be 100 characters or less", "error")
+                return
+            }
+
+            # Validate description length if provided
+            if ($values.ContainsKey('description') -and $values.description -and $values.description.Length -gt 500) {
+                $this.SetStatusMessage("Description must be 500 characters or less", "error")
+                return
+            }
+
+            # Validate that original project exists
+            $originalName = Get-SafeProperty $item 'name'
+            if ([string]::IsNullOrWhiteSpace($originalName)) {
+                $this.SetStatusMessage("Cannot update project: original project name is missing", "error")
+                return
+            }
+
+            # If name is changing, check for duplicate name
+            if ($values.name -ne $originalName) {
+                $existingProjects = $this.Store.GetAllProjects()
+                $duplicate = $existingProjects | Where-Object { (Get-SafeProperty $_ 'name') -eq $values.name }
+                if ($duplicate) {
+                    $this.SetStatusMessage("Project name '$($values.name)' already exists", "error")
+                    return
+                }
+            }
+
+            $success = $this.Store.UpdateProject($originalName, $changes)
             if ($success) {
                 $this.SetStatusMessage("Project updated: $($values.name)", "success")
             } else {
@@ -594,7 +634,23 @@ class ProjectListScreen : StandardListScreen {
     [void] OnItemDeleted([object]$item) {
         # Check if project has tasks
         $itemName = Get-SafeProperty $item 'name'
-        $taskCount = ($this.Store.GetAllTasks() | Where-Object { (Get-SafeProperty $_ 'project') -eq $itemName }).Count
+
+        # PS-H1 FIX: Use hashtable approach for O(1) lookup instead of O(n) filtering
+        $allTasks = $this.Store.GetAllTasks()
+        $tasksByProject = @{}
+        foreach ($task in $allTasks) {
+            $projName = Get-SafeProperty $task 'project'
+            if ($projName) {
+                if (-not $tasksByProject.ContainsKey($projName)) {
+                    $tasksByProject[$projName] = 0
+                }
+                $tasksByProject[$projName]++
+            }
+        }
+
+        $taskCount = if ($tasksByProject.ContainsKey($itemName)) {
+            $tasksByProject[$itemName]
+        } else { 0 }
 
         if ($taskCount -gt 0) {
             # H-UI-8: Better error message with actionable guidance
@@ -754,9 +810,10 @@ class ProjectListScreen : StandardListScreen {
                     $global:PmcApp.PushScreen($screen)
                     $this.SetStatusMessage("Viewing project: $projectName", "success")
                 } catch {
+                    # PS-H2 FIX: Add user-visible error message
                     Write-PmcTuiLog "Failed to open ProjectInfoScreen: $_" "ERROR"
                     Write-PmcTuiLog "Stack trace: $($_.ScriptStackTrace)" "ERROR"
-                    $this.SetStatusMessage("Failed to open project info: $($_.Exception.Message)", "error")
+                    $this.SetStatusMessage("Failed to load project details: $($_.Exception.Message)", "error")
                 }
             } else {
                 $this.SetStatusMessage("No project selected", "error")

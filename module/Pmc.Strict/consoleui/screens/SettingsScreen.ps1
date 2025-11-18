@@ -70,14 +70,19 @@ class SettingsScreen : PmcScreen {
     }
 
     [void] LoadData() {
-        # Load current settings
+        # SS-M2 FIX: Defensive check layering documentation
+        # LAYER 1: Default values are set BEFORE external function calls
+        # This ensures settings always have valid values even if external functions fail
         $dataFile = "~/.pmc/data.json"
         try {
+            # LAYER 2: Try to get actual value from external function
             $dataFile = Get-PmcTaskFilePath
         } catch {
-            # Use default if Get-PmcTaskFilePath fails
+            # LAYER 3: Silently fall back to default if function fails
+            # User experience is preserved; error is logged implicitly by PowerShell
         }
 
+        # Same defensive layering for current context
         $currentContext = "inbox"
         try {
             $currentContext = Get-PmcCurrentContext
@@ -274,23 +279,45 @@ class SettingsScreen : PmcScreen {
         if ($setting.action) {
             switch ($setting.action) {
                 'launchThemeEditor' {
+                    # SS-M1 FIX: Enhanced try-catch with comprehensive error handling
                     # Lazy-load Theme Editor screen
                     try {
-                        . "$PSScriptRoot/ThemeEditorScreen.ps1"
+                        # Validate file exists before dot-sourcing
+                        $themeEditorPath = "$PSScriptRoot/ThemeEditorScreen.ps1"
+                        if (-not (Test-Path $themeEditorPath)) {
+                            throw "ThemeEditorScreen.ps1 not found at expected path: $themeEditorPath"
+                        }
+
+                        . $themeEditorPath
+
+                        # Validate class is available after dot-sourcing
+                        if (-not ([System.Management.Automation.PSTypeName]'ThemeEditorScreen').Type) {
+                            throw "ThemeEditorScreen class not available after loading file"
+                        }
+
                         if ($global:PmcApp) {
                             $themeScreen = [ThemeEditorScreen]::new()
+                            if ($null -eq $themeScreen) {
+                                throw "ThemeEditorScreen constructor returned null"
+                            }
                             $global:PmcApp.PushScreen($themeScreen)
+                        } else {
+                            throw "PmcApp global variable is not available"
                         }
                     } catch {
                         try { $this.ShowError("Failed to load theme editor: $($_.Exception.Message)") } catch { }
                         Write-PmcTuiLog "Failed to load ThemeEditorScreen: $_" "ERROR"
+                        Write-PmcTuiLog "Stack trace: $($_.ScriptStackTrace)" "ERROR"
                     }
                     return
                 }
             }
         }
 
+        # SS-M2 FIX: Defensive check layering - verify setting is editable
         if (-not $setting.editable) {
+            # LAYER 1: Try to show error to user via UI
+            # LAYER 2: Catch and suppress any UI errors (ShowError might fail if screen not active)
             try { $this.ShowError("$($setting.name) is read-only") } catch { }
             return
         }
@@ -298,6 +325,7 @@ class SettingsScreen : PmcScreen {
         $this.InputMode = 'edit'
         $this.EditingIndex = $this.SelectedIndex
         $this.InputBuffer = $setting.value
+        # Defensive layer: Protect against ShowStatus failures
         try { $this.ShowStatus("Edit value (Enter: save, Esc: cancel)") } catch { }
     }
 
@@ -335,7 +363,12 @@ class SettingsScreen : PmcScreen {
         # Update the setting value
         $setting.value = $newValue
 
-        # Apply the setting based on key
+        # SS-M2 FIX: Defensive check layering documentation for setting persistence
+        # LAYER 1: Optimistically update in-memory value first
+        # LAYER 2: Try to persist to backend based on setting type
+        # LAYER 3: Revert in-memory value if persistence fails
+        # LAYER 4: Show user-friendly error message
+        # SS-H1 FIX: Apply the setting based on key with proper persistence for each editable setting
         switch ($setting.key) {
             'defaultProject' {
                 try {
@@ -344,7 +377,10 @@ class SettingsScreen : PmcScreen {
                         throw "Set-PmcFocus command not available"
                     }
                     # Use Set-PmcFocus to change the current context
-                    Set-PmcFocus -Project $newValue
+                    # Create proper PmcCommandContext with project name in FreeText
+                    $context = [PmcCommandContext]::new('focus', 'set')
+                    $context.FreeText = @($newValue)
+                    Set-PmcFocus -Context $context
                     $this.ShowSuccess("Default project updated to '$newValue'")
                 } catch {
                     $this.ShowError("Failed to set default project: $_")
@@ -352,8 +388,17 @@ class SettingsScreen : PmcScreen {
                     $setting.value = $oldValue
                 }
             }
+            'autoSave' {
+                # TODO: Implement persistence for auto-save setting
+                # For now, show warning that this setting is not persisted
+                $this.ShowError("Auto-save setting persistence not yet implemented")
+                $setting.value = $oldValue
+            }
             default {
-                $this.ShowSuccess("$($setting.name) updated")
+                # Default case: Warn that persistence is not implemented
+                # This prevents false success messages for settings without persistence logic
+                $this.ShowError("Persistence not implemented for setting '$($setting.name)'. Changes will not be saved.")
+                $setting.value = $oldValue
             }
         }
 

@@ -40,17 +40,28 @@ class PmcKanbanRenderer {
             $map[$key] += $row
         }
         $keys = @($map.Keys | Sort-Object)
+
+        # Build map of lane key -> offset BEFORE rebuilding lanes
+        $offsetMap = @{}
+        if ($this.LaneOffsets -and $this.Lanes.Count -eq $this.LaneOffsets.Count) {
+            for ($i=0; $i -lt $this.Lanes.Count; $i++) {
+                $key = $this.Lanes[$i].Key
+                $offsetMap[$key] = $this.LaneOffsets[$i]
+            }
+        }
+
+        # Rebuild lanes
         $this.Lanes = @()
         foreach ($k in $keys) { $this.Lanes += @{ Key=$k; Items=$map[$k] } }
-        # Preserve offsets by lane key
-        $newOffsets = @()
+
+        # Rebuild offsets array to match lane count, preserving by lane key
+        $this.LaneOffsets = @(0) * $this.Lanes.Count
         for ($i=0; $i -lt $this.Lanes.Count; $i++) {
             $key = $this.Lanes[$i].Key
-            $off = 0
-            if ($this.LaneOffsets -and $this.LaneOffsets.Count -eq $this.Lanes.Count) { $off = $this.LaneOffsets[$i] }
-            $newOffsets += $off
+            if ($offsetMap.ContainsKey($key)) {
+                $this.LaneOffsets[$i] = [Math]::Max(0, $offsetMap[$key])
+            }
         }
-        $this.LaneOffsets = $newOffsets
         if ($this.SelectedLane -ge $this.Lanes.Count) { $this.SelectedLane = [Math]::Max(0, $this.Lanes.Count-1) }
         if ($this.SelectedLane -lt 0) { $this.SelectedLane = 0 }
         $currentCount = if ($this.Lanes.Count -gt 0) { @($this.Lanes[$this.SelectedLane].Items).Count } else { 0 }
@@ -342,36 +353,47 @@ class PmcKanbanRenderer {
                     'UpArrow'    {
                         $cnt = @($this.Lanes[$this.SelectedLane].Items).Count
                         if ($this.SelectedIndex -gt 0) { $this.SelectedIndex-- }
-                        # adjust offset
-                        $off = $this.LaneOffsets[$this.SelectedLane]
-                        if ($this.SelectedIndex -lt $off) { $this.LaneOffsets[$this.SelectedLane] = [Math]::Max(0, $off-1) }
+                        # adjust offset with bounds checking
+                        if ($this.SelectedLane -lt $this.LaneOffsets.Count) {
+                            $off = $this.LaneOffsets[$this.SelectedLane]
+                            if ($this.SelectedIndex -lt $off) { $this.LaneOffsets[$this.SelectedLane] = [Math]::Max(0, $off-1) }
+                        }
                         if ($this.MoveActive) { $this.MoveTargetLane = $this.SelectedLane; $this.MoveTargetIndex = $this.SelectedIndex }
                         $refresh=$true
                     }
                     'DownArrow'  {
                         $cnt = @($this.Lanes[$this.SelectedLane].Items).Count
                         if ($this.SelectedIndex -lt ($cnt-1)) { $this.SelectedIndex++ }
-                        $off = $this.LaneOffsets[$this.SelectedLane]
-                        $termHeight = 25; try { $termHeight = [PmcTerminalService]::GetHeight() } catch {}
-                        $maxItemsPerLane = [Math]::Max(1, $termHeight - 2 - 2 - 2)
-                        if ($this.SelectedIndex -ge ($off + $maxItemsPerLane)) { $this.LaneOffsets[$this.SelectedLane] = $off + 1 }
+                        # adjust offset with bounds checking
+                        if ($this.SelectedLane -lt $this.LaneOffsets.Count) {
+                            $off = $this.LaneOffsets[$this.SelectedLane]
+                            $termHeight = 25; try { $termHeight = [PmcTerminalService]::GetHeight() } catch {}
+                            $maxItemsPerLane = [Math]::Max(1, $termHeight - 2 - 2 - 2)
+                            if ($this.SelectedIndex -ge ($off + $maxItemsPerLane)) { $this.LaneOffsets[$this.SelectedLane] = $off + 1 }
+                        }
                         if ($this.MoveActive) { $this.MoveTargetLane = $this.SelectedLane; $this.MoveTargetIndex = $this.SelectedIndex }
                         $refresh=$true
                     }
                     'PageUp'     {
-                        $off = $this.LaneOffsets[$this.SelectedLane]
-                        $termHeight = 25; try { $termHeight = [PmcTerminalService]::GetHeight() } catch {}
-                        $maxItemsPerLane = [Math]::Max(1, $termHeight - 2 - 2 - 2)
-                        $this.LaneOffsets[$this.SelectedLane] = [Math]::Max(0, $off - $maxItemsPerLane)
+                        # adjust offset with bounds checking
+                        if ($this.SelectedLane -lt $this.LaneOffsets.Count) {
+                            $off = $this.LaneOffsets[$this.SelectedLane]
+                            $termHeight = 25; try { $termHeight = [PmcTerminalService]::GetHeight() } catch {}
+                            $maxItemsPerLane = [Math]::Max(1, $termHeight - 2 - 2 - 2)
+                            $this.LaneOffsets[$this.SelectedLane] = [Math]::Max(0, $off - $maxItemsPerLane)
+                        }
                         $this.SelectedIndex = [Math]::Max(0, $this.SelectedIndex - $maxItemsPerLane)
                         if ($this.MoveActive) { $this.MoveTargetLane = $this.SelectedLane; $this.MoveTargetIndex = $this.SelectedIndex }
                         $refresh=$true
                     }
                     'PageDown'   {
-                        $off = $this.LaneOffsets[$this.SelectedLane]
-                        $termHeight = 25; try { $termHeight = [PmcTerminalService]::GetHeight() } catch {}
-                        $maxItemsPerLane = [Math]::Max(1, $termHeight - 2 - 2 - 2)
-                        $this.LaneOffsets[$this.SelectedLane] = $off + $maxItemsPerLane
+                        # adjust offset with bounds checking
+                        if ($this.SelectedLane -lt $this.LaneOffsets.Count) {
+                            $off = $this.LaneOffsets[$this.SelectedLane]
+                            $termHeight = 25; try { $termHeight = [PmcTerminalService]::GetHeight() } catch {}
+                            $maxItemsPerLane = [Math]::Max(1, $termHeight - 2 - 2 - 2)
+                            $this.LaneOffsets[$this.SelectedLane] = $off + $maxItemsPerLane
+                        }
                         $this.SelectedIndex = $this.SelectedIndex + $maxItemsPerLane
                         if ($this.MoveActive) { $this.MoveTargetLane = $this.SelectedLane; $this.MoveTargetIndex = $this.SelectedIndex }
                         $refresh=$true
@@ -416,14 +438,57 @@ class PmcKanbanRenderer {
         }
     }
 
+    # LOW FIX KR-L2: Helper method to validate lane and item indices (reduces duplication)
+    hidden [hashtable] ValidateMoveIndices() {
+        # Validate source lane
+        if ($this.MoveSourceLane -lt 0 -or $this.MoveSourceLane -ge $this.Lanes.Count) {
+            return @{ Valid = $false }
+        }
+        $srcLane = $this.Lanes[$this.MoveSourceLane]
+        if (-not $srcLane) {
+            return @{ Valid = $false }
+        }
+
+        # Validate source item
+        if ($this.MoveSourceIndex -lt 0 -or $this.MoveSourceIndex -ge @($srcLane.Items).Count) {
+            return @{ Valid = $false }
+        }
+        $item = $srcLane.Items[$this.MoveSourceIndex]
+        if (-not $item) {
+            return @{ Valid = $false }
+        }
+
+        # Validate target lane
+        if ($this.MoveTargetLane -lt 0 -or $this.MoveTargetLane -ge $this.Lanes.Count) {
+            return @{ Valid = $false }
+        }
+        $targetLane = $this.Lanes[$this.MoveTargetLane]
+        if (-not $targetLane) {
+            return @{ Valid = $false }
+        }
+
+        return @{
+            Valid = $true
+            SourceLane = $srcLane
+            TargetLane = $targetLane
+            Item = $item
+        }
+    }
+
     [void] ApplyMove() {
         if (-not $this.MoveActive) { return }
         try {
-            $srcLane = $this.Lanes[$this.MoveSourceLane]
-            if (-not $srcLane) { $this.MoveActive=$false; return }
-            $item = $srcLane.Items[$this.MoveSourceIndex]
-            if (-not $item) { $this.MoveActive=$false; return }
-            $targetLane = $this.Lanes[$this.MoveTargetLane]
+            # LOW FIX KR-L2: Use helper method to validate indices
+            $validation = $this.ValidateMoveIndices()
+            if (-not $validation.Valid) {
+                $this.MoveActive = $false
+                return
+            }
+
+            $srcLane = $validation.SourceLane
+            $targetLane = $validation.TargetLane
+            $item = $validation.Item
+
             $newKey = [string]($targetLane.Key)
 
             # Only support task domain for move in MVP
@@ -458,19 +523,59 @@ class PmcKanbanRenderer {
             $list = New-Object System.Collections.ArrayList
             foreach ($x in $this.CurrentData) { [void]$list.Add($x) }
 
-            # Remove item from its current position
-            $oldIdx = $list.IndexOf($item)
-            if ($oldIdx -ge 0) { $list.RemoveAt($oldIdx) }
+            # Validate item exists in current data (ensure object identity)
+            $oldIdx = -1
+            for ($i = 0; $i -lt $list.Count; $i++) {
+                if ([object]::ReferenceEquals($list[$i], $item)) {
+                    $oldIdx = $i
+                    break
+                }
+            }
+
+            if ($oldIdx -lt 0) {
+                # Item not found by reference, try by ID as fallback
+                $itemId = if ($item.PSObject.Properties['id']) { $item.id } else { $null }
+                if ($itemId) {
+                    for ($i = 0; $i -lt $list.Count; $i++) {
+                        $listItemId = if ($list[$i].PSObject.Properties['id']) { $list[$i].id } else { $null }
+                        if ($itemId -eq $listItemId) {
+                            $oldIdx = $i
+                            # Update reference to maintain identity
+                            $item = $list[$i]
+                            break
+                        }
+                    }
+                }
+            }
+
+            if ($oldIdx -lt 0) {
+                # Cannot find item, abort move
+                $this.MoveActive = $false
+                return
+            }
+
+            # Remove item from its current position (preserving object identity)
+            $list.RemoveAt($oldIdx)
 
             # Find insertion position using the reference item (if it exists)
             $insIdx = if ($insertRef) {
-                $refIdx = $list.IndexOf($insertRef)
+                $refIdx = -1
+                for ($i = 0; $i -lt $list.Count; $i++) {
+                    if ([object]::ReferenceEquals($list[$i], $insertRef)) {
+                        $refIdx = $i
+                        break
+                    }
+                }
                 if ($refIdx -ge 0) { $refIdx } else { $list.Count }
             } else {
                 $list.Count
             }
 
-            # Insert item at calculated position
+            # Validate insertion index
+            if ($insIdx -lt 0) { $insIdx = 0 }
+            if ($insIdx -gt $list.Count) { $insIdx = $list.Count }
+
+            # Insert item at calculated position (maintaining object identity)
             $list.Insert($insIdx, $item)
 
             # Update data and rebuild lanes ONCE

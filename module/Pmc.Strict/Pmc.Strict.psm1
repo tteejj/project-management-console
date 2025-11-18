@@ -119,6 +119,10 @@ try {
     throw
 }
 
+# Create Save-StrictData alias for backward compatibility
+# Used by Focus.ps1, Aliases.ps1, and other modules
+Set-Alias -Name Save-StrictData -Value Save-PmcData
+
 try {
     # Loading UI.ps1...
     . $PSScriptRoot/src/UI.ps1
@@ -676,7 +680,22 @@ function Get-PmcData {
         } | ConvertTo-Json -Depth 10
         $init | Set-Content -Path $file -Encoding UTF8
     }
-    $cfg = Get-PmcConfig; $strict = $true; try { if ($cfg.Behavior -and $cfg.Behavior.StrictDataMode -ne $null) { $strict = [bool]$cfg.Behavior.StrictDataMode } } catch {}
+    # KR-M1 FIX: Add type validation before casting JSON boolean field
+    $cfg = Get-PmcConfig; $strict = $true
+    try {
+        if ($cfg.Behavior -and $cfg.Behavior.StrictDataMode -ne $null) {
+            # Validate and safely convert to boolean
+            if ($cfg.Behavior.StrictDataMode -is [bool]) {
+                $strict = $cfg.Behavior.StrictDataMode
+            } elseif ($cfg.Behavior.StrictDataMode -is [string]) {
+                $strict = $cfg.Behavior.StrictDataMode -eq 'true'
+            } elseif ($cfg.Behavior.StrictDataMode -is [int]) {
+                $strict = $cfg.Behavior.StrictDataMode -ne 0
+            } else {
+                $strict = [bool]$cfg.Behavior.StrictDataMode
+            }
+        }
+    } catch {}
     try {
         $raw = Get-Content $file -Raw
         $data = $raw | ConvertFrom-Json
@@ -774,6 +793,9 @@ Export-ModuleMember -Function `
 
 # Export variables explicitly
 Export-ModuleMember -Variable PmcCommandMap, PmcShortcutMap, PmcCommandMeta
+
+# Export aliases
+Export-ModuleMember -Alias Save-StrictData
 
 # Services directory - REFERENCE ONLY (disabled to avoid conflicts)
 # Future service-oriented architecture available in Services/ directory

@@ -51,6 +51,9 @@ class KanbanScreenV2 : PmcScreen {
     # Expanded parent tasks (for subtask display)
     [HashSet[string]]$ExpandedParents = [HashSet[string]]::new()
 
+    # Parent-child relationship cache (for performance optimization)
+    [hashtable]$_parentChildCache = @{}
+
     # Tag color mapping (loaded from config)
     [hashtable]$TagColors = @{}
 
@@ -171,6 +174,21 @@ class KanbanScreenV2 : PmcScreen {
                 $order = Get-SafeProperty $_ 'order'
                 if ($order) { [int]$order } else { 999 }
             }, { Get-SafeProperty $_ 'priority' } -Descending)
+
+            # Build parent-child cache for performance optimization
+            # KSV2-M1 FIX: Add count check before iterating allTasks array
+            $this._parentChildCache = @{}
+            if ($null -ne $allTasks -and $allTasks.Count -gt 0) {
+                foreach ($task in $allTasks) {
+                    $parentId = Get-SafeProperty $task 'parent_id'
+                    if ($parentId) {
+                        if (-not $this._parentChildCache.ContainsKey($parentId)) {
+                            $this._parentChildCache[$parentId] = @()
+                        }
+                        $this._parentChildCache[$parentId] += Get-SafeProperty $task 'id'
+                    }
+                }
+            }
 
             # Reset selections if out of bounds
             if ($this.SelectedIndexTodo -ge $this.TodoTasks.Count) {
@@ -501,10 +519,13 @@ class KanbanScreenV2 : PmcScreen {
                 $result.Add(@{ Task = $task; Depth = 0 })
 
                 # If expanded, add children
+                # KSV2-M1 FIX: Add count check before iterating children array
                 if ($this.ExpandedParents.Contains($taskId)) {
                     $children = $this._GetChildren($task, $tasks)
-                    foreach ($child in $children) {
-                        $result.Add(@{ Task = $child; Depth = 1 })
+                    if ($null -ne $children -and $children.Count -gt 0) {
+                        foreach ($child in $children) {
+                            $result.Add(@{ Task = $child; Depth = 1 })
+                        }
                     }
                 }
             }
@@ -513,15 +534,10 @@ class KanbanScreenV2 : PmcScreen {
         return $result.ToArray()
     }
 
-    # Check if task has children
+    # Check if task has children (using cached parent-child relationships)
     hidden [bool] _HasChildren([object]$task) {
         $taskId = Get-SafeProperty $task 'id'
-        $allTasks = $this.Store.GetAllTasks()
-        $children = @($allTasks | Where-Object {
-            $parentId = Get-SafeProperty $_ 'parent_id'
-            $parentId -eq $taskId
-        })
-        return $children.Count -gt 0
+        return $this._parentChildCache.ContainsKey($taskId) -and $this._parentChildCache[$taskId].Count -gt 0
     }
 
     # Get children of a task
@@ -728,6 +744,10 @@ class KanbanScreenV2 : PmcScreen {
     }
 
     hidden [void] _MoveSelectionDown() {
+        if (-not $this.LayoutManager) {
+            return
+        }
+
         $contentRect = $this.LayoutManager.GetRegion('Content', $this.TermWidth, $this.TermHeight)
         $maxVisibleLines = $contentRect.Height - 4
 
@@ -821,7 +841,14 @@ class KanbanScreenV2 : PmcScreen {
 
     # Update task status (and children if parent)
     hidden [void] _UpdateTaskStatus([object]$task, [string]$newStatus) {
+        if (-not $task) {
+            return
+        }
+
         $taskId = Get-SafeProperty $task 'id'
+        if (-not $taskId) {
+            return
+        }
 
         # Update main task
         $changes = @{ status = $newStatus }
@@ -834,16 +861,30 @@ class KanbanScreenV2 : PmcScreen {
         }
         $this.Store.UpdateTask($taskId, $changes)
 
-        # Update children if parent
+        # Update children if parent (with validation)
+        # KSV2-M1 FIX: Add count check before iterating children array
         if ($this._HasChildren($task)) {
-            $allTasks = $this.Store.GetAllTasks()
-            $children = @($allTasks | Where-Object {
-                $parentId = Get-SafeProperty $_ 'parent_id'
-                $parentId -eq $taskId
-            })
-            foreach ($child in $children) {
-                $childId = Get-SafeProperty $child 'id'
-                $this.Store.UpdateTask($childId, $changes)
+            try {
+                $allTasks = $this.Store.GetAllTasks()
+                if ($null -ne $allTasks -and $allTasks.Count -gt 0) {
+                    $children = @($allTasks | Where-Object {
+                        $parentId = Get-SafeProperty $_ 'parent_id'
+                        $parentId -eq $taskId
+                    })
+                    if ($null -ne $children -and $children.Count -gt 0) {
+                        foreach ($child in $children) {
+                            if ($child) {
+                                $childId = Get-SafeProperty $child 'id'
+                                if ($childId) {
+                                    $this.Store.UpdateTask($childId, $changes)
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch {
+                # Log error but don't fail parent update
+                Write-PmcTuiLog "Failed to update child tasks: $_" "ERROR"
             }
         }
     }
@@ -956,37 +997,40 @@ class KanbanScreenV2 : PmcScreen {
         $editor.SetSize(60, 8)
         $editor.SetTags($currentTags)
 
-        # Run modal loop
-        $done = $false
-        while (-not $done) {
-            # Render
-            [Console]::CursorVisible = $false
-            Write-Host $editor.Render() -NoNewline
+        # Run modal loop with exception handling
+        try {
+            $done = $false
+            while (-not $done) {
+                # Render
+                [Console]::CursorVisible = $false
+                Write-Host $editor.Render() -NoNewline
 
-            # Handle input
-            $key = [Console]::ReadKey($true)
-            $editor.HandleInput($key)
+                # Handle input
+                $key = [Console]::ReadKey($true)
+                $editor.HandleInput($key)
 
-            if ($editor.IsConfirmed -or $editor.IsCancelled) {
-                $done = $true
+                if ($editor.IsConfirmed -or $editor.IsCancelled) {
+                    $done = $true
+                }
             }
+
+            # Save tags if confirmed
+            if ($editor.IsConfirmed) {
+                $newTags = $editor.GetTags()
+                $taskId = Get-SafeProperty $task 'id'
+
+                # Update tags using TaskStore
+                $this.Store.UpdateTask($taskId, @{ tags = $newTags })
+                $this.ShowSuccess("Tags updated")
+                $this.LoadData()
+            }
+        } catch {
+            $this.ShowError("Tag editing failed: $_")
+        } finally {
+            # Force screen refresh after tag editor closes
+            $this.NeedsClear = $true
+            [Console]::CursorVisible = $false
         }
-
-        # Save tags if confirmed
-        if ($editor.IsConfirmed) {
-            $newTags = $editor.GetTags()
-            $taskId = Get-SafeProperty $task 'id'
-
-            # Update tags using TaskStore
-            $this.Store.UpdateTask($taskId, @{ tags = $newTags })
-            $this.ShowSuccess("Tags updated")
-            $this.LoadData()
-        }
-
-        # Force screen refresh after tag editor closes
-        $this.NeedsClear = $true
-
-        [Console]::CursorVisible = $false
     }
 
     # Pick custom color for selected task
@@ -1010,87 +1054,92 @@ class KanbanScreenV2 : PmcScreen {
         $selected = 0
         $done = $false
 
-        while (-not $done) {
-            # Render color picker
-            $sb = [System.Text.StringBuilder]::new(1024)
-            $x = 20
-            $y = 8
+        try {
+            while (-not $done) {
+                # Render color picker
+                $sb = [System.Text.StringBuilder]::new(1024)
+                $x = 20
+                $y = 8
 
-            $textColor = $this.Header.GetThemedAnsi('Text', $false)
-            $selectedBg = $this.Header.GetThemedAnsi('Primary', $true)
-            $selectedFg = $this.Header.GetThemedAnsi('Text', $false)
-            $mutedColor = $this.Header.GetThemedAnsi('Muted', $false)
-            $reset = "`e[0m"
+                $textColor = $this.Header.GetThemedAnsi('Text', $false)
+                $selectedBg = $this.Header.GetThemedAnsi('Primary', $true)
+                $selectedFg = $this.Header.GetThemedAnsi('Text', $false)
+                $mutedColor = $this.Header.GetThemedAnsi('Muted', $false)
+                $reset = "`e[0m"
 
-            # Title
-            $sb.Append($this.Header.BuildMoveTo($x, $y))
-            $sb.Append($textColor + "Pick Task Color:" + $reset)
+                # Title
+                $sb.Append($this.Header.BuildMoveTo($x, $y))
+                $sb.Append($textColor + "Pick Task Color:" + $reset)
 
-            # Color options
-            for ($i = 0; $i -lt $colors.Count; $i++) {
-                $color = $colors[$i]
-                $lineY = $y + $i + 1
+                # Color options
+                for ($i = 0; $i -lt $colors.Count; $i++) {
+                    $color = $colors[$i]
+                    $lineY = $y + $i + 1
 
-                $sb.Append($this.Header.BuildMoveTo($x, $lineY))
+                    $sb.Append($this.Header.BuildMoveTo($x, $lineY))
 
-                if ($i -eq $selected) {
-                    $sb.Append($selectedBg + $selectedFg)
-                }
-
-                if ($color.Hex) {
-                    $colorAnsi = $this._HexToAnsi($color.Hex, $false)
-                    $sb.Append($colorAnsi + "███" + $reset)
-                } else {
-                    $sb.Append("   ")
-                }
-
-                if ($i -eq $selected) {
-                    $sb.Append(" > " + $color.Name.PadRight(25) + $reset)
-                } else {
-                    $sb.Append($textColor + "   " + $color.Name + $reset)
-                }
-            }
-
-            # Help text
-            $helpY = $y + $colors.Count + 2
-            $sb.Append($this.Header.BuildMoveTo($x, $helpY))
-            $sb.Append($mutedColor + "↑↓ to select, Enter to confirm, Esc to cancel" + $reset)
-
-            Write-Host $sb.ToString() -NoNewline
-
-            # Handle input
-            $key = [Console]::ReadKey($true)
-            switch ($key.Key) {
-                'UpArrow' {
-                    if ($selected -gt 0) { $selected-- }
-                }
-                'DownArrow' {
-                    if ($selected -lt ($colors.Count - 1)) { $selected++ }
-                }
-                'Enter' {
-                    # Save color
-                    $taskId = Get-SafeProperty $task 'id'
-                    $chosenHex = $colors[$selected].Hex
-
-                    # Update color using TaskStore
-                    if ($chosenHex) {
-                        $this.Store.UpdateTask($taskId, @{ color = $chosenHex })
-                        $this.ShowSuccess("Color set to $($colors[$selected].Name)")
-                    } else {
-                        $this.Store.UpdateTask($taskId, @{ color = $null })
-                        $this.ShowSuccess("Color cleared")
+                    if ($i -eq $selected) {
+                        $sb.Append($selectedBg + $selectedFg)
                     }
-                    $this.LoadData()
-                    $done = $true
+
+                    if ($color.Hex) {
+                        $colorAnsi = $this._HexToAnsi($color.Hex, $false)
+                        $sb.Append($colorAnsi + "███" + $reset)
+                    } else {
+                        $sb.Append("   ")
+                    }
+
+                    if ($i -eq $selected) {
+                        $sb.Append(" > " + $color.Name.PadRight(25) + $reset)
+                    } else {
+                        $sb.Append($textColor + "   " + $color.Name + $reset)
+                    }
                 }
-                'Escape' {
-                    $done = $true
+
+                # Help text
+                $helpY = $y + $colors.Count + 2
+                $sb.Append($this.Header.BuildMoveTo($x, $helpY))
+                $sb.Append($mutedColor + "↑↓ to select, Enter to confirm, Esc to cancel" + $reset)
+
+                Write-Host $sb.ToString() -NoNewline
+
+                # Handle input
+                $key = [Console]::ReadKey($true)
+                switch ($key.Key) {
+                    'UpArrow' {
+                        if ($selected -gt 0) { $selected-- }
+                    }
+                    'DownArrow' {
+                        if ($selected -lt ($colors.Count - 1)) { $selected++ }
+                    }
+                    'Enter' {
+                        # Save color
+                        $taskId = Get-SafeProperty $task 'id'
+                        $chosenHex = $colors[$selected].Hex
+
+                        # Update color using TaskStore
+                        if ($chosenHex) {
+                            $this.Store.UpdateTask($taskId, @{ color = $chosenHex })
+                            $this.ShowSuccess("Color set to $($colors[$selected].Name)")
+                        } else {
+                            $this.Store.UpdateTask($taskId, @{ color = $null })
+                            $this.ShowSuccess("Color cleared")
+                        }
+                        $this.LoadData()
+                        $done = $true
+                    }
+                    'Escape' {
+                        $done = $true
+                    }
                 }
             }
+        } catch {
+            $this.ShowError("Color picker failed: $_")
+        } finally {
+            # Force screen refresh after color picker closes
+            $this.NeedsClear = $true
+            [Console]::CursorVisible = $false
         }
-
-        # Force screen refresh after color picker closes
-        $this.NeedsClear = $true
     }
 
     # Get selected task in current column
@@ -1098,21 +1147,36 @@ class KanbanScreenV2 : PmcScreen {
         switch ($this.SelectedColumn) {
             0 {
                 $flatList = $this._BuildFlatTaskList($this.TodoTasks)
-                if ($this.SelectedIndexTodo -ge 0 -and $this.SelectedIndexTodo -lt $flatList.Count) {
-                    return $flatList[$this.SelectedIndexTodo].Task
+                if ($null -eq $flatList -or $flatList.Count -eq 0) {
+                    return $null
                 }
+                if ($this.SelectedIndexTodo -lt 0 -or $this.SelectedIndexTodo -ge $flatList.Count) {
+                    $this.SelectedIndexTodo = 0  # Reset to valid index
+                    if ($flatList.Count -eq 0) { return $null }
+                }
+                return $flatList[$this.SelectedIndexTodo].Task
             }
             1 {
                 $flatList = $this._BuildFlatTaskList($this.InProgressTasks)
-                if ($this.SelectedIndexInProgress -ge 0 -and $this.SelectedIndexInProgress -lt $flatList.Count) {
-                    return $flatList[$this.SelectedIndexInProgress].Task
+                if ($null -eq $flatList -or $flatList.Count -eq 0) {
+                    return $null
                 }
+                if ($this.SelectedIndexInProgress -lt 0 -or $this.SelectedIndexInProgress -ge $flatList.Count) {
+                    $this.SelectedIndexInProgress = 0  # Reset to valid index
+                    if ($flatList.Count -eq 0) { return $null }
+                }
+                return $flatList[$this.SelectedIndexInProgress].Task
             }
             2 {
                 $flatList = $this._BuildFlatTaskList($this.DoneTasks)
-                if ($this.SelectedIndexDone -ge 0 -and $this.SelectedIndexDone -lt $flatList.Count) {
-                    return $flatList[$this.SelectedIndexDone].Task
+                if ($null -eq $flatList -or $flatList.Count -eq 0) {
+                    return $null
                 }
+                if ($this.SelectedIndexDone -lt 0 -or $this.SelectedIndexDone -ge $flatList.Count) {
+                    $this.SelectedIndexDone = 0  # Reset to valid index
+                    if ($flatList.Count -eq 0) { return $null }
+                }
+                return $flatList[$this.SelectedIndexDone].Task
             }
         }
         return $null

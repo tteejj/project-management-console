@@ -79,34 +79,65 @@ class TimeReportScreen : PmcScreen {
             # Use TaskStore singleton instead of loading from disk
             $timelogs = $this.Store.GetAllTimeLogs()
 
+            # TS-M8 FIX: Add better feedback for empty state
             if ($timelogs.Count -eq 0) {
                 $this.ProjectSummaries = @()
                 $this.TotalMinutes = 0
                 $this.TotalHours = 0
-                $this.ShowStatus("No time entries to report")
+                # Enhanced feedback to guide user on what to do next
+                $this.ShowStatus("No time entries found. Press 'T' to add time entries in Time Tracking screen.")
+                Write-PmcTuiLog "TimeReportScreen: No time entries found for report" "INFO"
                 return
             }
 
-            # Group by project
-            $grouped = $timelogs | Group-Object -Property project | Sort-Object Name
+            # TS-M7 FIX: Group by project ID if available, otherwise by name
+            # Create grouping key for each entry: use id1 if present, otherwise project name
+            $groupedData = @{}
+            foreach ($log in $timelogs) {
+                # Determine grouping key (prefer ID over name)
+                $groupKey = ''
+                $projectDisplay = ''
+                if ($log.id1) {
+                    $groupKey = "ID:$($log.id1)"
+                    $projectDisplay = if ($log.project) { "$($log.project) [#$($log.id1)]" } else { "#$($log.id1)" }
+                } else {
+                    $groupKey = "NAME:$($log.project)"
+                    $projectDisplay = $log.project
+                }
+
+                # Initialize group if needed
+                if (-not $groupedData.ContainsKey($groupKey)) {
+                    $groupedData[$groupKey] = @{
+                        DisplayName = $projectDisplay
+                        Entries = @()
+                    }
+                }
+
+                $groupedData[$groupKey].Entries += $log
+            }
 
             $this.ProjectSummaries = @()
             $this.TotalMinutes = 0
+            # LOW FIX TS-L2: Accumulate hours to avoid redundant calculation
+            $totalHoursAccumulated = 0.0
 
-            foreach ($group in $grouped) {
-                $minutes = ($group.Group | Measure-Object -Property minutes -Sum).Sum
+            foreach ($key in ($groupedData.Keys | Sort-Object)) {
+                $group = $groupedData[$key]
+                $minutes = ($group.Entries | Measure-Object -Property minutes -Sum).Sum
                 $hours = [Math]::Round($minutes / 60.0, 2)
                 $this.TotalMinutes += $minutes
+                $totalHoursAccumulated += $hours
 
                 $this.ProjectSummaries += [PSCustomObject]@{
-                    Project = $group.Name
-                    EntryCount = $group.Count
+                    Project = $group.DisplayName
+                    EntryCount = $group.Entries.Count
                     Minutes = $minutes
                     Hours = $hours
                 }
             }
 
-            $this.TotalHours = [Math]::Round($this.TotalMinutes / 60.0, 2)
+            # Use accumulated hours (sum of rounded values) instead of recalculating
+            $this.TotalHours = $totalHoursAccumulated
 
             $this.ShowStatus("Report generated: $($this.ProjectSummaries.Count) projects, $($this.TotalHours) hours total")
 
@@ -133,17 +164,27 @@ class TimeReportScreen : PmcScreen {
         if ($this.LayoutManager) {
             $contentRect = $this.LayoutManager.GetRegion('Content', $this.TermWidth, $this.TermHeight)
 
-            # Center message
+            # TS-M8 FIX: Enhanced empty state feedback with actionable guidance
+            $textColor = $this.Header.GetThemedAnsi('Text', $false)
+            $mutedColor = $this.Header.GetThemedAnsi('Muted', $false)
+            $reset = "`e[0m"
+
+            # Main message
             $message = "No time entries to report"
             $x = $contentRect.X + [Math]::Floor(($contentRect.Width - $message.Length) / 2)
-            $y = $contentRect.Y + [Math]::Floor($contentRect.Height / 2)
-
-            $textColor = $this.Header.GetThemedAnsi('Text', $false)
-            $reset = "`e[0m"
+            $y = $contentRect.Y + [Math]::Floor($contentRect.Height / 2) - 1
 
             $sb.Append($this.Header.BuildMoveTo($x, $y))
             $sb.Append($textColor)
             $sb.Append($message)
+            $sb.Append($reset)
+
+            # Helpful guidance
+            $hint = "Press 'T' to add time entries in Time Tracking screen"
+            $hintX = $contentRect.X + [Math]::Floor(($contentRect.Width - $hint.Length) / 2)
+            $sb.Append($this.Header.BuildMoveTo($hintX, $y + 2))
+            $sb.Append($mutedColor)
+            $sb.Append($hint)
             $sb.Append($reset)
         }
 
@@ -318,7 +359,7 @@ class TimeReportScreen : PmcScreen {
         # Weekly report on W key
         if ($keyInfo.Key -eq ([ConsoleKey]::W)) {
             . "$PSScriptRoot/WeeklyTimeReportScreen.ps1"
-            $screen = Invoke-Expression '[WeeklyTimeReportScreen]::new()'
+            $screen = [WeeklyTimeReportScreen]::new()
             $global:PmcApp.PushScreen($screen)
             return $true
         }

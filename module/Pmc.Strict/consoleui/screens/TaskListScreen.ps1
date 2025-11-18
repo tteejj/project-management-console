@@ -101,57 +101,36 @@ class TaskListScreen : StandardListScreen {
     # Debug logging flag - set to $false to disable debug file writes
     hidden [bool]$_enableDebugLogging = $false
 
-    # Constructor with optional view mode
-    TaskListScreen() : base("TaskList", "Task List") {
-        $this._viewMode = 'active'
+    # LOW FIX TLS-L4: Centralized initialization to reduce constructor duplication
+    hidden [void] _InitializeTaskListScreen([string]$viewMode, [bool]$setupCallbacks) {
+        $this._viewMode = $viewMode
         $this._showCompleted = $false
         $this._sortColumn = 'due'
         $this._sortAscending = $true
-
-        # Setup menus after base constructor
         $this._SetupMenus()
+        if ($setupCallbacks) {
+            $this._SetupEditModeCallbacks()
+        }
+    }
 
-        # Setup edit mode callbacks for CellInfo
-        $this._SetupEditModeCallbacks()
+    # Constructor with optional view mode
+    TaskListScreen() : base("TaskList", "Task List") {
+        $this._InitializeTaskListScreen('active', $true)
     }
 
     # Constructor with container (DI-enabled)
     TaskListScreen([object]$container) : base("TaskList", "Task List", $container) {
-        $this._viewMode = 'active'
-        $this._showCompleted = $false
-        $this._sortColumn = 'due'
-        $this._sortAscending = $true
-
-        # Setup menus after base constructor
-        $this._SetupMenus()
-
-        # Setup edit mode callbacks for CellInfo
-        $this._SetupEditModeCallbacks()
+        $this._InitializeTaskListScreen('active', $true)
     }
 
     # Constructor with explicit view mode
     TaskListScreen([string]$viewMode) : base("TaskList", (Get-TaskListTitle $viewMode)) {
-        $this._viewMode = $viewMode
-        $this._showCompleted = $false
-        $this._sortColumn = 'due'
-        $this._sortAscending = $true
-
-        # Setup menus after base constructor
-        $this._SetupMenus()
+        $this._InitializeTaskListScreen($viewMode, $false)
     }
 
     # Constructor with container and view mode (DI-enabled)
     TaskListScreen([object]$container, [string]$viewMode) : base("TaskList", (Get-TaskListTitle $viewMode), $container) {
-        $this._viewMode = $viewMode
-        $this._showCompleted = $false
-        $this._sortColumn = 'due'
-        $this._sortAscending = $true
-
-        # Setup menus after base constructor
-        $this._SetupMenus()
-
-        # Setup edit mode callbacks for CellInfo
-        $this._SetupEditModeCallbacks()
+        $this._InitializeTaskListScreen($viewMode, $true)
     }
 
     # Setup edit mode callbacks for CellInfo
@@ -717,10 +696,14 @@ class TaskListScreen : StandardListScreen {
                         if ($padding -lt 0) { $padding = 0 }
 
                         if ($cellInfo.IsFocused) {
-                            Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Due Format: FOCUSED - width=$($cellInfo.Width) visibleLen=$visibleLen padding=$padding"
+                            if ($self._enableDebugLogging) {
+                                Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Due Format: FOCUSED - width=$($cellInfo.Width) visibleLen=$visibleLen padding=$padding"
+                            }
                             return "$focusColor$dueText" + (" " * $padding)
                         } else {
-                            Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Due Format: UNFOCUSED - width=$($cellInfo.Width) visibleLen=$visibleLen padding=$padding"
+                            if ($self._enableDebugLogging) {
+                                Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Due Format: UNFOCUSED - width=$($cellInfo.Width) visibleLen=$visibleLen padding=$padding"
+                            }
                             return "$cellColor$dueText" + (" " * $padding)
                         }
                     }
@@ -842,12 +825,41 @@ class TaskListScreen : StandardListScreen {
                 @{ Name='tags'; Type='tags'; Label='Tags'; Value=@() }
             )
         } else {
+            # TLS-M3 FIX: Validate item is a valid object type before accessing properties
+            if ($item -isnot [hashtable] -and $item.GetType().Name -ne 'PSCustomObject') {
+                Write-PmcTuiLog "GetEditFields: Invalid item type '$($item.GetType().Name)', returning empty fields" "WARNING"
+                return @(
+                    @{ Name='text'; Type='text'; Label='Task'; Required=$true; MaxLength=200; Value='' }
+                    @{ Name='due'; Type='date'; Label='Due Date'; Value=$null }
+                    @{ Name='project'; Type='project'; Label='Project'; Value='' }
+                    @{ Name='tags'; Type='tags'; Label='Tags'; Value=@() }
+                )
+            }
+
             # Existing task - populate from item with safe property access
+            # TLS-M3 FIX: Validate field values before using them
+            $textValue = Get-SafeProperty $item 'text'
+            if ([string]::IsNullOrWhiteSpace($textValue)) {
+                $textValue = ''
+            }
+
+            $dueValue = Get-SafeProperty $item 'due'
+            $projectValue = Get-SafeProperty $item 'project'
+            if ($null -eq $projectValue) {
+                $projectValue = ''
+            }
+
+            $tagsValue = Get-SafeProperty $item 'tags'
+            # Ensure tags is an array
+            if ($null -eq $tagsValue -or $tagsValue -isnot [array]) {
+                $tagsValue = @()
+            }
+
             return @(
-                @{ Name='text'; Type='text'; Label='Task'; Required=$true; MaxLength=200; Value=(Get-SafeProperty $item 'text') }  # H-VAL-6
-                @{ Name='due'; Type='date'; Label='Due Date'; Value=(Get-SafeProperty $item 'due') }
-                @{ Name='project'; Type='project'; Label='Project'; Value=(Get-SafeProperty $item 'project') }
-                @{ Name='tags'; Type='tags'; Label='Tags'; Value=(Get-SafeProperty $item 'tags') }
+                @{ Name='text'; Type='text'; Label='Task'; Required=$true; MaxLength=200; Value=$textValue }  # H-VAL-6
+                @{ Name='due'; Type='date'; Label='Due Date'; Value=$dueValue }
+                @{ Name='project'; Type='project'; Label='Project'; Value=$projectValue }
+                @{ Name='tags'; Type='tags'; Label='Tags'; Value=$tagsValue }
             )
         }
     }
@@ -917,7 +929,14 @@ class TaskListScreen : StandardListScreen {
             }
 
             # Use ValidationHelper to validate before saving
-            . "$PSScriptRoot/../helpers/ValidationHelper.ps1"
+            try {
+                . "$PSScriptRoot/../helpers/ValidationHelper.ps1"
+            } catch {
+                Write-PmcTuiLog "Failed to load ValidationHelper: $_" "ERROR"
+                $this.SetStatusMessage("Validation system error, task not created", "error")
+                return
+            }
+
             $validationResult = Test-TaskValid $taskData
 
             if (-not $validationResult.IsValid) {
@@ -941,36 +960,52 @@ class TaskListScreen : StandardListScreen {
             }
         }
         catch {
-            Write-PmcTuiLog "OnItemCreated exception: $_" "ERROR"
-            $this.SetStatusMessage("Unexpected error: $($_.Exception.Message)", "error")
+            # LOW FIX TLS-L1: Add context to exception messages
+            $taskText = if ($values.ContainsKey('text')) { $values.text } else { "(no title)" }
+            Write-PmcTuiLog "OnItemCreated exception while creating task '$taskText': $_" "ERROR"
+            $this.SetStatusMessage("Error creating task '$taskText': $($_.Exception.Message)", "error")
         }
     }
 
     # Override: Handle item update
     [void] OnItemUpdated([object]$item, [hashtable]$values) {
-        Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') OnItemUpdated: ENTRY - item.id=$($item.id) values=$($values | ConvertTo-Json -Compress)"
+        if ($this._enableDebugLogging) {
+            Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') OnItemUpdated: ENTRY - item.id=$($item.id) values=$($values | ConvertTo-Json -Compress)"
+        }
         try {
             # Build changes hashtable
             # FIX: Convert "(No Project)" to empty string
-            Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') OnItemUpdated: values.project type=$(if ($values.ContainsKey('project')) { if ($null -eq $values.project) { 'NULL' } else { $values.project.GetType().Name } } else { 'MISSING' }) value='$($values.project)'"
+            if ($this._enableDebugLogging) {
+                Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') OnItemUpdated: values.project type=$(if ($values.ContainsKey('project')) { if ($null -eq $values.project) { 'NULL' } else { $values.project.GetType().Name } } else { 'MISSING' }) value='$($values.project)'"
+            }
             $projectValue = ''
             if ($values.ContainsKey('project')) {
                 if ($values.project -is [array]) {
                     # If it's an array, join it or take first element
                     if ($values.project.Count -gt 0) {
                         $projectValue = [string]$values.project[0]
-                        Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') OnItemUpdated: project is array, using first element: '$projectValue'"
+                        if ($this._enableDebugLogging) {
+                            Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') OnItemUpdated: project is array, using first element: '$projectValue'"
+                        }
                     } else {
-                        Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') OnItemUpdated: project is empty array, setting to empty string"
+                        if ($this._enableDebugLogging) {
+                            Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') OnItemUpdated: project is empty array, setting to empty string"
+                        }
                     }
                 } elseif ($values.project -is [string] -and $values.project -ne '(No Project)' -and $values.project -ne '') {
                     $projectValue = $values.project
-                    Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') OnItemUpdated: project is string: '$projectValue'"
+                    if ($this._enableDebugLogging) {
+                        Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') OnItemUpdated: project is string: '$projectValue'"
+                    }
                 } else {
-                    Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') OnItemUpdated: project is '(No Project)' or empty, setting to empty string"
+                    if ($this._enableDebugLogging) {
+                        Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') OnItemUpdated: project is '(No Project)' or empty, setting to empty string"
+                    }
                 }
             } else {
-                Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') OnItemUpdated: project key missing, using empty string"
+                if ($this._enableDebugLogging) {
+                    Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') OnItemUpdated: project key missing, using empty string"
+                }
             }
 
             # Validate text field (required)
@@ -988,27 +1023,40 @@ class TaskListScreen : StandardListScreen {
 
             # Ensure all values have correct types for Store validation
             $detailsValue = if ($values.ContainsKey('details')) { $values.details } else { '' }
-            Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') OnItemUpdated: values.tags type=$(if ($values.ContainsKey('tags') -and $values.tags) { $values.tags.GetType().Name } else { 'MISSING' }) value='$($values.tags)'"
+            if ($this._enableDebugLogging) {
+                Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') OnItemUpdated: values.tags type=$(if ($values.ContainsKey('tags') -and $values.tags) { $values.tags.GetType().Name } else { 'MISSING' }) value='$($values.tags)'"
+            }
             # CRITICAL: Use comma operator to prevent PowerShell from unwrapping single-element arrays
+            # TLS-M1 FIX: Added comma operator to prevent array unwrapping
             $tagsValue = @(if ($values.ContainsKey('tags') -and $values.tags) {
                 if ($values.tags -is [array]) {
-                    Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') OnItemUpdated: tags is already array"
-                    $values.tags
+                    if ($this._enableDebugLogging) {
+                        Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') OnItemUpdated: tags is already array"
+                    }
+                    ,$values.tags  # TLS-M1: Comma operator prevents unwrapping
                 }
                 elseif ($values.tags -is [string]) {
                     $splitResult = @($values.tags -split ',' | ForEach-Object { $_.Trim() })
-                    Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') OnItemUpdated: split tags string into array, type=$($splitResult.GetType().Name) count=$($splitResult.Count)"
-                    $splitResult
+                    if ($this._enableDebugLogging) {
+                        Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') OnItemUpdated: split tags string into array, type=$($splitResult.GetType().Name) count=$($splitResult.Count)"
+                    }
+                    ,$splitResult  # TLS-M1: Comma operator prevents unwrapping
                 }
                 else {
-                    Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') OnItemUpdated: tags is unknown type, returning empty array"
+                    if ($this._enableDebugLogging) {
+                        Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') OnItemUpdated: tags is unknown type, returning empty array"
+                    }
                     @()
                 }
             } else {
-                Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') OnItemUpdated: tags missing or empty, returning empty array"
+                if ($this._enableDebugLogging) {
+                    Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') OnItemUpdated: tags missing or empty, returning empty array"
+                }
             })
             $tagCount = if ($tagsValue -is [array]) { $tagsValue.Count } else { 'N/A' }
-            Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') OnItemUpdated: tagsValue type=$($tagsValue.GetType().Name) count=$tagCount isArray=$($tagsValue -is [array])"
+            if ($this._enableDebugLogging) {
+                Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') OnItemUpdated: tagsValue type=$($tagsValue.GetType().Name) count=$tagCount isArray=$($tagsValue -is [array])"
+            }
 
             $changes = @{
                 text = [string]$taskText
@@ -1017,8 +1065,10 @@ class TaskListScreen : StandardListScreen {
                 tags = $tagsValue
             }
 
-            Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') OnItemUpdated: project type=$($changes.project.GetType().Name) value='$($changes.project)'"
-            Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') OnItemUpdated: tags type=$(if ($changes.tags) { $changes.tags.GetType().Name } else { 'NULL' }) value=$(if ($changes.tags -is [array]) { $changes.tags -join ',' } else { $changes.tags })"
+            if ($this._enableDebugLogging) {
+                Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') OnItemUpdated: project type=$($changes.project.GetType().Name) value='$($changes.project)'"
+                Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') OnItemUpdated: tags type=$(if ($changes.tags) { $changes.tags.GetType().Name } else { 'NULL' }) value=$(if ($changes.tags -is [array]) { $changes.tags -join ',' } else { $changes.tags })"
+            }
 
             # Update due date with validation
             if ($values.ContainsKey('due') -and $values.due) {
@@ -1047,7 +1097,13 @@ class TaskListScreen : StandardListScreen {
             }
 
             # Use ValidationHelper to validate the updated task before saving
-            . "$PSScriptRoot/../helpers/ValidationHelper.ps1"
+            try {
+                . "$PSScriptRoot/../helpers/ValidationHelper.ps1"
+            } catch {
+                Write-PmcTuiLog "Failed to load ValidationHelper: $_" "ERROR"
+                $this.SetStatusMessage("Validation system error, task not updated", "error")
+                return
+            }
 
             # Merge changes with existing task for validation
             $updatedTask = @{}
@@ -1058,44 +1114,61 @@ class TaskListScreen : StandardListScreen {
                 $updatedTask[$key] = $changes[$key]
             }
 
-            Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') OnItemUpdated: About to validate - updatedTask.tags type=$(if ($updatedTask['tags']) { $updatedTask['tags'].GetType().Name } else { 'NULL' }) value=$(if ($updatedTask['tags'] -is [array]) { $updatedTask['tags'] -join ',' } else { $updatedTask['tags'] })"
-            # TEMPORARILY SKIP VALIDATION TO DEBUG SAVE FLOW
-            # $validationResult = Test-TaskValid $updatedTask
-            # Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') OnItemUpdated: Validation IsValid=$($validationResult.IsValid)"
+            # Validate updated task
+            $validationResult = Test-TaskValid $updatedTask
 
-            # if (-not $validationResult.IsValid) {
-            #     # Show first validation error
-            #     $errorMsg = if ($validationResult.Errors.Count -gt 0) {
-            #         $validationResult.Errors[0]
-            #     } else {
-            #         "Validation failed"
-            #     }
-            #     Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') OnItemUpdated: VALIDATION FAILED - errors=$($validationResult.Errors -join '; ')"
-            #     $this.SetStatusMessage($errorMsg, "error")
-            #     Write-PmcTuiLog "Task validation failed: $($validationResult.Errors -join ', ')" "ERROR"
-            #     return
-            # }
+            if (-not $validationResult.IsValid) {
+                # Show first validation error
+                $errorMsg = if ($validationResult.Errors.Count -gt 0) {
+                    $validationResult.Errors[0]
+                } else {
+                    "Validation failed"
+                }
+                $this.SetStatusMessage($errorMsg, "error")
+                Write-PmcTuiLog "Task validation failed: $($validationResult.Errors -join ', ')" "ERROR"
+                return
+            }
 
             # Update in store
-            Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') OnItemUpdated: Calling Store.UpdateTask with item.id=$($item.id)"
-            Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') OnItemUpdated: changes=$($changes | ConvertTo-Json -Compress)"
+            if ($this._enableDebugLogging) {
+                Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') OnItemUpdated: Calling Store.UpdateTask with item.id=$($item.id)"
+                Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') OnItemUpdated: changes=$($changes | ConvertTo-Json -Compress)"
+            }
             $success = $this.Store.UpdateTask($item.id, $changes)
-            Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') OnItemUpdated: UpdateTask returned success=$success"
+            if ($this._enableDebugLogging) {
+                Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') OnItemUpdated: UpdateTask returned success=$success"
+            }
             if ($success) {
                 $this.SetStatusMessage("Task updated: $($values.text)", "success")
-                Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') OnItemUpdated: SUCCESS - calling LoadData to refresh"
-                $this.LoadData()  # Refresh the list to show updated data
-                Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') OnItemUpdated: LoadData completed"
+                if ($this._enableDebugLogging) {
+                    Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') OnItemUpdated: SUCCESS - calling LoadData to refresh"
+                }
+                try {
+                    $this.LoadData()  # Refresh the list to show updated data
+                    if ($this._enableDebugLogging) {
+                        Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') OnItemUpdated: LoadData completed"
+                    }
+                } catch {
+                    Write-PmcTuiLog "OnItemUpdated: LoadData failed: $_" "WARNING"
+                    $this.SetStatusMessage("Task updated but display refresh failed", "warning")
+                }
             } else {
                 $this.SetStatusMessage("Failed to update task: $($this.Store.LastError)", "error")
-                Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') OnItemUpdated: FAILED - error=$($this.Store.LastError)"
+                if ($this._enableDebugLogging) {
+                    Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') OnItemUpdated: FAILED - error=$($this.Store.LastError)"
+                }
             }
         }
         catch {
-            Write-PmcTuiLog "OnItemUpdated exception: $_" "ERROR"
-            Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') OnItemUpdated: EXCEPTION - $($_.Exception.Message)"
-            Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') OnItemUpdated: Stack trace - $($_.ScriptStackTrace)"
-            $this.SetStatusMessage("Unexpected error: $($_.Exception.Message)", "error")
+            # LOW FIX TLS-L1: Add context to exception messages
+            $taskId = if ($null -ne $item -and (Get-SafeProperty $item 'id')) { $item.id } else { "(unknown)" }
+            $taskText = if ($values.ContainsKey('text')) { $values.text } else { if ($null -ne $item) { (Get-SafeProperty $item 'text') } else { "(no title)" } }
+            Write-PmcTuiLog "OnItemUpdated exception while updating task '$taskText' (ID: $taskId): $_" "ERROR"
+            if ($this._enableDebugLogging) {
+                Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') OnItemUpdated: EXCEPTION for task $taskId - $($_.Exception.Message)"
+                Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') OnItemUpdated: Stack trace - $($_.ScriptStackTrace)"
+            }
+            $this.SetStatusMessage("Error updating task '$taskText': $($_.Exception.Message)", "error")
         }
     }
 
@@ -1110,8 +1183,11 @@ class TaskListScreen : StandardListScreen {
             }
         }
         catch {
-            Write-PmcTuiLog "OnItemDeleted exception: $_" "ERROR"
-            $this.SetStatusMessage("Unexpected error: $($_.Exception.Message)", "error")
+            # LOW FIX TLS-L1: Add context to exception messages
+            $taskId = if ($null -ne $item) { (Get-SafeProperty $item 'id') } else { "(unknown)" }
+            $taskText = if ($null -ne $item) { (Get-SafeProperty $item 'text') } else { "(no title)" }
+            Write-PmcTuiLog "OnItemDeleted exception while deleting task '$taskText' (ID: $taskId): $_" "ERROR"
+            $this.SetStatusMessage("Error deleting task '$taskText': $($_.Exception.Message)", "error")
         }
     }
 
@@ -1124,10 +1200,19 @@ class TaskListScreen : StandardListScreen {
         $taskText = Get-SafeProperty $task 'text'
 
         $newStatus = -not $completed
-        $this.Store.UpdateTask($taskId, @{ completed = $newStatus })
+        $success = $this.Store.UpdateTask($taskId, @{ completed = $newStatus })
 
-        $statusText = if ($newStatus) { "completed" } else { "reopened" }
-        $this.SetStatusMessage("Task ${statusText}: $taskText", "success")
+        if ($success) {
+            $statusText = if ($newStatus) { "completed" } else { "reopened" }
+            $this.SetStatusMessage("Task ${statusText}: $taskText", "success")
+            # TLS-M2 FIX: Invalidate cache after successful update
+            $this._cachedFilteredTasks = $null
+            $this._cacheKey = ""
+            $this.LoadData()
+        } else {
+            $this.SetStatusMessage("Failed to update task: $($this.Store.LastError)", "error")
+            Write-PmcTuiLog "ToggleTaskCompletion failed: $($this.Store.LastError)" "ERROR"
+        }
     }
 
     # Custom action: Mark task complete
@@ -1137,12 +1222,21 @@ class TaskListScreen : StandardListScreen {
         $taskId = Get-SafeProperty $task 'id'
         $taskText = Get-SafeProperty $task 'text'
 
-        $this.Store.UpdateTask($taskId, @{
+        $success = $this.Store.UpdateTask($taskId, @{
             completed = $true
             completed_at = [DateTime]::Now
         })
 
-        $this.SetStatusMessage("Task completed: $taskText", "success")
+        if ($success) {
+            $this.SetStatusMessage("Task completed: $taskText", "success")
+            # TLS-M2 FIX: Invalidate cache after successful update
+            $this._cachedFilteredTasks = $null
+            $this._cacheKey = ""
+            $this.LoadData()
+        } else {
+            $this.SetStatusMessage("Failed to complete task: $($this.Store.LastError)", "error")
+            Write-PmcTuiLog "CompleteTask failed: $($this.Store.LastError)" "ERROR"
+        }
     }
 
     # Custom action: Clone task
@@ -1168,8 +1262,17 @@ class TaskListScreen : StandardListScreen {
             $clonedTask.due = $taskDue
         }
 
-        $this.Store.AddTask($clonedTask)
-        $this.SetStatusMessage("Task cloned: $($clonedTask.text)", "success")
+        $success = $this.Store.AddTask($clonedTask)
+        if ($success) {
+            $this.SetStatusMessage("Task cloned: $($clonedTask.text)", "success")
+            # TLS-M2 FIX: Invalidate cache after successful add
+            $this._cachedFilteredTasks = $null
+            $this._cacheKey = ""
+            $this.LoadData()
+        } else {
+            $this.SetStatusMessage("Failed to clone task: $($this.Store.LastError)", "error")
+            Write-PmcTuiLog "CloneTask failed: $($this.Store.LastError)" "ERROR"
+        }
     }
 
     # H-VAL-3: Check for circular dependency in task hierarchy
@@ -1197,8 +1300,18 @@ class TaskListScreen : StandardListScreen {
     [void] AddSubtask([object]$parentTask) {
         if ($null -eq $parentTask) { return }
 
-        # Get parent id
-        $parentId = if ($parentTask -is [hashtable]) { $parentTask['id'] } else { $parentTask.id }
+        # Get parent id with null check
+        $parentId = $null
+        if ($parentTask -is [hashtable] -and $parentTask.ContainsKey('id')) {
+            $parentId = $parentTask['id']
+        } elseif ($parentTask.PSObject.Properties['id']) {
+            $parentId = $parentTask.id
+        }
+
+        if ($null -eq $parentId) {
+            $this.SetStatusMessage("Cannot add subtask: parent task has no ID", "error")
+            return
+        }
 
         # Create new task with parent_id set
         $subtask = @{
@@ -1228,15 +1341,27 @@ class TaskListScreen : StandardListScreen {
             return
         }
 
+        $successCount = 0
+        $failCount = 0
         foreach ($task in $selected) {
             $taskId = Get-SafeProperty $task 'id'
-            $this.Store.UpdateTask($taskId, @{
+            $success = $this.Store.UpdateTask($taskId, @{
                 completed = $true
                 completed_at = [DateTime]::Now
             })
+            if ($success) {
+                $successCount++
+            } else {
+                $failCount++
+                Write-PmcTuiLog "BulkCompleteSelected failed for task $taskId: $($this.Store.LastError)" "ERROR"
+            }
         }
 
-        $this.SetStatusMessage("Completed $($selected.Count) tasks", "success")
+        if ($failCount -eq 0) {
+            $this.SetStatusMessage("Completed $successCount tasks", "success")
+        } else {
+            $this.SetStatusMessage("Completed $successCount tasks, failed $failCount", "warning")
+        }
         $this.List.ClearSelection()
     }
 
@@ -1248,12 +1373,24 @@ class TaskListScreen : StandardListScreen {
             return
         }
 
+        $successCount = 0
+        $failCount = 0
         foreach ($task in $selected) {
             $taskId = Get-SafeProperty $task 'id'
-            $this.Store.DeleteTask($taskId)
+            $success = $this.Store.DeleteTask($taskId)
+            if ($success) {
+                $successCount++
+            } else {
+                $failCount++
+                Write-PmcTuiLog "BulkDeleteSelected failed for task $taskId: $($this.Store.LastError)" "ERROR"
+            }
         }
 
-        $this.SetStatusMessage("Deleted $($selected.Count) tasks", "success")
+        if ($failCount -eq 0) {
+            $this.SetStatusMessage("Deleted $successCount tasks", "success")
+        } else {
+            $this.SetStatusMessage("Deleted $successCount tasks, failed $failCount", "warning")
+        }
         $this.List.ClearSelection()
     }
 
@@ -1398,16 +1535,27 @@ class TaskListScreen : StandardListScreen {
 
     # Override EditItem for inline column editing
     [void] EditItem($item) {
-        Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') EditItem: ENTRY"
+        if ($this._enableDebugLogging) {
+            Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') EditItem: ENTRY"
+        }
 
         if ($null -eq $item) {
-            Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') EditItem: NULL ITEM - RETURNING"
+            if ($this._enableDebugLogging) {
+                Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') EditItem: NULL ITEM - RETURNING"
+            }
             return
         }
 
-        Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') EditItem: Setting _isEditingRow = TRUE"
+        if ($this._enableDebugLogging) {
+            Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') EditItem: Setting _isEditingRow = TRUE"
+        }
         $this._isEditingRow = $true
         $this._currentColumnIndex = 0
+
+        # LOW FIX TLS-L3: Clear old _editValues to prevent potential memory leak
+        if ($null -ne $this._editValues) {
+            $this._editValues.Clear()
+        }
 
         $this._editValues = @{
             title = Get-SafeProperty $item 'title'
@@ -1421,24 +1569,34 @@ class TaskListScreen : StandardListScreen {
             $this._editValues.title = Get-SafeProperty $item 'text'
         }
 
-        Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') EditItem: _isEditingRow = $($this._isEditingRow)"
+        if ($this._enableDebugLogging) {
+            Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') EditItem: _isEditingRow = $($this._isEditingRow)"
+        }
 
         # CRITICAL: Invalidate the list's row cache so Format callbacks get re-invoked
         $this.List.InvalidateCache()
-        Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') EditItem: Invalidated list cache"
+        if ($this._enableDebugLogging) {
+            Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') EditItem: Invalidated list cache"
+        }
 
         # Force a status message and mark app dirty to trigger immediate render
         $this.SetStatusMessage("*** EDITING MODE ACTIVE *** Tab=next, Enter=save, Esc=cancel", "success")
 
-        Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') EditItem: Called SetStatusMessage"
+        if ($this._enableDebugLogging) {
+            Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') EditItem: Called SetStatusMessage"
+        }
 
         # CRITICAL: Force immediate re-render by marking the app dirty
         if ($global:PmcApp) {
             $global:PmcApp.IsDirty = $true
-            Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') EditItem: Set IsDirty=true"
+            if ($this._enableDebugLogging) {
+                Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') EditItem: Set IsDirty=true"
+            }
         }
 
-        Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') EditItem: EXIT"
+        if ($this._enableDebugLogging) {
+            Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') EditItem: EXIT"
+        }
     }
 
     # Load widget classes if not already loaded
@@ -1480,12 +1638,29 @@ class TaskListScreen : StandardListScreen {
         # Get selected row Y position
         $selectedIndex = $this.List.GetSelectedIndex()
         $contentRect = $this.LayoutManager.GetRegion('Content', $this.TermWidth, $this.TermHeight)
+        if ($null -eq $contentRect) {
+            Write-PmcTuiLog "_ShowWidgetForColumn: LayoutManager.GetRegion returned null" "WARNING"
+            return
+        }
         $rowY = $contentRect.Y + $selectedIndex + 2  # +2 for header
 
         $this._EnsureWidgetsLoaded()
 
         if ($col -eq 'due') {
-            $this._activeDatePicker = [DatePicker]::new()
+            try {
+                $this._activeDatePicker = [DatePicker]::new()
+            } catch {
+                Write-PmcTuiLog "Failed to create DatePicker: $_" "ERROR"
+                $this.SetStatusMessage("Failed to open date picker", "error")
+                return
+            }
+
+            if ($null -eq $this._activeDatePicker) {
+                Write-PmcTuiLog "DatePicker constructor returned null" "ERROR"
+                $this.SetStatusMessage("Failed to open date picker", "error")
+                return
+            }
+
             $this._activeDatePicker.SetPosition($contentRect.X + $colX, $rowY)
             $this._activeDatePicker.SetSize(35, 14)
 
@@ -1514,7 +1689,20 @@ class TaskListScreen : StandardListScreen {
             $this._activeWidgetType = 'date'
         }
         elseif ($col -eq 'project') {
-            $this._activeProjectPicker = [ProjectPicker]::new()
+            try {
+                $this._activeProjectPicker = [ProjectPicker]::new()
+            } catch {
+                Write-PmcTuiLog "Failed to create ProjectPicker: $_" "ERROR"
+                $this.SetStatusMessage("Failed to open project picker", "error")
+                return
+            }
+
+            if ($null -eq $this._activeProjectPicker) {
+                Write-PmcTuiLog "ProjectPicker constructor returned null" "ERROR"
+                $this.SetStatusMessage("Failed to open project picker", "error")
+                return
+            }
+
             $this._activeProjectPicker.SetPosition($contentRect.X + $colX, $rowY)
             $this._activeProjectPicker.SetSize(35, 12)
 
@@ -1528,9 +1716,13 @@ class TaskListScreen : StandardListScreen {
             $self = $this
             $this._activeProjectPicker.OnProjectSelected = {
                 param($projectName)
-                Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') OnProjectSelected callback: projectName='$projectName'"
+                if ($self._enableDebugLogging) {
+                    Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') OnProjectSelected callback: projectName='$projectName'"
+                }
                 $self._editValues.project = $projectName
-                Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') OnProjectSelected: Set _editValues.project to '$($self._editValues.project)'"
+                if ($self._enableDebugLogging) {
+                    Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') OnProjectSelected: Set _editValues.project to '$($self._editValues.project)'"
+                }
                 $self._CloseActiveWidget()
             }.GetNewClosure()
 
@@ -1541,7 +1733,20 @@ class TaskListScreen : StandardListScreen {
             $this._activeWidgetType = 'project'
         }
         elseif ($col -eq 'tags') {
-            $this._activeTagEditor = [TagEditor]::new()
+            try {
+                $this._activeTagEditor = [TagEditor]::new()
+            } catch {
+                Write-PmcTuiLog "Failed to create TagEditor: $_" "ERROR"
+                $this.SetStatusMessage("Failed to open tag editor", "error")
+                return
+            }
+
+            if ($null -eq $this._activeTagEditor) {
+                Write-PmcTuiLog "TagEditor constructor returned null" "ERROR"
+                $this.SetStatusMessage("Failed to open tag editor", "error")
+                return
+            }
+
             $this._activeTagEditor.SetPosition($contentRect.X + $colX, $rowY)
             $this._activeTagEditor.SetSize(60, 5)
 
@@ -1583,28 +1788,38 @@ class TaskListScreen : StandardListScreen {
 
     # Handle inline editing input
     hidden [bool] _HandleInlineEditInput([ConsoleKeyInfo]$keyInfo) {
-        Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') _HandleInlineEditInput: Key=$($keyInfo.Key) Char='$($keyInfo.KeyChar)' Column=$($this._editableColumns[$this._currentColumnIndex]) Widget=$($this._activeWidgetType)"
+        if ($this._enableDebugLogging) {
+            Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') _HandleInlineEditInput: Key=$($keyInfo.Key) Char='$($keyInfo.KeyChar)' Column=$($this._editableColumns[$this._currentColumnIndex]) Widget=$($this._activeWidgetType)"
+        }
 
         # Tab/Shift+Tab always closes widget and moves to next/prev field
         if ($keyInfo.Key -eq 'Tab') {
-            Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Tab pressed - saving widget value and closing, editValues: pri=$($this._editValues.priority) title=$($this._editValues.title) details=$($this._editValues.details)"
+            if ($this._enableDebugLogging) {
+                Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Tab pressed - saving widget value and closing, editValues: pri=$($this._editValues.priority) title=$($this._editValues.title) details=$($this._editValues.details)"
+            }
 
             # Save widget value before closing
             if ($this._activeWidgetType -eq 'date' -and $null -ne $this._activeDatePicker) {
                 $this._editValues.due = $this._activeDatePicker.GetSelectedDate().ToString('yyyy-MM-dd')
-                Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Saved date from picker: $($this._editValues.due)"
+                if ($this._enableDebugLogging) {
+                    Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Saved date from picker: $($this._editValues.due)"
+                }
             }
             elseif ($this._activeWidgetType -eq 'project' -and $null -ne $this._activeProjectPicker) {
                 # ProjectPicker saves through its callback, but we can check if there's a selected project
                 $selectedProj = $this._activeProjectPicker.GetSelectedProject()
                 if ($selectedProj) {
                     $this._editValues.project = $selectedProj
-                    Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Saved project from picker: $($this._editValues.project)"
+                    if ($this._enableDebugLogging) {
+                        Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Saved project from picker: $($this._editValues.project)"
+                    }
                 }
             }
             elseif ($this._activeWidgetType -eq 'tags' -and $null -ne $this._activeTagEditor) {
                 $this._editValues.tags = $this._activeTagEditor.GetTags() -join ', '
-                Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Saved tags from editor: $($this._editValues.tags)"
+                if ($this._enableDebugLogging) {
+                    Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Saved tags from editor: $($this._editValues.tags)"
+                }
             }
 
             $this._CloseActiveWidget()
@@ -1612,7 +1827,9 @@ class TaskListScreen : StandardListScreen {
         }
         # If a widget is active, route input to it
         elseif ($this._activeWidgetType -ne "") {
-            Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Widget active ($($this._activeWidgetType)) - passing key to widget, returning early"
+            if ($this._enableDebugLogging) {
+                Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Widget active ($($this._activeWidgetType)) - passing key to widget, returning early"
+            }
             $handled = $false
 
             if ($this._activeWidgetType -eq 'date' -and $null -ne $this._activeDatePicker) {
@@ -1624,9 +1841,13 @@ class TaskListScreen : StandardListScreen {
                 }
             }
             elseif ($this._activeWidgetType -eq 'project' -and $null -ne $this._activeProjectPicker) {
-                Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Calling ProjectPicker.HandleInput with key=$($keyInfo.Key)"
+                if ($this._enableDebugLogging) {
+                    Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Calling ProjectPicker.HandleInput with key=$($keyInfo.Key)"
+                }
                 $handled = $this._activeProjectPicker.HandleInput($keyInfo)
-                Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') ProjectPicker.HandleInput returned: $handled"
+                if ($this._enableDebugLogging) {
+                    Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') ProjectPicker.HandleInput returned: $handled"
+                }
 
                 # Invalidate to redraw widget if it handled the input
                 if ($handled) {
@@ -1642,7 +1863,9 @@ class TaskListScreen : StandardListScreen {
 
                 # Check if widget closed itself
                 if ($this._activeProjectPicker -and ($this._activeProjectPicker.IsConfirmed -or $this._activeProjectPicker.IsCancelled)) {
-                    Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') ProjectPicker confirmed/cancelled, closing widget"
+                    if ($this._enableDebugLogging) {
+                        Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') ProjectPicker confirmed/cancelled, closing widget"
+                    }
                     $this._CloseActiveWidget()
                 }
             }
@@ -1655,7 +1878,9 @@ class TaskListScreen : StandardListScreen {
                 }
             }
 
-            Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Widget handled key, returning true (EARLY EXIT)"
+            if ($this._enableDebugLogging) {
+                Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Widget handled key, returning true (EARLY EXIT)"
+            }
             return $true
         }
 
@@ -1678,21 +1903,36 @@ class TaskListScreen : StandardListScreen {
         if ($keyInfo.Key -eq 'Enter') {
             $item = $this.List.GetSelectedItem()
             if ($item) {
-                Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Enter pressed - _editValues.priority=$($this._editValues.priority) type=$($this._editValues.priority.GetType().Name)"
-                Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Enter pressed - _editValues.project=$($this._editValues.project)"
+                if ($this._enableDebugLogging) {
+                    Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Enter pressed - _editValues.priority=$($this._editValues.priority) type=$($this._editValues.priority.GetType().Name)"
+                    Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Enter pressed - _editValues.project=$($this._editValues.project)"
+                }
 
                 # Map title/details to text field for OnItemUpdated
+                # Safely cast priority with validation
+                $priorityValue = 3  # Default priority
+                if ($null -ne $this._editValues.priority) {
+                    $tempPriority = 0
+                    if ([int]::TryParse($this._editValues.priority.ToString(), [ref]$tempPriority)) {
+                        $priorityValue = $tempPriority
+                    } else {
+                        Write-PmcTuiLog "Invalid priority value '$($this._editValues.priority)', using default 3" "WARNING"
+                    }
+                }
+
                 $updateValues = @{
                     text = $this._editValues.title ?? ""
                     details = $this._editValues.details
-                    priority = [int]$this._editValues.priority  # Explicit cast here too
+                    priority = $priorityValue
                     due = $this._editValues.due
                     project = $this._editValues.project
                     tags = $this._editValues.tags
                 }
-                Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Enter pressed - updateValues.priority=$($updateValues.priority) type=$($updateValues.priority.GetType().Name)"
-                Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Enter pressed - updateValues.project=$($updateValues.project) type=$($updateValues.project.GetType().Name)"
-                Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Enter pressed - calling OnItemUpdated with: text='$($updateValues.text)' details='$($updateValues.details)' pri=$($updateValues.priority) project=$($updateValues.project)"
+                if ($this._enableDebugLogging) {
+                    Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Enter pressed - updateValues.priority=$($updateValues.priority) type=$($updateValues.priority.GetType().Name)"
+                    Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Enter pressed - updateValues.project=$($updateValues.project) type=$($updateValues.project.GetType().Name)"
+                    Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Enter pressed - calling OnItemUpdated with: text='$($updateValues.text)' details='$($updateValues.details)' pri=$($updateValues.priority) project=$($updateValues.project)"
+                }
                 $this.OnItemUpdated($item, $updateValues)
             }
             $this._isEditingRow = $false
@@ -1709,45 +1949,72 @@ class TaskListScreen : StandardListScreen {
         }
 
         $col = $this._editableColumns[$this._currentColumnIndex]
-        Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Processing input for column: $col Key=$($keyInfo.Key)"
+        if ($this._enableDebugLogging) {
+            Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Processing input for column: $col Key=$($keyInfo.Key)"
+        }
 
         if ($col -eq 'priority') {
-            Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Priority column - checking arrows. Key=$($keyInfo.Key) CurrentPri=$($this._editValues.priority)"
+            if ($this._enableDebugLogging) {
+                Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Priority column - checking arrows. Key=$($keyInfo.Key) CurrentPri=$($this._editValues.priority)"
+            }
+            # Safely parse current priority value
+            $currentPriority = 3  # Default
+            if ($null -ne $this._editValues.priority) {
+                $tempPri = 0
+                if ([int]::TryParse($this._editValues.priority.ToString(), [ref]$tempPri)) {
+                    $currentPriority = $tempPri
+                }
+            }
+
             # Up/Right arrows: increase priority
             if ($keyInfo.Key -eq 'UpArrow' -or $keyInfo.Key -eq 'RightArrow') {
-                if ([int]$this._editValues.priority -lt 5) {
-                    $this._editValues.priority++
-                    Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Priority increased to $($this._editValues.priority)"
+                if ($currentPriority -lt 5) {
+                    $this._editValues.priority = $currentPriority + 1
+                    if ($this._enableDebugLogging) {
+                        Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Priority increased to $($this._editValues.priority)"
+                    }
                     $this.List.InvalidateCache()  # Re-render to show new value
                     if ($global:PmcApp) { $global:PmcApp.IsDirty = $true }  # Force immediate re-render
                 } else {
-                    Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Priority already at MAX (5) - cannot increase"
+                    if ($this._enableDebugLogging) {
+                        Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Priority already at MAX (5) - cannot increase"
+                    }
                 }
             }
             # Down/Left arrows: decrease priority
             elseif ($keyInfo.Key -eq 'DownArrow' -or $keyInfo.Key -eq 'LeftArrow') {
-                if ([int]$this._editValues.priority -gt 0) {
-                    $this._editValues.priority--
-                    Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Priority decreased to $($this._editValues.priority)"
+                if ($currentPriority -gt 0) {
+                    $this._editValues.priority = $currentPriority - 1
+                    if ($this._enableDebugLogging) {
+                        Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Priority decreased to $($this._editValues.priority)"
+                    }
                     $this.List.InvalidateCache()  # Re-render to show new value
                     if ($global:PmcApp) { $global:PmcApp.IsDirty = $true }  # Force immediate re-render
                 } else {
-                    Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Priority already at MIN (0) - cannot decrease"
+                    if ($this._enableDebugLogging) {
+                        Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Priority already at MIN (0) - cannot decrease"
+                    }
                 }
             } else {
-                Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Priority column but key not an arrow: $($keyInfo.Key)"
+                if ($this._enableDebugLogging) {
+                    Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Priority column but key not an arrow: $($keyInfo.Key)"
+                }
             }
         }
         elseif ($col -eq 'title' -or $col -eq 'details' -or $col -eq 'tags') {
             # Inline text editing for title, details, and tags
             if ($keyInfo.KeyChar -match '[a-zA-Z0-9 \-_.,!?@#$%^&*()\/\\:;''"<>]') {
                 $this._editValues[$col] = ($this._editValues[$col] ?? "") + $keyInfo.KeyChar
-                Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Added char to $col : '$($keyInfo.KeyChar)' -> '$($this._editValues[$col])'"
+                if ($this._enableDebugLogging) {
+                    Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Added char to $col : '$($keyInfo.KeyChar)' -> '$($this._editValues[$col])'"
+                }
                 $this.List.InvalidateCache()  # Re-render to show new value
             }
             if ($keyInfo.Key -eq 'Backspace' -and $this._editValues[$col].Length -gt 0) {
                 $this._editValues[$col] = $this._editValues[$col].Substring(0, $this._editValues[$col].Length - 1)
-                Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Backspace in $col -> '$($this._editValues[$col])'"
+                if ($this._enableDebugLogging) {
+                    Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Backspace in $col -> '$($this._editValues[$col])'"
+                }
                 $this.List.InvalidateCache()  # Re-render to show new value
             }
         }
@@ -1760,7 +2027,9 @@ class TaskListScreen : StandardListScreen {
 
     # Override RenderContent to add widget rendering
     [string] RenderContent() {
-        Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') RenderContent CALLED: _isEditingRow=$($this._isEditingRow)"
+        if ($this._enableDebugLogging) {
+            Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') RenderContent CALLED: _isEditingRow=$($this._isEditingRow)"
+        }
 
         # Get base rendering (list, filter panel, etc.)
         $output = ([StandardListScreen]$this).RenderContent()
@@ -1783,11 +2052,15 @@ class TaskListScreen : StandardListScreen {
 
     # Override: Additional keyboard shortcuts
     [bool] HandleKeyPress([ConsoleKeyInfo]$keyInfo) {
-        Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') TaskListScreen.HandleKeyPress: Key=$($keyInfo.Key) _isEditingRow=$($this._isEditingRow)"
+        if ($this._enableDebugLogging) {
+            Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') TaskListScreen.HandleKeyPress: Key=$($keyInfo.Key) _isEditingRow=$($this._isEditingRow)"
+        }
 
         # Handle inline editing first
         if ($this._isEditingRow) {
-            Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') TaskListScreen.HandleKeyPress: Calling _HandleInlineEditInput"
+            if ($this._enableDebugLogging) {
+                Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') TaskListScreen.HandleKeyPress: Calling _HandleInlineEditInput"
+            }
             return $this._HandleInlineEditInput($keyInfo)
         }
 
@@ -1799,31 +2072,41 @@ class TaskListScreen : StandardListScreen {
         # Space: Toggle subtask collapse OR completion (BEFORE base class)
         if ($key -eq [ConsoleKey]::Spacebar -and -not $ctrl -and -not $alt) {
             $selected = $this.List.GetSelectedItem()
-            Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Space pressed: selected task id=$($selected.id) parent_id=$(Get-SafeProperty $selected 'parent_id')"
+            if ($this._enableDebugLogging) {
+                Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Space pressed: selected task id=$($selected.id) parent_id=$(Get-SafeProperty $selected 'parent_id')"
+            }
             if ($selected) {
                 $taskId = Get-SafeProperty $selected 'id'
                 $hasChildren = $this.Store.GetAllTasks() | Where-Object {
                     (Get-SafeProperty $_ 'parent_id') -eq $taskId
                 } | Measure-Object | ForEach-Object { $_.Count -gt 0 }
 
-                Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Space: taskId=$taskId hasChildren=$hasChildren"
+                if ($this._enableDebugLogging) {
+                    Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Space: taskId=$taskId hasChildren=$hasChildren"
+                }
 
                 if ($hasChildren) {
                     # Toggle collapse
                     $wasCollapsed = $this._collapsedSubtasks.ContainsKey($taskId)
                     if ($wasCollapsed) {
                         $this._collapsedSubtasks.Remove($taskId)
-                        Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Space: Expanding task $taskId"
+                        if ($this._enableDebugLogging) {
+                            Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Space: Expanding task $taskId"
+                        }
                     } else {
                         $this._collapsedSubtasks[$taskId] = $true
-                        Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Space: Collapsing task $taskId"
+                        if ($this._enableDebugLogging) {
+                            Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Space: Collapsing task $taskId"
+                        }
                     }
                     $this._cachedFilteredTasks = $null
                     $this.LoadData()
                     $this.List.InvalidateCache()  # Force re-render with new collapse state
                 } else {
                     # No children - toggle completion
-                    Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Space: No children - toggling completion"
+                    if ($this._enableDebugLogging) {
+                        Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Space: No children - toggling completion"
+                    }
                     $this.ToggleTaskCompletion($selected)
                 }
             }
