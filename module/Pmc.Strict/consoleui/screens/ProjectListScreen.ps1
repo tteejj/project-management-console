@@ -219,10 +219,21 @@ class ProjectListScreen : StandardListScreen {
             }
 
             # Helper to parse dates
+            # HIGH FIX PLS-H2: Use ParseExact with InvariantCulture to avoid locale issues
             $parseDate = {
                 param($val)
                 if ($val) {
-                    try { [DateTime]::Parse($val) } catch { $null }
+                    try {
+                        # Try common ISO formats first, then fall back to Parse
+                        $formats = @('yyyy-MM-dd', 'yyyy-MM-dd HH:mm:ss', 'MM/dd/yyyy', 'dd/MM/yyyy')
+                        foreach ($format in $formats) {
+                            try {
+                                return [DateTime]::ParseExact($val, $format, [System.Globalization.CultureInfo]::InvariantCulture)
+                            } catch { }
+                        }
+                        # Last resort: culture-aware parse
+                        [DateTime]::Parse($val, [System.Globalization.CultureInfo]::InvariantCulture)
+                    } catch { $null }
                 } else { $null }
             }
 
@@ -729,6 +740,15 @@ class ProjectListScreen : StandardListScreen {
                 $this.SetStatusMessage("Path is not a directory: $folderPath", "error")
                 return
             }
+
+            # HIGH FIX PLS-H4: Check read permissions before accessing
+            try {
+                $null = Get-ChildItem -Path $resolvedPath -ErrorAction Stop | Select-Object -First 1
+            } catch [System.UnauthorizedAccessException] {
+                $this.SetStatusMessage("Access denied to folder: $folderPath", "error")
+                return
+            }
+
             $folderPath = $resolvedPath.Path
         }
         catch {

@@ -83,32 +83,35 @@ class KanbanScreen : PmcScreen {
             $allTasks = $this.Store.GetAllTasks()
             $sevenDaysAgo = (Get-Date).AddDays(-7)
 
-            # TODO column: pending, blocked, waiting (not completed)
-            $this.TodoTasks = @($allTasks | Where-Object {
-                $taskCompleted = Get-SafeProperty $_ 'completed'
-                $taskStatus = Get-SafeProperty $_ 'status'
-                -not $taskCompleted -and
-                ($taskStatus -eq 'pending' -or $taskStatus -eq 'blocked' -or $taskStatus -eq 'waiting' -or -not $taskStatus)
-            })
-            $this.TodoTasks = @($this.TodoTasks | Sort-Object { Get-SafeProperty $_ 'priority' }, { Get-SafeProperty $_ 'id' })
+            # HIGH FIX KAN-H1: Single-pass filtering instead of 3 separate Where-Object calls
+            # Group tasks in one iteration for O(n) instead of O(3n)
+            $todoList = [System.Collections.ArrayList]::new()
+            $inProgressList = [System.Collections.ArrayList]::new()
+            $doneList = [System.Collections.ArrayList]::new()
 
-            # In Progress column: in-progress (not completed)
-            $this.InProgressTasks = @($allTasks | Where-Object {
-                $taskCompleted = Get-SafeProperty $_ 'completed'
-                $taskStatus = Get-SafeProperty $_ 'status'
-                -not $taskCompleted -and $taskStatus -eq 'in-progress'
-            })
-            $this.InProgressTasks = @($this.InProgressTasks | Sort-Object { Get-SafeProperty $_ 'priority' }, { Get-SafeProperty $_ 'id' })
+            foreach ($task in $allTasks) {
+                $taskCompleted = Get-SafeProperty $task 'completed'
+                $taskStatus = Get-SafeProperty $task 'status'
+                $taskCompletedDate = Get-SafeProperty $task 'completedDate'
 
-            # Done column: completed in last 7 days OR status=done
-            $this.DoneTasks = @($allTasks | Where-Object {
-                $taskCompleted = Get-SafeProperty $_ 'completed'
-                $taskCompletedDate = Get-SafeProperty $_ 'completedDate'
-                $taskStatus = Get-SafeProperty $_ 'status'
-                ($taskCompleted -and $taskCompletedDate -and ([DateTime]$taskCompletedDate) -gt $sevenDaysAgo) -or
-                ($taskStatus -eq 'done')
-            })
-            $this.DoneTasks = @($this.DoneTasks | Sort-Object { Get-SafeProperty $_ 'completedDate' }, { Get-SafeProperty $_ 'id' })
+                # TODO column: pending, blocked, waiting (not completed)
+                if (-not $taskCompleted -and ($taskStatus -eq 'pending' -or $taskStatus -eq 'blocked' -or $taskStatus -eq 'waiting' -or -not $taskStatus)) {
+                    [void]$todoList.Add($task)
+                }
+                # In Progress column: in-progress (not completed)
+                elseif (-not $taskCompleted -and $taskStatus -eq 'in-progress') {
+                    [void]$inProgressList.Add($task)
+                }
+                # Done column: completed in last 7 days OR status=done
+                elseif (($taskCompleted -and $taskCompletedDate -and ([DateTime]$taskCompletedDate) -gt $sevenDaysAgo) -or ($taskStatus -eq 'done')) {
+                    [void]$doneList.Add($task)
+                }
+            }
+
+            # Sort and convert to arrays
+            $this.TodoTasks = @($todoList.ToArray() | Sort-Object { Get-SafeProperty $_ 'priority' }, { Get-SafeProperty $_ 'id' })
+            $this.InProgressTasks = @($inProgressList.ToArray() | Sort-Object { Get-SafeProperty $_ 'priority' }, { Get-SafeProperty $_ 'id' })
+            $this.DoneTasks = @($doneList.ToArray() | Sort-Object { Get-SafeProperty $_ 'completedDate' }, { Get-SafeProperty $_ 'id' })
 
             # Reset selections if out of bounds
             if ($this.SelectedIndexTodo -ge $this.TodoTasks.Count) {

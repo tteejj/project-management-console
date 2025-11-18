@@ -481,8 +481,11 @@ class TimeListScreen : StandardListScreen {
                 $key = [Console]::ReadKey($true)
                 $dialog.HandleInput($key)
 
-                # Escape hatch: Ctrl+C or Escape should always close
-                if ($key.Key -eq 'Escape' -or ($key.Modifiers -band [ConsoleModifiers]::Control)) {
+                # HIGH FIX TMS-H4: Only close on Escape, Ctrl+C, or Ctrl+Q (not all Control keys)
+                # Checking -band [ConsoleModifiers]::Control catches Ctrl+V, Ctrl+A, etc.
+                if ($key.Key -eq 'Escape' -or
+                    ($key.Key -eq 'C' -and ($key.Modifiers -band [ConsoleModifiers]::Control)) -or
+                    ($key.Key -eq 'Q' -and ($key.Modifiers -band [ConsoleModifiers]::Control))) {
                     $dialog.IsComplete = $true
                     break
                 }

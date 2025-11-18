@@ -290,13 +290,14 @@ class SettingsScreen : PmcScreen {
 
                         . $themeEditorPath
 
-                        # Validate class is available after dot-sourcing
-                        if (-not ([System.Management.Automation.PSTypeName]'ThemeEditorScreen').Type) {
-                            throw "ThemeEditorScreen class not available after loading file"
-                        }
-
+                        # HIGH FIX SET-H1: Use try-catch around class instantiation instead of PSTypeName check
+                        # PSTypeName check may not work reliably in all PowerShell versions
                         if ($global:PmcApp) {
-                            $themeScreen = [ThemeEditorScreen]::new()
+                            try {
+                                $themeScreen = [ThemeEditorScreen]::new()
+                            } catch {
+                                throw "ThemeEditorScreen class not available after loading file: $_"
+                            }
                             if ($null -eq $themeScreen) {
                                 throw "ThemeEditorScreen constructor returned null"
                             }

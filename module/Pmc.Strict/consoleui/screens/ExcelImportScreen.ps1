@@ -313,6 +313,14 @@ class ExcelImportScreen : PmcScreen {
                                 if ($null -eq $this._reader.GetWorkbook() -or $null -eq $this._reader.GetWorkbook().Sheets -or $this._reader.GetWorkbook().Sheets.Count -eq 0) {
                                     throw "Workbook has no accessible sheets"
                                 }
+
+                                # HIGH FIX EXS-H2: Check if workbook is saved to prevent data loss
+                                $workbook = $this._reader.GetWorkbook()
+                                if ($workbook -and $workbook.PSObject.Properties['Saved'] -and -not $workbook.Saved) {
+                                    Write-PmcTuiLog "Warning: Workbook has unsaved changes" "WARNING"
+                                    $this._errorMessage = "Warning: Workbook has unsaved changes. Please save before importing."
+                                }
+
                                 $attached = $true
                                 break
                             } catch {
