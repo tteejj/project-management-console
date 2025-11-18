@@ -1,6 +1,8 @@
 # ConsoleUI Debug Logger
 # Simple debug logging system for troubleshooting
 
+Set-StrictMode -Version Latest
+
 # Consolidated debug output: forward to central Write-PmcDebug
 # The standalone ConsoleUI no longer writes its own logfile; it routes
 # messages into the centralized debug system configured via deps/Debug.ps1.

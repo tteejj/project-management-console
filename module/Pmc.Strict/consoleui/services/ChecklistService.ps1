@@ -75,7 +75,7 @@ class ChecklistService {
     hidden [void] LoadTemplates() {
         if (Test-Path $this._templatesFile) {
             try {
-                $json = Get-Content $this._templatesFile -Raw | ConvertFrom-Json
+                $json = Get-Content $this._templatesFile -Raw | ConvertFrom-Json -Depth 10
                 foreach ($template in $json.templates) {
                     $items = @()
                     foreach ($item in $template.items) {
@@ -142,7 +142,7 @@ class ChecklistService {
     hidden [void] LoadInstances() {
         if (Test-Path $this._instancesFile) {
             try {
-                $json = Get-Content $this._instancesFile -Raw | ConvertFrom-Json
+                $json = Get-Content $this._instancesFile -Raw | ConvertFrom-Json -Depth 10
                 foreach ($instance in $json.instances) {
                     $items = @()
                     foreach ($item in $instance.items) {

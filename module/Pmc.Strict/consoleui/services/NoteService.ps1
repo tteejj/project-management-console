@@ -68,7 +68,7 @@ class NoteService {
     hidden [void] LoadMetadata() {
         if (Test-Path $this._metadataFile) {
             try {
-                $json = Get-Content $this._metadataFile -Raw | ConvertFrom-Json
+                $json = Get-Content $this._metadataFile -Raw | ConvertFrom-Json -Depth 10
                 foreach ($note in $json.notes) {
                     $this._notesCache[$note.id] = @{
                         id = $note.id
@@ -247,7 +247,12 @@ class NoteService {
 
         # Delete file
         if (Test-Path $note.file) {
-            Remove-Item $note.file -Force
+            try {
+                Remove-Item $note.file -Force -ErrorAction Stop
+            } catch {
+                Write-PmcTuiLog "Failed to delete note file $($note.file): $_" "ERROR"
+                throw "Failed to delete note file: $($_.Exception.Message)"
+            }
         }
 
         # Remove from cache
@@ -317,7 +322,7 @@ class NoteService {
         } catch {
             # Clean up temp file if it exists
             if (Test-Path $tempFile) {
-                Remove-Item $tempFile -Force
+                Remove-Item $tempFile -Force -ErrorAction SilentlyContinue
             }
             throw
         }

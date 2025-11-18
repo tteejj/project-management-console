@@ -6,6 +6,8 @@ param(
     [switch]$Verbose
 )
 
+Set-StrictMode -Version Latest
+
 $ErrorActionPreference = "Stop"
 
 # Load dependencies

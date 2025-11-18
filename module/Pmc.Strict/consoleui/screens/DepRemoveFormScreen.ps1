@@ -202,14 +202,14 @@ class DepRemoveFormScreen : PmcScreen {
             }
 
             $data = Get-PmcData
-            $task = $data.tasks | Where-Object { (Get-SafeProperty $_ 'id') -eq $taskId } | Select-Object -First 1
+            $task = $data.tasks | Where-Object { ($_.id) -eq $taskId } | Select-Object -First 1
 
             if (-not $task) {
                 $this.ShowError("Task $taskId not found!")
                 return
             }
 
-            $taskDepends = Get-SafeProperty $task 'depends'
+            $taskDepends = $task.depends
             if (-not $taskDepends) {
                 $this.ShowError("Task has no dependencies!")
                 return

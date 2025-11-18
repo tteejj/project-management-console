@@ -214,7 +214,7 @@ class RestoreBackupScreen : PmcScreen {
 
         try {
             # Load backup data
-            $data = Get-Content $this.Backup.Path -Raw | ConvertFrom-Json
+            $data = Get-Content $this.Backup.Path -Raw | ConvertFrom-Json -Depth 10
 
             # Save as current data
             # FIX: Use Save-PmcData instead of Set-PmcAllData

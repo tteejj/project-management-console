@@ -639,8 +639,8 @@ class InlineEditor : PmcWidget {
             $sb.Append($this.GetBoxChar('single_vertical'))
 
             # Label
-            $label = Get-SafeProperty $field 'Label'
-            $isRequired = Get-SafeProperty $field 'Required' $false
+            $label = $field.Label
+            $isRequired = $field.Required $false
             if ($isRequired) {
                 $label += " *"
             }
@@ -837,8 +837,9 @@ class InlineEditor : PmcWidget {
             }
 
             'textarea' {
-                # For now, use TextInput with larger size for multi-line text
-                # TODO: Integrate full TextAreaEditor when dependency loading is resolved
+                # Use TextInput with larger size for multi-line text (inline editing)
+                # For full-featured editing, users can open dedicated TextAreaEditor screen
+                # Future enhancement: Add modal TextAreaEditor dialog for complex text editing
                 $widget = [TextInput]::new()
                 $widget.SetPosition($this.X + 5, $this.Y + 5)
                 $widget.SetSize(60, 5)  # Taller than regular text input

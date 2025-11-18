@@ -103,7 +103,7 @@ class TaskDetailScreen : PmcScreen {
             }
 
             # Find the task
-            $this.Task = $data.tasks | Where-Object { (Get-SafeProperty $_ 'id') -eq $this.TaskId } | Select-Object -First 1
+            $this.Task = $data.tasks | Where-Object { ($_.id) -eq $this.TaskId } | Select-Object -First 1
 
             if (-not $this.Task) {
                 $this.ShowError("Task #$($this.TaskId) not found")
@@ -177,7 +177,7 @@ class TaskDetailScreen : PmcScreen {
         $labelWidth = 18
 
         # Task ID and Status
-        $taskIdValue = Get-SafeProperty $this.Task 'id'
+        $taskIdValue = $this.Task.id
         $sb.Append($this.Header.BuildMoveTo($x, $y))
         $sb.Append($labelColor)
         $sb.Append("ID:".PadRight($labelWidth))
@@ -188,8 +188,8 @@ class TaskDetailScreen : PmcScreen {
 
         # Completion status indicator
         $sb.Append("  ")
-        $taskCompleted = Get-SafeProperty $this.Task 'completed'
-        $taskStatus = Get-SafeProperty $this.Task 'status'
+        $taskCompleted = $this.Task.completed
+        $taskStatus = $this.Task.status
         if ($taskCompleted) {
             $sb.Append($successColor)
             $sb.Append("[COMPLETED]")
@@ -205,7 +205,7 @@ class TaskDetailScreen : PmcScreen {
 
         # Text
         $y++
-        $taskText = Get-SafeProperty $this.Task 'text'
+        $taskText = $this.Task.text
         $sb.Append($this.Header.BuildMoveTo($x, $y))
         $sb.Append($labelColor)
         $sb.Append("Task:".PadRight($labelWidth))
@@ -217,7 +217,7 @@ class TaskDetailScreen : PmcScreen {
 
         # Project
         $y++
-        $taskProject = Get-SafeProperty $this.Task 'project'
+        $taskProject = $this.Task.project
         $sb.Append($this.Header.BuildMoveTo($x, $y))
         $sb.Append($labelColor)
         $sb.Append("Project:".PadRight($labelWidth))
@@ -229,7 +229,7 @@ class TaskDetailScreen : PmcScreen {
 
         # Priority
         $y++
-        $taskPriority = Get-SafeProperty $this.Task 'priority'
+        $taskPriority = $this.Task.priority
         $sb.Append($this.Header.BuildMoveTo($x, $y))
         $sb.Append($labelColor)
         $sb.Append("Priority:".PadRight($labelWidth))
@@ -256,7 +256,7 @@ class TaskDetailScreen : PmcScreen {
 
         # Due Date
         $y++
-        $taskDue = Get-SafeProperty $this.Task 'due'
+        $taskDue = $this.Task.due
         $sb.Append($this.Header.BuildMoveTo($x, $y))
         $sb.Append($labelColor)
         $sb.Append("Due Date:".PadRight($labelWidth))
@@ -286,7 +286,7 @@ class TaskDetailScreen : PmcScreen {
         $y++
 
         # Created Date
-        $taskCreated = Get-SafeProperty $this.Task 'created'
+        $taskCreated = $this.Task.created
         $sb.Append($this.Header.BuildMoveTo($x, $y))
         $sb.Append($labelColor)
         $sb.Append("Created:".PadRight($labelWidth))
@@ -302,7 +302,7 @@ class TaskDetailScreen : PmcScreen {
         $y++
 
         # Completed Date
-        $taskCompletedDate = Get-SafeProperty $this.Task 'completedDate'
+        $taskCompletedDate = $this.Task.completedDate
         if ($taskCompleted -and $taskCompletedDate) {
             $sb.Append($this.Header.BuildMoveTo($x, $y))
             $sb.Append($labelColor)
@@ -316,7 +316,7 @@ class TaskDetailScreen : PmcScreen {
 
         # Estimated Time
         $y++
-        $taskEstimatedMinutes = Get-SafeProperty $this.Task 'estimatedMinutes'
+        $taskEstimatedMinutes = $this.Task.estimatedMinutes
         $sb.Append($this.Header.BuildMoveTo($x, $y))
         $sb.Append($labelColor)
         $sb.Append("Estimated Time:".PadRight($labelWidth))
@@ -338,7 +338,7 @@ class TaskDetailScreen : PmcScreen {
         $y++
 
         # Recurrence
-        $taskRecur = Get-SafeProperty $this.Task 'recur'
+        $taskRecur = $this.Task.recur
         if ($taskRecur) {
             $sb.Append($this.Header.BuildMoveTo($x, $y))
             $sb.Append($labelColor)
@@ -352,7 +352,7 @@ class TaskDetailScreen : PmcScreen {
 
         # Tags
         $y++
-        $taskTags = Get-SafeProperty $this.Task 'tags'
+        $taskTags = $this.Task.tags
         $sb.Append($this.Header.BuildMoveTo($x, $y))
         $sb.Append($labelColor)
         $sb.Append("Tags:".PadRight($labelWidth))
@@ -368,7 +368,7 @@ class TaskDetailScreen : PmcScreen {
         $y++
 
         # Dependencies
-        $taskDepends = Get-SafeProperty $this.Task 'depends'
+        $taskDepends = $this.Task.depends
         $sb.Append($this.Header.BuildMoveTo($x, $y))
         $sb.Append($labelColor)
         $sb.Append("Depends On:".PadRight($labelWidth))
@@ -384,7 +384,7 @@ class TaskDetailScreen : PmcScreen {
         $y++
 
         # Notes
-        $taskNotes = Get-SafeProperty $this.Task 'notes'
+        $taskNotes = $this.Task.notes
         if ($taskNotes -and $taskNotes.Count -gt 0) {
             $y++
             $y++
@@ -412,7 +412,7 @@ class TaskDetailScreen : PmcScreen {
         }
 
         # Subtasks
-        $taskSubtasks = Get-SafeProperty $this.Task 'subtasks'
+        $taskSubtasks = $this.Task.subtasks
         if ($taskSubtasks -and $taskSubtasks.Count -gt 0) {
             $y++
             $y++
@@ -477,7 +477,7 @@ class TaskDetailScreen : PmcScreen {
 
     hidden [void] _EditTask() {
         if ($this.Task) {
-            $taskIdValue = Get-SafeProperty $this.Task 'id'
+            $taskIdValue = $this.Task.id
             $this.ShowStatus("Edit task: [$taskIdValue]")
             . "$PSScriptRoot/TaskListScreen.ps1"
             $global:PmcApp.PopScreen()
@@ -490,11 +490,11 @@ class TaskDetailScreen : PmcScreen {
             return
         }
 
-        $this.TaskId = Get-SafeProperty $this.Task 'id'
+        $this.TaskId = $this.Task.id
 
         # Update storage
         $allData = Get-PmcData
-        $taskToComplete = $allData.tasks | Where-Object { (Get-SafeProperty $_ 'id') -eq $this.TaskId }
+        $taskToComplete = $allData.tasks | Where-Object { ($_.id) -eq $this.TaskId }
 
         if ($taskToComplete) {
             $taskToComplete.completed = $true
@@ -512,11 +512,11 @@ class TaskDetailScreen : PmcScreen {
             return
         }
 
-        $this.TaskId = Get-SafeProperty $this.Task 'id'
+        $this.TaskId = $this.Task.id
 
         # Update storage
         $allData = Get-PmcData
-        $allData.tasks = @($allData.tasks | Where-Object { (Get-SafeProperty $_ 'id') -ne $this.TaskId })
+        $allData.tasks = @($allData.tasks | Where-Object { ($_.id) -ne $this.TaskId })
         # FIX: Use Save-PmcData instead of Set-PmcAllData
         Save-PmcData -Data $allData
 

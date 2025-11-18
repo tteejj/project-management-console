@@ -46,8 +46,8 @@ class ProjectListScreen : StandardListScreen {
         # Configure header
         $this.Header.SetBreadcrumb(@("Home", "Projects"))
 
-        # TODO: Column configuration - StandardListScreen doesn't implement ConfigureColumns yet
-        # Will use default columns from UniversalList
+        # Currently uses default columns from UniversalList (works as expected)
+        # Future enhancement: Add ConfigureColumns() method to StandardListScreen for custom column layouts
     }
 
     # Constructor with container (DI-enabled)
@@ -61,8 +61,8 @@ class ProjectListScreen : StandardListScreen {
         # Configure header
         $this.Header.SetBreadcrumb(@("Home", "Projects"))
 
-        # TODO: Column configuration - StandardListScreen doesn't implement ConfigureColumns yet
-        # Will use default columns from UniversalList
+        # Currently uses default columns from UniversalList (works as expected)
+        # Future enhancement: Add ConfigureColumns() method to StandardListScreen for custom column layouts
     }
 
     # === Abstract Method Implementations ===

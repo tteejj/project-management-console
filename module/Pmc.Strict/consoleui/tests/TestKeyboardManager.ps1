@@ -13,6 +13,8 @@
 #   . "$PSScriptRoot/TestKeyboardManager.ps1"
 #   Test-KeyboardManager
 
+Set-StrictMode -Version Latest
+
 # Load KeyboardManager
 $infraPath = Join-Path (Split-Path -Parent $PSScriptRoot) "infrastructure"
 . (Join-Path $infraPath "KeyboardManager.ps1")

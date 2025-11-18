@@ -877,8 +877,8 @@ class ProjectPicker : PmcWidget {
 
             $count = 0
             foreach ($task in $allTasks) {
-                $taskProject = Get-SafeProperty $task 'project'
-                if ($taskProject -eq $projectName -and -not (Get-SafeProperty $task 'completed')) {
+                $taskProject = $task.project
+                if ($taskProject -eq $projectName -and -not ($task.completed)) {
                     $count++
                 }
             }

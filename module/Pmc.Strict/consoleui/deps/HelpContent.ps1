@@ -1,5 +1,7 @@
 # Curated help content for standalone ConsoleUI
 
+Set-StrictMode -Version Latest
+
 $Script:PmcHelpContent = @{
     'Quick Tasks' = @{
         Description = 'Common task management commands'

@@ -4,6 +4,8 @@
 # This script provides a full interactive demo of the DatePicker widget,
 # showing both text and calendar modes in action.
 
+Set-StrictMode -Version Latest
+
 using namespace System
 
 # Load dependencies

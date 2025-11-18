@@ -2,6 +2,8 @@
 # Uses a gap buffer data structure for optimal performance on typical editing patterns
 # Ported from Praxis to PMC ConsoleUI
 
+Set-StrictMode -Version Latest
+
 class GapBuffer {
     # Internal buffer with gap
     hidden [char[]]$_buffer

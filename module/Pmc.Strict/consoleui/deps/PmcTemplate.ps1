@@ -1,4 +1,7 @@
 # Local PmcTemplate class for template-based rendering
+
+Set-StrictMode -Version Latest
+
 class PmcTemplate {
     [string]$Name
     [string]$Type        # 'grid', 'list', 'card', 'summary'

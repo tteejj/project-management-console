@@ -13,6 +13,8 @@
 #   . "$PSScriptRoot/TestScreenRegistry.ps1"
 #   Test-ScreenRegistry
 
+Set-StrictMode -Version Latest
+
 # Load ScreenRegistry
 $infraPath = Join-Path (Split-Path -Parent $PSScriptRoot) "infrastructure"
 . (Join-Path $infraPath "ScreenRegistry.ps1")

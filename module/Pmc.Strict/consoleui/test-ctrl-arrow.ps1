@@ -1,4 +1,7 @@
 # Test Ctrl+Arrow key detection
+
+Set-StrictMode -Version Latest
+
 Write-Host "Press Ctrl+Arrow keys (or Ctrl+C to exit)" -ForegroundColor Green
 Write-Host ""
 

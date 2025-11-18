@@ -209,8 +209,8 @@ class DepAddFormScreen : PmcScreen {
             }
 
             $data = Get-PmcData
-            $task = $data.tasks | Where-Object { (Get-SafeProperty $_ 'id') -eq $taskId } | Select-Object -First 1
-            $dependsTask = $data.tasks | Where-Object { (Get-SafeProperty $_ 'id') -eq $dependsId } | Select-Object -First 1
+            $task = $data.tasks | Where-Object { ($_.id) -eq $taskId } | Select-Object -First 1
+            $dependsTask = $data.tasks | Where-Object { ($_.id) -eq $dependsId } | Select-Object -First 1
 
             if (-not $task) {
                 $this.ShowError("Task $taskId not found!")
@@ -223,7 +223,7 @@ class DepAddFormScreen : PmcScreen {
             }
 
             # Get existing depends or initialize
-            $taskDepends = Get-SafeProperty $task 'depends'
+            $taskDepends = $task.depends
             if (-not $taskDepends) {
                 $task | Add-Member -NotePropertyName depends -NotePropertyValue @()
                 $taskDepends = @()

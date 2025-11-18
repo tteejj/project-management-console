@@ -1,6 +1,8 @@
 # Test theme color rendering
 # This will show what hex color is ACTUALLY being rendered
 
+Set-StrictMode -Version Latest
+
 Write-Host "==================================" -ForegroundColor Cyan
 Write-Host "PMC Theme Color Test" -ForegroundColor Cyan
 Write-Host "==================================" -ForegroundColor Cyan
@@ -8,7 +10,7 @@ Write-Host ""
 
 # 1. Show config file
 Write-Host "1. Config file theme:" -ForegroundColor Yellow
-$cfg = Get-Content /home/teej/pmc/config.json | ConvertFrom-Json
+$cfg = Get-Content /home/teej/pmc/config.json | ConvertFrom-Json -Depth 10
 Write-Host "   Hex: $($cfg.Display.Theme.Hex)" -ForegroundColor Green
 Write-Host ""
 

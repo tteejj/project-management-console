@@ -68,8 +68,8 @@ The property name to retrieve.
 The value to return if property doesn't exist. Default is $null.
 
 .EXAMPLE
-$id = Get-SafeProperty $task 'id'
-$parentId = Get-SafeProperty $task 'parent_id' $null
+$id = $task.id
+$parentId = $task.parent_id $null
 #>
 function Get-SafeProperty {
     param(

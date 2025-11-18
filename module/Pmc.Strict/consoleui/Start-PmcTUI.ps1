@@ -6,6 +6,8 @@ param(
     [int]$LogLevel = 0      # 0=off, 1=errors only, 2=info, 3=verbose
 )
 
+Set-StrictMode -Version Latest
+
 # Setup logging (DISABLED BY DEFAULT for performance)
 # M-CFG-1: Configurable Log Path - uses environment variable or local directory for portability
 # PORTABILITY: Default to .pmc-data/logs directory relative to module root (self-contained)
@@ -402,11 +404,8 @@ function Start-PmcTUI {
                 Write-PmcTuiLog "Screen pushed successfully" "INFO"
             }
             'BlockedTasks' {
-                Write-PmcTuiLog "Creating BlockedTasksScreen (not yet containerized)..." "INFO"
-                # TODO: Containerize BlockedTasksScreen
-                $null = $global:PmcContainer.Resolve('Theme')
-                $null = $global:PmcContainer.Resolve('TaskStore')
-                $screen = [BlockedTasksScreen]::new()
+                Write-PmcTuiLog "Creating BlockedTasksScreen with container..." "INFO"
+                $screen = [BlockedTasksScreen]::new($global:PmcContainer)
                 Write-PmcTuiLog "Pushing screen to app..." "INFO"
                 $global:PmcApp.PushScreen($screen)
                 Write-PmcTuiLog "Screen pushed successfully" "INFO"

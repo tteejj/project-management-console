@@ -1,6 +1,8 @@
 # LinuxKeyHelper.ps1 - Handles escape sequence parsing for Ctrl+Arrow keys on Linux
 # Workaround for Console.ReadKey not properly detecting Ctrl+Arrow on Linux terminals
 
+Set-StrictMode -Version Latest
+
 class LinuxKeyHelper {
     # Parse escape sequence for Ctrl+Arrow keys
     # Returns: "Ctrl+Up", "Ctrl+Down", "Ctrl+Left", "Ctrl+Right", or $null

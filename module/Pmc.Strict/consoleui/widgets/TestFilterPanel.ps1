@@ -1,6 +1,8 @@
 # TestFilterPanel.ps1 - Comprehensive test suite for FilterPanel widget
 # Run with: pwsh TestFilterPanel.ps1
 
+Set-StrictMode -Version Latest
+
 . "$PSScriptRoot/FilterPanel.ps1"
 
 function Test-FilterPanelBasic {

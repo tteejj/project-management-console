@@ -14,6 +14,8 @@
 #   . "$PSScriptRoot/TestNavigationManager.ps1"
 #   Test-NavigationManager
 
+Set-StrictMode -Version Latest
+
 # Load dependencies
 $infraPath = Join-Path (Split-Path -Parent $PSScriptRoot) "infrastructure"
 . (Join-Path $infraPath "ScreenRegistry.ps1")

@@ -1,6 +1,8 @@
 #!/usr/bin/env pwsh
 # Test script to verify ProjectInfoScreen can be loaded
 
+Set-StrictMode -Version Latest
+
 $ErrorActionPreference = 'Stop'
 
 # Set global variables that PMC expects

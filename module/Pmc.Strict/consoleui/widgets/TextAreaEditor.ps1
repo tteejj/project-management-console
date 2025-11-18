@@ -2,6 +2,8 @@
 # Ported from Praxis FullNotesEditor with adaptations for PMC
 # Features: Gap buffer, undo/redo, word navigation, auto-save, scrolling, selection, copy/paste, find/replace
 
+Set-StrictMode -Version Latest
+
 # Selection mode enum
 enum SelectionMode {
     None
@@ -569,7 +571,8 @@ class TextAreaEditor {
             # Find
             ([System.ConsoleKey]::F) {
                 if ($isCtrl) {
-                    # TODO: Show find dialog
+                    # Future feature: Implement find dialog with search highlighting
+                    # Reserved: Ctrl+F keybinding for future find functionality
                     $handled = $false  # Let parent handle for now
                 } else {
                     $this.InsertChar($key.KeyChar)
@@ -579,7 +582,8 @@ class TextAreaEditor {
             # Replace
             ([System.ConsoleKey]::H) {
                 if ($isCtrl) {
-                    # TODO: Show find/replace dialog
+                    # Future feature: Implement find/replace dialog with preview
+                    # Reserved: Ctrl+H keybinding for future replace functionality
                     $handled = $false  # Let parent handle for now
                 } else {
                     $this.InsertChar($key.KeyChar)

@@ -114,7 +114,7 @@ class TimeDeleteFormScreen : PmcScreen {
         $y += 2
 
         # ID
-        $entryId = Get-SafeProperty $this.TimeEntry 'id'
+        $entryId = $this.TimeEntry.id
         $sb.Append($this.Header.BuildMoveTo($contentRect.X + 6, $y))
         $sb.Append($mutedColor)
         $sb.Append("ID: ")
@@ -125,7 +125,7 @@ class TimeDeleteFormScreen : PmcScreen {
         $y++
 
         # Date
-        $entryDate = Get-SafeProperty $this.TimeEntry 'date'
+        $entryDate = $this.TimeEntry.date
         $rawDate = if ($entryDate) { $entryDate.ToString() } else { "" }
         $dateStr = if ($rawDate -eq 'today') {
             (Get-Date).ToString('yyyy-MM-dd')
@@ -145,8 +145,8 @@ class TimeDeleteFormScreen : PmcScreen {
         $y++
 
         # Project
-        $entryProject = Get-SafeProperty $this.TimeEntry 'project'
-        $entryId1 = Get-SafeProperty $this.TimeEntry 'id1'
+        $entryProject = $this.TimeEntry.project
+        $entryId1 = $this.TimeEntry.id1
         $projectStr = if ($entryProject) { $entryProject.ToString() } else { if ($entryId1) { "#$entryId1" } else { "" } }
         $sb.Append($this.Header.BuildMoveTo($contentRect.X + 6, $y))
         $sb.Append($mutedColor)
@@ -158,7 +158,7 @@ class TimeDeleteFormScreen : PmcScreen {
         $y++
 
         # Hours
-        $entryMinutes = Get-SafeProperty $this.TimeEntry 'minutes'
+        $entryMinutes = $this.TimeEntry.minutes
         $hours = if ($entryMinutes) { [math]::Round($entryMinutes / 60.0, 2) } else { 0 }
         $sb.Append($this.Header.BuildMoveTo($contentRect.X + 6, $y))
         $sb.Append($mutedColor)
@@ -170,7 +170,7 @@ class TimeDeleteFormScreen : PmcScreen {
         $y++
 
         # Description
-        $entryDescription = Get-SafeProperty $this.TimeEntry 'description'
+        $entryDescription = $this.TimeEntry.description
         if ($entryDescription) {
             $sb.Append($this.Header.BuildMoveTo($contentRect.X + 6, $y))
             $sb.Append($mutedColor)
@@ -232,8 +232,8 @@ class TimeDeleteFormScreen : PmcScreen {
             $data = Get-PmcData
 
             # Remove entry
-            $entryId = Get-SafeProperty $this.TimeEntry 'id'
-            $data.timelogs = @($data.timelogs | Where-Object { (Get-SafeProperty $_ 'id') -ne $entryId })
+            $entryId = $this.TimeEntry.id
+            $data.timelogs = @($data.timelogs | Where-Object { ($_.id) -ne $entryId })
 
             # Save
             # FIX: Use Save-PmcData instead of Set-PmcAllData

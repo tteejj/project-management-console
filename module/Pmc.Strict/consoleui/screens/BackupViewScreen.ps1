@@ -335,7 +335,7 @@ class BackupViewScreen : PmcScreen {
 
         try {
             if (Test-Path $backup.Path) {
-                Remove-Item $backup.Path -Force
+                Remove-Item $backup.Path -Force -ErrorAction Stop
                 $this.ShowSuccess("Backup deleted: $($backup.Name)")
                 $this.LoadData()
             } else {

@@ -74,11 +74,11 @@ class MultiSelectModeScreen : PmcScreen {
 
             # Filter active tasks
             $this.Tasks = @($data.tasks | Where-Object {
-                -not (Get-SafeProperty $_ 'completed')
+                -not ($_.completed)
             })
 
             # Sort by priority (descending), then id
-            $this.Tasks = @($this.Tasks | Sort-Object { Get-SafeProperty $_ 'priority' }, { Get-SafeProperty $_ 'id' } -Descending)
+            $this.Tasks = @($this.Tasks | Sort-Object { $_.priority }, { $_.id } -Descending)
 
             # Reset selection if out of bounds
             if ($this.SelectedIndex -ge $this.Tasks.Count) {
@@ -142,9 +142,9 @@ class MultiSelectModeScreen : PmcScreen {
             if ($taskIdx -ge $this.Tasks.Count) { break }
 
             $task = $this.Tasks[$taskIdx]
-            $taskId = Get-SafeProperty $task 'id'
-            $taskPriority = Get-SafeProperty $task 'priority'
-            $taskText = Get-SafeProperty $task 'text'
+            $taskId = $task.id
+            $taskPriority = $task.priority
+            $taskText = $task.text
             $isSelected = ($taskIdx -eq $this.SelectedIndex)
             $isMarked = $this.MultiSelect[$taskId]
 
@@ -237,7 +237,7 @@ class MultiSelectModeScreen : PmcScreen {
             'Spacebar' {
                 if ($this.SelectedIndex -lt $this.Tasks.Count) {
                     $task = $this.Tasks[$this.SelectedIndex]
-                    $taskId = Get-SafeProperty $task 'id'
+                    $taskId = $task.id
                     $this.MultiSelect[$taskId] = -not $this.MultiSelect[$taskId]
                     $this._UpdateStatus()
                     return $true
@@ -248,7 +248,7 @@ class MultiSelectModeScreen : PmcScreen {
         switch ($keyChar) {
             'a' {
                 foreach ($task in $this.Tasks) {
-                    $taskId = Get-SafeProperty $task 'id'
+                    $taskId = $task.id
                     $this.MultiSelect[$taskId] = $true
                 }
                 $this._UpdateStatus()
@@ -293,7 +293,7 @@ class MultiSelectModeScreen : PmcScreen {
             $count = 0
 
             foreach ($id in $selectedIds) {
-                $task = $data.tasks | Where-Object { (Get-SafeProperty $_ 'id') -eq $id } | Select-Object -First 1
+                $task = $data.tasks | Where-Object { ($_.id) -eq $id } | Select-Object -First 1
                 if ($task) {
                     $task.completed = $true
                     $task.completedDate = (Get-Date).ToString('yyyy-MM-dd HH:mm:ss')
@@ -327,7 +327,7 @@ class MultiSelectModeScreen : PmcScreen {
             $count = $selectedIds.Count
 
             # Remove selected tasks
-            $data.tasks = @($data.tasks | Where-Object { $selectedIds -notcontains (Get-SafeProperty $_ 'id') })
+            $data.tasks = @($data.tasks | Where-Object { $selectedIds -notcontains ($_.id) })
 
             Save-PmcData -Data $data -Action "Bulk deleted $count tasks"
 
@@ -355,10 +355,10 @@ class MultiSelectModeScreen : PmcScreen {
         $updatedCount = 0
 
         foreach ($taskId in $selectedIds) {
-            $task = $allData.tasks | Where-Object { (Get-SafeProperty $_ 'id') -eq $taskId }
+            $task = $allData.tasks | Where-Object { ($_.id) -eq $taskId }
             if ($task) {
                 # Cycle priority: 0 -> 1 -> 2 -> 3 -> 0
-                $currentPriority = Get-SafeProperty $task 'priority'
+                $currentPriority = $task.priority
                 $task.priority = ($currentPriority + 1) % 4
                 $updatedCount++
             }

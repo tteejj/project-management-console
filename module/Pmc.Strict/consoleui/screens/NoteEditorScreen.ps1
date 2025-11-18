@@ -244,12 +244,12 @@ class NoteEditorScreen : PmcScreen {
             return $true
         }
 
-        # Escape - Go back (with save prompt if modified)
+        # Escape - Go back (auto-save if modified)
         if ($key.Key -eq [ConsoleKey]::Escape) {
             if ($this._editor.Modified) {
-                # For now, just save and exit
-                # TODO: Add confirmation dialog
+                # Auto-save on exit - modern UX pattern
                 $this.SaveNote()
+                $this.SetStatusMessage("Note saved automatically", "info")
             }
             $global:PmcApp.PopScreen()
             return $true

@@ -12,6 +12,8 @@
 # - Sorting
 # - Bulk operations
 
+Set-StrictMode -Version Latest
+
 using namespace System
 
 # Get script directory

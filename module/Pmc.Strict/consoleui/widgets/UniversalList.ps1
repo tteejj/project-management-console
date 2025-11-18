@@ -878,9 +878,9 @@ class UniversalList : PmcWidget {
             }
 
             if ($global:PmcTuiLogFile) {
-                $itemDesc = Get-SafeProperty $item 'text'
-                if (-not $itemDesc) { $itemDesc = Get-SafeProperty $item 'name' }
-                if (-not $itemDesc) { $itemDesc = Get-SafeProperty $item 'id' }
+                $itemDesc = $item.text
+                if (-not $itemDesc) { $itemDesc = $item.name }
+                if (-not $itemDesc) { $itemDesc = $item.id }
                 if (-not $itemDesc) { $itemDesc = "unknown" }
                 Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] UniversalList._RenderList LOOP iteration $i - item=$itemDesc"
             }
@@ -949,7 +949,7 @@ class UniversalList : PmcWidget {
             $currentX = 2
             $columnIndex = 0
             foreach ($col in $this._columns) {
-                $value = Get-SafeProperty $item $col.Name
+                $value = if ($item.PSObject.Properties[$col.Name]) { $item.($col.Name) } else { "" }
                 # L-POL-22: Use custom width if set, otherwise use default
                 $width = if ($this._columnWidths.ContainsKey($col.Name)) {
                     $this._columnWidths[$col.Name]
@@ -1034,7 +1034,7 @@ class UniversalList : PmcWidget {
                             Write-PmcTuiLog "Column format error for '$($col.Name)': $($_.Exception.Message)" "ERROR"
                         }
                         # Return original unformatted value instead of error text - use safe property access
-                        $value = Get-SafeProperty $item $col.Name
+                        $value = if ($item.PSObject.Properties[$col.Name]) { $item.($col.Name) } else { "" }
                     }
                 }
 
@@ -1183,8 +1183,8 @@ class UniversalList : PmcWidget {
             if ($null -ne $selectedItem) {
                 $preview = "Selected: "
                 # Handle both hashtables and objects
-                $text = Get-SafeProperty $selectedItem 'text'
-                $id = Get-SafeProperty $selectedItem 'id'
+                $text = $selectedItem.text
+                $id = $selectedItem.id
 
                 if ($text) {
                     $preview += $text
@@ -1429,7 +1429,7 @@ class UniversalList : PmcWidget {
             # Search in all columns
             $match = $false
             foreach ($col in $this._columns) {
-                $value = Get-SafeProperty $item $col.Name
+                $value = if ($item.PSObject.Properties[$col.Name]) { $item.($col.Name) } else { "" }
                 if ($null -ne $value) {
                     $valueStr = $value.ToString().ToLower()
                     if ($valueStr.Contains($searchLower)) {
