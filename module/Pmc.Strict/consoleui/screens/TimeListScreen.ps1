@@ -246,7 +246,8 @@ class TimeListScreen : StandardListScreen {
                 @{ Name='task'; Type='text'; Label='Task'; Value='' }
                 @{ Name='project'; Type='project'; Label='Project (or leave blank for timecode)'; Value='' }
                 @{ Name='timecode'; Type='text'; Label='Timecode (2-5 digits, or leave blank for project)'; Value=''; MaxLength=5 }
-                @{ Name='hours'; Type='number'; Label='Hours'; Min=0.25; Max=8; Step=0.25; Value=0.25 }
+                # MEDIUM FIX TMS-M3: Increase max from 8 to 24 to allow overtime/full-day logging
+                @{ Name='hours'; Type='number'; Label='Hours'; Min=0.25; Max=24; Step=0.25; Value=0.25 }
                 @{ Name='notes'; Type='text'; Label='Notes'; Value='' }
             )
         } else {
@@ -260,7 +261,8 @@ class TimeListScreen : StandardListScreen {
                 @{ Name='task'; Type='text'; Label='Task'; Value=$item.task }
                 @{ Name='project'; Type='project'; Label='Project (or leave blank for timecode)'; Value=$projectVal }
                 @{ Name='timecode'; Type='text'; Label='Timecode (2-5 digits, or leave blank for project)'; Value=$timecodeVal; MaxLength=5 }
-                @{ Name='hours'; Type='number'; Label='Hours'; Min=0.25; Max=8; Step=0.25; Value=$hoursVal }
+                # MEDIUM FIX TMS-M3: Increase max from 8 to 24 to allow overtime/full-day logging
+                @{ Name='hours'; Type='number'; Label='Hours'; Min=0.25; Max=24; Step=0.25; Value=$hoursVal }
                 @{ Name='notes'; Type='text'; Label='Notes'; Value=$item.notes }
             )
         }
@@ -293,7 +295,9 @@ class TimeListScreen : StandardListScreen {
                 return
             }
 
-            $minutes = [int]($hoursValue * 60)
+            # HIGH FIX TMS-H3: Use Math.Round instead of [int] to prevent precision loss
+            # 2.75 hours = 165 minutes (not 165.0 truncated to 165)
+            $minutes = [Math]::Round($hoursValue * 60)
 
             # Safe date conversion
             $dateValue = [DateTime]::Today
@@ -356,7 +360,9 @@ class TimeListScreen : StandardListScreen {
                 return
             }
 
-            $minutes = [int]($hoursValue * 60)
+            # HIGH FIX TMS-H3: Use Math.Round instead of [int] to prevent precision loss
+            # 2.75 hours = 165 minutes (not 165.0 truncated to 165)
+            $minutes = [Math]::Round($hoursValue * 60)
 
             # Safe date conversion
             $dateValue = [DateTime]::Today
@@ -455,8 +461,8 @@ class TimeListScreen : StandardListScreen {
         }
 
         # TIM-7 FIX: Dialog render loop with timeout protection
-        # TS-M2 FIX: Reduced timeout from 120000 to 3600 (3 minutes instead of 100 minutes)
-        $maxIterations = 3600  # 3600 * 50ms = 180 seconds = 3 minutes max
+        # CRITICAL FIX TMS-C1: Increased timeout to 30 minutes to prevent losing user work
+        $maxIterations = 36000  # 36000 * 50ms = 1800 seconds = 30 minutes max
         $iterations = 0
 
         while (-not $dialog.IsComplete -and $iterations -lt $maxIterations) {
@@ -477,8 +483,11 @@ class TimeListScreen : StandardListScreen {
                 $key = [Console]::ReadKey($true)
                 $dialog.HandleInput($key)
 
-                # Escape hatch: Ctrl+C or Escape should always close
-                if ($key.Key -eq 'Escape' -or ($key.Modifiers -band [ConsoleModifiers]::Control)) {
+                # HIGH FIX TMS-H4: Only close on Escape, Ctrl+C, or Ctrl+Q (not all Control keys)
+                # Checking -band [ConsoleModifiers]::Control catches Ctrl+V, Ctrl+A, etc.
+                if ($key.Key -eq 'Escape' -or
+                    ($key.Key -eq 'C' -and ($key.Modifiers -band [ConsoleModifiers]::Control)) -or
+                    ($key.Key -eq 'Q' -and ($key.Modifiers -band [ConsoleModifiers]::Control))) {
                     $dialog.IsComplete = $true
                     break
                 }

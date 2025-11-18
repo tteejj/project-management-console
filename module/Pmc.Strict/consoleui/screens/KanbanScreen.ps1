@@ -83,32 +83,35 @@ class KanbanScreen : PmcScreen {
             $allTasks = $this.Store.GetAllTasks()
             $sevenDaysAgo = (Get-Date).AddDays(-7)
 
-            # TODO column: pending, blocked, waiting (not completed)
-            $this.TodoTasks = @($allTasks | Where-Object {
-                $taskCompleted = Get-SafeProperty $_ 'completed'
-                $taskStatus = Get-SafeProperty $_ 'status'
-                -not $taskCompleted -and
-                ($taskStatus -eq 'pending' -or $taskStatus -eq 'blocked' -or $taskStatus -eq 'waiting' -or -not $taskStatus)
-            })
-            $this.TodoTasks = @($this.TodoTasks | Sort-Object { Get-SafeProperty $_ 'priority' }, { Get-SafeProperty $_ 'id' })
+            # HIGH FIX KAN-H1: Single-pass filtering instead of 3 separate Where-Object calls
+            # Group tasks in one iteration for O(n) instead of O(3n)
+            $todoList = [System.Collections.ArrayList]::new()
+            $inProgressList = [System.Collections.ArrayList]::new()
+            $doneList = [System.Collections.ArrayList]::new()
 
-            # In Progress column: in-progress (not completed)
-            $this.InProgressTasks = @($allTasks | Where-Object {
-                $taskCompleted = Get-SafeProperty $_ 'completed'
-                $taskStatus = Get-SafeProperty $_ 'status'
-                -not $taskCompleted -and $taskStatus -eq 'in-progress'
-            })
-            $this.InProgressTasks = @($this.InProgressTasks | Sort-Object { Get-SafeProperty $_ 'priority' }, { Get-SafeProperty $_ 'id' })
+            foreach ($task in $allTasks) {
+                $taskCompleted = Get-SafeProperty $task 'completed'
+                $taskStatus = Get-SafeProperty $task 'status'
+                $taskCompletedDate = Get-SafeProperty $task 'completedDate'
 
-            # Done column: completed in last 7 days OR status=done
-            $this.DoneTasks = @($allTasks | Where-Object {
-                $taskCompleted = Get-SafeProperty $_ 'completed'
-                $taskCompletedDate = Get-SafeProperty $_ 'completedDate'
-                $taskStatus = Get-SafeProperty $_ 'status'
-                ($taskCompleted -and $taskCompletedDate -and ([DateTime]$taskCompletedDate) -gt $sevenDaysAgo) -or
-                ($taskStatus -eq 'done')
-            })
-            $this.DoneTasks = @($this.DoneTasks | Sort-Object { Get-SafeProperty $_ 'completedDate' }, { Get-SafeProperty $_ 'id' })
+                # TODO column: pending, blocked, waiting (not completed)
+                if (-not $taskCompleted -and ($taskStatus -eq 'pending' -or $taskStatus -eq 'blocked' -or $taskStatus -eq 'waiting' -or -not $taskStatus)) {
+                    [void]$todoList.Add($task)
+                }
+                # In Progress column: in-progress (not completed)
+                elseif (-not $taskCompleted -and $taskStatus -eq 'in-progress') {
+                    [void]$inProgressList.Add($task)
+                }
+                # Done column: completed in last 7 days OR status=done
+                elseif (($taskCompleted -and $taskCompletedDate -and ([DateTime]$taskCompletedDate) -gt $sevenDaysAgo) -or ($taskStatus -eq 'done')) {
+                    [void]$doneList.Add($task)
+                }
+            }
+
+            # Sort and convert to arrays
+            $this.TodoTasks = @($todoList.ToArray() | Sort-Object { Get-SafeProperty $_ 'priority' }, { Get-SafeProperty $_ 'id' })
+            $this.InProgressTasks = @($inProgressList.ToArray() | Sort-Object { Get-SafeProperty $_ 'priority' }, { Get-SafeProperty $_ 'id' })
+            $this.DoneTasks = @($doneList.ToArray() | Sort-Object { Get-SafeProperty $_ 'completedDate' }, { Get-SafeProperty $_ 'id' })
 
             # Reset selections if out of bounds
             if ($this.SelectedIndexTodo -ge $this.TodoTasks.Count) {
@@ -381,14 +384,17 @@ class KanbanScreen : PmcScreen {
     hidden [void] _MoveTask() {
         $task = $this._GetSelectedTask()
         if ($task) {
-            # Cycle status: pending -> in-progress -> done -> pending
+            # HIGH FIX KAN-H3: Cycle through all statuses including blocked/waiting
+            # Cycle: pending -> in-progress -> blocked -> waiting -> done -> pending
             $taskId = Get-SafeProperty $task 'id'
             $taskStatus = Get-SafeProperty $task 'status'
             $newStatus = 'in-progress'  # Initialize variable for strict mode
             $completedDate = $null
             switch ($taskStatus) {
                 'pending' { $newStatus = 'in-progress' }
-                'in-progress' {
+                'in-progress' { $newStatus = 'blocked' }
+                'blocked' { $newStatus = 'waiting' }
+                'waiting' {
                     $newStatus = 'done'
                     $completedDate = (Get-Date).ToString('yyyy-MM-dd HH:mm:ss')
                 }
@@ -406,13 +412,27 @@ class KanbanScreen : PmcScreen {
                 $changes.completedDate = $null
             }
 
+            # CRITICAL FIX KAN-C1: Optimistic UI update before Store persistence
+            # Apply changes to local task object immediately for responsive UI
+            foreach ($key in $changes.Keys) {
+                if ($task -is [hashtable]) {
+                    $task[$key] = $changes[$key]
+                } else {
+                    $task.$key = $changes[$key]
+                }
+            }
+            # Refresh UI immediately with optimistic changes
+            $this.LoadData()
+
             # Update via TaskStore (handles validation, events, persistence, rollback)
             $success = $this.Store.UpdateTask($taskId, $changes)
             if ($success) {
                 $this.ShowSuccess("Moved task #$taskId to $newStatus")
-                $this.LoadData()  # Reload to update columns
+                # Data already refreshed optimistically above
             } else {
                 $this.ShowError("Failed to move task: $($this.Store.LastError)")
+                # Rollback: Reload from store to revert optimistic changes
+                $this.LoadData()
             }
         }
     }

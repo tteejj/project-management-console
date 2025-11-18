@@ -219,10 +219,21 @@ class ProjectListScreen : StandardListScreen {
             }
 
             # Helper to parse dates
+            # HIGH FIX PLS-H2: Use ParseExact with InvariantCulture to avoid locale issues
             $parseDate = {
                 param($val)
                 if ($val) {
-                    try { [DateTime]::Parse($val) } catch { $null }
+                    try {
+                        # Try common ISO formats first, then fall back to Parse
+                        $formats = @('yyyy-MM-dd', 'yyyy-MM-dd HH:mm:ss', 'MM/dd/yyyy', 'dd/MM/yyyy')
+                        foreach ($format in $formats) {
+                            try {
+                                return [DateTime]::ParseExact($val, $format, [System.Globalization.CultureInfo]::InvariantCulture)
+                            } catch { }
+                        }
+                        # Last resort: culture-aware parse
+                        [DateTime]::Parse($val, [System.Globalization.CultureInfo]::InvariantCulture)
+                    } catch { $null }
                 } else { $null }
             }
 
@@ -609,11 +620,15 @@ class ProjectListScreen : StandardListScreen {
             }
 
             # If name is changing, check for duplicate name
+            # HIGH FIX PLS-H3: Use case-insensitive comparison to prevent "Project1" and "project1"
             if ($values.name -ne $originalName) {
                 $existingProjects = $this.Store.GetAllProjects()
-                $duplicate = $existingProjects | Where-Object { (Get-SafeProperty $_ 'name') -eq $values.name }
+                $duplicate = $existingProjects | Where-Object {
+                    $existingName = Get-SafeProperty $_ 'name'
+                    $null -ne $existingName -and $existingName -ieq $values.name
+                }
                 if ($duplicate) {
-                    $this.SetStatusMessage("Project name '$($values.name)' already exists", "error")
+                    $this.SetStatusMessage("Project name '$($values.name)' already exists (case-insensitive)", "error")
                     return
                 }
             }
@@ -725,6 +740,15 @@ class ProjectListScreen : StandardListScreen {
                 $this.SetStatusMessage("Path is not a directory: $folderPath", "error")
                 return
             }
+
+            # HIGH FIX PLS-H4: Check read permissions before accessing
+            try {
+                $null = Get-ChildItem -Path $resolvedPath -ErrorAction Stop | Select-Object -First 1
+            } catch [System.UnauthorizedAccessException] {
+                $this.SetStatusMessage("Access denied to folder: $folderPath", "error")
+                return
+            }
+
             $folderPath = $resolvedPath.Path
         }
         catch {
