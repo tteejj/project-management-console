@@ -569,7 +569,8 @@ class TextAreaEditor {
             # Find
             ([System.ConsoleKey]::F) {
                 if ($isCtrl) {
-                    # TODO: Show find dialog
+                    # Future feature: Implement find dialog with search highlighting
+                    # Reserved: Ctrl+F keybinding for future find functionality
                     $handled = $false  # Let parent handle for now
                 } else {
                     $this.InsertChar($key.KeyChar)
@@ -579,7 +580,8 @@ class TextAreaEditor {
             # Replace
             ([System.ConsoleKey]::H) {
                 if ($isCtrl) {
-                    # TODO: Show find/replace dialog
+                    # Future feature: Implement find/replace dialog with preview
+                    # Reserved: Ctrl+H keybinding for future replace functionality
                     $handled = $false  # Let parent handle for now
                 } else {
                     $this.InsertChar($key.KeyChar)

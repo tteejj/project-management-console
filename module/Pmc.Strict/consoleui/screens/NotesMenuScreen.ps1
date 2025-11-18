@@ -340,7 +340,7 @@ class NotesMenuScreen : StandardListScreen {
 
         } catch {
             Write-PmcTuiLog "NotesMenuScreen.OnEditItem: Error - $_" "ERROR"
-            # TODO: Show error message to user
+            $this.SetStatusMessage("Failed to update note: $($_.Exception.Message)", "error")
         }
     }
 
@@ -368,7 +368,7 @@ class NotesMenuScreen : StandardListScreen {
 
         } catch {
             Write-PmcTuiLog "NotesMenuScreen.OnDeleteItem: Error - $_" "ERROR"
-            # TODO: Show error message to user
+            $this.SetStatusMessage("Failed to delete note: $($_.Exception.Message)", "error")
         }
     }
 
