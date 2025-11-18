@@ -70,7 +70,7 @@ class BurndownChartScreen : PmcScreen {
 
             # Filter tasks by project if needed
             $projectTasks = if ($this.FilterProject) {
-                @($data.tasks | Where-Object { (Get-SafeProperty $_ 'project') -eq $this.FilterProject })
+                @($data.tasks | Where-Object { ($_.project) -eq $this.FilterProject })
             } else {
                 @($data.tasks)
             }
@@ -80,29 +80,29 @@ class BurndownChartScreen : PmcScreen {
 
             # Completed tasks (completed = true or status = 'done'/'completed')
             $this.CompletedTasks = @($projectTasks | Where-Object {
-                $taskCompleted = Get-SafeProperty $_ 'completed'
-                $taskStatus = Get-SafeProperty $_ 'status'
+                $taskCompleted = $_.completed
+                $taskStatus = $_.status
                 $taskCompleted -or $taskStatus -eq 'done' -or $taskStatus -eq 'completed'
             }).Count
 
             # In progress tasks
             $this.InProgressTasks = @($projectTasks | Where-Object {
-                $taskCompleted = Get-SafeProperty $_ 'completed'
-                $taskStatus = Get-SafeProperty $_ 'status'
+                $taskCompleted = $_.completed
+                $taskStatus = $_.status
                 -not $taskCompleted -and ($taskStatus -eq 'in-progress' -or $taskStatus -eq 'active')
             }).Count
 
             # Blocked tasks
             $this.BlockedTasks = @($projectTasks | Where-Object {
-                $taskCompleted = Get-SafeProperty $_ 'completed'
-                $taskStatus = Get-SafeProperty $_ 'status'
+                $taskCompleted = $_.completed
+                $taskStatus = $_.status
                 -not $taskCompleted -and $taskStatus -eq 'blocked'
             }).Count
 
             # Todo tasks (everything else that's not completed)
             $this.TodoTasks = @($projectTasks | Where-Object {
-                $taskCompleted = Get-SafeProperty $_ 'completed'
-                $taskStatus = Get-SafeProperty $_ 'status'
+                $taskCompleted = $_.completed
+                $taskStatus = $_.status
                 -not $taskCompleted -and
                 $taskStatus -ne 'in-progress' -and
                 $taskStatus -ne 'active' -and
@@ -274,7 +274,7 @@ class BurndownChartScreen : PmcScreen {
             'f' {
                 # Show project list for filtering
                 $allData = Get-PmcData
-                $projects = $allData.projects | Where-Object { -not (Get-SafeProperty $_ 'archived') }
+                $projects = $allData.projects | Where-Object { -not ($_.archived) }
 
                 if ($projects.Count -eq 0) {
                     $this.ShowError("No projects available")
@@ -284,7 +284,7 @@ class BurndownChartScreen : PmcScreen {
                 # For now, cycle through projects
                 $currentIndex = -1
                 for ($i = 0; $i -lt $projects.Count; $i++) {
-                    $projectName = Get-SafeProperty $projects[$i] 'name'
+                    $projectName = $projects[$i].name
                     if ($projectName -eq $this.FilterProject) {
                         $currentIndex = $i
                         break
@@ -297,7 +297,7 @@ class BurndownChartScreen : PmcScreen {
                     $this.FilterProject = ""
                     $this.ShowStatus("Filter cleared - showing all projects")
                 } else {
-                    $nextProjectName = Get-SafeProperty $projects[$nextIndex] 'name'
+                    $nextProjectName = $projects[$nextIndex].name
                     $this.FilterProject = $nextProjectName
                     $this.ShowStatus("Filtered to project: $($this.FilterProject)")
                 }

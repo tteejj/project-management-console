@@ -639,8 +639,8 @@ class InlineEditor : PmcWidget {
             $sb.Append($this.GetBoxChar('single_vertical'))
 
             # Label
-            $label = Get-SafeProperty $field 'Label'
-            $isRequired = Get-SafeProperty $field 'Required' $false
+            $label = $field.Label
+            $isRequired = $field.Required $false
             if ($isRequired) {
                 $label += " *"
             }

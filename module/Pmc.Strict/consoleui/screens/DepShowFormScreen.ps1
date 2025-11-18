@@ -114,7 +114,7 @@ class DepShowFormScreen : PmcScreen {
                 $sb.Append("Task:")
                 $sb.Append($reset)
 
-                $taskText = Get-SafeProperty $this.Task 'text'
+                $taskText = $this.Task.text
                 if ($taskText.Length -gt 60) {
                     $taskText = $taskText.Substring(0, 60) + "..."
                 }
@@ -142,7 +142,7 @@ class DepShowFormScreen : PmcScreen {
                         $dep = $this.Dependencies[$i]
 
                         # Status icon
-                        $depStatus = Get-SafeProperty $dep 'status'
+                        $depStatus = $dep.status
                         $statusIcon = if ($depStatus -eq 'completed') { 'X' } else { 'o' }
                         $statusColor = if ($depStatus -eq 'completed') { $successColor } else { $errorColor }
 
@@ -152,14 +152,14 @@ class DepShowFormScreen : PmcScreen {
                         $sb.Append($reset)
 
                         # Task ID
-                        $depId = Get-SafeProperty $dep 'id'
+                        $depId = $dep.id
                         $sb.Append($this.Header.BuildMoveTo($x + 4, $y))
                         $sb.Append($mutedColor)
                         $sb.Append("#$depId")
                         $sb.Append($reset)
 
                         # Task text
-                        $depText = Get-SafeProperty $dep 'text'
+                        $depText = $dep.text
                         if ($depText.Length -gt 50) {
                             $depText = $depText.Substring(0, 50) + "..."
                         }
@@ -174,7 +174,7 @@ class DepShowFormScreen : PmcScreen {
 
                 # Show blocked status
                 $y += 2
-                $isBlocked = Get-SafeProperty $this.Task 'blocked'
+                $isBlocked = $this.Task.blocked
                 if ($isBlocked) {
                     $sb.Append($this.Header.BuildMoveTo($x, $y))
                     $sb.Append($errorColor)
@@ -237,7 +237,7 @@ class DepShowFormScreen : PmcScreen {
             }
 
             $data = Get-PmcData
-            $this.Task = $data.tasks | Where-Object { (Get-SafeProperty $_ 'id') -eq $taskId } | Select-Object -First 1
+            $this.Task = $data.tasks | Where-Object { ($_.id) -eq $taskId } | Select-Object -First 1
 
             if (-not $this.Task) {
                 $this.ShowError("Task $taskId not found")
@@ -245,12 +245,12 @@ class DepShowFormScreen : PmcScreen {
             }
 
             # Load dependencies
-            $depends = Get-SafeProperty $this.Task 'depends'
+            $depends = $this.Task.depends
             $depends = if ($depends) { $depends } else { @() }
             $this.Dependencies = @()
 
             foreach ($depId in $depends) {
-                $depTask = $data.tasks | Where-Object { (Get-SafeProperty $_ 'id') -eq $depId } | Select-Object -First 1
+                $depTask = $data.tasks | Where-Object { ($_.id) -eq $depId } | Select-Object -First 1
                 if ($depTask) {
                     $this.Dependencies += $depTask
                 }

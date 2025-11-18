@@ -223,7 +223,7 @@ class TimeListScreen : StandardListScreen {
         }
 
         # Sort by date descending (most recent first)
-        return $aggregated | Sort-Object { Get-SafeProperty $_ 'date' } -Descending
+        return $aggregated | Sort-Object { $_.date } -Descending
     }
 
     # Define columns for list display
