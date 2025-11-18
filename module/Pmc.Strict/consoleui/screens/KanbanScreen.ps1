@@ -381,14 +381,17 @@ class KanbanScreen : PmcScreen {
     hidden [void] _MoveTask() {
         $task = $this._GetSelectedTask()
         if ($task) {
-            # Cycle status: pending -> in-progress -> done -> pending
+            # HIGH FIX KAN-H3: Cycle through all statuses including blocked/waiting
+            # Cycle: pending -> in-progress -> blocked -> waiting -> done -> pending
             $taskId = Get-SafeProperty $task 'id'
             $taskStatus = Get-SafeProperty $task 'status'
             $newStatus = 'in-progress'  # Initialize variable for strict mode
             $completedDate = $null
             switch ($taskStatus) {
                 'pending' { $newStatus = 'in-progress' }
-                'in-progress' {
+                'in-progress' { $newStatus = 'blocked' }
+                'blocked' { $newStatus = 'waiting' }
+                'waiting' {
                     $newStatus = 'done'
                     $completedDate = (Get-Date).ToString('yyyy-MM-dd HH:mm:ss')
                 }
@@ -406,13 +409,27 @@ class KanbanScreen : PmcScreen {
                 $changes.completedDate = $null
             }
 
+            # CRITICAL FIX KAN-C1: Optimistic UI update before Store persistence
+            # Apply changes to local task object immediately for responsive UI
+            foreach ($key in $changes.Keys) {
+                if ($task -is [hashtable]) {
+                    $task[$key] = $changes[$key]
+                } else {
+                    $task.$key = $changes[$key]
+                }
+            }
+            # Refresh UI immediately with optimistic changes
+            $this.LoadData()
+
             # Update via TaskStore (handles validation, events, persistence, rollback)
             $success = $this.Store.UpdateTask($taskId, $changes)
             if ($success) {
                 $this.ShowSuccess("Moved task #$taskId to $newStatus")
-                $this.LoadData()  # Reload to update columns
+                # Data already refreshed optimistically above
             } else {
                 $this.ShowError("Failed to move task: $($this.Store.LastError)")
+                # Rollback: Reload from store to revert optimistic changes
+                $this.LoadData()
             }
         }
     }

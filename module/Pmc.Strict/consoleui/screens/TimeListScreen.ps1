@@ -293,7 +293,9 @@ class TimeListScreen : StandardListScreen {
                 return
             }
 
-            $minutes = [int]($hoursValue * 60)
+            # HIGH FIX TMS-H3: Use Math.Round instead of [int] to prevent precision loss
+            # 2.75 hours = 165 minutes (not 165.0 truncated to 165)
+            $minutes = [Math]::Round($hoursValue * 60)
 
             # Safe date conversion
             $dateValue = [DateTime]::Today
@@ -356,7 +358,9 @@ class TimeListScreen : StandardListScreen {
                 return
             }
 
-            $minutes = [int]($hoursValue * 60)
+            # HIGH FIX TMS-H3: Use Math.Round instead of [int] to prevent precision loss
+            # 2.75 hours = 165 minutes (not 165.0 truncated to 165)
+            $minutes = [Math]::Round($hoursValue * 60)
 
             # Safe date conversion
             $dateValue = [DateTime]::Today
@@ -455,8 +459,8 @@ class TimeListScreen : StandardListScreen {
         }
 
         # TIM-7 FIX: Dialog render loop with timeout protection
-        # TS-M2 FIX: Reduced timeout from 120000 to 3600 (3 minutes instead of 100 minutes)
-        $maxIterations = 3600  # 3600 * 50ms = 180 seconds = 3 minutes max
+        # CRITICAL FIX TMS-C1: Increased timeout to 30 minutes to prevent losing user work
+        $maxIterations = 36000  # 36000 * 50ms = 1800 seconds = 30 minutes max
         $iterations = 0
 
         while (-not $dialog.IsComplete -and $iterations -lt $maxIterations) {

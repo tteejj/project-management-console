@@ -301,18 +301,35 @@ class ExcelImportScreen : PmcScreen {
                     # Step 1: Connect to Excel
                     if ($this._selectedOption -eq 0) {
                         # Option 1: Attach to running Excel
-                        try {
-                            $this._reader.AttachToRunningExcel()
-                            # ES-M3 FIX: Validate workbook has accessible sheets
-                            if ($null -eq $this._reader.GetWorkbook() -or $null -eq $this._reader.GetWorkbook().Sheets -or $this._reader.GetWorkbook().Sheets.Count -eq 0) {
-                                throw "Workbook has no accessible sheets"
+                        # CRITICAL FIX EXS-C1: Add retry logic for Excel COM initialization delays
+                        $maxRetries = 3
+                        $retryDelay = 500  # milliseconds
+                        $attached = $false
+
+                        for ($retry = 0; $retry -lt $maxRetries; $retry++) {
+                            try {
+                                $this._reader.AttachToRunningExcel()
+                                # ES-M3 FIX: Validate workbook has accessible sheets
+                                if ($null -eq $this._reader.GetWorkbook() -or $null -eq $this._reader.GetWorkbook().Sheets -or $this._reader.GetWorkbook().Sheets.Count -eq 0) {
+                                    throw "Workbook has no accessible sheets"
+                                }
+                                $attached = $true
+                                break
+                            } catch {
+                                if ($retry -lt ($maxRetries - 1)) {
+                                    Write-PmcTuiLog "AttachToRunningExcel attempt $($retry + 1) failed, retrying in ${retryDelay}ms..." "WARN"
+                                    Start-Sleep -Milliseconds $retryDelay
+                                } else {
+                                    $this._errorMessage = "Failed to attach to Excel after $maxRetries attempts: $($_.Exception.Message). Make sure Excel is running and has a workbook open."
+                                    Write-PmcTuiLog "AttachToRunningExcel failed after $maxRetries attempts: $_" "ERROR"
+                                }
                             }
+                        }
+
+                        if ($attached) {
                             $this._step = 2
                             $this._selectedOption = 0
                             $this._errorMessage = ""
-                        } catch {
-                            $this._errorMessage = "Failed to attach to Excel: $($_.Exception.Message). Make sure Excel is running and has a workbook open."
-                            Write-PmcTuiLog "AttachToRunningExcel failed: $_" "ERROR"
                         }
                     } else {
                         # Option 2: Open Excel file

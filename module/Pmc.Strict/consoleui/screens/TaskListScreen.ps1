@@ -304,18 +304,13 @@ class TaskListScreen : StandardListScreen {
 
     # Implement abstract method: Load data from TaskStore
     [void] LoadData() {
+        # CRITICAL FIX TLS-C1: Invalidate cache BEFORE building key to prevent race condition
+        # where TaskStore events invalidate cache after key check but before data load
+        $this._cachedFilteredTasks = $null
+        $this._cacheKey = ""
+
         # Build cache key from current filter/sort settings
         $currentKey = "$($this._viewMode):$($this._sortColumn):$($this._sortAscending):$($this._showCompleted)"
-
-        # Return cached result if nothing changed
-        if ($this._cacheKey -eq $currentKey -and $null -ne $this._cachedFilteredTasks) {
-            $this.List.SetData($this._cachedFilteredTasks)
-            # Force full re-render when data changes
-            if ($this.RenderEngine -and $this.RenderEngine.PSObject.Methods['RequestClear']) {
-                $this.RenderEngine.RequestClear()
-            }
-            return
-        }
 
         $allTasks = $this.Store.GetAllTasks()
 
@@ -924,6 +919,12 @@ class TaskListScreen : StandardListScreen {
             if ($this.CurrentEditItem) {
                 $parentId = Get-SafeProperty $this.CurrentEditItem 'parent_id'
                 if ($parentId) {
+                    # HIGH FIX TLS-H4: Check for circular dependency before setting parent_id
+                    $newTaskId = if ($taskData.ContainsKey('id')) { $taskData.id } else { $null }
+                    if ($newTaskId -and $this._IsCircularDependency($parentId, $newTaskId)) {
+                        $this.SetStatusMessage("Cannot create circular task hierarchy", "error")
+                        return
+                    }
                     $taskData.parent_id = $parentId
                 }
             }
@@ -1642,7 +1643,13 @@ class TaskListScreen : StandardListScreen {
             Write-PmcTuiLog "_ShowWidgetForColumn: LayoutManager.GetRegion returned null" "WARNING"
             return
         }
-        $rowY = $contentRect.Y + $selectedIndex + 2  # +2 for header
+        # HIGH FIX TLS-H5: Account for scroll offset when calculating widget position
+        $scrollOffset = if ($this.List -and $this.List.PSObject.Properties['_scrollOffset']) {
+            $this.List._scrollOffset
+        } else {
+            0
+        }
+        $rowY = $contentRect.Y + ($selectedIndex - $scrollOffset) + 2  # +2 for header
 
         $this._EnsureWidgetsLoaded()
 

@@ -609,11 +609,15 @@ class ProjectListScreen : StandardListScreen {
             }
 
             # If name is changing, check for duplicate name
+            # HIGH FIX PLS-H3: Use case-insensitive comparison to prevent "Project1" and "project1"
             if ($values.name -ne $originalName) {
                 $existingProjects = $this.Store.GetAllProjects()
-                $duplicate = $existingProjects | Where-Object { (Get-SafeProperty $_ 'name') -eq $values.name }
+                $duplicate = $existingProjects | Where-Object {
+                    $existingName = Get-SafeProperty $_ 'name'
+                    $null -ne $existingName -and $existingName -ieq $values.name
+                }
                 if ($duplicate) {
-                    $this.SetStatusMessage("Project name '$($values.name)' already exists", "error")
+                    $this.SetStatusMessage("Project name '$($values.name)' already exists (case-insensitive)", "error")
                     return
                 }
             }
