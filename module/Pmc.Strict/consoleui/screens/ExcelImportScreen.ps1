@@ -109,16 +109,36 @@ class ExcelImportScreen : PmcScreen {
         $sb.Append("`e[1mStep 1: Connect to Excel`e[0m")
         $y += 2
 
-        # Only show "Attach to running Excel" - file picker option removed
+        # Option 1: Attach to running Excel
         $sb.Append($this.Header.BuildMoveTo(4, $y))
-        $sb.Append("`e[7m")  # Highlight (always selected since only 1 option)
-        $sb.Append("Attach to running Excel instance")
-        $sb.Append("`e[0m")
+        if ($this._selectedOption -eq 0) {
+            $sb.Append("`e[7m")  # Highlight
+        }
+        $sb.Append("1. Attach to running Excel instance")
+        if ($this._selectedOption -eq 0) {
+            $sb.Append("`e[0m")
+        }
+        $y++
 
-        $y += 2
+        # Option 2: Open Excel file
+        $sb.Append($this.Header.BuildMoveTo(4, $y))
+        if ($this._selectedOption -eq 1) {
+            $sb.Append("`e[7m")  # Highlight
+        }
+        $sb.Append("2. Open Excel file...")
+        if ($this._selectedOption -eq 1) {
+            $sb.Append("`e[0m")
+        }
+        $y++
+
+        $y++
         $sb.Append($this.Header.BuildMoveTo(4, $y))
         $sb.Append("`e[90m")  # Gray text
-        $sb.Append("(Make sure Excel is running with your workbook open)")
+        if ($this._selectedOption -eq 0) {
+            $sb.Append("(Make sure Excel is running with your workbook open)")
+        } else {
+            $sb.Append("(Browse for an Excel file to import)")
+        }
         $sb.Append("`e[0m")
     }
 
@@ -217,22 +237,20 @@ class ExcelImportScreen : PmcScreen {
         # Clear error
         $this._errorMessage = ""
 
-        # Up/Down for selection (skip if step 1 since only 1 option)
-        if ($this._step -ne 1) {
-            if ($keyInfo.Key -eq ([ConsoleKey]::UpArrow)) {
-                if ($this._selectedOption -gt 0) {
-                    $this._selectedOption--
-                }
-                return $true
+        # Up/Down for selection
+        if ($keyInfo.Key -eq ([ConsoleKey]::UpArrow)) {
+            if ($this._selectedOption -gt 0) {
+                $this._selectedOption--
             }
+            return $true
+        }
 
-            if ($keyInfo.Key -eq ([ConsoleKey]::DownArrow)) {
-                $maxOptions = $this._GetMaxOptions()
-                if ($this._selectedOption -lt $maxOptions - 1) {
-                    $this._selectedOption++
-                }
-                return $true
+        if ($keyInfo.Key -eq ([ConsoleKey]::DownArrow)) {
+            $maxOptions = $this._GetMaxOptions()
+            if ($this._selectedOption -lt $maxOptions - 1) {
+                $this._selectedOption++
             }
+            return $true
         }
 
         # Enter - Next step
@@ -257,7 +275,7 @@ class ExcelImportScreen : PmcScreen {
 
     hidden [int] _GetMaxOptions() {
         switch ($this._step) {
-            1 { return 1 }  # Only 1 option now: attach to running Excel
+            1 { return 2 }  # 2 options: attach to running Excel OR open file
             2 {
                 $profiles = @($this._mappingService.GetAllProfiles())
                 return $profiles.Count
@@ -271,15 +289,34 @@ class ExcelImportScreen : PmcScreen {
         try {
             switch ($this._step) {
                 1 {
-                    # Step 1: Connect to Excel (only one option now - attach to running instance)
-                    try {
-                        $this._reader.AttachToRunningExcel()
-                        $this._step = 2
-                        $this._selectedOption = 0
-                        $this._errorMessage = ""
-                    } catch {
-                        $this._errorMessage = "Failed to attach to Excel: $($_.Exception.Message). Make sure Excel is running and has a workbook open."
-                        Write-PmcTuiLog "AttachToRunningExcel failed: $_" "ERROR"
+                    # Step 1: Connect to Excel
+                    if ($this._selectedOption -eq 0) {
+                        # Option 1: Attach to running Excel
+                        try {
+                            $this._reader.AttachToRunningExcel()
+                            $this._step = 2
+                            $this._selectedOption = 0
+                            $this._errorMessage = ""
+                        } catch {
+                            $this._errorMessage = "Failed to attach to Excel: $($_.Exception.Message). Make sure Excel is running and has a workbook open."
+                            Write-PmcTuiLog "AttachToRunningExcel failed: $_" "ERROR"
+                        }
+                    } else {
+                        # Option 2: Open Excel file
+                        try {
+                            $filePath = $this._ShowFilePicker()
+                            if ($filePath) {
+                                $this._reader.OpenFile($filePath)
+                                $this._step = 2
+                                $this._selectedOption = 0
+                                $this._errorMessage = ""
+                            } else {
+                                $this._errorMessage = "No file selected"
+                            }
+                        } catch {
+                            $this._errorMessage = "Failed to open Excel file: $($_.Exception.Message)"
+                            Write-PmcTuiLog "OpenFile failed: $_" "ERROR"
+                        }
                     }
                 }
                 2 {
@@ -408,6 +445,42 @@ class ExcelImportScreen : PmcScreen {
         } else {
             Write-PmcTuiLog "ExcelImportScreen: Failed to import project: $($this.Store.LastError)" "ERROR"
             throw "Failed to import project: $($this.Store.LastError)"
+        }
+    }
+
+    hidden [string] _ShowFilePicker() {
+        . "$PSScriptRoot/../widgets/PmcFilePicker.ps1"
+
+        # Start at user's home directory
+        $startPath = [Environment]::GetFolderPath('UserProfile')
+        $picker = [PmcFilePicker]::new($startPath, $false)  # false = allow files
+
+        # Manual render loop
+        while (-not $picker.IsComplete) {
+            # Get theme
+            $themeManager = [PmcThemeManager]::GetInstance()
+            $theme = $themeManager.GetTheme()
+
+            # Render picker
+            $termWidth = [Console]::WindowWidth
+            $termHeight = [Console]::WindowHeight
+            $pickerOutput = $picker.Render($termWidth, $termHeight)
+            Write-Host -NoNewline $pickerOutput
+
+            # Handle input
+            if ([Console]::KeyAvailable) {
+                $key = [Console]::ReadKey($true)
+                $picker.HandleInput($key)
+            }
+
+            Start-Sleep -Milliseconds 50
+        }
+
+        # Return selected path (or empty string if cancelled)
+        if ($picker.Result) {
+            return $picker.SelectedPath
+        } else {
+            return ''
         }
     }
 }

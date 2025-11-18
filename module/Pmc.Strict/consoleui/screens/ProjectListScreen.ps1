@@ -622,29 +622,15 @@ class ProjectListScreen : StandardListScreen {
 
     # Import projects from Excel spreadsheet
     [void] ImportFromExcel() {
-        $this.EnsureFilePicker()
+        # IMPLEMENTATION: Launch the full Excel Import wizard screen
+        # This provides profile-based mapping, preview, and validation
         try {
-            # Check if ImportExcel module is available
-            if (-not (Get-Module -ListAvailable -Name ImportExcel)) {
-                $this.SetStatusMessage("ImportExcel module not found. Install with: Install-Module -Name ImportExcel", "error")
-                return
-            }
-
-            # Import the module
-            Import-Module ImportExcel -ErrorAction Stop
-
-            # Show file picker for Excel file selection - use integrated file picker
-            $startPath = if (Test-Path $global:HOME) { $global:HOME } else { (Get-Location).Path }
-            $this.FilePicker = [PmcFilePicker]::new($startPath, $false)  # false = allow files
-            $this.ShowFilePicker = $true
-            $this.SetStatusMessage("Select Excel file (*.xlsx, *.xls)", "info")
-
-            # Wait for file picker to complete
-            # Note: This blocks - in real implementation this should be async
-            # For now, recommend using ExcelImportScreen instead
-            $this.SetStatusMessage("Excel import not implemented here. Use Tools > Import from Excel for full import wizard", "warning")
+            . "$PSScriptRoot/ExcelImportScreen.ps1"
+            $importScreen = [ExcelImportScreen]::new()
+            $this.App.PushScreen($importScreen)
         } catch {
-            $this.SetStatusMessage("Excel import error: $($_.Exception.Message)", "error")
+            $this.SetStatusMessage("Failed to launch Excel import wizard: $($_.Exception.Message)", "error")
+            Write-PmcTuiLog "ImportFromExcel failed: $_" "ERROR"
         }
     }
 

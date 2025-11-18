@@ -95,11 +95,21 @@ class TimeListScreen : StandardListScreen {
         # Group entries by date, project, and timecode
         $grouped = @{}
         foreach ($entry in $entries) {
-            # Format date for grouping
-            $dateStr = if ($entry.ContainsKey('date') -and $entry.date -is [DateTime]) {
-                $entry.date.ToString('yyyy-MM-dd')
-            } else {
-                ''
+            # TIM-1 FIX: Format date for grouping with error handling
+            $dateStr = ''
+            if ($entry.ContainsKey('date') -and $entry.date) {
+                try {
+                    if ($entry.date -is [DateTime]) {
+                        $dateStr = $entry.date.ToString('yyyy-MM-dd')
+                    } else {
+                        # Try to parse as DateTime
+                        $parsedDate = [DateTime]::Parse($entry.date)
+                        $dateStr = $parsedDate.ToString('yyyy-MM-dd')
+                    }
+                } catch {
+                    Write-PmcTuiLog "TimeListScreen.LoadItems: Failed to parse date '$($entry.date)': $_" "WARNING"
+                    $dateStr = ''
+                }
             }
 
             # Create grouping key
@@ -400,8 +410,13 @@ class TimeListScreen : StandardListScreen {
         # Create and show dialog
         $dialog = [TimeEntryDetailDialog]::new($title, $item.original_entries)
 
-        # Dialog render loop
-        while (-not $dialog.IsComplete) {
+        # TIM-7 FIX: Dialog render loop with timeout protection
+        $maxIterations = 120000  # 120000 * 50ms = 100 minutes max
+        $iterations = 0
+
+        while (-not $dialog.IsComplete -and $iterations -lt $maxIterations) {
+            $iterations++
+
             # Get theme from theme manager
             $themeManager = [PmcThemeManager]::GetInstance()
             $theme = $themeManager.GetTheme()
@@ -416,9 +431,20 @@ class TimeListScreen : StandardListScreen {
             if ([Console]::KeyAvailable) {
                 $key = [Console]::ReadKey($true)
                 $dialog.HandleInput($key)
+
+                # Escape hatch: Ctrl+C or Escape should always close
+                if ($key.Key -eq 'Escape' -or ($key.Modifiers -band [ConsoleModifiers]::Control)) {
+                    $dialog.IsComplete = $true
+                    break
+                }
             }
 
             Start-Sleep -Milliseconds 50
+        }
+
+        # Log if timeout occurred
+        if ($iterations -ge $maxIterations) {
+            Write-PmcTuiLog "TimeListScreen.ShowDetailDialog: Timeout after $maxIterations iterations" "WARNING"
         }
 
         # Redraw screen after dialog closes
