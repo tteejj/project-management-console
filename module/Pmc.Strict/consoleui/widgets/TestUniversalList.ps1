@@ -1,6 +1,8 @@
 # TestUniversalList.ps1 - Comprehensive test suite for UniversalList widget
 # Run with: pwsh TestUniversalList.ps1
 
+Set-StrictMode -Version Latest
+
 . "$PSScriptRoot/UniversalList.ps1"
 
 function Test-UniversalListBasic {

@@ -12,6 +12,8 @@
 #   . "$PSScriptRoot/TestValidationHelper.ps1"
 #   Test-ValidationHelper
 
+Set-StrictMode -Version Latest
+
 # Load ValidationHelper
 $helpersPath = Join-Path (Split-Path -Parent $PSScriptRoot) "helpers"
 . (Join-Path $helpersPath "ValidationHelper.ps1")

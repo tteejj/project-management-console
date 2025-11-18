@@ -1,6 +1,8 @@
 # SpeedTUI Loader for PMC
 # Loads SpeedTUI framework components in correct order for PMC widget integration
 
+Set-StrictMode -Version Latest
+
 $ErrorActionPreference = "Continue"
 
 # Determine SpeedTUI root (vendored in PMC)

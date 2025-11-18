@@ -11,6 +11,8 @@
 #   . "$PSScriptRoot/TestApplicationBootstrapper.ps1"
 #   Test-ApplicationBootstrapper
 
+Set-StrictMode -Version Latest
+
 <#
 .SYNOPSIS
 Run application bootstrapper tests

@@ -6,6 +6,8 @@ param(
     [int]$LogLevel = 0      # 0=off, 1=errors only, 2=info, 3=verbose
 )
 
+Set-StrictMode -Version Latest
+
 # Setup logging (DISABLED BY DEFAULT for performance)
 # M-CFG-1: Configurable Log Path - uses environment variable or local directory for portability
 # PORTABILITY: Default to .pmc-data/logs directory relative to module root (self-contained)

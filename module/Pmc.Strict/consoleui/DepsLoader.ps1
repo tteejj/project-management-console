@@ -3,6 +3,8 @@
 
 param()
 
+Set-StrictMode -Version Latest
+
 # Paths
 $depsDir = Join-Path $PSScriptRoot 'deps'
 $srcDir = Join-Path $PSScriptRoot '../src'  # Pmc.Strict/consoleui/../src = Pmc.Strict/src

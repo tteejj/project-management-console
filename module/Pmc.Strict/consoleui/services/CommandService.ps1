@@ -68,7 +68,7 @@ class CommandService {
     hidden [void] LoadMetadata() {
         if (Test-Path $this._metadataFile) {
             try {
-                $json = Get-Content $this._metadataFile -Raw | ConvertFrom-Json
+                $json = Get-Content $this._metadataFile -Raw | ConvertFrom-Json -Depth 10
                 foreach ($cmd in $json.commands) {
                     $this._commandsCache[$cmd.id] = @{
                         id = $cmd.id

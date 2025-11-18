@@ -1,6 +1,8 @@
 # Fix all screens missing parent HandleKeyPress call
 # This script adds the critical parent delegation pattern to all affected screens
 
+Set-StrictMode -Version Latest
+
 $screens = @(
     "DepAddFormScreen.ps1"
     "DepRemoveFormScreen.ps1"

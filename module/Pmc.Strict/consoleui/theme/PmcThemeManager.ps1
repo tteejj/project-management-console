@@ -3,6 +3,8 @@
 
 using namespace System.Collections.Generic
 
+Set-StrictMode -Version Latest
+
 <#
 .SYNOPSIS
 Unified theme manager bridging PMC's theme system with SpeedTUI

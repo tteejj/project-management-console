@@ -2,6 +2,8 @@
 # Ported from Praxis FullNotesEditor with adaptations for PMC
 # Features: Gap buffer, undo/redo, word navigation, auto-save, scrolling, selection, copy/paste, find/replace
 
+Set-StrictMode -Version Latest
+
 # Selection mode enum
 enum SelectionMode {
     None

@@ -239,7 +239,7 @@ class ClearBackupsScreen : PmcScreen {
             for ($i = 1; $i -le 9; $i++) {
                 $bakFile = "$($this.MainFile).bak$i"
                 if (Test-Path $bakFile) {
-                    Remove-Item $bakFile -Force
+                    Remove-Item $bakFile -Force -ErrorAction Stop
                     $deleted++
                 }
             }
@@ -262,7 +262,7 @@ class ClearBackupsScreen : PmcScreen {
                 $files = Get-ChildItem $this.BackupDir -Filter "*.json"
                 $deleted = 0
                 foreach ($file in $files) {
-                    Remove-Item $file.FullName -Force
+                    Remove-Item $file.FullName -Force -ErrorAction Stop
                     $deleted++
                 }
 
@@ -287,7 +287,7 @@ class ClearBackupsScreen : PmcScreen {
             for ($i = 1; $i -le 9; $i++) {
                 $bakFile = "$($this.MainFile).bak$i"
                 if (Test-Path $bakFile) {
-                    Remove-Item $bakFile -Force
+                    Remove-Item $bakFile -Force -ErrorAction Stop
                     $totalDeleted++
                 }
             }
@@ -296,7 +296,7 @@ class ClearBackupsScreen : PmcScreen {
             if (Test-Path $this.BackupDir) {
                 $files = Get-ChildItem $this.BackupDir -Filter "*.json"
                 foreach ($file in $files) {
-                    Remove-Item $file.FullName -Force
+                    Remove-Item $file.FullName -Force -ErrorAction Stop
                     $totalDeleted++
                 }
             }

@@ -1,6 +1,8 @@
 # TestWidgetScreen - Demo screen showing all PMC widgets
 # This validates the complete widget library architecture
 
+Set-StrictMode -Version Latest
+
 using namespace System
 
 # Load widget dependencies

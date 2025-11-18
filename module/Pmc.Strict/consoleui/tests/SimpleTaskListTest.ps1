@@ -1,6 +1,8 @@
 #!/usr/bin/env pwsh
 # SimpleTaskListTest.ps1 - Simplified test that checks class structure
 
+Set-StrictMode -Version Latest
+
 Write-Host "`e[1;36m=== Simple TaskListScreen Test ===`e[0m`n"
 
 # Get script directory

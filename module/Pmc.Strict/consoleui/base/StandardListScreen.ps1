@@ -804,7 +804,7 @@ class StandardListScreen : PmcScreen {
             # ? = Help
             if ($keyInfo.KeyChar -eq '?') {
                 . "$PSScriptRoot/../screens/HelpViewScreen.ps1"
-                $screen = Invoke-Expression '[HelpViewScreen]::new()'
+                $screen = [HelpViewScreen]::new()
                 $this.App.PushScreen($screen)
                 return $true
             }

@@ -1,6 +1,8 @@
 # DemoScreen - Simple demonstration screen for Phase 2 integration
 # Shows all widgets working with SpeedTUI rendering
 
+Set-StrictMode -Version Latest
+
 . "$PSScriptRoot/PmcApplication.ps1"
 . "$PSScriptRoot/PmcScreen.ps1"
 
