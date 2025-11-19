@@ -153,23 +153,36 @@ class ExcelImportScreen : PmcScreen {
         $sb.Append("`e[1mStep 2: Select Import Profile`e[0m")
         $y += 2
 
+        # HIGH FIX ES-H1: Validate GetAllProfiles() return
         $profiles = @($this._mappingService.GetAllProfiles())
+        if ($null -eq $profiles) {
+            Write-PmcTuiLog "ExcelImportScreen: GetAllProfiles() returned null" "ERROR"
+            $profiles = @()
+        }
         if ($profiles.Count -eq 0) {
             $sb.Append($this.Header.BuildMoveTo(4, $y))
             $sb.Append("No profiles found. Please create a profile first.")
         } else {
+            # HIGH FIX ES-H2: Validate GetActiveProfile() return before property access
             $activeProfile = $this._mappingService.GetActiveProfile()
-            $activeId = if ($activeProfile) { $activeProfile['id'] } else { $null }
+            $activeId = if ($null -ne $activeProfile -and $activeProfile.ContainsKey('id')) { $activeProfile['id'] } else { $null }
 
             for ($i = 0; $i -lt $profiles.Count; $i++) {
                 $profile = $profiles[$i]
-                $isActive = if ($profile['id'] -eq $activeId) { " [ACTIVE]" } else { "" }
+                # HIGH FIX ES-H3: Validate profile before string interpolation
+                if ($null -eq $profile) {
+                    Write-PmcTuiLog "ExcelImportScreen: Null profile at index $i" "WARNING"
+                    continue
+                }
+                $profileId = if ($profile.ContainsKey('id')) { $profile['id'] } else { $null }
+                $isActive = if ($profileId -eq $activeId) { " [ACTIVE]" } else { "" }
 
                 $sb.Append($this.Header.BuildMoveTo(4, $y + $i))
                 if ($i -eq $this._selectedOption) {
                     $sb.Append("`e[7m")
                 }
-                $sb.Append("$($i + 1). $($profile['name'])$isActive")
+                $profileName = if ($profile.ContainsKey('name')) { $profile['name'] } else { 'Unnamed' }
+                $sb.Append("$($i + 1). $profileName$isActive")
                 if ($i -eq $this._selectedOption) {
                     $sb.Append("`e[0m")
                 }
@@ -189,8 +202,14 @@ class ExcelImportScreen : PmcScreen {
             return
         }
 
+        # HIGH FIX ES-H4: Validate profile name before string interpolation
+        $profileName = if ($null -ne $this._activeProfile -and $this._activeProfile.ContainsKey('name')) {
+            $this._activeProfile['name']
+        } else {
+            'Unnamed Profile'
+        }
         $sb.Append($this.Header.BuildMoveTo(4, $y))
-        $sb.Append("Profile: $($this._activeProfile['name'])")
+        $sb.Append("Profile: $profileName")
         $y += 2
 
         # Show preview data
@@ -311,16 +330,17 @@ class ExcelImportScreen : PmcScreen {
                                 $this._reader.AttachToRunningExcel()
                                 # ES-M3 FIX: Validate workbook has accessible sheets
                                 # CRITICAL FIX ES-C1: Cache workbook result
-                                $wb = $wb
-                                if ($null -eq $wb -or $null -eq $this._reader.GetWorkbook().Sheets -or $this._reader.GetWorkbook().Sheets.Count -eq 0) {
+                                $wb = $this._reader.GetWorkbook()
+                                if ($null -eq $wb -or $null -eq $wb.Sheets -or $wb.Sheets.Count -eq 0) {
                                     throw "Workbook has no accessible sheets"
                                 }
 
-                                # HIGH FIX EXS-H2: Check if workbook is saved to prevent data loss
-                                $workbook = $this._reader.GetWorkbook()
-                                if ($workbook -and $workbook.PSObject.Properties['Saved'] -and -not $workbook.Saved) {
-                                    Write-PmcTuiLog "Warning: Workbook has unsaved changes" "WARNING"
-                                    $this._errorMessage = "Warning: Workbook has unsaved changes. Please save before importing."
+                                # HIGH FIX ES-H5: Complete null validation before accessing PSObject.Properties
+                                if ($null -ne $wb -and $null -ne $wb.PSObject -and $null -ne $wb.PSObject.Properties) {
+                                    if ($wb.PSObject.Properties['Saved'] -and -not $wb.Saved) {
+                                        Write-PmcTuiLog "Warning: Workbook has unsaved changes" "WARNING"
+                                        $this._errorMessage = "Warning: Workbook has unsaved changes. Please save before importing."
+                                    }
                                 }
 
                                 $attached = $true
@@ -345,7 +365,8 @@ class ExcelImportScreen : PmcScreen {
                         # Option 2: Open Excel file
                         try {
                             $filePath = $this._ShowFilePicker()
-                            if ($filePath) {
+                            # HIGH FIX ES-H6: Validate file path is not null/empty/whitespace
+                            if (-not [string]::IsNullOrWhiteSpace($filePath)) {
                                 $this._reader.OpenFile($filePath)
                                 # ES-M3 FIX: Validate workbook has accessible sheets
                                 if ($null -eq $this._reader.GetWorkbook() -or $null -eq $this._reader.GetWorkbook().Sheets -or $this._reader.GetWorkbook().Sheets.Count -eq 0) {
@@ -386,6 +407,11 @@ class ExcelImportScreen : PmcScreen {
                         }
 
                         $this._previewData = $this._reader.ReadCells($cellsToRead)
+                        # HIGH FIX ES-H7: Validate ReadCells() return value
+                        if ($null -eq $this._previewData) {
+                            Write-PmcTuiLog "ExcelImportScreen: ReadCells() returned null" "WARNING"
+                            $this._previewData = @{}
+                        }
 
                         $this._step = 3
                 }

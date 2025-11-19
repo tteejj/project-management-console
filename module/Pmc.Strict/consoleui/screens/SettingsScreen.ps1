@@ -34,7 +34,13 @@ class SettingsScreen : PmcScreen {
     # Static: Register menu items
     static [void] RegisterMenuItems([object]$registry) {
         $registry.AddMenuItem('Options', 'Settings', 'S', {
-            . "$PSScriptRoot/SettingsScreen.ps1"
+            # CRITICAL FIX SS-C1: Validate file exists before dot-sourcing
+            $scriptPath = "$PSScriptRoot/SettingsScreen.ps1"
+            if (-not (Test-Path $scriptPath)) {
+                Write-PmcTuiLog "SettingsScreen.ps1 not found at: $scriptPath" "ERROR"
+                throw "SettingsScreen.ps1 not found"
+            }
+            . $scriptPath
             $global:PmcApp.PushScreen([SettingsScreen]::new())
         }, 20)
     }
@@ -76,18 +82,31 @@ class SettingsScreen : PmcScreen {
         $dataFile = "~/.pmc/data.json"
         try {
             # LAYER 2: Try to get actual value from external function
-            $dataFile = Get-PmcTaskFilePath
+            # HIGH FIX SS-H1: Validate returned path exists and is readable
+            $tempPath = Get-PmcTaskFilePath
+            if ($null -ne $tempPath -and (Test-Path $tempPath)) {
+                $dataFile = $tempPath
+            } else {
+                Write-PmcTuiLog "SettingsScreen: Get-PmcTaskFilePath returned invalid path: $tempPath" "WARNING"
+            }
         } catch {
             # LAYER 3: Silently fall back to default if function fails
-            # User experience is preserved; error is logged implicitly by PowerShell
+            Write-PmcTuiLog "SettingsScreen: Get-PmcTaskFilePath failed: $($_.Exception.Message)" "WARNING"
         }
 
         # Same defensive layering for current context
         $currentContext = "inbox"
         try {
-            $currentContext = Get-PmcCurrentContext
+            # HIGH FIX SS-H2: Validate returned context against safe values
+            $tempContext = Get-PmcCurrentContext
+            if ($null -ne $tempContext -and -not [string]::IsNullOrWhiteSpace($tempContext)) {
+                $currentContext = $tempContext
+            } else {
+                Write-PmcTuiLog "SettingsScreen: Get-PmcCurrentContext returned invalid value" "WARNING"
+            }
         } catch {
             # Use default if Get-PmcCurrentContext fails
+            Write-PmcTuiLog "SettingsScreen: Get-PmcCurrentContext failed: $($_.Exception.Message)" "WARNING"
         }
 
         $this.SettingsList = @(
