@@ -345,7 +345,8 @@ class ProjectListScreen : StandardListScreen {
             }
 
             # Validate name length
-            if ($values.name.Length -gt 100) {
+            # HIGH FIX PLS-H1 & PLS-H2: Add null check before .Length access
+            if ($null -ne $values.name -and $values.name.Length -gt 100) {
                 $this.SetStatusMessage("Project name must be 100 characters or less", "error")
                 return
             }
@@ -359,7 +360,8 @@ class ProjectListScreen : StandardListScreen {
             # Helper to parse array fields
             $parseArrayField = {
                 param($fieldName)
-                if ($values.ContainsKey($fieldName) -and $values.$fieldName -and $values.$fieldName.Trim()) {
+                # HIGH FIX PLS-H4 & PLS-H5: Add null check before .Trim()
+                if ($values.ContainsKey($fieldName) -and $null -ne $values.$fieldName -and $values.$fieldName.Trim()) {
                     return @($values.$fieldName -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ })
                 }
                 return @()
@@ -506,7 +508,8 @@ class ProjectListScreen : StandardListScreen {
             # Helper to parse array fields
             $parseArrayField = {
                 param($fieldName)
-                if ($values.ContainsKey($fieldName) -and $values.$fieldName -and $values.$fieldName.Trim()) {
+                # HIGH FIX PLS-H4 & PLS-H5: Add null check before .Trim()
+                if ($values.ContainsKey($fieldName) -and $null -ne $values.$fieldName -and $values.$fieldName.Trim()) {
                     return @($values.$fieldName -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ })
                 }
                 return @()
@@ -616,7 +619,8 @@ class ProjectListScreen : StandardListScreen {
 
             # PS-M1 FIX: Add validation before Store.UpdateProject()
             # Validate name length
-            if ($values.name.Length -gt 100) {
+            # HIGH FIX PLS-H1 & PLS-H2: Add null check before .Length access
+            if ($null -ne $values.name -and $values.name.Length -gt 100) {
                 $this.SetStatusMessage("Project name must be 100 characters or less", "error")
                 return
             }

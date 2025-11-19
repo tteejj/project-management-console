@@ -90,7 +90,12 @@ class TimeListScreen : StandardListScreen {
 
     # Load items from data store
     [array] LoadItems() {
+        # CRITICAL FIX TLS-C1: Add null check on GetAllTimeLogs()
         $entries = $this.Store.GetAllTimeLogs()
+        if ($null -eq $entries) {
+            Write-PmcTuiLog "TimeListScreen.LoadItems: GetAllTimeLogs() returned null" "ERROR"
+            $entries = @()
+        }
 
         # TS-M1 FIX: Track failed date parses to provide user feedback
         $failedDateParses = 0
@@ -200,10 +205,17 @@ class TimeListScreen : StandardListScreen {
             $entry = $grouped[$key]
 
             # Format duration as HH:MM with null checks
+            # CRITICAL FIX TLS-C2: Validate numeric type before division/modulo
             if ($entry.ContainsKey('minutes') -and $null -ne $entry.minutes) {
-                $hours = [int][Math]::Floor($entry.minutes / 60)
-                $mins = [int]($entry.minutes % 60)
-                $entry['duration'] = "{0:D2}:{1:D2}" -f $hours, $mins
+                $numericMinutes = 0
+                if ([double]::TryParse($entry.minutes, [ref]$numericMinutes)) {
+                    $hours = [int][Math]::Floor($numericMinutes / 60)
+                    $mins = [int]($numericMinutes % 60)
+                    $entry['duration'] = "{0:D2}:{1:D2}" -f $hours, $mins
+                } else {
+                    Write-PmcTuiLog "TimeListScreen.LoadItems: Invalid minutes value: $($entry.minutes)" "WARNING"
+                    $entry['duration'] = "00:00"
+                }
             } else {
                 $entry['duration'] = "00:00"
             }
@@ -223,7 +235,8 @@ class TimeListScreen : StandardListScreen {
         }
 
         # Sort by date descending (most recent first)
-        return $aggregated | Sort-Object { $_.date } -Descending
+        # HIGH FIX TLS-H5: Handle null dates in sort
+        return $aggregated | Sort-Object { if ($null -ne $_.date) { $_.date } else { [DateTime]::MaxValue } } -Descending
     }
 
     # Define columns for list display
@@ -256,14 +269,18 @@ class TimeListScreen : StandardListScreen {
             $timecodeVal = if ($item.ContainsKey('timecode')) { $item.timecode } else { '' }
             # Convert minutes to hours for display
             $hoursVal = if ($item.ContainsKey('minutes')) { [math]::Round($item.minutes / 60, 2) } else { 0.25 }
+            # HIGH FIX TLS-H1: Add null check for task field
+            $taskVal = if ($item.ContainsKey('task')) { $item.task } else { '' }
+            # HIGH FIX TLS-H2: Add null check for notes field
+            $notesVal = if ($item.ContainsKey('notes')) { $item.notes } else { '' }
             return @(
                 @{ Name='date'; Type='date'; Label='Date'; Required=$true; Value=$item.date }
-                @{ Name='task'; Type='text'; Label='Task'; Value=$item.task }
+                @{ Name='task'; Type='text'; Label='Task'; Value=$taskVal }
                 @{ Name='project'; Type='project'; Label='Project (or leave blank for timecode)'; Value=$projectVal }
                 @{ Name='timecode'; Type='text'; Label='Timecode (2-5 digits, or leave blank for project)'; Value=$timecodeVal; MaxLength=5 }
                 # MEDIUM FIX TMS-M3: Increase max from 8 to 24 to allow overtime/full-day logging
                 @{ Name='hours'; Type='number'; Label='Hours'; Min=0.25; Max=24; Step=0.25; Value=$hoursVal }
-                @{ Name='notes'; Type='text'; Label='Notes'; Value=$item.notes }
+                @{ Name='notes'; Type='text'; Label='Notes'; Value=$notesVal }
             )
         }
     }
@@ -405,7 +422,8 @@ class TimeListScreen : StandardListScreen {
 
     # Handle item deletion
     [void] OnItemDeleted([object]$item) {
-        if ($item.ContainsKey('id')) {
+        # HIGH FIX TLS-H3: Validate ID is not empty/whitespace
+        if ($item.ContainsKey('id') -and -not [string]::IsNullOrWhiteSpace($item.id)) {
             $success = $this.Store.DeleteTimeLog($item.id)
             if ($success) {
                 $this.SetStatusMessage("Time entry deleted", "success")
@@ -440,16 +458,26 @@ class TimeListScreen : StandardListScreen {
 
     # Show detail dialog for aggregated entries
     [void] ShowDetailDialog([hashtable]$item) {
+        # CRITICAL FIX TLS-C3: Add null check on $item parameter
+        if ($null -eq $item) {
+            Write-PmcTuiLog "TimeListScreen.ShowDetailDialog: item parameter is null" "WARNING"
+            return
+        }
         if (-not $item.ContainsKey('original_entries') -or $item.original_entries.Count -eq 0) {
             return
         }
 
         # Create dialog title
-        $title = "Time Entry Details - $($item.date_display) - $($item.project)"
-        if ($item.timecode) {
+        # HIGH FIX TLS-H4: Add null checks for string interpolation
+        $dateDisplay = if ($item.ContainsKey('date_display')) { $item.date_display } else { 'Unknown' }
+        $project = if ($item.ContainsKey('project')) { $item.project } else { 'N/A' }
+        $title = "Time Entry Details - $dateDisplay - $project"
+        # HIGH FIX TLS-H6: Use ContainsKey check for timecode
+        if ($item.ContainsKey('timecode') -and $item.timecode) {
             $title += " [$($item.timecode)]"
         }
-        $title += " ($($item.entry_count) entries)"
+        $entryCount = if ($item.ContainsKey('entry_count')) { $item.entry_count } else { 0 }
+        $title += " ($entryCount entries)"
 
         # LOW FIX TS-L1: Add error handling on dialog creation
         try {
