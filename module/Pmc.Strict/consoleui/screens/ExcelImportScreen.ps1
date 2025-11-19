@@ -10,6 +10,16 @@ Set-StrictMode -Version Latest
 . "$PSScriptRoot/../services/ExcelComReader.ps1"
 . "$PSScriptRoot/../services/ExcelMappingService.ps1"
 
+# MEDIUM FIX ES-M4, ES-M5, ES-M7: Define constants for magic numbers
+$script:MAX_PREVIEW_ROWS = 15
+$script:EXCEL_ATTACH_MAX_RETRIES = 3
+$script:EXCEL_ATTACH_RETRY_DELAY_MS = 500
+$script:MAX_CELLS_TO_READ = 100
+
+# LOW FIX ES-L3, ES-L4: Define constants for date validation range
+$script:MIN_VALID_YEAR = 1950
+$script:MAX_VALID_YEAR = 2100
+
 <#
 .SYNOPSIS
 Excel import wizard screen
@@ -153,23 +163,36 @@ class ExcelImportScreen : PmcScreen {
         $sb.Append("`e[1mStep 2: Select Import Profile`e[0m")
         $y += 2
 
+        # HIGH FIX ES-H1: Validate GetAllProfiles() return
         $profiles = @($this._mappingService.GetAllProfiles())
+        if ($null -eq $profiles) {
+            Write-PmcTuiLog "ExcelImportScreen: GetAllProfiles() returned null" "ERROR"
+            $profiles = @()
+        }
         if ($profiles.Count -eq 0) {
             $sb.Append($this.Header.BuildMoveTo(4, $y))
             $sb.Append("No profiles found. Please create a profile first.")
         } else {
+            # HIGH FIX ES-H2: Validate GetActiveProfile() return before property access
             $activeProfile = $this._mappingService.GetActiveProfile()
-            $activeId = if ($activeProfile) { $activeProfile['id'] } else { $null }
+            $activeId = if ($null -ne $activeProfile -and $activeProfile.ContainsKey('id')) { $activeProfile['id'] } else { $null }
 
             for ($i = 0; $i -lt $profiles.Count; $i++) {
                 $profile = $profiles[$i]
-                $isActive = if ($profile['id'] -eq $activeId) { " [ACTIVE]" } else { "" }
+                # HIGH FIX ES-H3: Validate profile before string interpolation
+                if ($null -eq $profile) {
+                    Write-PmcTuiLog "ExcelImportScreen: Null profile at index $i" "WARNING"
+                    continue
+                }
+                $profileId = if ($profile.ContainsKey('id')) { $profile['id'] } else { $null }
+                $isActive = if ($profileId -eq $activeId) { " [ACTIVE]" } else { "" }
 
                 $sb.Append($this.Header.BuildMoveTo(4, $y + $i))
                 if ($i -eq $this._selectedOption) {
                     $sb.Append("`e[7m")
                 }
-                $sb.Append("$($i + 1). $($profile['name'])$isActive")
+                $profileName = if ($profile.ContainsKey('name')) { $profile['name'] } else { 'Unnamed' }
+                $sb.Append("$($i + 1). $profileName$isActive")
                 if ($i -eq $this._selectedOption) {
                     $sb.Append("`e[0m")
                 }
@@ -189,12 +212,19 @@ class ExcelImportScreen : PmcScreen {
             return
         }
 
+        # HIGH FIX ES-H4: Validate profile name before string interpolation
+        $profileName = if ($null -ne $this._activeProfile -and $this._activeProfile.ContainsKey('name')) {
+            $this._activeProfile['name']
+        } else {
+            'Unnamed Profile'
+        }
         $sb.Append($this.Header.BuildMoveTo(4, $y))
-        $sb.Append("Profile: $($this._activeProfile['name'])")
+        $sb.Append("Profile: $profileName")
         $y += 2
 
         # Show preview data
-        $maxRows = 15
+        # MEDIUM FIX ES-M4: Use script-level constant for max preview rows
+        $maxRows = $script:MAX_PREVIEW_ROWS
         $rowCount = 0
 
         foreach ($mapping in $this._activeProfile['mappings']) {
@@ -301,9 +331,9 @@ class ExcelImportScreen : PmcScreen {
                     # Step 1: Connect to Excel
                     if ($this._selectedOption -eq 0) {
                         # Option 1: Attach to running Excel
-                        # CRITICAL FIX EXS-C1: Add retry logic for Excel COM initialization delays
-                        $maxRetries = 3
-                        $retryDelay = 500  # milliseconds
+                        # CRITICAL FIX EXS-C1 & MEDIUM FIX ES-M5: Use script-level constants for retry logic
+                        $maxRetries = $script:EXCEL_ATTACH_MAX_RETRIES
+                        $retryDelay = $script:EXCEL_ATTACH_RETRY_DELAY_MS
                         $attached = $false
 
                         for ($retry = 0; $retry -lt $maxRetries; $retry++) {
@@ -311,16 +341,17 @@ class ExcelImportScreen : PmcScreen {
                                 $this._reader.AttachToRunningExcel()
                                 # ES-M3 FIX: Validate workbook has accessible sheets
                                 # CRITICAL FIX ES-C1: Cache workbook result
-                                $wb = $wb
-                                if ($null -eq $wb -or $null -eq $this._reader.GetWorkbook().Sheets -or $this._reader.GetWorkbook().Sheets.Count -eq 0) {
+                                $wb = $this._reader.GetWorkbook()
+                                if ($null -eq $wb -or $null -eq $wb.Sheets -or $wb.Sheets.Count -eq 0) {
                                     throw "Workbook has no accessible sheets"
                                 }
 
-                                # HIGH FIX EXS-H2: Check if workbook is saved to prevent data loss
-                                $workbook = $this._reader.GetWorkbook()
-                                if ($workbook -and $workbook.PSObject.Properties['Saved'] -and -not $workbook.Saved) {
-                                    Write-PmcTuiLog "Warning: Workbook has unsaved changes" "WARNING"
-                                    $this._errorMessage = "Warning: Workbook has unsaved changes. Please save before importing."
+                                # HIGH FIX ES-H5: Complete null validation before accessing PSObject.Properties
+                                if ($null -ne $wb -and $null -ne $wb.PSObject -and $null -ne $wb.PSObject.Properties) {
+                                    if ($wb.PSObject.Properties['Saved'] -and -not $wb.Saved) {
+                                        Write-PmcTuiLog "Warning: Workbook has unsaved changes" "WARNING"
+                                        $this._errorMessage = "Warning: Workbook has unsaved changes. Please save before importing."
+                                    }
                                 }
 
                                 $attached = $true
@@ -345,7 +376,8 @@ class ExcelImportScreen : PmcScreen {
                         # Option 2: Open Excel file
                         try {
                             $filePath = $this._ShowFilePicker()
-                            if ($filePath) {
+                            # HIGH FIX ES-H6: Validate file path is not null/empty/whitespace
+                            if (-not [string]::IsNullOrWhiteSpace($filePath)) {
                                 $this._reader.OpenFile($filePath)
                                 # ES-M3 FIX: Validate workbook has accessible sheets
                                 if ($null -eq $this._reader.GetWorkbook() -or $null -eq $this._reader.GetWorkbook().Sheets -or $this._reader.GetWorkbook().Sheets.Count -eq 0) {
@@ -378,14 +410,19 @@ class ExcelImportScreen : PmcScreen {
                         # Read all mapped cells
                         $cellsToRead = @($this._activeProfile['mappings'] | ForEach-Object { $_['excel_cell'] })
 
-                        # ES-M6 FIX: Add limit for large range COM iteration to prevent performance issues
-                        $maxCellsToRead = 100
+                        # ES-M6 & ES-M7 FIX: Use script-level constant for max cells limit
+                        $maxCellsToRead = $script:MAX_CELLS_TO_READ
                         if ($cellsToRead.Count -gt $maxCellsToRead) {
                             Write-PmcTuiLog "Warning: Profile has $($cellsToRead.Count) cell mappings, limiting to $maxCellsToRead to prevent performance issues" "WARN"
                             $cellsToRead = $cellsToRead | Select-Object -First $maxCellsToRead
                         }
 
                         $this._previewData = $this._reader.ReadCells($cellsToRead)
+                        # HIGH FIX ES-H7: Validate ReadCells() return value
+                        if ($null -eq $this._previewData) {
+                            Write-PmcTuiLog "ExcelImportScreen: ReadCells() returned null" "WARNING"
+                            $this._previewData = @{}
+                        }
 
                         $this._step = 3
                 }
@@ -481,10 +518,10 @@ class ExcelImportScreen : PmcScreen {
                             $null
                         } else {
                             $dateValue = [datetime]$value
-                            # LOW FIX ES-L2: Validate date is in reasonable range (not year 1900/9999)
-                            if ($dateValue.Year -lt 1950 -or $dateValue.Year -gt 2100) {
-                                Write-PmcTuiLog "Date value '$dateValue' for field $($mapping['display_name']) is outside reasonable range (1950-2100)" "WARNING"
-                                throw "Date '$dateValue' is outside reasonable range (1950-2100) for field '$($mapping['display_name'])'"
+                            # LOW FIX ES-L2, ES-L3, ES-L4: Use script-level constants for date range validation
+                            if ($dateValue.Year -lt $script:MIN_VALID_YEAR -or $dateValue.Year -gt $script:MAX_VALID_YEAR) {
+                                Write-PmcTuiLog "Date value '$dateValue' for field $($mapping['display_name']) is outside reasonable range ($script:MIN_VALID_YEAR-$script:MAX_VALID_YEAR)" "WARNING"
+                                throw "Date '$dateValue' is outside reasonable range ($script:MIN_VALID_YEAR-$script:MAX_VALID_YEAR) for field '$($mapping['display_name'])'"
                             }
                             $dateValue
                         }

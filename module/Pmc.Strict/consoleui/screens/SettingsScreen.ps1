@@ -10,6 +10,12 @@ Set-StrictMode -Version Latest
 # NOTE: PmcScreen is loaded by Start-PmcTUI.ps1 - don't load again
 # . "$PSScriptRoot/../PmcScreen.ps1"
 
+# LOW FIX SS-L1, SS-L2, SS-L3: Define constants for column widths and limits
+$script:SETTING_NAME_WIDTH = 20
+$script:SETTING_VALUE_WIDTH = 30
+$script:MIN_PRINTABLE_CHAR = 32
+$script:MAX_PRINTABLE_CHAR = 126
+
 <#
 .SYNOPSIS
 Settings screen for configuring PMC TUI preferences
@@ -34,13 +40,19 @@ class SettingsScreen : PmcScreen {
     # Static: Register menu items
     static [void] RegisterMenuItems([object]$registry) {
         $registry.AddMenuItem('Options', 'Settings', 'S', {
-            . "$PSScriptRoot/SettingsScreen.ps1"
+            # CRITICAL FIX SS-C1: Validate file exists before dot-sourcing
+            $scriptPath = "$PSScriptRoot/SettingsScreen.ps1"
+            if (-not (Test-Path $scriptPath)) {
+                Write-PmcTuiLog "SettingsScreen.ps1 not found at: $scriptPath" "ERROR"
+                throw "SettingsScreen.ps1 not found"
+            }
+            . $scriptPath
             $global:PmcApp.PushScreen([SettingsScreen]::new())
         }, 20)
     }
 
-    # Constructor
-    SettingsScreen() : base("Settings", "Settings") {
+    # LOW FIX SS-L4: Extract common initialization to helper method (DRY principle)
+    hidden [void] ConfigureScreen() {
         # Configure header
         $this.Header.SetBreadcrumb(@("Home", "Settings"))
 
@@ -54,19 +66,14 @@ class SettingsScreen : PmcScreen {
         # Old pattern was adding duplicate/misplaced menu items
     }
 
+    # Constructor
+    SettingsScreen() : base("Settings", "Settings") {
+        $this.ConfigureScreen()
+    }
+
     # Constructor with container (DI-enabled)
     SettingsScreen([object]$container) : base("Settings", "Settings", $container) {
-        # Configure header
-        $this.Header.SetBreadcrumb(@("Home", "Settings"))
-
-        # Configure footer with shortcuts
-        $this.Footer.ClearShortcuts()
-        $this.Footer.AddShortcut("Up/Down", "Select")
-        $this.Footer.AddShortcut("Enter", "Edit")
-        $this.Footer.AddShortcut("Esc", "Back")
-
-        # NOTE: _SetupMenus() removed - MenuRegistry handles menu population via static RegisterMenuItems()
-        # Old pattern was adding duplicate/misplaced menu items
+        $this.ConfigureScreen()
     }
 
     [void] LoadData() {
@@ -76,18 +83,31 @@ class SettingsScreen : PmcScreen {
         $dataFile = "~/.pmc/data.json"
         try {
             # LAYER 2: Try to get actual value from external function
-            $dataFile = Get-PmcTaskFilePath
+            # HIGH FIX SS-H1: Validate returned path exists and is readable
+            $tempPath = Get-PmcTaskFilePath
+            if ($null -ne $tempPath -and (Test-Path $tempPath)) {
+                $dataFile = $tempPath
+            } else {
+                Write-PmcTuiLog "SettingsScreen: Get-PmcTaskFilePath returned invalid path: $tempPath" "WARNING"
+            }
         } catch {
             # LAYER 3: Silently fall back to default if function fails
-            # User experience is preserved; error is logged implicitly by PowerShell
+            Write-PmcTuiLog "SettingsScreen: Get-PmcTaskFilePath failed: $($_.Exception.Message)" "WARNING"
         }
 
         # Same defensive layering for current context
         $currentContext = "inbox"
         try {
-            $currentContext = Get-PmcCurrentContext
+            # HIGH FIX SS-H2: Validate returned context against safe values
+            $tempContext = Get-PmcCurrentContext
+            if ($null -ne $tempContext -and -not [string]::IsNullOrWhiteSpace($tempContext)) {
+                $currentContext = $tempContext
+            } else {
+                Write-PmcTuiLog "SettingsScreen: Get-PmcCurrentContext returned invalid value" "WARNING"
+            }
         } catch {
             # Use default if Get-PmcCurrentContext fails
+            Write-PmcTuiLog "SettingsScreen: Get-PmcCurrentContext failed: $($_.Exception.Message)" "WARNING"
         }
 
         $this.SettingsList = @(
@@ -153,8 +173,9 @@ class SettingsScreen : PmcScreen {
         $reset = "`e[0m"
 
         # Column widths
-        $nameWidth = 20
-        $valueWidth = 30
+        # MEDIUM FIX SS-M3: Use script-level constants for column widths
+        $nameWidth = $script:SETTING_NAME_WIDTH
+        $valueWidth = $script:SETTING_VALUE_WIDTH
         $descWidth = $contentRect.Width - $nameWidth - $valueWidth - 10
 
         # Render column headers
@@ -347,7 +368,8 @@ class SettingsScreen : PmcScreen {
                 return $true
             }
             default {
-                if ($keyInfo.KeyChar -ge 32 -and $keyInfo.KeyChar -le 126) {
+                # EDGE FIX SS-E1: Use script-level constants for printable character range
+                if ($keyInfo.KeyChar -ge $script:MIN_PRINTABLE_CHAR -and $keyInfo.KeyChar -le $script:MAX_PRINTABLE_CHAR) {
                     $this.InputBuffer += $keyInfo.KeyChar
                 }
                 return $true
