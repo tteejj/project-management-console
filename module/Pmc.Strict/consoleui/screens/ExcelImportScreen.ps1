@@ -10,6 +10,16 @@ Set-StrictMode -Version Latest
 . "$PSScriptRoot/../services/ExcelComReader.ps1"
 . "$PSScriptRoot/../services/ExcelMappingService.ps1"
 
+# MEDIUM FIX ES-M4, ES-M5, ES-M7: Define constants for magic numbers
+$script:MAX_PREVIEW_ROWS = 15
+$script:EXCEL_ATTACH_MAX_RETRIES = 3
+$script:EXCEL_ATTACH_RETRY_DELAY_MS = 500
+$script:MAX_CELLS_TO_READ = 100
+
+# LOW FIX ES-L3, ES-L4: Define constants for date validation range
+$script:MIN_VALID_YEAR = 1950
+$script:MAX_VALID_YEAR = 2100
+
 <#
 .SYNOPSIS
 Excel import wizard screen
@@ -213,7 +223,8 @@ class ExcelImportScreen : PmcScreen {
         $y += 2
 
         # Show preview data
-        $maxRows = 15
+        # MEDIUM FIX ES-M4: Use script-level constant for max preview rows
+        $maxRows = $script:MAX_PREVIEW_ROWS
         $rowCount = 0
 
         foreach ($mapping in $this._activeProfile['mappings']) {
@@ -320,9 +331,9 @@ class ExcelImportScreen : PmcScreen {
                     # Step 1: Connect to Excel
                     if ($this._selectedOption -eq 0) {
                         # Option 1: Attach to running Excel
-                        # CRITICAL FIX EXS-C1: Add retry logic for Excel COM initialization delays
-                        $maxRetries = 3
-                        $retryDelay = 500  # milliseconds
+                        # CRITICAL FIX EXS-C1 & MEDIUM FIX ES-M5: Use script-level constants for retry logic
+                        $maxRetries = $script:EXCEL_ATTACH_MAX_RETRIES
+                        $retryDelay = $script:EXCEL_ATTACH_RETRY_DELAY_MS
                         $attached = $false
 
                         for ($retry = 0; $retry -lt $maxRetries; $retry++) {
@@ -399,8 +410,8 @@ class ExcelImportScreen : PmcScreen {
                         # Read all mapped cells
                         $cellsToRead = @($this._activeProfile['mappings'] | ForEach-Object { $_['excel_cell'] })
 
-                        # ES-M6 FIX: Add limit for large range COM iteration to prevent performance issues
-                        $maxCellsToRead = 100
+                        # ES-M6 & ES-M7 FIX: Use script-level constant for max cells limit
+                        $maxCellsToRead = $script:MAX_CELLS_TO_READ
                         if ($cellsToRead.Count -gt $maxCellsToRead) {
                             Write-PmcTuiLog "Warning: Profile has $($cellsToRead.Count) cell mappings, limiting to $maxCellsToRead to prevent performance issues" "WARN"
                             $cellsToRead = $cellsToRead | Select-Object -First $maxCellsToRead
@@ -507,10 +518,10 @@ class ExcelImportScreen : PmcScreen {
                             $null
                         } else {
                             $dateValue = [datetime]$value
-                            # LOW FIX ES-L2: Validate date is in reasonable range (not year 1900/9999)
-                            if ($dateValue.Year -lt 1950 -or $dateValue.Year -gt 2100) {
-                                Write-PmcTuiLog "Date value '$dateValue' for field $($mapping['display_name']) is outside reasonable range (1950-2100)" "WARNING"
-                                throw "Date '$dateValue' is outside reasonable range (1950-2100) for field '$($mapping['display_name'])'"
+                            # LOW FIX ES-L2, ES-L3, ES-L4: Use script-level constants for date range validation
+                            if ($dateValue.Year -lt $script:MIN_VALID_YEAR -or $dateValue.Year -gt $script:MAX_VALID_YEAR) {
+                                Write-PmcTuiLog "Date value '$dateValue' for field $($mapping['display_name']) is outside reasonable range ($script:MIN_VALID_YEAR-$script:MAX_VALID_YEAR)" "WARNING"
+                                throw "Date '$dateValue' is outside reasonable range ($script:MIN_VALID_YEAR-$script:MAX_VALID_YEAR) for field '$($mapping['display_name'])'"
                             }
                             $dateValue
                         }

@@ -10,6 +10,16 @@ Set-StrictMode -Version Latest
 . "$PSScriptRoot/../base/StandardListScreen.ps1"
 . "$PSScriptRoot/../widgets/TimeEntryDetailDialog.ps1"
 
+# LOW FIX TLS-L2, L3, L4: Define constants for magic numbers and limits
+$script:MAX_TASK_LENGTH = 200
+$script:MAX_TASK_TRUNCATE_LENGTH = 197
+$script:MAX_NOTES_LENGTH = 300
+$script:MAX_NOTES_TRUNCATE_LENGTH = 297
+$script:MAX_HOURS_PER_ENTRY = 24
+$script:MIN_HOURS_PER_ENTRY = 0.25
+$script:DIALOG_TIMEOUT_ITERATIONS = 36000  # 36000 * 50ms = 30 minutes
+$script:DIALOG_POLL_INTERVAL_MS = 50
+
 <#
 .SYNOPSIS
 Time tracking list screen with CRUD operations
@@ -33,8 +43,8 @@ class TimeListScreen : StandardListScreen {
         }, 5)
     }
 
-    # Constructor
-    TimeListScreen() : base("TimeList", "Time Tracking") {
+    # LOW FIX TLS-L1: Extract common initialization to helper method (DRY principle)
+    hidden [void] ConfigureCapabilities() {
         # Configure capabilities
         $this.AllowAdd = $true
         $this.AllowEdit = $true
@@ -48,19 +58,14 @@ class TimeListScreen : StandardListScreen {
         $this.RefreshList()
     }
 
+    # Constructor
+    TimeListScreen() : base("TimeList", "Time Tracking") {
+        $this.ConfigureCapabilities()
+    }
+
     # Constructor with container (DI-enabled)
     TimeListScreen([object]$container) : base("TimeList", "Time Tracking", $container) {
-        # Configure capabilities
-        $this.AllowAdd = $true
-        $this.AllowEdit = $true
-        $this.AllowDelete = $true
-        $this.AllowFilter = $true
-
-        # Configure header
-        $this.Header.SetBreadcrumb(@("Home", "Time Tracking"))
-
-        # Load time entries
-        $this.RefreshList()
+        $this.ConfigureCapabilities()
     }
 
     # === Abstract Method Implementations ===
@@ -166,14 +171,15 @@ class TimeListScreen : StandardListScreen {
             $grouped[$groupKey].original_entries += $entry
 
             # TS-M3 FIX: Simplify task/notes concatenation and prevent excessive string length
+            # MEDIUM FIX TLS-M1: Use script-level constants for length limits
             # Concatenate tasks if multiple (with length limit to prevent memory issues)
             if ($entry.ContainsKey('task') -and $entry.task) {
                 $currentTask = $grouped[$groupKey].task
                 if ($currentTask -and $currentTask -ne $entry.task) {
-                    # Limit concatenated task length to 200 chars to prevent excessive growth
+                    # Limit concatenated task length to prevent excessive growth
                     $newTask = "$currentTask; $($entry.task)"
-                    $grouped[$groupKey].task = if ($newTask.Length -gt 200) {
-                        $newTask.Substring(0, 197) + "..."
+                    $grouped[$groupKey].task = if ($newTask.Length -gt $script:MAX_TASK_LENGTH) {
+                        $newTask.Substring(0, $script:MAX_TASK_TRUNCATE_LENGTH) + "..."
                     } else {
                         $newTask
                     }
@@ -183,13 +189,14 @@ class TimeListScreen : StandardListScreen {
             }
 
             # Concatenate notes if multiple (with length limit to prevent memory issues)
+            # MEDIUM FIX TLS-M1: Use script-level constants for length limits
             if ($entry.ContainsKey('notes') -and $entry.notes) {
                 $currentNotes = $grouped[$groupKey].notes
                 if ($currentNotes -and $currentNotes -ne $entry.notes) {
-                    # Limit concatenated notes length to 300 chars to prevent excessive growth
+                    # Limit concatenated notes length to prevent excessive growth
                     $newNotes = "$currentNotes; $($entry.notes)"
-                    $grouped[$groupKey].notes = if ($newNotes.Length -gt 300) {
-                        $newNotes.Substring(0, 297) + "..."
+                    $grouped[$groupKey].notes = if ($newNotes.Length -gt $script:MAX_NOTES_LENGTH) {
+                        $newNotes.Substring(0, $script:MAX_NOTES_TRUNCATE_LENGTH) + "..."
                     } else {
                         $newNotes
                     }
@@ -259,8 +266,8 @@ class TimeListScreen : StandardListScreen {
                 @{ Name='task'; Type='text'; Label='Task'; Value='' }
                 @{ Name='project'; Type='project'; Label='Project (or leave blank for timecode)'; Value='' }
                 @{ Name='timecode'; Type='text'; Label='Timecode (2-5 digits, or leave blank for project)'; Value=''; MaxLength=5 }
-                # MEDIUM FIX TMS-M3: Increase max from 8 to 24 to allow overtime/full-day logging
-                @{ Name='hours'; Type='number'; Label='Hours'; Min=0.25; Max=24; Step=0.25; Value=0.25 }
+                # MEDIUM FIX TMS-M3 & TLS-M2: Use constant for max hours validation
+                @{ Name='hours'; Type='number'; Label='Hours'; Min=$script:MIN_HOURS_PER_ENTRY; Max=$script:MAX_HOURS_PER_ENTRY; Step=0.25; Value=$script:MIN_HOURS_PER_ENTRY }
                 @{ Name='notes'; Type='text'; Label='Notes'; Value='' }
             )
         } else {
@@ -278,8 +285,8 @@ class TimeListScreen : StandardListScreen {
                 @{ Name='task'; Type='text'; Label='Task'; Value=$taskVal }
                 @{ Name='project'; Type='project'; Label='Project (or leave blank for timecode)'; Value=$projectVal }
                 @{ Name='timecode'; Type='text'; Label='Timecode (2-5 digits, or leave blank for project)'; Value=$timecodeVal; MaxLength=5 }
-                # MEDIUM FIX TMS-M3: Increase max from 8 to 24 to allow overtime/full-day logging
-                @{ Name='hours'; Type='number'; Label='Hours'; Min=0.25; Max=24; Step=0.25; Value=$hoursVal }
+                # MEDIUM FIX TMS-M3 & TLS-M2: Use constant for max hours validation
+                @{ Name='hours'; Type='number'; Label='Hours'; Min=$script:MIN_HOURS_PER_ENTRY; Max=$script:MAX_HOURS_PER_ENTRY; Step=0.25; Value=$hoursVal }
                 @{ Name='notes'; Type='text'; Label='Notes'; Value=$notesVal }
             )
         }
@@ -303,12 +310,13 @@ class TimeListScreen : StandardListScreen {
             }
 
             # Validate hour range
+            # MEDIUM FIX TLS-M3: Use constant for hours validation
             if ($hoursValue -le 0) {
                 $this.SetStatusMessage("Hours must be greater than 0", "error")
                 return
             }
-            if ($hoursValue -gt 24) {
-                $this.SetStatusMessage("Hours must be 24 or less", "error")
+            if ($hoursValue -gt $script:MAX_HOURS_PER_ENTRY) {
+                $this.SetStatusMessage("Hours must be $script:MAX_HOURS_PER_ENTRY or less", "error")
                 return
             }
 
@@ -368,12 +376,13 @@ class TimeListScreen : StandardListScreen {
             }
 
             # Validate hour range
+            # MEDIUM FIX TLS-M3: Use constant for hours validation
             if ($hoursValue -le 0) {
                 $this.SetStatusMessage("Hours must be greater than 0", "error")
                 return
             }
-            if ($hoursValue -gt 24) {
-                $this.SetStatusMessage("Hours must be 24 or less", "error")
+            if ($hoursValue -gt $script:MAX_HOURS_PER_ENTRY) {
+                $this.SetStatusMessage("Hours must be $script:MAX_HOURS_PER_ENTRY or less", "error")
                 return
             }
 
@@ -489,8 +498,8 @@ class TimeListScreen : StandardListScreen {
         }
 
         # TIM-7 FIX: Dialog render loop with timeout protection
-        # CRITICAL FIX TMS-C1: Increased timeout to 30 minutes to prevent losing user work
-        $maxIterations = 36000  # 36000 * 50ms = 1800 seconds = 30 minutes max
+        # CRITICAL FIX TMS-C1 & EDGE FIX TLS-E1: Use constants for timeout and poll interval
+        $maxIterations = $script:DIALOG_TIMEOUT_ITERATIONS
         $iterations = 0
 
         while (-not $dialog.IsComplete -and $iterations -lt $maxIterations) {
@@ -521,7 +530,7 @@ class TimeListScreen : StandardListScreen {
                 }
             }
 
-            Start-Sleep -Milliseconds 50
+            Start-Sleep -Milliseconds $script:DIALOG_POLL_INTERVAL_MS
         }
 
         # TS-M2 FIX: Show user-visible warning if timeout occurred

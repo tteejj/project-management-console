@@ -9,6 +9,25 @@ Set-StrictMode -Version Latest
 
 . "$PSScriptRoot/../base/StandardListScreen.ps1"
 
+# LOW FIX PLS-L4, L5, L9: Define constants for magic strings
+$script:DEFAULT_STATUS = 'active'
+$script:ARCHIVED_STATUS = 'archived'
+$script:ARRAY_SEPARATOR = ', '
+$script:DATETIME_FORMAT = 'yyyy-MM-dd HH:mm:ss'
+$script:DATE_FORMAT = 'yyyy-MM-dd'
+$script:SUPPORTED_DATE_FORMATS = @(
+    'yyyy-MM-dd'
+    'yyyy-MM-dd HH:mm:ss'
+    'MM/dd/yyyy'
+    'M/d/yyyy'
+    'dd/MM/yyyy'
+    'd/M/yyyy'
+)
+
+# LOW FIX PLS-L8, L10: Define constants for validation limits
+$script:MAX_PROJECT_NAME_LENGTH = 100
+$script:MAX_DESCRIPTION_LENGTH = 500
+
 <#
 .SYNOPSIS
 Project list screen with CRUD operations
@@ -23,7 +42,7 @@ Shows all projects with:
 NOTE: Uses lazy-loaded PmcFilePicker widget for folder browsing
 #>
 class ProjectListScreen : StandardListScreen {
-    # File picker for folder browsing (lazy-loaded)
+    # LOW FIX PLS-L1: File picker and flag for overlay display (lazy-loaded for performance)
     [object]$FilePicker = $null
     [bool]$ShowFilePicker = $false
 
@@ -35,8 +54,8 @@ class ProjectListScreen : StandardListScreen {
         }, 10)
     }
 
-    # Constructor
-    ProjectListScreen() : base("ProjectList", "Projects") {
+    # LOW FIX PLS-L3: Extract common initialization to helper method
+    hidden [void] ConfigureCapabilities() {
         # Configure capabilities
         $this.AllowAdd = $true
         $this.AllowEdit = $true
@@ -50,19 +69,30 @@ class ProjectListScreen : StandardListScreen {
         # Future enhancement: Add ConfigureColumns() method to StandardListScreen for custom column layouts
     }
 
+    # LOW FIX PLS-L6: Extract duplicate parseArrayField helper to class method
+    hidden [array] ParseArrayField([hashtable]$values, [string]$fieldName) {
+        if ($values.ContainsKey($fieldName) -and $null -ne $values.$fieldName -and $values.$fieldName.Trim()) {
+            return @($values.$fieldName -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+        }
+        return @()
+    }
+
+    # LOW FIX PLS-L6: Extract duplicate formatDate helper to class method
+    hidden [string] FormatDateField([hashtable]$values, [string]$fieldName) {
+        if ($values.ContainsKey($fieldName) -and $values.$fieldName -is [DateTime]) {
+            return $values.$fieldName.ToString($script:DATE_FORMAT)
+        }
+        return ''
+    }
+
+    # Constructor
+    ProjectListScreen() : base("ProjectList", "Projects") {
+        $this.ConfigureCapabilities()
+    }
+
     # Constructor with container (DI-enabled)
     ProjectListScreen([object]$container) : base("ProjectList", "Projects", $container) {
-        # Configure capabilities
-        $this.AllowAdd = $true
-        $this.AllowEdit = $true
-        $this.AllowDelete = $true
-        $this.AllowFilter = $true
-
-        # Configure header
-        $this.Header.SetBreadcrumb(@("Home", "Projects"))
-
-        # Currently uses default columns from UniversalList (works as expected)
-        # Future enhancement: Add ConfigureColumns() method to StandardListScreen for custom column layouts
+        $this.ConfigureCapabilities()
     }
 
     # === Abstract Method Implementations ===
@@ -145,7 +175,8 @@ class ProjectListScreen : StandardListScreen {
                 # Core fields
                 @{ Name='name'; Type='text'; Label='Project Name'; Required=$true; Value='' }
                 @{ Name='description'; Type='text'; Label='Description'; Value='' }
-                @{ Name='status'; Type='text'; Label='Status'; Value='active' }
+                # MEDIUM FIX PLS-M3: Use script-level constant for default status
+                @{ Name='status'; Type='text'; Label='Status'; Value=$script:DEFAULT_STATUS }
                 @{ Name='tags'; Type='text'; Label='Tags (comma-separated)'; Value='' }
 
                 # ID fields
@@ -226,20 +257,21 @@ class ProjectListScreen : StandardListScreen {
         } else {
             # Existing project - populate from item
             # Helper to convert array to comma-separated string
+            # MEDIUM FIX PLS-M2: Use script-level constant for array separator
             $arrayToStr = {
                 param($arr)
-                if ($arr -and $arr.Count -gt 0) { $arr -join ', ' } else { '' }
+                if ($arr -and $arr.Count -gt 0) { $arr -join $script:ARRAY_SEPARATOR } else { '' }
             }
 
             # Helper to parse dates
             # HIGH FIX PLS-H2: Use ParseExact with InvariantCulture to avoid locale issues
+            # MEDIUM FIX PLS-M6: Use script-level constant for supported date formats
             $parseDate = {
                 param($val)
                 if ($val) {
                     try {
                         # Try common ISO formats first, then fall back to Parse
-                        $formats = @('yyyy-MM-dd', 'yyyy-MM-dd HH:mm:ss', 'MM/dd/yyyy', 'dd/MM/yyyy')
-                        foreach ($format in $formats) {
+                        foreach ($format in $script:SUPPORTED_DATE_FORMATS) {
                             try {
                                 return [DateTime]::ParseExact($val, $format, [System.Globalization.CultureInfo]::InvariantCulture)
                             } catch { }
@@ -346,38 +378,22 @@ class ProjectListScreen : StandardListScreen {
 
             # Validate name length
             # HIGH FIX PLS-H1 & PLS-H2: Add null check before .Length access
-            if ($null -ne $values.name -and $values.name.Length -gt 100) {
-                $this.SetStatusMessage("Project name must be 100 characters or less", "error")
+            # MEDIUM FIX PLS-M4: Use constant for max length validation
+            if ($null -ne $values.name -and $values.name.Length -gt $script:MAX_PROJECT_NAME_LENGTH) {
+                $this.SetStatusMessage("Project name must be $script:MAX_PROJECT_NAME_LENGTH characters or less", "error")
                 return
             }
 
             # Validate description length if provided
-            if ($values.ContainsKey('description') -and $values.description -and $values.description.Length -gt 500) {
-                $this.SetStatusMessage("Description must be 500 characters or less", "error")
+            # MEDIUM FIX PLS-M5: Use constant for max description length validation
+            if ($values.ContainsKey('description') -and $values.description -and $values.description.Length -gt $script:MAX_DESCRIPTION_LENGTH) {
+                $this.SetStatusMessage("Description must be $script:MAX_DESCRIPTION_LENGTH characters or less", "error")
                 return
             }
 
-            # Helper to parse array fields
-            $parseArrayField = {
-                param($fieldName)
-                # HIGH FIX PLS-H4 & PLS-H5: Add null check before .Trim()
-                if ($values.ContainsKey($fieldName) -and $null -ne $values.$fieldName -and $values.$fieldName.Trim()) {
-                    return @($values.$fieldName -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ })
-                }
-                return @()
-            }
-
+            # LOW FIX PLS-L6: Use class-level helper methods instead of inline closures
             # Parse tags
-            $tags = & $parseArrayField 'tags'
-
-            # Helper to format dates
-            $formatDate = {
-                param($fieldName)
-                if ($values.ContainsKey($fieldName) -and $values.$fieldName -is [DateTime]) {
-                    return $values.$fieldName.ToString('yyyy-MM-dd')
-                }
-                return ''
-            }
+            $tags = $this.ParseArrayField($values, 'tags')
 
             # Check for duplicate project name before creating
             # CRITICAL FIX PLS-C5: Add null check on GetAllProjects()
@@ -388,8 +404,10 @@ class ProjectListScreen : StandardListScreen {
                 id = [guid]::NewGuid().ToString()
                 name = $values.name
                 description = if ($values.ContainsKey('description')) { $values.description } else { '' }
-                created = (Get-Date).ToString('yyyy-MM-dd HH:mm:ss')
-                status = if ($values.ContainsKey('status')) { $values.status } else { 'active' }
+                # MEDIUM FIX PLS-M8: Use script-level constant for datetime format
+                created = (Get-Date).ToString($script:DATETIME_FORMAT)
+                # MEDIUM FIX PLS-M3: Use script-level constant for default status
+                status = if ($values.ContainsKey('status')) { $values.status } else { $script:DEFAULT_STATUS }
                 tags = $tags
 
                 # ID fields
@@ -403,12 +421,12 @@ class ProjectListScreen : StandardListScreen {
                 T2020 = if ($values.ContainsKey('T2020')) { $values.T2020 } else { '' }
 
                 # Date fields
-                AssignedDate = & $formatDate 'AssignedDate'
-                DueDate = & $formatDate 'DueDate'
-                BFDate = & $formatDate 'BFDate'
+                AssignedDate = $this.FormatDateField($values, 'AssignedDate')
+                DueDate = $this.FormatDateField($values, 'DueDate')
+                BFDate = $this.FormatDateField($values, 'BFDate')
 
                 # Project Info (9 fields)
-                RequestDate = & $formatDate 'RequestDate'
+                RequestDate = $this.FormatDateField($values, 'RequestDate')
                 AuditType = if ($values.ContainsKey('AuditType')) { $values.AuditType } else { '' }
                 AuditorName = if ($values.ContainsKey('AuditorName')) { $values.AuditorName } else { '' }
                 AuditorPhone = if ($values.ContainsKey('AuditorPhone')) { $values.AuditorPhone } else { '' }
@@ -416,7 +434,7 @@ class ProjectListScreen : StandardListScreen {
                 AuditorTLPhone = if ($values.ContainsKey('AuditorTLPhone')) { $values.AuditorTLPhone } else { '' }
                 AuditCase = if ($values.ContainsKey('AuditCase')) { $values.AuditCase } else { '' }
                 CASCase = if ($values.ContainsKey('CASCase')) { $values.CASCase } else { '' }
-                AuditStartDate = & $formatDate 'AuditStartDate'
+                AuditStartDate = $this.FormatDateField($values, 'AuditStartDate')
 
                 # Contact Details (10 fields)
                 TPName = if ($values.ContainsKey('TPName')) { $values.TPName } else { '' }
@@ -428,18 +446,18 @@ class ProjectListScreen : StandardListScreen {
                 Country = if ($values.ContainsKey('Country')) { $values.Country } else { '' }
 
                 # Audit Periods (10 fields)
-                AuditPeriodFrom = & $formatDate 'AuditPeriodFrom'
-                AuditPeriodTo = & $formatDate 'AuditPeriodTo'
-                AuditPeriod1Start = & $formatDate 'AuditPeriod1Start'
-                AuditPeriod1End = & $formatDate 'AuditPeriod1End'
-                AuditPeriod2Start = & $formatDate 'AuditPeriod2Start'
-                AuditPeriod2End = & $formatDate 'AuditPeriod2End'
-                AuditPeriod3Start = & $formatDate 'AuditPeriod3Start'
-                AuditPeriod3End = & $formatDate 'AuditPeriod3End'
-                AuditPeriod4Start = & $formatDate 'AuditPeriod4Start'
-                AuditPeriod4End = & $formatDate 'AuditPeriod4End'
-                AuditPeriod5Start = & $formatDate 'AuditPeriod5Start'
-                AuditPeriod5End = & $formatDate 'AuditPeriod5End'
+                AuditPeriodFrom = $this.FormatDateField($values, 'AuditPeriodFrom')
+                AuditPeriodTo = $this.FormatDateField($values, 'AuditPeriodTo')
+                AuditPeriod1Start = $this.FormatDateField($values, 'AuditPeriod1Start')
+                AuditPeriod1End = $this.FormatDateField($values, 'AuditPeriod1End')
+                AuditPeriod2Start = $this.FormatDateField($values, 'AuditPeriod2Start')
+                AuditPeriod2End = $this.FormatDateField($values, 'AuditPeriod2End')
+                AuditPeriod3Start = $this.FormatDateField($values, 'AuditPeriod3Start')
+                AuditPeriod3End = $this.FormatDateField($values, 'AuditPeriod3End')
+                AuditPeriod4Start = $this.FormatDateField($values, 'AuditPeriod4Start')
+                AuditPeriod4End = $this.FormatDateField($values, 'AuditPeriod4End')
+                AuditPeriod5Start = $this.FormatDateField($values, 'AuditPeriod5Start')
+                AuditPeriod5End = $this.FormatDateField($values, 'AuditPeriod5End')
 
                 # Contacts (10 fields)
                 Contact1Name = if ($values.ContainsKey('Contact1Name')) { $values.Contact1Name } else { '' }
@@ -505,27 +523,9 @@ class ProjectListScreen : StandardListScreen {
                 return
             }
 
-            # Helper to parse array fields
-            $parseArrayField = {
-                param($fieldName)
-                # HIGH FIX PLS-H4 & PLS-H5: Add null check before .Trim()
-                if ($values.ContainsKey($fieldName) -and $null -ne $values.$fieldName -and $values.$fieldName.Trim()) {
-                    return @($values.$fieldName -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ })
-                }
-                return @()
-            }
-
+            # LOW FIX PLS-L6: Use class-level helper methods instead of inline closures
             # Parse tags
-            $tags = & $parseArrayField 'tags'
-
-            # Helper to format dates
-            $formatDate = {
-                param($fieldName)
-                if ($values.ContainsKey($fieldName) -and $values.$fieldName -is [DateTime]) {
-                    return $values.$fieldName.ToString('yyyy-MM-dd')
-                }
-                return ''
-            }
+            $tags = $this.ParseArrayField($values, 'tags')
 
             # PS-M3 FIX: Preserve existing status if not being changed
             $statusValue = if ($values.ContainsKey('status') -and -not [string]::IsNullOrWhiteSpace($values.status)) {
@@ -552,12 +552,12 @@ class ProjectListScreen : StandardListScreen {
                 T2020 = if ($values.ContainsKey('T2020')) { $values.T2020 } else { '' }
 
                 # Date fields
-                AssignedDate = & $formatDate 'AssignedDate'
-                DueDate = & $formatDate 'DueDate'
-                BFDate = & $formatDate 'BFDate'
+                AssignedDate = $this.FormatDateField($values, 'AssignedDate')
+                DueDate = $this.FormatDateField($values, 'DueDate')
+                BFDate = $this.FormatDateField($values, 'BFDate')
 
                 # Project Info (9 fields)
-                RequestDate = & $formatDate 'RequestDate'
+                RequestDate = $this.FormatDateField($values, 'RequestDate')
                 AuditType = if ($values.ContainsKey('AuditType')) { $values.AuditType } else { '' }
                 AuditorName = if ($values.ContainsKey('AuditorName')) { $values.AuditorName } else { '' }
                 AuditorPhone = if ($values.ContainsKey('AuditorPhone')) { $values.AuditorPhone } else { '' }
@@ -565,7 +565,7 @@ class ProjectListScreen : StandardListScreen {
                 AuditorTLPhone = if ($values.ContainsKey('AuditorTLPhone')) { $values.AuditorTLPhone } else { '' }
                 AuditCase = if ($values.ContainsKey('AuditCase')) { $values.AuditCase } else { '' }
                 CASCase = if ($values.ContainsKey('CASCase')) { $values.CASCase } else { '' }
-                AuditStartDate = & $formatDate 'AuditStartDate'
+                AuditStartDate = $this.FormatDateField($values, 'AuditStartDate')
 
                 # Contact Details (10 fields)
                 TPName = if ($values.ContainsKey('TPName')) { $values.TPName } else { '' }
@@ -577,18 +577,18 @@ class ProjectListScreen : StandardListScreen {
                 Country = if ($values.ContainsKey('Country')) { $values.Country } else { '' }
 
                 # Audit Periods (10 fields)
-                AuditPeriodFrom = & $formatDate 'AuditPeriodFrom'
-                AuditPeriodTo = & $formatDate 'AuditPeriodTo'
-                AuditPeriod1Start = & $formatDate 'AuditPeriod1Start'
-                AuditPeriod1End = & $formatDate 'AuditPeriod1End'
-                AuditPeriod2Start = & $formatDate 'AuditPeriod2Start'
-                AuditPeriod2End = & $formatDate 'AuditPeriod2End'
-                AuditPeriod3Start = & $formatDate 'AuditPeriod3Start'
-                AuditPeriod3End = & $formatDate 'AuditPeriod3End'
-                AuditPeriod4Start = & $formatDate 'AuditPeriod4Start'
-                AuditPeriod4End = & $formatDate 'AuditPeriod4End'
-                AuditPeriod5Start = & $formatDate 'AuditPeriod5Start'
-                AuditPeriod5End = & $formatDate 'AuditPeriod5End'
+                AuditPeriodFrom = $this.FormatDateField($values, 'AuditPeriodFrom')
+                AuditPeriodTo = $this.FormatDateField($values, 'AuditPeriodTo')
+                AuditPeriod1Start = $this.FormatDateField($values, 'AuditPeriod1Start')
+                AuditPeriod1End = $this.FormatDateField($values, 'AuditPeriod1End')
+                AuditPeriod2Start = $this.FormatDateField($values, 'AuditPeriod2Start')
+                AuditPeriod2End = $this.FormatDateField($values, 'AuditPeriod2End')
+                AuditPeriod3Start = $this.FormatDateField($values, 'AuditPeriod3Start')
+                AuditPeriod3End = $this.FormatDateField($values, 'AuditPeriod3End')
+                AuditPeriod4Start = $this.FormatDateField($values, 'AuditPeriod4Start')
+                AuditPeriod4End = $this.FormatDateField($values, 'AuditPeriod4End')
+                AuditPeriod5Start = $this.FormatDateField($values, 'AuditPeriod5Start')
+                AuditPeriod5End = $this.FormatDateField($values, 'AuditPeriod5End')
 
                 # Contacts (10 fields)
                 Contact1Name = if ($values.ContainsKey('Contact1Name')) { $values.Contact1Name } else { '' }
@@ -620,14 +620,16 @@ class ProjectListScreen : StandardListScreen {
             # PS-M1 FIX: Add validation before Store.UpdateProject()
             # Validate name length
             # HIGH FIX PLS-H1 & PLS-H2: Add null check before .Length access
-            if ($null -ne $values.name -and $values.name.Length -gt 100) {
-                $this.SetStatusMessage("Project name must be 100 characters or less", "error")
+            # MEDIUM FIX PLS-M4: Use constant for max length validation
+            if ($null -ne $values.name -and $values.name.Length -gt $script:MAX_PROJECT_NAME_LENGTH) {
+                $this.SetStatusMessage("Project name must be $script:MAX_PROJECT_NAME_LENGTH characters or less", "error")
                 return
             }
 
             # Validate description length if provided
-            if ($values.ContainsKey('description') -and $values.description -and $values.description.Length -gt 500) {
-                $this.SetStatusMessage("Description must be 500 characters or less", "error")
+            # MEDIUM FIX PLS-M5: Use constant for max description length validation
+            if ($values.ContainsKey('description') -and $values.description -and $values.description.Length -gt $script:MAX_DESCRIPTION_LENGTH) {
+                $this.SetStatusMessage("Description must be $script:MAX_DESCRIPTION_LENGTH characters or less", "error")
                 return
             }
 
@@ -728,15 +730,16 @@ class ProjectListScreen : StandardListScreen {
     }
 
     # Archive/unarchive project
+    # MEDIUM FIX PLS-M9: Use script-level constants for status values
     [void] ToggleProjectArchive([object]$project) {
         if ($null -eq $project) { return }
 
         $projectStatus = Get-SafeProperty $project 'status'
         $projectName = Get-SafeProperty $project 'name'
-        $newStatus = if ($projectStatus -eq 'archived') { 'active' } else { 'archived' }
+        $newStatus = if ($projectStatus -eq $script:ARCHIVED_STATUS) { $script:DEFAULT_STATUS } else { $script:ARCHIVED_STATUS }
         $this.Store.UpdateProject($projectName, @{ status = $newStatus })
 
-        $action = if ($newStatus -eq 'archived') { "archived" } else { "activated" }
+        $action = if ($newStatus -eq $script:ARCHIVED_STATUS) { "archived" } else { "activated" }
         $this.SetStatusMessage("Project ${action}: $projectName", "success")
     }
 
