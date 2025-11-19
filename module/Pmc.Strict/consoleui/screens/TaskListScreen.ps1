@@ -202,8 +202,17 @@ class TaskListScreen : StandardListScreen {
         if ($this.AllowEdit) {
             Write-PmcTuiLog "TaskListScreen: Re-registering Edit action" "DEBUG"
             $editAction = {
+                # HIGH FIX TLS-H1: Add null check on $global:PmcApp
                 Write-PmcTuiLog "!!! EDIT ACTION CALLBACK TRIGGERED !!!" "DEBUG"
+                if ($null -eq $global:PmcApp) {
+                    Write-PmcTuiLog "Edit action failed: PmcApp is null" "ERROR"
+                    return
+                }
                 $currentScreen = $global:PmcApp.CurrentScreen
+                if ($null -eq $currentScreen -or $null -eq $currentScreen.List) {
+                    Write-PmcTuiLog "Edit action failed: CurrentScreen or List is null" "ERROR"
+                    return
+                }
                 $selectedItem = $currentScreen.List.GetSelectedItem()
                 Write-PmcTuiLog "Edit action - selectedItem: $($selectedItem.id)" "DEBUG"
                 if ($null -ne $selectedItem) {
@@ -294,6 +303,11 @@ class TaskListScreen : StandardListScreen {
                 $menu.Items.Clear()
 
                 foreach ($item in $items) {
+                    # MEDIUM FIX TLS-M7: Validate $item is a hashtable before indexing
+                    if ($item -isnot [hashtable]) {
+                        Write-PmcTuiLog "_PopulateMenusFromRegistry: Item is not a hashtable, type: $($item.GetType().Name)" "WARNING"
+                        continue
+                    }
                     # MenuRegistry returns hashtables, use hashtable indexing
                     $menuItem = [PmcMenuItem]::new($item['Label'], $item['Hotkey'], $item['Action'])
                     $menu.Items.Add($menuItem)
@@ -535,6 +549,11 @@ class TaskListScreen : StandardListScreen {
         $self = $this
 
         # Cell highlighting for edit mode - use theme colors via List widget
+        # HIGH FIX TLS-H2: Add null check on $this.List
+        if ($null -eq $this.List) {
+            Write-PmcTuiLog "GetColumns called with null List widget" "ERROR"
+            return @()
+        }
         # Normal cell: theme primary background
         $cellColor = $this.List.GetThemedAnsi('Primary', $true)  # Theme primary as background
         # Focused cell: reversed (theme primary as text color on black)
@@ -565,7 +584,10 @@ class TaskListScreen : StandardListScreen {
                         if ($hasParent) {
                             $t = "└─ $t"
                         } else {
-                            $hasChildren = $self.Store.GetAllTasks() | Where-Object {
+                            # HIGH FIX TLS-H4: Add null check on GetAllTasks()
+                            $allTasks = $self.Store.GetAllTasks()
+                            if ($null -eq $allTasks) { $allTasks = @() }
+                            $hasChildren = $allTasks | Where-Object {
                                 (Get-SafeProperty $_ 'parent_id') -eq $taskId
                             } | Measure-Object | ForEach-Object { $_.Count -gt 0 }
                             if ($hasChildren) {
@@ -671,16 +693,23 @@ class TaskListScreen : StandardListScreen {
                         $dueValue = Get-SafeProperty $task 'due'
                         if (-not $dueValue) { '' }
                         else {
-                            $due = [DateTime]$dueValue
-                            $today = [DateTime]::Today
-                            $diff = ($due.Date - $today).Days
+                            # CRITICAL FIX TLS-C4: Safe DateTime parsing
+                            try {
+                                $due = [DateTime]$dueValue
+                                $today = [DateTime]::Today
+                                $diff = ($due.Date - $today).Days
 
-                            if ($diff -eq 0) { 'Today' }
-                            elseif ($diff -eq 1) { 'Tomorrow' }
-                            elseif ($diff -eq -1) { 'Yesterday' }
-                            elseif ($diff -lt 0) { "$([Math]::Abs($diff))d ago" }
-                            elseif ($diff -le 7) { "in ${diff}d" }
-                            else { $due.ToString('MMM dd') }
+                                if ($diff -eq 0) { 'Today' }
+                                elseif ($diff -eq 1) { 'Tomorrow' }
+                                elseif ($diff -eq -1) { 'Yesterday' }
+                                elseif ($diff -lt 0) { "$([Math]::Abs($diff))d ago" }
+                                elseif ($diff -le 7) { "in ${diff}d" }
+                                else { $due.ToString('MMM dd') }
+                            } catch {
+                                # Invalid date format - return raw value
+                                Write-PmcTuiLog "Invalid due date format: $dueValue" "WARNING"
+                                $dueValue
+                            }
                         }
                     }
 
@@ -714,8 +743,14 @@ class TaskListScreen : StandardListScreen {
                     $dueValue = Get-SafeProperty $task 'due'
                     if (-not $dueValue -or (Get-SafeProperty $task 'completed')) { return "`e[90m" }
 
-                    $due = [DateTime]$dueValue
-                    $diff = ($due.Date - [DateTime]::Today).Days
+                    # CRITICAL FIX TLS-C4: Safe DateTime parsing
+                    try {
+                        $due = [DateTime]$dueValue
+                        $diff = ($due.Date - [DateTime]::Today).Days
+                    } catch {
+                        # Invalid date - return default color
+                        return "`e[90m"
+                    }
 
                     if ($diff -lt 0) { return "`e[91m" }      # Overdue: bright red
                     elseif ($diff -eq 0) { return "`e[93m" }  # Today: bright yellow
@@ -811,7 +846,8 @@ class TaskListScreen : StandardListScreen {
 
     # Implement abstract method: Define edit fields for InlineEditor
     [array] GetEditFields([object]$item) {
-        if ($null -eq $item -or $item.Count -eq 0) {
+        # LOW FIX TLS-L4 & EDGE-1: Add type check before accessing .Count
+        if ($null -eq $item -or ($item -is [hashtable] -and $item.Count -eq 0) -or ($item -is [array] -and $item.Count -eq 0)) {
             # New task - empty fields
             return @(
                 @{ Name='text'; Type='text'; Label='Task'; Required=$true; MaxLength=200; Value='' }  # H-VAL-6
@@ -861,6 +897,12 @@ class TaskListScreen : StandardListScreen {
 
     # Override: Handle item creation
     [void] OnItemCreated([hashtable]$values) {
+        # MEDIUM FIX TLS-M3: Add null check on $values parameter
+        if ($null -eq $values) {
+            Write-PmcTuiLog "OnItemCreated called with null values" "ERROR"
+            $this.SetStatusMessage("Cannot create task: no data provided", "error")
+            return
+        }
         try {
             # Convert widget values to task format
             # FIX: Convert "(No Project)" to empty string
@@ -877,9 +919,9 @@ class TaskListScreen : StandardListScreen {
             }
 
             # Validate text length
-            # MEDIUM FIX TLS-M4: Match MaxLength=200 from field definition (was 500)
+            # MEDIUM FIX TLS-M1 & TLS-M2: Correct error message to match actual limit (200, not 500)
             if ($taskText.Length -gt 200) {
-                $this.SetStatusMessage("Task description must be 500 characters or less", "error")
+                $this.SetStatusMessage("Task description must be 200 characters or less", "error")
                 return
             }
 
@@ -920,12 +962,10 @@ class TaskListScreen : StandardListScreen {
             if ($this.CurrentEditItem) {
                 $parentId = Get-SafeProperty $this.CurrentEditItem 'parent_id'
                 if ($parentId) {
-                    # HIGH FIX TLS-H4: Check for circular dependency before setting parent_id
-                    $newTaskId = if ($taskData.ContainsKey('id')) { $taskData.id } else { $null }
-                    if ($newTaskId -and $this._IsCircularDependency($parentId, $newTaskId)) {
-                        $this.SetStatusMessage("Cannot create circular task hierarchy", "error")
-                        return
-                    }
+                    # HIGH FIX TLS-H6: Circular dependency check is ineffective here
+                    # Since we're creating a NEW task (no ID yet), it cannot create a cycle
+                    # Circular dependency should be checked in OnItemUpdated when changing parent_id
+                    # For new tasks being created as subtasks, simply set the parent_id
                     $taskData.parent_id = $parentId
                 }
             }
@@ -971,6 +1011,17 @@ class TaskListScreen : StandardListScreen {
 
     # Override: Handle item update
     [void] OnItemUpdated([object]$item, [hashtable]$values) {
+        # MEDIUM FIX TLS-M4: Add null checks on parameters
+        if ($null -eq $item) {
+            Write-PmcTuiLog "OnItemUpdated called with null item" "ERROR"
+            $this.SetStatusMessage("Cannot update task: no item selected", "error")
+            return
+        }
+        if ($null -eq $values) {
+            Write-PmcTuiLog "OnItemUpdated called with null values" "ERROR"
+            $this.SetStatusMessage("Cannot update task: no data provided", "error")
+            return
+        }
         if ($this._enableDebugLogging) {
             Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') OnItemUpdated: ENTRY - item.id=$($item.id) values=$($values | ConvertTo-Json -Compress)"
         }
@@ -1018,9 +1069,9 @@ class TaskListScreen : StandardListScreen {
             }
 
             # Validate text length
-            # MEDIUM FIX TLS-M4: Match MaxLength=200 from field definition (was 500)
+            # MEDIUM FIX TLS-M1 & TLS-M2: Correct error message to match actual limit (200, not 500)
             if ($taskText.Length -gt 200) {
-                $this.SetStatusMessage("Task description must be 500 characters or less", "error")
+                $this.SetStatusMessage("Task description must be 200 characters or less", "error")
                 return
             }
 
@@ -1109,9 +1160,16 @@ class TaskListScreen : StandardListScreen {
             }
 
             # Merge changes with existing task for validation
+            # CRITICAL FIX TLS-C1: Handle both hashtables and PSObjects
             $updatedTask = @{}
-            foreach ($key in $item.PSObject.Properties.Name) {
-                $updatedTask[$key] = $item.$key
+            if ($item -is [hashtable]) {
+                foreach ($key in $item.Keys) {
+                    $updatedTask[$key] = $item[$key]
+                }
+            } elseif ($null -ne $item.PSObject.Properties) {
+                foreach ($key in $item.PSObject.Properties.Name) {
+                    $updatedTask[$key] = $item.$key
+                }
             }
             foreach ($key in $changes.Keys) {
                 $updatedTask[$key] = $changes[$key]
@@ -1177,8 +1235,20 @@ class TaskListScreen : StandardListScreen {
 
     # Override: Handle item deletion
     [void] OnItemDeleted([object]$item) {
+        # CRITICAL FIX TLS-C2: Add null check on $item
+        if ($null -eq $item) {
+            Write-PmcTuiLog "OnItemDeleted called with null item" "ERROR"
+            $this.SetStatusMessage("Cannot delete: no item selected", "error")
+            return
+        }
+        $taskId = Get-SafeProperty $item 'id'
+        if ($null -eq $taskId) {
+            Write-PmcTuiLog "OnItemDeleted called with item missing id property" "ERROR"
+            $this.SetStatusMessage("Cannot delete: task has no ID", "error")
+            return
+        }
         try {
-            $success = $this.Store.DeleteTask($item.id)
+            $success = $this.Store.DeleteTask($taskId)
             if ($success) {
                 $this.SetStatusMessage("Task deleted: $($item.text)", "success")
             } else {
@@ -1331,6 +1401,12 @@ class TaskListScreen : StandardListScreen {
         $this.EditorMode = 'add'
         $this.CurrentEditItem = $subtask
         $fields = $this.GetEditFields($subtask)
+        # MEDIUM FIX TLS-M5: Add null check on InlineEditor
+        if ($null -eq $this.InlineEditor) {
+            Write-PmcTuiLog "AddSubtask: InlineEditor is null" "ERROR"
+            $this.SetStatusMessage("Cannot add subtask: editor not initialized", "error")
+            return
+        }
         $this.InlineEditor.SetFields($fields)
         $this.InlineEditor.Title = "Add Subtask"
         $this.ShowInlineEditor = $true
@@ -1577,9 +1653,14 @@ class TaskListScreen : StandardListScreen {
         }
 
         # CRITICAL: Invalidate the list's row cache so Format callbacks get re-invoked
-        $this.List.InvalidateCache()
-        if ($this._enableDebugLogging) {
-            Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') EditItem: Invalidated list cache"
+        # HIGH FIX TLS-H2: Add null check before List operations
+        if ($null -ne $this.List) {
+            $this.List.InvalidateCache()
+            if ($this._enableDebugLogging) {
+                Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') EditItem: Invalidated list cache"
+            }
+        } else {
+            Write-PmcTuiLog "EditItem: List is null, cannot invalidate cache" "ERROR"
         }
 
         # Force a status message and mark app dirty to trigger immediate render
@@ -1619,6 +1700,11 @@ class TaskListScreen : StandardListScreen {
     hidden [void] _ShowWidgetForColumn() {
         $this._CloseActiveWidget()
 
+        # HIGH FIX TLS-H3 & MEDIUM FIX TLS-M8: Add array bounds check on _currentColumnIndex
+        if ($this._currentColumnIndex -lt 0 -or $this._currentColumnIndex -ge $this._editableColumns.Count) {
+            Write-PmcTuiLog "_ShowWidgetForColumn: Invalid column index $($this._currentColumnIndex)" "ERROR"
+            return
+        }
         $col = $this._editableColumns[$this._currentColumnIndex]
 
         # Only show widgets for due/project columns (tags is now inline text)
@@ -1630,12 +1716,19 @@ class TaskListScreen : StandardListScreen {
         $columns = $this.GetColumns()
         $colX = 0
         $colIndex = 0
+        $columnFound = $false
         foreach ($column in $columns) {
             if ($column.Name -eq $col) {
+                $columnFound = $true
                 break
             }
             $colX += $column.Width + 1
             $colIndex++
+        }
+        # MEDIUM FIX TLS-M8: Validate column was found
+        if (-not $columnFound) {
+            Write-PmcTuiLog "_ShowWidgetForColumn: Column '$col' not found in GetColumns()" "WARNING"
+            return
         }
 
         # Get selected row Y position
@@ -1809,9 +1902,15 @@ class TaskListScreen : StandardListScreen {
 
             # Save widget value before closing
             if ($this._activeWidgetType -eq 'date' -and $null -ne $this._activeDatePicker) {
-                $this._editValues.due = $this._activeDatePicker.GetSelectedDate().ToString('yyyy-MM-dd')
-                if ($this._enableDebugLogging) {
-                    Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Saved date from picker: $($this._editValues.due)"
+                # HIGH FIX TLS-H5 & TLS-H7: Validate GetSelectedDate() return value
+                $selectedDate = $this._activeDatePicker.GetSelectedDate()
+                if ($null -ne $selectedDate) {
+                    $this._editValues.due = $selectedDate.ToString('yyyy-MM-dd')
+                    if ($this._enableDebugLogging) {
+                        Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Saved date from picker: $($this._editValues.due)"
+                    }
+                } else {
+                    Write-PmcTuiLog "DatePicker.GetSelectedDate() returned null" "WARNING"
                 }
             }
             elseif ($this._activeWidgetType -eq 'project' -and $null -ne $this._activeProjectPicker) {
@@ -1895,17 +1994,23 @@ class TaskListScreen : StandardListScreen {
 
         # Tab - next column
         if ($keyInfo.Key -eq 'Tab' -and -not ($keyInfo.Modifiers -band [ConsoleModifiers]::Shift)) {
-            $this._currentColumnIndex = ($this._currentColumnIndex + 1) % $this._editableColumns.Count
-            $this.List.InvalidateCache()  # Invalidate cache to update highlighting
-            $this._ShowWidgetForColumn()
+            # CRITICAL FIX TLS-C3: Prevent division by zero
+            if ($this._editableColumns.Count -gt 0) {
+                $this._currentColumnIndex = ($this._currentColumnIndex + 1) % $this._editableColumns.Count
+                $this.List.InvalidateCache()  # Invalidate cache to update highlighting
+                $this._ShowWidgetForColumn()
+            }
             return $true
         }
         # Shift+Tab - previous column
         if ($keyInfo.Key -eq 'Tab' -and ($keyInfo.Modifiers -band [ConsoleModifiers]::Shift)) {
-            $this._currentColumnIndex--
-            if ($this._currentColumnIndex -lt 0) { $this._currentColumnIndex = $this._editableColumns.Count - 1 }
-            $this.List.InvalidateCache()  # Invalidate cache to update highlighting
-            $this._ShowWidgetForColumn()
+            # CRITICAL FIX TLS-C3 & EDGE-2: Prevent division by zero and negative index
+            if ($this._editableColumns.Count -gt 0) {
+                $this._currentColumnIndex--
+                if ($this._currentColumnIndex -lt 0) { $this._currentColumnIndex = $this._editableColumns.Count - 1 }
+                $this.List.InvalidateCache()  # Invalidate cache to update highlighting
+                $this._ShowWidgetForColumn()
+            }
             return $true
         }
         # Enter - save
@@ -2019,12 +2124,16 @@ class TaskListScreen : StandardListScreen {
                 }
                 $this.List.InvalidateCache()  # Re-render to show new value
             }
-            if ($keyInfo.Key -eq 'Backspace' -and $this._editValues[$col].Length -gt 0) {
-                $this._editValues[$col] = $this._editValues[$col].Substring(0, $this._editValues[$col].Length - 1)
-                if ($this._enableDebugLogging) {
-                    Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Backspace in $col -> '$($this._editValues[$col])'"
+            # MEDIUM FIX TLS-M6: Add defensive null check before .Length access
+            if ($keyInfo.Key -eq 'Backspace') {
+                $currentValue = $this._editValues[$col]
+                if ($null -ne $currentValue -and $currentValue.Length -gt 0) {
+                    $this._editValues[$col] = $currentValue.Substring(0, $currentValue.Length - 1)
+                    if ($this._enableDebugLogging) {
+                        Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Backspace in $col -> '$($this._editValues[$col])'"
+                    }
+                    $this.List.InvalidateCache()  # Re-render to show new value
                 }
-                $this.List.InvalidateCache()  # Re-render to show new value
             }
         }
         elseif ($col -eq 'due' -or $col -eq 'project') {
@@ -2086,7 +2195,10 @@ class TaskListScreen : StandardListScreen {
             }
             if ($selected) {
                 $taskId = Get-SafeProperty $selected 'id'
-                $hasChildren = $this.Store.GetAllTasks() | Where-Object {
+                # LOW FIX TLS-L6 (MEDIUM priority): Add null check on GetAllTasks()
+                $allTasks = $this.Store.GetAllTasks()
+                if ($null -eq $allTasks) { $allTasks = @() }
+                $hasChildren = $allTasks | Where-Object {
                     (Get-SafeProperty $_ 'parent_id') -eq $taskId
                 } | Measure-Object | ForEach-Object { $_.Count -gt 0 }
 
@@ -2193,7 +2305,8 @@ class TaskListScreen : StandardListScreen {
 
         # Header with stats
         $header = "=== TASK LIST ==="
-        $viewMode = $this._viewMode.ToUpper()
+        # LOW FIX TLS-L5: Add null check before ToUpper()
+        $viewMode = if ($this._viewMode) { $this._viewMode.ToUpper() } else { 'ALL' }
         $stats = "Total: $($this._stats.Total) | Active: $($this._stats.Active) | Completed: $($this._stats.Completed) | Overdue: $($this._stats.Overdue)"
 
         $output += "`e[1;36m$header`e[0m   `e[90m[$viewMode]`e[0m   `e[37m$stats`e[0m`n"

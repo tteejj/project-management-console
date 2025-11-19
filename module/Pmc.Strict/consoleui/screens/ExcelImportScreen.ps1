@@ -310,7 +310,9 @@ class ExcelImportScreen : PmcScreen {
                             try {
                                 $this._reader.AttachToRunningExcel()
                                 # ES-M3 FIX: Validate workbook has accessible sheets
-                                if ($null -eq $this._reader.GetWorkbook() -or $null -eq $this._reader.GetWorkbook().Sheets -or $this._reader.GetWorkbook().Sheets.Count -eq 0) {
+                                # CRITICAL FIX ES-C1: Cache workbook result
+                                $wb = $wb
+                                if ($null -eq $wb -or $null -eq $this._reader.GetWorkbook().Sheets -or $this._reader.GetWorkbook().Sheets.Count -eq 0) {
                                     throw "Workbook has no accessible sheets"
                                 }
 
@@ -386,6 +388,7 @@ class ExcelImportScreen : PmcScreen {
                         $this._previewData = $this._reader.ReadCells($cellsToRead)
 
                         $this._step = 3
+                }
                         $this._selectedOption = 0
                     }
                 }

@@ -80,7 +80,12 @@ class KanbanScreen : PmcScreen {
 
         try {
             # Load tasks from TaskStore
+            # CRITICAL FIX KAN-C2: Add null check on GetAllTasks()
             $allTasks = $this.Store.GetAllTasks()
+            if ($null -eq $allTasks) {
+                Write-PmcTuiLog "KanbanScreen.LoadData: GetAllTasks() returned null" "WARNING"
+                $allTasks = @()
+            }
             $sevenDaysAgo = (Get-Date).AddDays(-7)
 
             # HIGH FIX KAN-H1: Single-pass filtering instead of 3 separate Where-Object calls
@@ -103,8 +108,20 @@ class KanbanScreen : PmcScreen {
                     [void]$inProgressList.Add($task)
                 }
                 # Done column: completed in last 7 days OR status=done
-                elseif (($taskCompleted -and $taskCompletedDate -and ([DateTime]$taskCompletedDate) -gt $sevenDaysAgo) -or ($taskStatus -eq 'done')) {
+                # CRITICAL FIX KAN-C3: Safe DateTime parsing with try-catch
+                elseif ($taskStatus -eq 'done') {
                     [void]$doneList.Add($task)
+                }
+                elseif ($taskCompleted -and $taskCompletedDate) {
+                    try {
+                        $completedDateTime = [DateTime]$taskCompletedDate
+                        if ($completedDateTime -gt $sevenDaysAgo) {
+                            [void]$doneList.Add($task)
+                        }
+                    } catch {
+                        Write-PmcTuiLog "KanbanScreen: Invalid completedDate format: $taskCompletedDate" "WARNING"
+                        # Skip this task from Done column if date is invalid
+                    }
                 }
             }
 
@@ -247,8 +264,11 @@ class KanbanScreen : PmcScreen {
             $sb.Append($this.Header.BuildMoveTo($x, $lineY))
 
             # Priority prefix if present
+            # HIGH FIX KAN-H4 & MEDIUM FIX KAN-M1: Safe string handling with null checks
             $taskPriority = Get-SafeProperty $task 'priority'
             $taskTextValue = Get-SafeProperty $task 'text'
+            if ($null -eq $taskTextValue) { $taskTextValue = "" }
+
             $taskText = ""
             if ($taskPriority -gt 0) {
                 $taskText = "P$taskPriority "
@@ -257,7 +277,7 @@ class KanbanScreen : PmcScreen {
 
             # Truncate if needed
             $maxWidth = $width - 2
-            if ($taskText.Length -gt $maxWidth) {
+            if ($null -ne $taskText -and $taskText.Length -gt $maxWidth) {
                 $taskText = $taskText.Substring(0, $maxWidth - 3) + "..."
             }
 
@@ -272,8 +292,9 @@ class KanbanScreen : PmcScreen {
                     $sb.Append("P$taskPriority ")
                     $sb.Append($reset)
                     $sb.Append($textColor)
+                    # HIGH FIX KAN-H4: Safe string length check
                     $displayText = $taskTextValue
-                    if ($displayText.Length -gt ($maxWidth - 4)) {
+                    if ($null -ne $displayText -and $displayText.Length -gt ($maxWidth - 4)) {
                         $displayText = $displayText.Substring(0, $maxWidth - 7) + "..."
                     }
                     $sb.Append($displayText)
@@ -362,19 +383,20 @@ class KanbanScreen : PmcScreen {
     }
 
     hidden [void] _MoveSelectionDown() {
+        # HIGH FIX KAN-H2: Prevent navigation when array is empty (Count = 0)
         switch ($this.SelectedColumn) {
             0 {
-                if ($this.SelectedIndexTodo -lt ($this.TodoTasks.Count - 1)) {
+                if ($this.TodoTasks.Count -gt 0 -and $this.SelectedIndexTodo -lt ($this.TodoTasks.Count - 1)) {
                     $this.SelectedIndexTodo++
                 }
             }
             1 {
-                if ($this.SelectedIndexInProgress -lt ($this.InProgressTasks.Count - 1)) {
+                if ($this.InProgressTasks.Count -gt 0 -and $this.SelectedIndexInProgress -lt ($this.InProgressTasks.Count - 1)) {
                     $this.SelectedIndexInProgress++
                 }
             }
             2 {
-                if ($this.SelectedIndexDone -lt ($this.DoneTasks.Count - 1)) {
+                if ($this.DoneTasks.Count -gt 0 -and $this.SelectedIndexDone -lt ($this.DoneTasks.Count - 1)) {
                     $this.SelectedIndexDone++
                 }
             }
@@ -467,6 +489,12 @@ class KanbanScreen : PmcScreen {
 
         $taskId = Get-SafeProperty $task 'id'
         if ($taskId) {
+            # CRITICAL FIX KAN-C4: Add null check on $global:PmcApp
+            if ($null -eq $global:PmcApp) {
+                Write-PmcTuiLog "KanbanScreen._ShowTaskDetail: global:PmcApp is null" "ERROR"
+                $this.ShowError("Application context not available")
+                return
+            }
             . "$PSScriptRoot/TaskDetailScreen.ps1"
             $detailScreen = [TaskDetailScreen]::new($taskId)
             $global:PmcApp.PushScreen($detailScreen)
@@ -480,8 +508,16 @@ class KanbanScreen : PmcScreen {
 function Show-KanbanScreen {
     param([object]$App)
 
-    if (-not $App) {
+    # MEDIUM FIX KAN-M2: Enhanced parameter validation
+    if ($null -eq $App) {
+        Write-PmcTuiLog "Show-KanbanScreen: App parameter is null" "ERROR"
         throw "PmcApplication required"
+    }
+
+    # Verify App has required method
+    if (-not ($App.PSObject.Methods['PushScreen'])) {
+        Write-PmcTuiLog "Show-KanbanScreen: App missing PushScreen method" "ERROR"
+        throw "PmcApplication does not have PushScreen method"
     }
 
     $screen = [KanbanScreen]::new()

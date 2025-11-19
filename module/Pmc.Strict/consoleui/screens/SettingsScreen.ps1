@@ -361,6 +361,13 @@ class SettingsScreen : PmcScreen {
         $oldValue = $setting.value
         $newValue = $this.InputBuffer
 
+        # CRITICAL FIX SS-C2: Validate input before assignment
+        if ($null -eq $newValue) {
+            Write-PmcTuiLog "SettingsScreen: Cannot set null value for $($setting.key)" "ERROR"
+            $this.ShowMessage("Invalid value", "error")
+            return
+        }
+
         # Update the setting value
         $setting.value = $newValue
 
