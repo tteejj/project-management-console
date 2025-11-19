@@ -674,8 +674,9 @@ class ProjectListScreen : StandardListScreen {
         $itemName = Get-SafeProperty $item 'name'
 
         # PS-H1 FIX: Use hashtable approach for O(1) lookup instead of O(n) filtering
-        if ($null -eq $allTasks) { $allTasks = @() }
+        # BUG-1 FIX: Move null check AFTER GetAllTasks() call
         $allTasks = $this.Store.GetAllTasks()
+        if ($null -eq $allTasks) { $allTasks = @() }
         $tasksByProject = @{}
         foreach ($task in $allTasks) {
             $projName = Get-SafeProperty $task 'project'

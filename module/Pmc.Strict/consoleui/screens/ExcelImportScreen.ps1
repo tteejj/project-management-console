@@ -489,7 +489,9 @@ class ExcelImportScreen : PmcScreen {
                         if ($null -eq $value -or $value -eq '') {
                             0
                         } else {
-                            [int]$value
+                            # BUG-16 FIX: Use [long] (Int64) to handle numbers > 2,147,483,647
+                            # Excel can contain large numbers that exceed Int32 max value
+                            [long]$value
                         }
                     } catch {
                         Write-PmcTuiLog "Failed to convert '$originalValue' (type: $originalType) to int for field $($mapping['display_name']): $_" "ERROR"
@@ -558,9 +560,11 @@ class ExcelImportScreen : PmcScreen {
         if ($success) {
             Write-PmcTuiLog "ExcelImportScreen: Imported project '$($projectData['name'])'" "INFO"
             # ES-M9 FIX: Check Flush() return value to ensure data is persisted
+            # BUG-14 FIX: Throw error if Flush() fails instead of just logging
             $flushResult = $this.Store.Flush()
             if ($flushResult -eq $false) {
-                Write-PmcTuiLog "ExcelImportScreen: Warning - Flush() returned false after importing project '$($projectData['name'])'" "WARN"
+                Write-PmcTuiLog "ExcelImportScreen: CRITICAL - Flush() returned false after importing project '$($projectData['name'])'" "ERROR"
+                throw "Failed to persist project data to disk. Import cancelled."
             }
         } else {
             # ES-H7 FIX: Check Store is not null before accessing LastError

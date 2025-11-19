@@ -94,12 +94,17 @@ class TaskListScreen : StandardListScreen {
     # Caching for performance
     hidden [array]$_cachedFilteredTasks = $null
     hidden [string]$_cacheKey = ""  # viewMode:sortColumn:sortAsc:showCompleted
+    # BUG-13 FIX: Cache parent-child relationships for O(1) lookups
+    hidden [hashtable]$_childrenIndex = @{}
 
     # L-POL-14: Strikethrough support detection
     hidden [bool]$_supportsStrikethrough = $true  # Assume support, can be overridden
 
     # Debug logging flag - set to $false to disable debug file writes
     hidden [bool]$_enableDebugLogging = $false
+
+    # BUG-2 FIX: Loading state flag to prevent reentrant LoadData() calls
+    hidden [bool]$_isLoading = $false
 
     # LOW FIX TLS-L4: Centralized initialization to reduce constructor duplication
     hidden [void] _InitializeTaskListScreen([string]$viewMode, [bool]$setupCallbacks) {
@@ -185,14 +190,15 @@ class TaskListScreen : StandardListScreen {
         ([StandardListScreen]$this)._InitializeComponents()
 
         # CRITICAL FIX: Override the TaskStore event handler to invalidate cache before refresh
+        # BUG-2 FIX: Check _isLoading flag to prevent reentrant LoadData() calls
         $self = $this
         $this.Store.OnTasksChanged = {
             param($tasks)
             # Invalidate cache so LoadData will reload
             $self._cachedFilteredTasks = $null
             $self._cacheKey = ""
-            # Then refresh the list
-            if ($self.IsActive) {
+            # Then refresh the list ONLY if not currently loading (prevents race condition)
+            if ($self.IsActive -and -not $self._isLoading) {
                 $self.RefreshList()
             }
         }.GetNewClosure()
@@ -318,223 +324,233 @@ class TaskListScreen : StandardListScreen {
 
     # Implement abstract method: Load data from TaskStore
     [void] LoadData() {
-        # CRITICAL FIX TLS-C1: Invalidate cache BEFORE building key to prevent race condition
-        # where TaskStore events invalidate cache after key check but before data load
-        $this._cachedFilteredTasks = $null
-        $this._cacheKey = ""
+        # BUG-2 FIX: Set loading flag to prevent reentrant calls
+        $this._isLoading = $true
+        try {
+            # CRITICAL FIX TLS-C1: Invalidate cache BEFORE building key to prevent race condition
+            # where TaskStore events invalidate cache after key check but before data load
+            $this._cachedFilteredTasks = $null
+            $this._cacheKey = ""
 
-        # Build cache key from current filter/sort settings
-        $currentKey = "$($this._viewMode):$($this._sortColumn):$($this._sortAscending):$($this._showCompleted)"
+            # Build cache key from current filter/sort settings
+            $currentKey = "$($this._viewMode):$($this._sortColumn):$($this._sortAscending):$($this._showCompleted)"
 
-        $allTasks = $this.Store.GetAllTasks()
+            $allTasks = $this.Store.GetAllTasks()
 
-        # DEBUG: Log loaded task priorities
-        if ($this._enableDebugLogging) {
-            $targetTask = $allTasks | Where-Object { $_.id -eq 'c6f2bed5-6246-4be9-afc8-161bbb3ebcb0' } | Select-Object -First 1
-            if ($targetTask) {
-                Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') LoadData: Loaded task c6f2bed5 - priority=$(Get-SafeProperty $targetTask 'priority') project=$(Get-SafeProperty $targetTask 'project') tags=$(Get-SafeProperty $targetTask 'tags')"
+            # DEBUG: Log loaded task priorities
+            if ($this._enableDebugLogging) {
+                $targetTask = $allTasks | Where-Object { $_.id -eq 'c6f2bed5-6246-4be9-afc8-161bbb3ebcb0' } | Select-Object -First 1
+                if ($targetTask) {
+                    Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') LoadData: Loaded task c6f2bed5 - priority=$(Get-SafeProperty $targetTask 'priority') project=$(Get-SafeProperty $targetTask 'project') tags=$(Get-SafeProperty $targetTask 'tags')"
+                }
             }
-        }
 
-        # Null check to prevent crashes
-        if ($null -eq $allTasks -or $allTasks.Count -eq 0) {
-            $this.List.SetData(@())
-            $this._cachedFilteredTasks = @()
-            $this._cacheKey = $currentKey
-            return
-        }
+            # Null check to prevent crashes
+            if ($null -eq $allTasks -or $allTasks.Count -eq 0) {
+                $this.List.SetData(@())
+                $this._cachedFilteredTasks = @()
+                $this._cacheKey = $currentKey
+                return
+            }
 
-        # NOTE: TaskStore already converts to hashtables in LoadData (TaskStore.ps1:233-242)
-        # No need for redundant type conversion here - removed for performance
+            # NOTE: TaskStore already converts to hashtables in LoadData (TaskStore.ps1:233-242)
+            # No need for redundant type conversion here - removed for performance
 
-        # Apply view mode filter
-        $filteredTasks = switch ($this._viewMode) {
-            'all' { $allTasks }
-            'active' { $allTasks | Where-Object { -not (Get-SafeProperty $_ 'completed') } }
-            'completed' { $allTasks | Where-Object { Get-SafeProperty $_ 'completed' } }
-            'overdue' {
-                $allTasks | Where-Object {
-                    $due = Get-SafeProperty $_ 'due'
-                    -not (Get-SafeProperty $_ 'completed') -and
-                    $due -and
-                    $due -lt [DateTime]::Today
+            # Apply view mode filter
+            $filteredTasks = switch ($this._viewMode) {
+                'all' { $allTasks }
+                'active' { $allTasks | Where-Object { -not (Get-SafeProperty $_ 'completed') } }
+                'completed' { $allTasks | Where-Object { Get-SafeProperty $_ 'completed' } }
+                'overdue' {
+                    $allTasks | Where-Object {
+                        $due = Get-SafeProperty $_ 'due'
+                        -not (Get-SafeProperty $_ 'completed') -and
+                        $due -and
+                        $due -lt [DateTime]::Today
+                    }
                 }
-            }
-            'today' {
-                $allTasks | Where-Object {
-                    $due = Get-SafeProperty $_ 'due'
-                    -not (Get-SafeProperty $_ 'completed') -and
-                    $due -and
-                    $due.Date -eq [DateTime]::Today
+                'today' {
+                    $allTasks | Where-Object {
+                        $due = Get-SafeProperty $_ 'due'
+                        -not (Get-SafeProperty $_ 'completed') -and
+                        $due -and
+                        $due.Date -eq [DateTime]::Today
+                    }
                 }
-            }
-            'tomorrow' {
-                $tomorrow = [DateTime]::Today.AddDays(1)
-                $allTasks | Where-Object {
-                    $due = Get-SafeProperty $_ 'due'
-                    -not (Get-SafeProperty $_ 'completed') -and
-                    $due -and
-                    $due.Date -eq $tomorrow
+                'tomorrow' {
+                    $tomorrow = [DateTime]::Today.AddDays(1)
+                    $allTasks | Where-Object {
+                        $due = Get-SafeProperty $_ 'due'
+                        -not (Get-SafeProperty $_ 'completed') -and
+                        $due -and
+                        $due.Date -eq $tomorrow
+                    }
                 }
-            }
-            'week' {
-                $weekEnd = [DateTime]::Today.AddDays(7)
-                $allTasks | Where-Object {
-                    $due = Get-SafeProperty $_ 'due'
-                    -not (Get-SafeProperty $_ 'completed') -and
-                    $due -and
-                    $due -ge [DateTime]::Today -and
-                    $due -le $weekEnd
+                'week' {
+                    $weekEnd = [DateTime]::Today.AddDays(7)
+                    $allTasks | Where-Object {
+                        $due = Get-SafeProperty $_ 'due'
+                        -not (Get-SafeProperty $_ 'completed') -and
+                        $due -and
+                        $due -ge [DateTime]::Today -and
+                        $due -le $weekEnd
+                    }
                 }
-            }
-            'nextactions' {
-                # Tasks with no dependencies or all dependencies completed
-                $allTasks | Where-Object {
-                    $dependsOn = Get-SafeProperty $_ 'depends_on'
-                    -not (Get-SafeProperty $_ 'completed') -and
-                    (-not $dependsOn -or (-not ($dependsOn -is [array])) -or $dependsOn.Count -eq 0)
+                'nextactions' {
+                    # Tasks with no dependencies or all dependencies completed
+                    $allTasks | Where-Object {
+                        $dependsOn = Get-SafeProperty $_ 'depends_on'
+                        -not (Get-SafeProperty $_ 'completed') -and
+                        (-not $dependsOn -or (-not ($dependsOn -is [array])) -or $dependsOn.Count -eq 0)
+                    }
                 }
-            }
-            'noduedate' {
-                $allTasks | Where-Object {
-                    -not (Get-SafeProperty $_ 'completed') -and
-                    -not (Get-SafeProperty $_ 'due')
+                'noduedate' {
+                    $allTasks | Where-Object {
+                        -not (Get-SafeProperty $_ 'completed') -and
+                        -not (Get-SafeProperty $_ 'due')
+                    }
                 }
-            }
-            'month' {
-                $monthEnd = [DateTime]::Today.AddDays(30)
-                $allTasks | Where-Object {
-                    $due = Get-SafeProperty $_ 'due'
-                    -not (Get-SafeProperty $_ 'completed') -and
-                    $due -and
-                    $due -ge [DateTime]::Today -and
-                    $due -le $monthEnd
+                'month' {
+                    $monthEnd = [DateTime]::Today.AddDays(30)
+                    $allTasks | Where-Object {
+                        $due = Get-SafeProperty $_ 'due'
+                        -not (Get-SafeProperty $_ 'completed') -and
+                        $due -and
+                        $due -ge [DateTime]::Today -and
+                        $due -le $monthEnd
+                    }
                 }
-            }
-            'agenda' {
-                # All tasks with due dates, sorted by date
-                $allTasks | Where-Object {
-                    -not (Get-SafeProperty $_ 'completed') -and
-                    (Get-SafeProperty $_ 'due')
+                'agenda' {
+                    # All tasks with due dates, sorted by date
+                    $allTasks | Where-Object {
+                        -not (Get-SafeProperty $_ 'completed') -and
+                        (Get-SafeProperty $_ 'due')
+                    }
                 }
-            }
-            'upcoming' {
-                # Tasks due in the future (beyond today)
-                $allTasks | Where-Object {
-                    $due = Get-SafeProperty $_ 'due'
-                    -not (Get-SafeProperty $_ 'completed') -and
-                    $due -and
-                    $due.Date -gt [DateTime]::Today
+                'upcoming' {
+                    # Tasks due in the future (beyond today)
+                    $allTasks | Where-Object {
+                        $due = Get-SafeProperty $_ 'due'
+                        -not (Get-SafeProperty $_ 'completed') -and
+                        $due -and
+                        $due.Date -gt [DateTime]::Today
+                    }
                 }
+                default { $allTasks }
             }
-            default { $allTasks }
-        }
 
-        # Null check after filtering to prevent crashes
-        if ($null -eq $filteredTasks) { $filteredTasks = @() }
-
-        # Apply completed filter if needed
-        if (-not $this._showCompleted) {
-            $filteredTasks = $filteredTasks | Where-Object { -not (Get-SafeProperty $_ 'completed') }
-            # Null check after additional filtering
+            # Null check after filtering to prevent crashes
             if ($null -eq $filteredTasks) { $filteredTasks = @() }
-        }
 
-        # Apply sorting
-        $sortedTasks = switch ($this._sortColumn) {
-            'priority' { $filteredTasks | Sort-Object { Get-SafeProperty $_ 'priority' } -Descending:(-not $this._sortAscending) }
-            'text' { $filteredTasks | Sort-Object { Get-SafeProperty $_ 'text' } -Descending:(-not $this._sortAscending) }
-            'due' {
-                # Sort with nulls last
-                $withDue = @($filteredTasks | Where-Object { Get-SafeProperty $_ 'due' })
-                $withoutDue = @($filteredTasks | Where-Object { -not (Get-SafeProperty $_ 'due') })
-                if ($this._sortAscending) {
-                    @($withDue | Sort-Object { Get-SafeProperty $_ 'due' }) + $withoutDue
-                } else {
-                    @($withDue | Sort-Object { Get-SafeProperty $_ 'due' } -Descending) + $withoutDue
+            # Apply completed filter if needed
+            if (-not $this._showCompleted) {
+                $filteredTasks = $filteredTasks | Where-Object { -not (Get-SafeProperty $_ 'completed') }
+                # Null check after additional filtering
+                if ($null -eq $filteredTasks) { $filteredTasks = @() }
+            }
+
+            # Apply sorting
+            $sortedTasks = switch ($this._sortColumn) {
+                'priority' { $filteredTasks | Sort-Object { Get-SafeProperty $_ 'priority' } -Descending:(-not $this._sortAscending) }
+                'text' { $filteredTasks | Sort-Object { Get-SafeProperty $_ 'text' } -Descending:(-not $this._sortAscending) }
+                'due' {
+                    # Sort with nulls last
+                    $withDue = @($filteredTasks | Where-Object { Get-SafeProperty $_ 'due' })
+                    $withoutDue = @($filteredTasks | Where-Object { -not (Get-SafeProperty $_ 'due') })
+                    if ($this._sortAscending) {
+                        @($withDue | Sort-Object { Get-SafeProperty $_ 'due' }) + $withoutDue
+                    } else {
+                        @($withDue | Sort-Object { Get-SafeProperty $_ 'due' } -Descending) + $withoutDue
+                    }
+                }
+                'project' { $filteredTasks | Sort-Object { Get-SafeProperty $_ 'project' } -Descending:(-not $this._sortAscending) }
+                default { $filteredTasks }
+            }
+
+            # Null check after sorting to prevent crashes
+            if ($null -eq $sortedTasks) { $sortedTasks = @() }
+
+            # Reorganize to group subtasks with parents - OPTIMIZED O(n) using hashtable index
+            $organized = [System.Collections.ArrayList]::new()
+            $processedIds = @{}
+
+            # Build hashtable index of children by parent_id - O(n)
+            # BUG-13 FIX: Store this index for reuse in Space key handler
+            $childrenByParent = @{}
+            foreach ($task in $sortedTasks) {
+                $parentId = Get-SafeProperty $task 'parent_id'
+                if ($parentId) {
+                    if (-not $childrenByParent.ContainsKey($parentId)) {
+                        $childrenByParent[$parentId] = [System.Collections.ArrayList]::new()
+                    }
+                    [void]$childrenByParent[$parentId].Add($task)
                 }
             }
-            'project' { $filteredTasks | Sort-Object { Get-SafeProperty $_ 'project' } -Descending:(-not $this._sortAscending) }
-            default { $filteredTasks }
-        }
+            # Cache the children index for O(1) "has children" lookups
+            $this._childrenIndex = $childrenByParent
 
-        # Null check after sorting to prevent crashes
-        if ($null -eq $sortedTasks) { $sortedTasks = @() }
+            # Process all parent tasks and their children - O(n)
+            foreach ($task in $sortedTasks) {
+                $taskId = Get-SafeProperty $task 'id'
+                $parentId = Get-SafeProperty $task 'parent_id'
 
-        # Reorganize to group subtasks with parents - OPTIMIZED O(n) using hashtable index
-        $organized = [System.Collections.ArrayList]::new()
-        $processedIds = @{}
+                # Skip if already processed (was added as subtask)
+                if ($processedIds.ContainsKey($taskId)) { continue }
 
-        # Build hashtable index of children by parent_id - O(n)
-        $childrenByParent = @{}
-        foreach ($task in $sortedTasks) {
-            $parentId = Get-SafeProperty $task 'parent_id'
-            if ($parentId) {
-                if (-not $childrenByParent.ContainsKey($parentId)) {
-                    $childrenByParent[$parentId] = [System.Collections.ArrayList]::new()
-                }
-                [void]$childrenByParent[$parentId].Add($task)
-            }
-        }
+                # Add parent task only if it has no parent
+                if (-not $parentId) {
+                    [void]$organized.Add($task)
+                    $processedIds[$taskId] = $true
 
-        # Process all parent tasks and their children - O(n)
-        foreach ($task in $sortedTasks) {
-            $taskId = Get-SafeProperty $task 'id'
-            $parentId = Get-SafeProperty $task 'parent_id'
-
-            # Skip if already processed (was added as subtask)
-            if ($processedIds.ContainsKey($taskId)) { continue }
-
-            # Add parent task only if it has no parent
-            if (-not $parentId) {
-                [void]$organized.Add($task)
-                $processedIds[$taskId] = $true
-
-                # Add all children immediately after parent using hashtable lookup - O(1)
-                if ($childrenByParent.ContainsKey($taskId)) {
-                    $isCollapsed = $this._collapsedSubtasks.ContainsKey($taskId)
-                    foreach ($subtask in $childrenByParent[$taskId]) {
-                        $subId = Get-SafeProperty $subtask 'id'
-                        if (-not $processedIds.ContainsKey($subId)) {
-                            # Only ADD to display if parent is NOT collapsed
-                            if (-not $isCollapsed) {
-                                [void]$organized.Add($subtask)
+                    # Add all children immediately after parent using hashtable lookup - O(1)
+                    if ($childrenByParent.ContainsKey($taskId)) {
+                        $isCollapsed = $this._collapsedSubtasks.ContainsKey($taskId)
+                        foreach ($subtask in $childrenByParent[$taskId]) {
+                            $subId = Get-SafeProperty $subtask 'id'
+                            if (-not $processedIds.ContainsKey($subId)) {
+                                # Only ADD to display if parent is NOT collapsed
+                                if (-not $isCollapsed) {
+                                    [void]$organized.Add($subtask)
+                                }
+                                # But ALWAYS mark as processed so they don't appear as orphans
+                                $processedIds[$subId] = $true
                             }
-                            # But ALWAYS mark as processed so they don't appear as orphans
-                            $processedIds[$subId] = $true
                         }
                     }
                 }
             }
-        }
 
-        # Add orphaned subtasks at the end (subtasks whose parent was filtered out or deleted)
-        foreach ($task in $sortedTasks) {
-            $taskId = Get-SafeProperty $task 'id'
-            if (-not $processedIds.ContainsKey($taskId)) {
-                [void]$organized.Add($task)
-                $processedIds[$taskId] = $true
+            # Add orphaned subtasks at the end (subtasks whose parent was filtered out or deleted)
+            foreach ($task in $sortedTasks) {
+                $taskId = Get-SafeProperty $task 'id'
+                if (-not $processedIds.ContainsKey($taskId)) {
+                    [void]$organized.Add($task)
+                    $processedIds[$taskId] = $true
+                }
             }
-        }
 
-        $sortedTasks = $organized
+            $sortedTasks = $organized
 
-        # Update stats
-        $this._UpdateStats($allTasks)
+            # Update stats
+            $this._UpdateStats($allTasks)
 
-        # Cache the filtered/sorted result
-        $this._cachedFilteredTasks = $sortedTasks
-        $this._cacheKey = $currentKey
+            # Cache the filtered/sorted result
+            $this._cachedFilteredTasks = $sortedTasks
+            $this._cacheKey = $currentKey
 
-        # DEBUG: Log the data being set
-        Write-PmcTuiLog "TaskListScreen.LoadData: Setting $($sortedTasks.Count) tasks to list (viewMode=$($this._viewMode), allTasks=$($allTasks.Count), filtered=$($filteredTasks.Count))" "DEBUG"
+            # DEBUG: Log the data being set
+            Write-PmcTuiLog "TaskListScreen.LoadData: Setting $($sortedTasks.Count) tasks to list (viewMode=$($this._viewMode), allTasks=$($allTasks.Count), filtered=$($filteredTasks.Count))" "DEBUG"
 
-        # Set data to list
-        $this.List.SetData($sortedTasks)
+            # Set data to list
+            $this.List.SetData($sortedTasks)
 
-        # Force full re-render when data changes
-        if ($this.RenderEngine -and $this.RenderEngine.PSObject.Methods['RequestClear']) {
-            $this.RenderEngine.RequestClear()
+            # Force full re-render when data changes
+            if ($this.RenderEngine -and $this.RenderEngine.PSObject.Methods['RequestClear']) {
+                $this.RenderEngine.RequestClear()
+            }
+        } finally {
+            # BUG-2 FIX: Always clear loading flag, even if there was an error or early return
+            $this._isLoading = $false
         }
     }
 
@@ -1218,6 +1234,12 @@ class TaskListScreen : StandardListScreen {
                 if ($this._enableDebugLogging) {
                     Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') OnItemUpdated: FAILED - error=$($this.Store.LastError)"
                 }
+                # BUG-4 FIX: Reload data on failure to restore consistent state
+                try {
+                    $this.LoadData()
+                } catch {
+                    Write-PmcTuiLog "OnItemUpdated: LoadData after failure failed: $_" "WARNING"
+                }
             }
         }
         catch {
@@ -1247,6 +1269,15 @@ class TaskListScreen : StandardListScreen {
             $this.SetStatusMessage("Cannot delete: task has no ID", "error")
             return
         }
+
+        # BUG-15 FIX: Check for subtasks before deletion to prevent orphaning
+        if ($this._childrenIndex.ContainsKey($taskId)) {
+            $childCount = $this._childrenIndex[$taskId].Count
+            Write-PmcTuiLog "OnItemDeleted: Cannot delete task with $childCount subtasks" "WARNING"
+            $this.SetStatusMessage("Cannot delete task with $childCount subtask(s). Delete or reassign subtasks first.", "error")
+            return
+        }
+
         try {
             $success = $this.Store.DeleteTask($taskId)
             if ($success) {
@@ -1285,6 +1316,12 @@ class TaskListScreen : StandardListScreen {
         } else {
             $this.SetStatusMessage("Failed to update task: $($this.Store.LastError)", "error")
             Write-PmcTuiLog "ToggleTaskCompletion failed: $($this.Store.LastError)" "ERROR"
+            # BUG-4 FIX: Reload data on failure to restore consistent state
+            try {
+                $this.LoadData()
+            } catch {
+                Write-PmcTuiLog "ToggleTaskCompletion: LoadData after failure failed: $_" "WARNING"
+            }
         }
     }
 
@@ -1309,6 +1346,12 @@ class TaskListScreen : StandardListScreen {
         } else {
             $this.SetStatusMessage("Failed to complete task: $($this.Store.LastError)", "error")
             Write-PmcTuiLog "CompleteTask failed: $($this.Store.LastError)" "ERROR"
+            # BUG-4 FIX: Reload data on failure to restore consistent state
+            try {
+                $this.LoadData()
+            } catch {
+                Write-PmcTuiLog "CompleteTask: LoadData after failure failed: $_" "WARNING"
+            }
         }
     }
 
@@ -1442,6 +1485,13 @@ class TaskListScreen : StandardListScreen {
             $this.SetStatusMessage("Completed $successCount tasks, failed $failCount", "warning")
         }
         $this.List.ClearSelection()
+
+        # BUG-12 FIX: Reload data after bulk operations to show updated state
+        try {
+            $this.LoadData()
+        } catch {
+            Write-PmcTuiLog "BulkCompleteSelected: LoadData failed: $_" "WARNING"
+        }
     }
 
     # Custom action: Bulk delete selected tasks
@@ -1454,8 +1504,16 @@ class TaskListScreen : StandardListScreen {
 
         $successCount = 0
         $failCount = 0
+        $skippedCount = 0
         foreach ($task in $selected) {
             $taskId = Get-SafeProperty $task 'id'
+            # BUG-15 FIX: Check for subtasks before deletion
+            if ($this._childrenIndex.ContainsKey($taskId)) {
+                $childCount = $this._childrenIndex[$taskId].Count
+                Write-PmcTuiLog "BulkDeleteSelected: Skipping task $taskId with $childCount subtasks" "WARNING"
+                $skippedCount++
+                continue
+            }
             $success = $this.Store.DeleteTask($taskId)
             if ($success) {
                 $successCount++
@@ -1465,8 +1523,10 @@ class TaskListScreen : StandardListScreen {
             }
         }
 
-        if ($failCount -eq 0) {
+        if ($failCount -eq 0 -and $skippedCount -eq 0) {
             $this.SetStatusMessage("Deleted $successCount tasks", "success")
+        } elseif ($skippedCount -gt 0) {
+            $this.SetStatusMessage("Deleted $successCount, skipped $skippedCount (have subtasks), failed $failCount", "warning")
         } else {
             $this.SetStatusMessage("Deleted $successCount tasks, failed $failCount", "warning")
         }
@@ -2195,12 +2255,9 @@ class TaskListScreen : StandardListScreen {
             }
             if ($selected) {
                 $taskId = Get-SafeProperty $selected 'id'
-                # LOW FIX TLS-L6 (MEDIUM priority): Add null check on GetAllTasks()
-                $allTasks = $this.Store.GetAllTasks()
-                if ($null -eq $allTasks) { $allTasks = @() }
-                $hasChildren = $allTasks | Where-Object {
-                    (Get-SafeProperty $_ 'parent_id') -eq $taskId
-                } | Measure-Object | ForEach-Object { $_.Count -gt 0 }
+                # BUG-13 FIX: Use cached children index instead of loading all tasks
+                # O(1) hashtable lookup instead of O(n) GetAllTasks() + filtering
+                $hasChildren = $this._childrenIndex.ContainsKey($taskId)
 
                 if ($this._enableDebugLogging) {
                     Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Space: taskId=$taskId hasChildren=$hasChildren"
