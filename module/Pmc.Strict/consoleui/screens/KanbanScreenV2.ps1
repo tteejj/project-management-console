@@ -125,6 +125,8 @@ class KanbanScreenV2 : PmcScreen {
                 }
             }
         } catch {
+            # MEDIUM FIX KSV2-M1: Add logging to catch block
+            Write-PmcTuiLog "KanbanScreenV2._LoadTagColors: Failed to load tag colors: $($_.Exception.Message)" "WARNING"
             $this.TagColors = @{}
         }
     }
@@ -134,7 +136,13 @@ class KanbanScreenV2 : PmcScreen {
 
         try {
             # Load PMC data
+            # CRITICAL FIX KSV2-C4: Add null check on GetAllTasks()
             $allTasks = $this.Store.GetAllTasks()
+            if ($null -eq $allTasks) {
+                Write-PmcTuiLog "KanbanScreenV2.LoadData: GetAllTasks() returned null" "ERROR"
+                $allTasks = @()
+                $this.ShowError("Failed to load tasks")
+            }
 
             # In Progress column: ONLY tasks with explicit status = 'in-progress'
             $this.InProgressTasks = @($allTasks | Where-Object {
@@ -160,19 +168,22 @@ class KanbanScreenV2 : PmcScreen {
             })
 
             # Sort by order field (for manual reordering), then priority
+            # CRITICAL FIX KSV2-C1: Safe [int] cast with validation
             $this.TodoTasks = @($this.TodoTasks | Sort-Object {
                 $order = Get-SafeProperty $_ 'order'
-                if ($order) { [int]$order } else { 999 }
+                if ($order -and $order -match '^\d+$') { [int]$order } else { 999 }
             }, { Get-SafeProperty $_ 'priority' } -Descending)
 
+            # CRITICAL FIX KSV2-C2: Safe [int] cast with validation
             $this.InProgressTasks = @($this.InProgressTasks | Sort-Object {
                 $order = Get-SafeProperty $_ 'order'
-                if ($order) { [int]$order } else { 999 }
+                if ($order -and $order -match '^\d+$') { [int]$order } else { 999 }
             }, { Get-SafeProperty $_ 'priority' } -Descending)
 
+            # CRITICAL FIX KSV2-C3: Safe [int] cast with validation
             $this.DoneTasks = @($this.DoneTasks | Sort-Object {
                 $order = Get-SafeProperty $_ 'order'
-                if ($order) { [int]$order } else { 999 }
+                if ($order -and $order -match '^\d+$') { [int]$order } else { 999 }
             }, { Get-SafeProperty $_ 'priority' } -Descending)
 
             # Build parent-child cache for performance optimization
@@ -340,6 +351,9 @@ class KanbanScreenV2 : PmcScreen {
 
     # Render borders around a column
     hidden [void] _RenderColumnBorder([System.Text.StringBuilder]$sb, [int]$x, [int]$y, [int]$width, [int]$height, [string]$title, [bool]$isActive, [string]$activeColor, [string]$inactiveColor, [string]$borderColor, [string]$reset) {
+        # HIGH FIX KSV2-H1: Add null check on $title parameter
+        if ($null -eq $title) { $title = "" }
+
         $titleColor = if ($isActive) { $activeColor } else { $inactiveColor }
 
         # Top border with title: ┌─ TITLE ───┐
@@ -393,7 +407,8 @@ class KanbanScreenV2 : PmcScreen {
         $visibleStart = $scrollOffset
         $visibleEnd = [Math]::Min($flatList.Count, $scrollOffset + $maxCards)
 
-        if ($visibleStart -lt $flatList.Count) {
+        # CRITICAL FIX KSV2-C5: Validate range before array slice
+        if ($visibleStart -lt $flatList.Count -and $visibleEnd -gt $visibleStart) {
             $visibleTasks = $flatList[$visibleStart..($visibleEnd - 1)]
         }
 
@@ -401,6 +416,11 @@ class KanbanScreenV2 : PmcScreen {
         $currentY = $y
         for ($i = 0; $i -lt $visibleTasks.Count; $i++) {
             $item = $visibleTasks[$i]
+            # CRITICAL FIX KSV2-C6 & C11: Add null check before accessing .Task property
+            if ($null -eq $item -or $null -eq $item.Task) {
+                Write-PmcTuiLog "KanbanScreenV2._RenderColumn: item or item.Task is null at index $i" "WARNING"
+                continue
+            }
             $task = $item.Task
             $depth = $item.Depth
             $globalIndex = $visibleStart + $i
@@ -436,7 +456,9 @@ class KanbanScreenV2 : PmcScreen {
             }
 
             # Get task text
+            # HIGH FIX KSV2-H2: Add null check before string concatenation
             $taskTextValue = Get-SafeProperty $task 'text'
+            if (-not $taskTextValue) { $taskTextValue = "" }
             $taskText = $indent + $prefix + $taskTextValue
 
             # Get tags
@@ -451,10 +473,12 @@ class KanbanScreenV2 : PmcScreen {
             $innerWidth = $cardWidth - 2  # Accounting for left/right borders
 
             # Truncate text if needed
-            if ($taskText.Length -gt $innerWidth) {
+            # HIGH FIX KSV2-H3: Add null check before .Length access
+            if ($taskText -and $taskText.Length -gt $innerWidth) {
                 $taskText = $taskText.Substring(0, $innerWidth - 3) + "..."
             }
-            if ($tagsText.Length -gt $innerWidth) {
+            # HIGH FIX KSV2-H4: Add null check before .Length access
+            if ($tagsText -and $tagsText.Length -gt $innerWidth) {
                 $tagsText = $tagsText.Substring(0, $innerWidth - 3) + "..."
             }
 
@@ -542,6 +566,11 @@ class KanbanScreenV2 : PmcScreen {
 
     # Get children of a task
     hidden [array] _GetChildren([object]$task, [array]$allTasks) {
+        # HIGH FIX KSV2-H5: Add parameter validation
+        if ($null -eq $task -or $null -eq $allTasks) {
+            Write-PmcTuiLog "KanbanScreenV2._GetChildren: null parameter (task=$($null -eq $task), allTasks=$($null -eq $allTasks))" "WARNING"
+            return @()
+        }
         $taskId = Get-SafeProperty $task 'id'
         return @($allTasks | Where-Object {
             $parentId = Get-SafeProperty $_ 'parent_id'
@@ -572,6 +601,11 @@ class KanbanScreenV2 : PmcScreen {
 
     # Convert hex color to ANSI sequence
     hidden [string] _HexToAnsi([string]$hex, [bool]$background) {
+        # HIGH FIX KSV2-H6: Add null check on $hex parameter
+        if ($null -eq $hex) {
+            Write-PmcTuiLog "KanbanScreenV2._HexToAnsi: hex parameter is null" "WARNING"
+            return ''
+        }
         $hex = $hex.TrimStart('#')
         if ($hex.Length -ne 6) { return '' }
 
@@ -586,6 +620,8 @@ class KanbanScreenV2 : PmcScreen {
                 return "`e[38;2;${r};${g};${b}m"
             }
         } catch {
+            # MEDIUM FIX KSV2-M2: Add logging to catch block
+            Write-PmcTuiLog "KanbanScreenV2._HexToAnsi: Invalid hex color '$hex': $($_.Exception.Message)" "WARNING"
             return ''
         }
     }
@@ -865,6 +901,11 @@ class KanbanScreenV2 : PmcScreen {
         # KSV2-M1 FIX: Add count check before iterating children array
         if ($this._HasChildren($task)) {
             try {
+                # CRITICAL FIX KSV2-C7: Add null check on Store before calling GetAllTasks()
+                if ($null -eq $this.Store) {
+                    Write-PmcTuiLog "KanbanScreenV2._MoveTask: Store is null" "ERROR"
+                    return
+                }
                 $allTasks = $this.Store.GetAllTasks()
                 if ($null -ne $allTasks -and $allTasks.Count -gt 0) {
                     $children = @($allTasks | Where-Object {
@@ -960,7 +1001,12 @@ class KanbanScreenV2 : PmcScreen {
 
     # Swap order values of two tasks
     hidden [void] _SwapTaskOrder([object]$task1, [object]$task2) {
+        # CRITICAL FIX KSV2-C8: Add null check on GetAllTasks()
         $allTasks = $this.Store.GetAllTasks()
+        if ($null -eq $allTasks) {
+            Write-PmcTuiLog "KanbanScreenV2._SwapTaskOrder: GetAllTasks() returned null" "ERROR"
+            $allTasks = @()
+        }
         $id1 = Get-SafeProperty $task1 'id'
         $id2 = Get-SafeProperty $task2 'id'
 
@@ -1115,7 +1161,13 @@ class KanbanScreenV2 : PmcScreen {
                     'Enter' {
                         # Save color
                         $taskId = Get-SafeProperty $task 'id'
-                        $chosenHex = $colors[$selected].Hex
+                        # CRITICAL FIX KSV2-C9: Add bounds check before array access
+                        if ($selected -ge 0 -and $selected -lt $colors.Count) {
+                            $chosenHex = $colors[$selected].Hex
+                        } else {
+                            Write-PmcTuiLog "KanbanScreenV2._ShowColorPicker: selected index $selected out of bounds (0-$($colors.Count-1))" "ERROR"
+                            $chosenHex = $null
+                        }
 
                         # Update color using TaskStore
                         if ($chosenHex) {
@@ -1154,7 +1206,9 @@ class KanbanScreenV2 : PmcScreen {
                     $this.SelectedIndexTodo = 0  # Reset to valid index
                     if ($flatList.Count -eq 0) { return $null }
                 }
-                return $flatList[$this.SelectedIndexTodo].Task
+                # CRITICAL FIX KSV2-C10: Check array element before accessing .Task
+                $item = $flatList[$this.SelectedIndexTodo]
+                if ($null -ne $item) { return $item.Task } else { return $null }
             }
             1 {
                 $flatList = $this._BuildFlatTaskList($this.InProgressTasks)
@@ -1165,7 +1219,9 @@ class KanbanScreenV2 : PmcScreen {
                     $this.SelectedIndexInProgress = 0  # Reset to valid index
                     if ($flatList.Count -eq 0) { return $null }
                 }
-                return $flatList[$this.SelectedIndexInProgress].Task
+                # CRITICAL FIX KSV2-C10: Check array element before accessing .Task
+                $item = $flatList[$this.SelectedIndexInProgress]
+                if ($null -ne $item) { return $item.Task } else { return $null }
             }
             2 {
                 $flatList = $this._BuildFlatTaskList($this.DoneTasks)
@@ -1176,7 +1232,9 @@ class KanbanScreenV2 : PmcScreen {
                     $this.SelectedIndexDone = 0  # Reset to valid index
                     if ($flatList.Count -eq 0) { return $null }
                 }
-                return $flatList[$this.SelectedIndexDone].Task
+                # CRITICAL FIX KSV2-C10: Check array element before accessing .Task
+                $item = $flatList[$this.SelectedIndexDone]
+                if ($null -ne $item) { return $item.Task } else { return $null }
             }
         }
         return $null
@@ -1214,6 +1272,9 @@ class KanbanScreenV2 : PmcScreen {
 
     # Render column border directly to engine (no string building)
     hidden [void] _RenderColumnBorderDirect([object]$engine, [int]$x, [int]$y, [int]$width, [int]$height, [string]$title, [bool]$isActive, [string]$activeColor, [string]$inactiveColor, [string]$borderColor, [string]$reset) {
+        # HIGH FIX KSV2-H1: Add null check on $title parameter (duplicate in direct render)
+        if ($null -eq $title) { $title = "" }
+
         $titleColor = if ($isActive) { $activeColor } else { $inactiveColor }
 
         # Top border with title: ┌─ TITLE ───┐
@@ -1241,6 +1302,8 @@ class KanbanScreenV2 : PmcScreen {
     }
 
     # Render column tasks directly to engine (no string building)
+    # LOW FIX KSV2-L1 TODO: Refactor to extract common card rendering logic shared with _RenderColumn()
+    # to reduce code duplication and improve maintainability
     hidden [void] _RenderColumnDirect([object]$engine, [int]$x, [int]$y, [int]$maxLines, [int]$width, [array]$tasks, [int]$selectedIndex, [int]$scrollOffset, [bool]$isActiveColumn) {
         $textColor = $this.Header.GetThemedAnsi('Text', $false)
         $selectedBg = $this.Header.GetThemedAnsi('Primary', $true)
@@ -1261,7 +1324,8 @@ class KanbanScreenV2 : PmcScreen {
         $visibleEnd = [Math]::Min($flatList.Count, $scrollOffset + $maxCards)
 
         $visibleTasks = @()
-        if ($visibleStart -lt $flatList.Count) {
+        # CRITICAL FIX KSV2-C5: Validate range before array slice (duplicate in direct render)
+        if ($visibleStart -lt $flatList.Count -and $visibleEnd -gt $visibleStart) {
             $visibleTasks = $flatList[$visibleStart..($visibleEnd - 1)]
         }
 
@@ -1269,6 +1333,11 @@ class KanbanScreenV2 : PmcScreen {
         $currentY = $y
         for ($i = 0; $i -lt $visibleTasks.Count; $i++) {
             $item = $visibleTasks[$i]
+            # CRITICAL FIX KSV2-C6 & C11: Add null check before accessing .Task property
+            if ($null -eq $item -or $null -eq $item.Task) {
+                Write-PmcTuiLog "KanbanScreenV2._RenderColumn: item or item.Task is null at index $i" "WARNING"
+                continue
+            }
             $task = $item.Task
             $depth = $item.Depth
             $globalIndex = $visibleStart + $i
@@ -1301,7 +1370,9 @@ class KanbanScreenV2 : PmcScreen {
                 $prefix += "P$taskPriority "
             }
 
+            # HIGH FIX KSV2-H7: Add null check before string concatenation (duplicate in direct render)
             $taskTextValue = Get-SafeProperty $task 'text'
+            if (-not $taskTextValue) { $taskTextValue = "" }
             $taskText = $indent + $prefix + $taskTextValue
 
             # Get tags
@@ -1316,10 +1387,11 @@ class KanbanScreenV2 : PmcScreen {
             $innerWidth = $cardWidth - 2
 
             # Truncate if needed
-            if ($taskText.Length -gt $innerWidth) {
+            # HIGH FIX KSV2-H8: Add null check before .Length access (duplicate in direct render)
+            if ($taskText -and $taskText.Length -gt $innerWidth) {
                 $taskText = $taskText.Substring(0, $innerWidth - 3) + "..."
             }
-            if ($tagsText.Length -gt $innerWidth) {
+            if ($tagsText -and $tagsText.Length -gt $innerWidth) {
                 $tagsText = $tagsText.Substring(0, $innerWidth - 3) + "..."
             }
 
