@@ -391,24 +391,17 @@ class InlineEditor : PmcWidget {
                     return $true
                 }
 
-                # For other fields - move to next field (or validate if last field)
-                if ($this._currentFieldIndex -eq $this._fields.Count - 1) {
-                    # Last field - validate and confirm
-                    if ($this._ValidateAllFields()) {
-                        Write-PmcTuiLog "InlineEditor: Validation passed, confirming" "DEBUG"
-                        $this.IsConfirmed = $true
-                        $values = $this.GetValues()
-                        $this._InvokeCallback($this.OnConfirmed, $values)
-                        return $true
-                    } else {
-                        # Validation failed - show errors and stay open
-                        Write-PmcTuiLog "InlineEditor: Validation FAILED - Errors: $($this._validationErrors -join ', ')" "ERROR"
-                        $this._InvokeCallback($this.OnValidationFailed, $this._validationErrors)
-                        return $true
-                    }
+                # For all other fields - Enter ALWAYS validates and saves (never moves)
+                if ($this._ValidateAllFields()) {
+                    Write-PmcTuiLog "InlineEditor: Validation passed, confirming" "DEBUG"
+                    $this.IsConfirmed = $true
+                    $values = $this.GetValues()
+                    $this._InvokeCallback($this.OnConfirmed, $values)
+                    return $true
                 } else {
-                    # Not last field - move to next
-                    $this._MoveToNextField()
+                    # Validation failed - show errors and stay open
+                    Write-PmcTuiLog "InlineEditor: Validation FAILED - Errors: $($this._validationErrors -join ', ')" "ERROR"
+                    $this._InvokeCallback($this.OnValidationFailed, $this._validationErrors)
                     return $true
                 }
             }
@@ -429,13 +422,23 @@ class InlineEditor : PmcWidget {
             return $true
         }
 
-        # Tab - move to next field
+        # Tab - open widget on widget fields, otherwise navigate
         if ($keyInfo.Key -eq 'Tab') {
             if ($keyInfo.Modifiers -band [ConsoleModifiers]::Shift) {
-                # Shift+Tab - previous field
+                # Shift+Tab - always navigate to previous field
                 $this._MoveToPreviousField()
             } else {
-                # Tab - next field
+                # Tab - check if current field is a widget type
+                if ($this._currentFieldIndex -ge 0 -and $this._currentFieldIndex -lt $this._fields.Count) {
+                    $currentField = $this._fields[$this._currentFieldIndex]
+                    # Widget fields: date, project, folder, tags
+                    if ($currentField.Type -in @('date', 'project', 'folder', 'tags')) {
+                        # Tab opens widget for these fields
+                        $this._ExpandCurrentField()
+                        return $true
+                    }
+                }
+                # For text/number fields, Tab moves to next field
                 $this._MoveToNextField()
             }
             return $true
@@ -550,7 +553,7 @@ class InlineEditor : PmcWidget {
 
         # Colors from theme
         $textColor = $this.GetThemedAnsi('Text', $false)
-        $highlightBg = "`e[48;5;236m"  # Gray background for non-focused
+        $highlightBg = $this.GetThemedAnsi('Highlight', $true)  # Theme highlight background for non-focused
         $focusBg = "`e[7m"              # Reverse video for focused
         $reset = "`e[0m"
 

@@ -515,6 +515,10 @@ class TaskListScreen : StandardListScreen {
                 Label = 'Task'
                 Width = 35
                 Align = 'left'
+                SkipRowHighlight = { param($item)
+                    # Skip row highlighting when inline editor is active
+                    return $self._showingInlineEditor
+                }.GetNewClosure()
                 Format = { param($task, $cellInfo)
                     $t = Get-SafeProperty $task 'title'
                     if (-not $t) { $t = Get-SafeProperty $task 'text' }
@@ -1550,8 +1554,8 @@ class TaskListScreen : StandardListScreen {
             return $true
         }
 
-        # E key: Enter inline edit mode
-        if ($key -eq [ConsoleKey]::E -and -not $ctrl -and -not $alt) {
+        # Enter key: Start inline edit mode (BEFORE base class to override default behavior)
+        if ($key -eq [ConsoleKey]::Enter -and -not $ctrl -and -not $alt) {
             $selected = $this.List.GetSelectedItem()
             if ($selected) {
                 $this.EditItem($selected)
