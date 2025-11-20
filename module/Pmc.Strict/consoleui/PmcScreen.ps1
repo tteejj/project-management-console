@@ -473,15 +473,28 @@ class PmcScreen {
             if ($this.PSObject.Methods['RenderContentToEngine'] -and
                 $this.GetType().GetMethod('RenderContentToEngine').DeclaringType.Name -ne 'PmcScreen') {
                 # Subclass overrides RenderContentToEngine - use direct path (no ANSI parsing)
+                if ($global:PmcTuiLogFile) {
+                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcScreen.RenderToEngine: Using RenderContentToEngine path"
+                }
                 $this.RenderContentToEngine($engine)
             } else {
                 # Fallback: Use ANSI string rendering (legacy path)
+                if ($global:PmcTuiLogFile) {
+                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcScreen.RenderToEngine: Using RenderContent path (fallback)"
+                }
                 $contentOutput = $this.RenderContent()
+                if ($global:PmcTuiLogFile) {
+                    $outputLen = if ($contentOutput) { $contentOutput.Length } else { "NULL" }
+                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcScreen.RenderToEngine: RenderContent returned length=$outputLen"
+                }
                 if ($contentOutput) {
                     $this._ParseAnsiAndWrite($engine, $contentOutput)
                 }
             }
         } catch {
+            if ($global:PmcTuiLogFile) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [ERROR] PmcScreen.RenderToEngine: Exception in content rendering: $_"
+            }
             $this._HandleWidgetRenderError("RenderContent", $_, $engine, 5)
         }
 

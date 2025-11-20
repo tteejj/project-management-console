@@ -640,7 +640,7 @@ class InlineEditor : PmcWidget {
 
             # Label
             $label = $field.Label
-            $isRequired = $field.Required $false
+            $isRequired = if ($field.Required) { $field.Required } else { $false }
             if ($isRequired) {
                 $label += " *"
             }

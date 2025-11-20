@@ -171,7 +171,14 @@ try {
         "UniversalList.ps1",
         "TimeEntryDetailDialog.ps1",
         "TextAreaEditor.ps1",
-        "PmcFilePicker.ps1"
+        "PmcFilePicker.ps1",
+        # Grid components (Phase 1)
+        "GridCell.ps1",
+        "CellEditor.ps1",
+        "CellEditorRegistry.ps1",
+        "ThemedCellRenderer.ps1",
+        "GridChangeTracker.ps1",
+        "EditableGrid.ps1"
     )
 
     foreach ($widgetFile in $widgetFiles) {
@@ -187,12 +194,25 @@ try {
     throw
 }
 
+Write-PmcTuiLog "Loading HelpViewScreen (required by base classes)..." "INFO"
+
+try {
+    . "$PSScriptRoot/screens/HelpViewScreen.ps1"
+    Write-PmcTuiLog "HelpViewScreen loaded" "INFO"
+} catch {
+    Write-PmcTuiLog "Failed to load HelpViewScreen: $_" "ERROR"
+    Write-PmcTuiLog $_.ScriptStackTrace "ERROR"
+    throw
+}
+
 Write-PmcTuiLog "Loading base classes..." "INFO"
 
 try {
     . "$PSScriptRoot/base/StandardFormScreen.ps1"
     . "$PSScriptRoot/base/StandardListScreen.ps1"
     . "$PSScriptRoot/base/StandardDashboard.ps1"
+    # Grid base class (Phase 2)
+    . "$PSScriptRoot/screens/GridScreen.ps1"
     Write-PmcTuiLog "Base classes loaded" "INFO"
 } catch {
     Write-PmcTuiLog "Failed to load base classes: $_" "ERROR"
@@ -229,6 +249,10 @@ try {
     # All other screens are lazy-loaded via MenuRegistry on-demand
     . "$PSScriptRoot/screens/TaskListScreen.ps1"
     Write-PmcTuiLog "TaskListScreen loaded" "INFO"
+
+    # Load TaskGridScreen (Phase 2 - grid mode)
+    . "$PSScriptRoot/screens/TaskGridScreen.ps1"
+    Write-PmcTuiLog "TaskGridScreen loaded" "INFO"
 } catch {
     Write-PmcTuiLog "Failed to load screens: $_" "ERROR"
     Write-PmcTuiLog $_.ScriptStackTrace "ERROR"
@@ -385,7 +409,7 @@ function Start-PmcTUI {
             # Ensure dependencies
             $null = $container.Resolve('Theme')
             $null = $container.Resolve('TaskStore')
-            return [TaskListScreen]::new($container)
+            return [TaskGridScreen]::new($container)
         }, $false)  # Not singleton - create new instance each time
 
         # === Resolve Application ===

@@ -142,6 +142,14 @@
         ViewMode = 'agenda'
     }
 
+    'TaskGridScreen' = @{
+        Menu = 'Tasks'
+        Label = 'Grid View (Excel-style)'
+        Hotkey = 'G'
+        Order = 53
+        ScreenFile = 'TaskGridScreen.ps1'
+    }
+
     'KanbanScreenV2' = @{
         Menu = 'Tasks'
         Label = 'Kanban Board'

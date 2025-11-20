@@ -1475,7 +1475,7 @@ class TaskListScreen : StandardListScreen {
                 $successCount++
             } else {
                 $failCount++
-                Write-PmcTuiLog "BulkCompleteSelected failed for task $taskId: $($this.Store.LastError)" "ERROR"
+                Write-PmcTuiLog "BulkCompleteSelected failed for task ${taskId}: $($this.Store.LastError)" "ERROR"
             }
         }
 
@@ -1519,7 +1519,7 @@ class TaskListScreen : StandardListScreen {
                 $successCount++
             } else {
                 $failCount++
-                Write-PmcTuiLog "BulkDeleteSelected failed for task $taskId: $($this.Store.LastError)" "ERROR"
+                Write-PmcTuiLog "BulkDeleteSelected failed for task ${taskId}: $($this.Store.LastError)" "ERROR"
             }
         }
 
@@ -1957,7 +1957,7 @@ class TaskListScreen : StandardListScreen {
         # Tab/Shift+Tab always closes widget and moves to next/prev field
         if ($keyInfo.Key -eq 'Tab') {
             if ($this._enableDebugLogging) {
-                Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Tab pressed - saving widget value and closing, editValues: pri=$($this._editValues.priority) title=$($this._editValues.title) details=$($this._editValues.details)"
+                Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Tab pressed - saving widget value and closing, editValues: title=$($this._editValues.title) details=$($this._editValues.details)"
             }
 
             # Save widget value before closing
@@ -2078,32 +2078,25 @@ class TaskListScreen : StandardListScreen {
             $item = $this.List.GetSelectedItem()
             if ($item) {
                 if ($this._enableDebugLogging) {
-                    Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Enter pressed - _editValues.priority=$($this._editValues.priority) type=$($this._editValues.priority.GetType().Name)"
                     Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Enter pressed - _editValues.project=$($this._editValues.project)"
                 }
 
                 # Map title/details to text field for OnItemUpdated
-                # Safely cast priority with validation
-                $priorityValue = 3  # Default priority
-                if ($null -ne $this._editValues.priority) {
-                    $tempPriority = 0
-                    if ([int]::TryParse($this._editValues.priority.ToString(), [ref]$tempPriority)) {
-                        $priorityValue = $tempPriority
-                    } else {
-                        Write-PmcTuiLog "Invalid priority value '$($this._editValues.priority)', using default 3" "WARNING"
-                    }
-                }
+                # Priority is NOT editable inline - preserve existing value from original task
+                $currentItem = $this.List.GetSelectedItem()
+                $existingPriority = if ($currentItem) { Get-SafeProperty $currentItem 'priority' } else { 3 }
+                if ($null -eq $existingPriority) { $existingPriority = 3 }
 
                 $updateValues = @{
                     text = $this._editValues.title ?? ""
                     details = $this._editValues.details
-                    priority = $priorityValue
+                    priority = $existingPriority  # Preserve existing priority (not editable inline)
                     due = $this._editValues.due
                     project = $this._editValues.project
                     tags = $this._editValues.tags
                 }
                 if ($this._enableDebugLogging) {
-                    Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Enter pressed - updateValues.priority=$($updateValues.priority) type=$($updateValues.priority.GetType().Name)"
+                    Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Enter pressed - updateValues.priority=$($updateValues.priority) (preserved from existing task)"
                     Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Enter pressed - updateValues.project=$($updateValues.project) type=$($updateValues.project.GetType().Name)"
                     Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Enter pressed - calling OnItemUpdated with: text='$($updateValues.text)' details='$($updateValues.details)' pri=$($updateValues.priority) project=$($updateValues.project)"
                 }
@@ -2127,55 +2120,8 @@ class TaskListScreen : StandardListScreen {
             Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Processing input for column: $col Key=$($keyInfo.Key)"
         }
 
-        if ($col -eq 'priority') {
-            if ($this._enableDebugLogging) {
-                Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Priority column - checking arrows. Key=$($keyInfo.Key) CurrentPri=$($this._editValues.priority)"
-            }
-            # Safely parse current priority value
-            $currentPriority = 3  # Default
-            if ($null -ne $this._editValues.priority) {
-                $tempPri = 0
-                if ([int]::TryParse($this._editValues.priority.ToString(), [ref]$tempPri)) {
-                    $currentPriority = $tempPri
-                }
-            }
-
-            # Up/Right arrows: increase priority
-            if ($keyInfo.Key -eq 'UpArrow' -or $keyInfo.Key -eq 'RightArrow') {
-                if ($currentPriority -lt 5) {
-                    $this._editValues.priority = $currentPriority + 1
-                    if ($this._enableDebugLogging) {
-                        Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Priority increased to $($this._editValues.priority)"
-                    }
-                    $this.List.InvalidateCache()  # Re-render to show new value
-                    if ($global:PmcApp) { $global:PmcApp.IsDirty = $true }  # Force immediate re-render
-                } else {
-                    if ($this._enableDebugLogging) {
-                        Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Priority already at MAX (5) - cannot increase"
-                    }
-                }
-            }
-            # Down/Left arrows: decrease priority
-            elseif ($keyInfo.Key -eq 'DownArrow' -or $keyInfo.Key -eq 'LeftArrow') {
-                if ($currentPriority -gt 0) {
-                    $this._editValues.priority = $currentPriority - 1
-                    if ($this._enableDebugLogging) {
-                        Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Priority decreased to $($this._editValues.priority)"
-                    }
-                    $this.List.InvalidateCache()  # Re-render to show new value
-                    if ($global:PmcApp) { $global:PmcApp.IsDirty = $true }  # Force immediate re-render
-                } else {
-                    if ($this._enableDebugLogging) {
-                        Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Priority already at MIN (0) - cannot decrease"
-                    }
-                }
-            } else {
-                if ($this._enableDebugLogging) {
-                    Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Priority column but key not an arrow: $($keyInfo.Key)"
-                }
-            }
-        }
-        elseif ($col -eq 'title' -or $col -eq 'details' -or $col -eq 'tags') {
+        # Priority is NOT editable inline - removed
+        if ($col -eq 'title' -or $col -eq 'details' -or $col -eq 'tags') {
             # Inline text editing for title, details, and tags
             if ($keyInfo.KeyChar -match '[a-zA-Z0-9 \-_.,!?@#$%^&*()\/\\:;''"<>]') {
                 $this._editValues[$col] = ($this._editValues[$col] ?? "") + $keyInfo.KeyChar
@@ -2203,6 +2149,61 @@ class TaskListScreen : StandardListScreen {
         return $true
     }
 
+    # Calculate cursor position for inline editing (following TextAreaEditor pattern)
+    hidden [hashtable] _CalculateCursorPosition() {
+        # Validate we're in edit mode and have valid column index
+        if (-not $this._isEditingRow) { return $null }
+        if ($this._currentColumnIndex -lt 0 -or $this._currentColumnIndex -ge $this._editableColumns.Count) {
+            return $null
+        }
+
+        # Get selected row's screen position
+        if ($null -eq $this.List) { return $null }
+        $selectedIndex = $this.List.GetSelectedIndex()
+
+        $contentRect = $this.LayoutManager.GetRegion('Content', $this.TermWidth, $this.TermHeight)
+        if ($null -eq $contentRect) { return $null }
+
+        # Account for scroll offset
+        $scrollOffset = if ($this.List.PSObject.Properties['_scrollOffset']) {
+            $this.List._scrollOffset
+        } else {
+            0
+        }
+
+        # Calculate Y position: content top + (row index - scroll) + header offset
+        $rowY = $contentRect.Y + ($selectedIndex - $scrollOffset) + 2  # +2 for header
+
+        # Calculate X position: column start + length of current text
+        $col = $this._editableColumns[$this._currentColumnIndex]
+        $columns = $this.GetColumns()
+        if ($null -eq $columns) { return $null }
+
+        # Find column X position by summing widths of preceding columns
+        $colX = 0
+        foreach ($column in $columns) {
+            if ($column.Name -eq $col) {
+                break
+            }
+            $colX += $column.Width + 1  # +1 for separator
+        }
+
+        # Add length of typed text to get cursor position
+        $textLength = if ($this._editValues.ContainsKey($col) -and $this._editValues[$col]) {
+            $this._editValues[$col].Length
+        } else {
+            0
+        }
+
+        $cursorX = $contentRect.X + $colX + $textLength
+
+        if ($this._enableDebugLogging) {
+            Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') _CalculateCursorPosition: col=$col textLen=$textLength cursorX=$cursorX cursorY=$rowY"
+        }
+
+        return @{ X = $cursorX; Y = $rowY }
+    }
+
     # Override RenderContent to add widget rendering
     [string] RenderContent() {
         if ($this._enableDebugLogging) {
@@ -2222,6 +2223,19 @@ class TaskListScreen : StandardListScreen {
             }
             elseif ($this._activeWidgetType -eq 'tags' -and $this._activeTagEditor) {
                 $output += $this._activeTagEditor.Render()
+            }
+        }
+
+        # NEW: If inline editing is active, position cursor at end of edited text
+        # Following TextAreaEditor pattern - append ANSI codes to move cursor
+        if ($this._isEditingRow -and $this._activeWidgetType -eq "") {
+            $cursorPos = $this._CalculateCursorPosition()
+            if ($null -ne $cursorPos) {
+                $output += [PraxisVT]::MoveTo($cursorPos.X, $cursorPos.Y)
+                $output += [PraxisVT]::ShowCursor()
+                if ($this._enableDebugLogging) {
+                    Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') RenderContent: Positioned cursor at X=$($cursorPos.X) Y=$($cursorPos.Y)"
+                }
             }
         }
 
