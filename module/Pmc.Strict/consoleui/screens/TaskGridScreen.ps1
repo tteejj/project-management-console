@@ -651,20 +651,24 @@ class TaskGridScreen : GridScreen {
             foreach ($taskId in $taskUpdates.Keys) {
                 $updates = $taskUpdates[$taskId]
 
-                # Get existing task
-                $task = $this.Store.GetTaskById($taskId)
-                if ($null -eq $task) {
-                    Write-PmcTuiLog "TaskGridScreen: Task $taskId not found for save" "WARNING"
-                    continue
+                # Map column names to actual task property names
+                # Column 'title' -> property 'text'
+                $propertyMap = @{
+                    'title' = 'text'
                 }
 
-                # Apply updates
+                # Build changes hashtable with correct property names
+                $changes = @{}
                 foreach ($colName in $updates.Keys) {
-                    $task.$colName = $updates[$colName]
+                    $propName = if ($propertyMap.ContainsKey($colName)) { $propertyMap[$colName] } else { $colName }
+                    $changes[$propName] = $updates[$colName]
                 }
 
-                # Save to store
-                $this.Store.UpdateTask($task)
+                # Save to store using UpdateTask with changes hashtable
+                $success = $this.Store.UpdateTask($taskId, $changes)
+                if (-not $success) {
+                    Write-PmcTuiLog "TaskGridScreen: Failed to update task $taskId" "WARNING"
+                }
             }
 
             return $true
@@ -690,10 +694,10 @@ class TaskGridScreen : GridScreen {
 
     # Add new task
     [void] AddItem() {
-        # Create new task with defaults
+        # Create new task with defaults (use 'text' not 'title' for TaskStore)
         $newTask = @{
             id = [Guid]::NewGuid().ToString()
-            title = "New Task"
+            text = "New Task"
             details = ""
             priority = 3
             due = ""

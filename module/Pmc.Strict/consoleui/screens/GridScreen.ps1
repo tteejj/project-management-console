@@ -2,13 +2,13 @@
 # Base class for screens using EditableGrid widget
 
 class GridScreen : StandardListScreen {
-    # Grid widget
-    [EditableGrid]$Grid
+    # Grid widget (type is EditableGrid but declared as object to avoid parse-time dependency)
+    [object]$Grid
 
     # Grid configuration
     hidden [bool]$_gridInitialized = $false
     hidden [string[]]$_editableColumns = @()
-    hidden [CellEditorRegistry]$_editorRegistry
+    hidden [object]$_editorRegistry  # Type is CellEditorRegistry but declared as object
 
     # Constructor (backward compatible - no container)
     GridScreen([string]$screenId, [string]$title) : base($screenId, $title) {
