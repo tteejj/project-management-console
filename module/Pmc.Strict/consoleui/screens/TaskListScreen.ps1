@@ -1409,7 +1409,15 @@ class TaskListScreen : StandardListScreen {
         $selectedIndex = $this.List.GetSelectedIndex()
         $scrollOffset = if ($null -ne $this.List._scrollOffset) { $this.List._scrollOffset } else { 0 }
         $contentRect = $this.LayoutManager.GetRegion('Content', $this.TermWidth, $this.TermHeight)
-        $rowY = $contentRect.Y + ($selectedIndex - $scrollOffset) + 2  # +2 for header
+        $visibleRow = $selectedIndex - $scrollOffset
+
+        # Check if row is visible on screen
+        if ($visibleRow -lt 0 -or $visibleRow -ge ($contentRect.Height - 2)) {
+            $this.SetStatusMessage("Cannot edit: row not visible on screen", "warning")
+            return
+        }
+
+        $rowY = $contentRect.Y + $visibleRow + 2  # +2 for header
 
         # Ensure InlineEditor is loaded
         if (-not ([System.Management.Automation.PSTypeName]'InlineEditor').Type) {
