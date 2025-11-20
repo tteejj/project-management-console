@@ -509,28 +509,45 @@ class TaskListScreen : StandardListScreen {
     [array] GetColumns() {
         $self = $this
 
+        # Cell highlighting for edit mode - use theme colors via List widget
+        # HIGH FIX TLS-H2: Add null check on $this.List
+        if ($null -eq $this.List) {
+            Write-PmcTuiLog "GetColumns called with null List widget" "ERROR"
+            return @()
+        }
+        # Normal cell: theme primary background
+        $cellColor = $this.List.GetThemedAnsi('Primary', $true)  # Theme primary as background
+        # Focused cell: reversed (theme primary as text color on black)
+        $focusColor = "`e[40m" + $this.List.GetThemedAnsi('Primary', $false)  # Black bg, theme primary text
+        $separator = "`e[90m│`e[0m"  # Gray separator between cells
+
+        # DEBUG: Log the actual color codes
+        if ($this._enableDebugLogging) {
+            Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') cellColor='$cellColor' focusColor='$focusColor'"
+        }
+
         return @(
             @{
                 Name = 'title'
                 Label = 'Task'
                 Width = 35
                 Align = 'left'
-                SkipRowHighlight = { param($item)
-                    # Skip row highlighting when inline editor is active
-                    return $self._showingInlineEditor
-                }.GetNewClosure()
                 Format = { param($task, $cellInfo)
-                    $t = Get-SafeProperty $task 'title'
-                    if (-not $t) { $t = Get-SafeProperty $task 'text' }
-
-                    # Add subtask indicators
-                    $taskId = Get-SafeProperty $task 'id'
-                    $hasParent = Test-SafeProperty $task 'parent_id' -and (Get-SafeProperty $task 'parent_id')
-                    if ($hasParent) {
-                        $t = "└─ $t"
+                    # Get title value
+                    $title = if ($cellInfo.IsInEditMode) {
+                        $self._editValues.title ?? ""
                     } else {
-                        $allTasks = $self.Store.GetAllTasks()
-                        if ($null -ne $allTasks) {
+                        $taskId = Get-SafeProperty $task 'id'
+                        $t = Get-SafeProperty $task 'title'
+                        if (-not $t) { $t = Get-SafeProperty $task 'text' }
+
+                        $hasParent = Test-SafeProperty $task 'parent_id' -and (Get-SafeProperty $task 'parent_id')
+                        if ($hasParent) {
+                            $t = "└─ $t"
+                        } else {
+                            # HIGH FIX TLS-H4: Add null check on GetAllTasks()
+                            $allTasks = $self.Store.GetAllTasks()
+                            if ($null -eq $allTasks) { $allTasks = @() }
                             $hasChildren = $allTasks | Where-Object {
                                 (Get-SafeProperty $_ 'parent_id') -eq $taskId
                             } | Measure-Object | ForEach-Object { $_.Count -gt 0 }
@@ -540,97 +557,292 @@ class TaskListScreen : StandardListScreen {
                                 $t = "$indicator $t"
                             }
                         }
+                        if (Get-SafeProperty $task 'completed') {
+                            $t = "[✓] $t"
+                        }
+                        $t
                     }
-                    if (Get-SafeProperty $task 'completed') {
-                        $t = "[✓] $t"
+
+                    # Cell-based highlighting in edit mode - fill cell width with background
+                    if ($cellInfo.IsInEditMode) {
+                        $visibleLen = $title.Replace('└─', '').Replace('▶', '').Replace('▼', '').Replace('[✓]', '').Length
+                        $padding = $cellInfo.Width - $visibleLen
+                        if ($padding -lt 0) { $padding = 0 }
+
+                        if ($cellInfo.IsFocused) {
+                            return "$focusColor$title" + (" " * $padding)
+                        } else {
+                            return "$cellColor$title" + (" " * $padding)
+                        }
                     }
-                    return $t
+                    return $title
                 }.GetNewClosure()
                 Color = { param($task)
+                    $taskId = Get-SafeProperty $task 'id'
+                    $selectedItem = $self.List.GetSelectedItem()
+                    $isEditing = $self._isEditingRow -and $selectedItem -and (Get-SafeProperty $selectedItem 'id') -eq $taskId
+                    if ($isEditing -and $self._editableColumns[$self._currentColumnIndex] -eq 'title') {
+                        return ""  # Highlight handles color
+                    }
                     if (Get-SafeProperty $task 'completed') {
-                        return if ($self._supportsStrikethrough) { "`e[90m`e[9m" } else { "`e[90m" }
+                        if ($self._supportsStrikethrough) {
+                            return "`e[90m`e[9m"
+                        } else {
+                            return "`e[90m"
+                        }
                     }
                     $tags = Get-SafeProperty $task 'tags'
-                    if ($tags -and $tags -is [array]) {
+                    if ($tags -and $tags -is [array] -and $tags.Count -gt 0) {
                         if ($tags -contains 'urgent' -or $tags -contains 'critical') { return "`e[91m" }
                         if ($tags -contains 'bug') { return "`e[31m" }
                         if ($tags -contains 'feature') { return "`e[32m" }
+                        if ($tags -contains 'enhancement') { return "`e[36m" }
                     }
                     return "`e[37m"
                 }.GetNewClosure()
-            }
+            },
             @{
                 Name = 'details'
                 Label = 'Details'
                 Width = 25
                 Align = 'left'
                 Format = { param($task, $cellInfo)
-                    $d = Get-SafeProperty $task 'details'
-                    if ($d -and $d.Length -gt 25) { return $d.Substring(0, 22) + "..." }
-                    return $d ?? ''
+                    $details = if ($cellInfo.IsInEditMode) {
+                        $self._editValues.details ?? ""
+                    } else {
+                        $d = Get-SafeProperty $task 'details'
+                        if ($d -and $d.Length -gt 25) {
+                            $d.Substring(0, 22) + "..."
+                        } else {
+                            $d ?? ''
+                        }
+                    }
+
+                    # Cell-based highlighting in edit mode - fill cell width
+                    if ($cellInfo.IsInEditMode) {
+                        $visibleLen = $details.Length
+                        $padding = $cellInfo.Width - $visibleLen
+                        if ($padding -lt 0) { $padding = 0 }
+
+                        if ($cellInfo.IsFocused) {
+                            return "$focusColor$details" + (" " * $padding)
+                        } else {
+                            return "$cellColor$details" + (" " * $padding)
+                        }
+                    }
+                    return $details
                 }.GetNewClosure()
-                Color = { return "`e[90m" }
-            }
+                Color = { param($task)
+                    $taskId = Get-SafeProperty $task 'id'
+                    $selectedItem = $self.List.GetSelectedItem()
+                    $isEditing = $self._isEditingRow -and $selectedItem -and (Get-SafeProperty $selectedItem 'id') -eq $taskId
+                    if ($isEditing -and $self._editableColumns[$self._currentColumnIndex] -eq 'details') {
+                        return ""  # Highlight handles color
+                    }
+                    return "`e[90m"
+                }.GetNewClosure()
+            },
             @{
                 Name = 'due'
                 Label = 'Due'
                 Width = 12
                 Align = 'left'
                 Format = { param($task, $cellInfo)
-                    $d = Get-SafeProperty $task 'due'
-                    if (-not $d) { return '' }
-                    try {
-                        $date = [DateTime]$d
-                        if ($date.Date -eq [DateTime]::Today) { return 'Today' }
-                        if ($date.Date -eq [DateTime]::Today.AddDays(1)) { return 'Tomorrow' }
-                        if ($date.Date -lt [DateTime]::Today) { return 'OVERDUE!' }
-                        return $date.ToString('MMM dd')
-                    } catch {
-                        return $d
+                    $dueText = if ($cellInfo.IsInEditMode) {
+                        if ($self._editValues.due) { $self._editValues.due } else { '' }
+                    } else {
+                        $dueValue = Get-SafeProperty $task 'due'
+                        if (-not $dueValue) { '' }
+                        else {
+                            # CRITICAL FIX TLS-C4: Safe DateTime parsing
+                            try {
+                                $due = [DateTime]$dueValue
+                                $today = [DateTime]::Today
+                                $diff = ($due.Date - $today).Days
+
+                                if ($diff -eq 0) { 'Today' }
+                                elseif ($diff -eq 1) { 'Tomorrow' }
+                                elseif ($diff -eq -1) { 'Yesterday' }
+                                elseif ($diff -lt 0) { "$([Math]::Abs($diff))d ago" }
+                                elseif ($diff -le 7) { "in ${diff}d" }
+                                else { $due.ToString('MMM dd') }
+                            } catch {
+                                # Invalid date format - return raw value
+                                Write-PmcTuiLog "Invalid due date format: $dueValue" "WARNING"
+                                $dueValue
+                            }
+                        }
                     }
+
+                    # Cell-based highlighting in edit mode - fill cell width
+                    if ($cellInfo.IsInEditMode) {
+                        $visibleLen = $dueText.Length
+                        $padding = $cellInfo.Width - $visibleLen
+                        if ($padding -lt 0) { $padding = 0 }
+
+                        if ($cellInfo.IsFocused) {
+                            if ($self._enableDebugLogging) {
+                                Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Due Format: FOCUSED - width=$($cellInfo.Width) visibleLen=$visibleLen padding=$padding"
+                            }
+                            return "$focusColor$dueText" + (" " * $padding)
+                        } else {
+                            if ($self._enableDebugLogging) {
+                                Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Due Format: UNFOCUSED - width=$($cellInfo.Width) visibleLen=$visibleLen padding=$padding"
+                            }
+                            return "$cellColor$dueText" + (" " * $padding)
+                        }
+                    }
+                    return $dueText
                 }.GetNewClosure()
                 Color = { param($task)
-                    $d = Get-SafeProperty $task 'due'
-                    if (-not $d -or (Get-SafeProperty $task 'completed')) { return "`e[90m" }
+                    $taskId = Get-SafeProperty $task 'id'
+                    $selectedItem = $self.List.GetSelectedItem()
+                    $isEditing = $self._isEditingRow -and $selectedItem -and (Get-SafeProperty $selectedItem 'id') -eq $taskId
+                    if ($isEditing -and $self._editableColumns[$self._currentColumnIndex] -eq 'due') {
+                        return ""  # Highlight handles color
+                    }
+                    $dueValue = Get-SafeProperty $task 'due'
+                    if (-not $dueValue -or (Get-SafeProperty $task 'completed')) { return "`e[90m" }
+
+                    # CRITICAL FIX TLS-C4: Safe DateTime parsing
                     try {
-                        $date = [DateTime]$d
-                        $diff = ($date.Date - [DateTime]::Today).Days
-                        if ($diff -lt 0) { return "`e[91m" }
-                        if ($diff -eq 0) { return "`e[93m" }
-                        if ($diff -le 3) { return "`e[33m" }
-                        return "`e[92m"
+                        $due = [DateTime]$dueValue
+                        $diff = ($due.Date - [DateTime]::Today).Days
                     } catch {
+                        # Invalid date - return default color
                         return "`e[90m"
                     }
+
+                    if ($diff -lt 0) { return "`e[91m" }      # Overdue: bright red
+                    elseif ($diff -eq 0) { return "`e[93m" }  # Today: bright yellow
+                    elseif ($diff -le 3) { return "`e[33m" }  # Soon: yellow
+                    else { return "`e[36m" }                   # Future: cyan
                 }.GetNewClosure()
-            }
+            },
             @{
                 Name = 'project'
                 Label = 'Project'
                 Width = 15
                 Align = 'left'
                 Format = { param($task, $cellInfo)
-                    $p = Get-SafeProperty $task 'project'
-                    if ($p -and $p.Length -gt 15) { return $p.Substring(0, 12) + "..." }
-                    return $p ?? ''
+                    $projText = if ($cellInfo.IsInEditMode) {
+                        if ($self._editValues.project) { $self._editValues.project } else { '' }
+                    } else {
+                        $project = Get-SafeProperty $task 'project'
+                        if ($project) { $project } else { '' }
+                    }
+
+                    # Cell-based highlighting in edit mode - fill cell width
+                    if ($cellInfo.IsInEditMode) {
+                        $visibleLen = $projText.Length
+                        $padding = $cellInfo.Width - $visibleLen
+                        if ($padding -lt 0) { $padding = 0 }
+
+                        if ($cellInfo.IsFocused) {
+                            return "$focusColor$projText" + (" " * $padding)
+                        } else {
+                            return "$cellColor$projText" + (" " * $padding)
+                        }
+                    }
+                    return $projText
                 }.GetNewClosure()
-                Color = { return "`e[96m" }
-            }
+                Color = { param($task)
+                    $taskId = Get-SafeProperty $task 'id'
+                    $selectedItem = $self.List.GetSelectedItem()
+                    $isEditing = $self._isEditingRow -and $selectedItem -and (Get-SafeProperty $selectedItem 'id') -eq $taskId
+                    if ($isEditing -and $self._editableColumns[$self._currentColumnIndex] -eq 'project') {
+                        return ""  # Highlight handles color
+                    }
+                    if (Get-SafeProperty $task 'project') { return "`e[96m" }  # Bright cyan
+                    return "`e[90m"
+                }.GetNewClosure()
+            },
             @{
                 Name = 'tags'
                 Label = 'Tags'
                 Width = 20
                 Align = 'left'
                 Format = { param($task, $cellInfo)
-                    $t = Get-SafeProperty $task 'tags'
-                    if ($t -is [array]) { $t = $t -join ', ' }
-                    if ($t -and $t.Length -gt 20) { return $t.Substring(0, 17) + "..." }
-                    return $t ?? ''
+                    $tagsText = if ($cellInfo.IsInEditMode) {
+                        if ($self._editValues.tags) { $self._editValues.tags } else { '' }
+                    } else {
+                        $tags = Get-SafeProperty $task 'tags'
+                        if ($tags -and $tags -is [array] -and $tags.Count -gt 0) {
+                            ($tags -join ', ')
+                        } else {
+                            ''
+                        }
+                    }
+
+                    # Cell-based highlighting in edit mode - fill cell width
+                    if ($cellInfo.IsInEditMode) {
+                        $visibleLen = $tagsText.Length
+                        $padding = $cellInfo.Width - $visibleLen
+                        if ($padding -lt 0) { $padding = 0 }
+
+                        if ($cellInfo.IsFocused) {
+                            return "$focusColor$tagsText" + (" " * $padding)
+                        } else {
+                            return "$cellColor$tagsText" + (" " * $padding)
+                        }
+                    }
+                    return $tagsText
                 }.GetNewClosure()
-                Color = { return "`e[95m" }
+                Color = { param($task)
+                    $taskId = Get-SafeProperty $task 'id'
+                    $selectedItem = $self.List.GetSelectedItem()
+                    $isEditing = $self._isEditingRow -and $selectedItem -and (Get-SafeProperty $selectedItem 'id') -eq $taskId
+                    if ($isEditing -and $self._editableColumns[$self._currentColumnIndex] -eq 'tags') {
+                        return ""  # Highlight handles color
+                    }
+                    $tags = Get-SafeProperty $task 'tags'
+                    if ($tags -and $tags -is [array] -and $tags.Count -gt 0) {
+                        return "`e[95m"  # Bright magenta
+                    }
+                    return "`e[90m"
+                }.GetNewClosure()
             }
         )
     }
+
+    # Implement abstract method: Define edit fields for InlineEditor
+    [array] GetEditFields([object]$item) {
+        # LOW FIX TLS-L4 & EDGE-1: Add type check before accessing .Count
+        if ($null -eq $item -or ($item -is [hashtable] -and $item.Count -eq 0) -or ($item -is [array] -and $item.Count -eq 0)) {
+            # New task - empty fields
+            return @(
+                @{ Name='text'; Type='text'; Label='Task'; Required=$true; MaxLength=200; Value='' }  # H-VAL-6
+                @{ Name='due'; Type='date'; Label='Due Date'; Value=$null }
+                @{ Name='project'; Type='project'; Label='Project'; Value='' }
+                @{ Name='tags'; Type='tags'; Label='Tags'; Value=@() }
+            )
+        } else {
+            # TLS-M3 FIX: Validate item is a valid object type before accessing properties
+            if ($item -isnot [hashtable] -and $item.GetType().Name -ne 'PSCustomObject') {
+                Write-PmcTuiLog "GetEditFields: Invalid item type '$($item.GetType().Name)', returning empty fields" "WARNING"
+                return @(
+                    @{ Name='text'; Type='text'; Label='Task'; Required=$true; MaxLength=200; Value='' }
+                    @{ Name='due'; Type='date'; Label='Due Date'; Value=$null }
+                    @{ Name='project'; Type='project'; Label='Project'; Value='' }
+                    @{ Name='tags'; Type='tags'; Label='Tags'; Value=@() }
+                )
+            }
+
+            # Existing task - populate from item with safe property access
+            # TLS-M3 FIX: Validate field values before using them
+            $textValue = Get-SafeProperty $item 'text'
+            if ([string]::IsNullOrWhiteSpace($textValue)) {
+                $textValue = ''
+            }
+
+            $dueValue = Get-SafeProperty $item 'due'
+            $projectValue = Get-SafeProperty $item 'project'
+            if ($null -eq $projectValue) {
+                $projectValue = ''
+            }
+
+            $tagsValue = Get-SafeProperty $item 'tags'
+            # Ensure tags is an array
             if ($null -eq $tagsValue -or $tagsValue -isnot [array]) {
                 $tagsValue = @()
             }
@@ -1413,15 +1625,7 @@ class TaskListScreen : StandardListScreen {
         $selectedIndex = $this.List.GetSelectedIndex()
         $scrollOffset = if ($null -ne $this.List._scrollOffset) { $this.List._scrollOffset } else { 0 }
         $contentRect = $this.LayoutManager.GetRegion('Content', $this.TermWidth, $this.TermHeight)
-        $visibleRow = $selectedIndex - $scrollOffset
-
-        # Check if row is visible on screen
-        if ($visibleRow -lt 0 -or $visibleRow -ge ($contentRect.Height - 2)) {
-            $this.SetStatusMessage("Cannot edit: row not visible on screen", "warning")
-            return
-        }
-
-        $rowY = $contentRect.Y + $visibleRow + 2  # +2 for header
+        $rowY = $contentRect.Y + ($selectedIndex - $scrollOffset) + 2  # +2 for header
 
         # Ensure InlineEditor is loaded
         if (-not ([System.Management.Automation.PSTypeName]'InlineEditor').Type) {
@@ -1474,14 +1678,500 @@ class TaskListScreen : StandardListScreen {
         $this.SetStatusMessage("Editing inline - Tab=next field, Enter=save, Esc=cancel", "success")
     }
 
-    # Override RenderContent to add inline editor rendering
+    # Load widget classes if not already loaded
+    hidden [void] _EnsureWidgetsLoaded() {
+        if (-not ([System.Management.Automation.PSTypeName]'DatePicker').Type) {
+            . "$PSScriptRoot/../widgets/DatePicker.ps1"
+        }
+        if (-not ([System.Management.Automation.PSTypeName]'ProjectPicker').Type) {
+            . "$PSScriptRoot/../widgets/ProjectPicker.ps1"
+        }
+        if (-not ([System.Management.Automation.PSTypeName]'TagEditor').Type) {
+            . "$PSScriptRoot/../widgets/TagEditor.ps1"
+        }
+    }
+
+    # Show widget for current column at column position
+    hidden [void] _ShowWidgetForColumn() {
+        $this._CloseActiveWidget()
+
+        # HIGH FIX TLS-H3 & MEDIUM FIX TLS-M8: Add array bounds check on _currentColumnIndex
+        if ($this._currentColumnIndex -lt 0 -or $this._currentColumnIndex -ge $this._editableColumns.Count) {
+            Write-PmcTuiLog "_ShowWidgetForColumn: Invalid column index $($this._currentColumnIndex)" "ERROR"
+            return
+        }
+        $col = $this._editableColumns[$this._currentColumnIndex]
+
+        # Only show widgets for due/project columns (tags is now inline text)
+        if ($col -ne 'due' -and $col -ne 'project') {
+            return
+        }
+
+        # Get column position from GetColumns()
+        $columns = $this.GetColumns()
+        $colX = 0
+        $colIndex = 0
+        $columnFound = $false
+        foreach ($column in $columns) {
+            if ($column.Name -eq $col) {
+                $columnFound = $true
+                break
+            }
+            $colX += $column.Width + 1
+            $colIndex++
+        }
+        # MEDIUM FIX TLS-M8: Validate column was found
+        if (-not $columnFound) {
+            Write-PmcTuiLog "_ShowWidgetForColumn: Column '$col' not found in GetColumns()" "WARNING"
+            return
+        }
+
+        # Get selected row Y position
+        $selectedIndex = $this.List.GetSelectedIndex()
+        $contentRect = $this.LayoutManager.GetRegion('Content', $this.TermWidth, $this.TermHeight)
+        if ($null -eq $contentRect) {
+            Write-PmcTuiLog "_ShowWidgetForColumn: LayoutManager.GetRegion returned null" "WARNING"
+            return
+        }
+        # HIGH FIX TLS-H5: Account for scroll offset when calculating widget position
+        $scrollOffset = if ($this.List -and $this.List.PSObject.Properties['_scrollOffset']) {
+            $this.List._scrollOffset
+        } else {
+            0
+        }
+        $rowY = $contentRect.Y + ($selectedIndex - $scrollOffset) + 2  # +2 for header
+
+        $this._EnsureWidgetsLoaded()
+
+        if ($col -eq 'due') {
+            try {
+                $this._activeDatePicker = [DatePicker]::new()
+            } catch {
+                Write-PmcTuiLog "Failed to create DatePicker: $_" "ERROR"
+                $this.SetStatusMessage("Failed to open date picker", "error")
+                return
+            }
+
+            if ($null -eq $this._activeDatePicker) {
+                Write-PmcTuiLog "DatePicker constructor returned null" "ERROR"
+                $this.SetStatusMessage("Failed to open date picker", "error")
+                return
+            }
+
+            $this._activeDatePicker.SetPosition($contentRect.X + $colX, $rowY)
+            $this._activeDatePicker.SetSize(35, 14)
+
+            # Set current value
+            $dueValue = $this._editValues.due
+            if ($dueValue) {
+                try {
+                    $this._activeDatePicker.SetDate([DateTime]::Parse($dueValue))
+                } catch {
+                    $this._activeDatePicker.SetDate([DateTime]::Today)
+                }
+            }
+
+            # Setup callbacks
+            $self = $this
+            $this._activeDatePicker.OnConfirmed = {
+                param($date)
+                $self._editValues.due = $date.ToString('yyyy-MM-dd')
+                $self._CloseActiveWidget()
+            }.GetNewClosure()
+
+            $this._activeDatePicker.OnCancelled = {
+                $self._CloseActiveWidget()
+            }.GetNewClosure()
+
+            $this._activeWidgetType = 'date'
+        }
+        elseif ($col -eq 'project') {
+            try {
+                $this._activeProjectPicker = [ProjectPicker]::new()
+            } catch {
+                Write-PmcTuiLog "Failed to create ProjectPicker: $_" "ERROR"
+                $this.SetStatusMessage("Failed to open project picker", "error")
+                return
+            }
+
+            if ($null -eq $this._activeProjectPicker) {
+                Write-PmcTuiLog "ProjectPicker constructor returned null" "ERROR"
+                $this.SetStatusMessage("Failed to open project picker", "error")
+                return
+            }
+
+            $this._activeProjectPicker.SetPosition($contentRect.X + $colX, $rowY)
+            $this._activeProjectPicker.SetSize(35, 12)
+
+            # Set current value - DON'T pre-fill search, just select the matching project
+            $projectValue = $this._editValues.project
+            if ($projectValue) {
+                $this._activeProjectPicker.SetSelectedProject($projectValue)
+            }
+
+            # Setup callbacks
+            $self = $this
+            $this._activeProjectPicker.OnProjectSelected = {
+                param($projectName)
+                if ($self._enableDebugLogging) {
+                    Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') OnProjectSelected callback: projectName='$projectName'"
+                }
+                $self._editValues.project = $projectName
+                if ($self._enableDebugLogging) {
+                    Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') OnProjectSelected: Set _editValues.project to '$($self._editValues.project)'"
+                }
+                $self._CloseActiveWidget()
+            }.GetNewClosure()
+
+            $this._activeProjectPicker.OnCancelled = {
+                $self._CloseActiveWidget()
+            }.GetNewClosure()
+
+            $this._activeWidgetType = 'project'
+        }
+        elseif ($col -eq 'tags') {
+            try {
+                $this._activeTagEditor = [TagEditor]::new()
+            } catch {
+                Write-PmcTuiLog "Failed to create TagEditor: $_" "ERROR"
+                $this.SetStatusMessage("Failed to open tag editor", "error")
+                return
+            }
+
+            if ($null -eq $this._activeTagEditor) {
+                Write-PmcTuiLog "TagEditor constructor returned null" "ERROR"
+                $this.SetStatusMessage("Failed to open tag editor", "error")
+                return
+            }
+
+            $this._activeTagEditor.SetPosition($contentRect.X + $colX, $rowY)
+            $this._activeTagEditor.SetSize(60, 5)
+
+            # Set current value
+            $tagsValue = $this._editValues.tags
+            if ($tagsValue) {
+                $tagArray = $tagsValue -split ',' | ForEach-Object { $_.Trim() }
+                $this._activeTagEditor.SetTags($tagArray)
+            }
+
+            # Setup callbacks
+            $self = $this
+            $this._activeTagEditor.OnConfirmed = {
+                param($tags)
+                $self._editValues.tags = $tags -join ', '
+                $self._CloseActiveWidget()
+            }.GetNewClosure()
+
+            $this._activeTagEditor.OnCancelled = {
+                $self._CloseActiveWidget()
+            }.GetNewClosure()
+
+            $this._activeWidgetType = 'tags'
+        }
+    }
+
+    # Close active widget
+    hidden [void] _CloseActiveWidget() {
+        $this._activeDatePicker = $null
+        $this._activeProjectPicker = $null
+        $this._activeTagEditor = $null
+        $this._activeWidgetType = ""
+
+        # Force full screen clear to remove widget visuals
+        if ($this.RenderEngine -and $this.RenderEngine.PSObject.Methods['RequestClear']) {
+            $this.RenderEngine.RequestClear()
+        }
+    }
+
+    # Handle inline editing input
+    hidden [bool] _HandleInlineEditInput([ConsoleKeyInfo]$keyInfo) {
+        if ($this._enableDebugLogging) {
+            Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') _HandleInlineEditInput: Key=$($keyInfo.Key) Char='$($keyInfo.KeyChar)' Column=$($this._editableColumns[$this._currentColumnIndex]) Widget=$($this._activeWidgetType)"
+        }
+
+        # Tab/Shift+Tab always closes widget and moves to next/prev field
+        if ($keyInfo.Key -eq 'Tab') {
+            if ($this._enableDebugLogging) {
+                Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Tab pressed - saving widget value and closing, editValues: title=$($this._editValues.title) details=$($this._editValues.details)"
+            }
+
+            # Save widget value before closing
+            if ($this._activeWidgetType -eq 'date' -and $null -ne $this._activeDatePicker) {
+                # HIGH FIX TLS-H5 & TLS-H7: Validate GetSelectedDate() return value
+                $selectedDate = $this._activeDatePicker.GetSelectedDate()
+                if ($null -ne $selectedDate) {
+                    $this._editValues.due = $selectedDate.ToString('yyyy-MM-dd')
+                    if ($this._enableDebugLogging) {
+                        Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Saved date from picker: $($this._editValues.due)"
+                    }
+                } else {
+                    Write-PmcTuiLog "DatePicker.GetSelectedDate() returned null" "WARNING"
+                }
+            }
+            elseif ($this._activeWidgetType -eq 'project' -and $null -ne $this._activeProjectPicker) {
+                # ProjectPicker saves through its callback, but we can check if there's a selected project
+                $selectedProj = $this._activeProjectPicker.GetSelectedProject()
+                if ($selectedProj) {
+                    $this._editValues.project = $selectedProj
+                    if ($this._enableDebugLogging) {
+                        Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Saved project from picker: $($this._editValues.project)"
+                    }
+                }
+            }
+            elseif ($this._activeWidgetType -eq 'tags' -and $null -ne $this._activeTagEditor) {
+                $this._editValues.tags = $this._activeTagEditor.GetTags() -join ', '
+                if ($this._enableDebugLogging) {
+                    Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Saved tags from editor: $($this._editValues.tags)"
+                }
+            }
+
+            $this._CloseActiveWidget()
+            # Fall through to Tab handler below
+        }
+        # If a widget is active, route input to it
+        elseif ($this._activeWidgetType -ne "") {
+            if ($this._enableDebugLogging) {
+                Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Widget active ($($this._activeWidgetType)) - passing key to widget, returning early"
+            }
+            $handled = $false
+
+            if ($this._activeWidgetType -eq 'date' -and $null -ne $this._activeDatePicker) {
+                $handled = $this._activeDatePicker.HandleInput($keyInfo)
+
+                # Check if widget closed itself
+                if ($this._activeDatePicker -and ($this._activeDatePicker.IsConfirmed -or $this._activeDatePicker.IsCancelled)) {
+                    $this._CloseActiveWidget()
+                }
+            }
+            elseif ($this._activeWidgetType -eq 'project' -and $null -ne $this._activeProjectPicker) {
+                if ($this._enableDebugLogging) {
+                    Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Calling ProjectPicker.HandleInput with key=$($keyInfo.Key)"
+                }
+                $handled = $this._activeProjectPicker.HandleInput($keyInfo)
+                if ($this._enableDebugLogging) {
+                    Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') ProjectPicker.HandleInput returned: $handled"
+                }
+
+                # Invalidate to redraw widget if it handled the input
+                if ($handled) {
+                    # Force immediate render by invalidating list cache and marking app dirty
+                    $this.List.InvalidateCache()
+                    if ($this.RenderEngine -and $this.RenderEngine.PSObject.Methods['RequestClear']) {
+                        $this.RenderEngine.RequestClear()
+                    }
+                    if ($global:PmcApp) {
+                        $global:PmcApp.IsDirty = $true
+                    }
+                }
+
+                # Check if widget closed itself
+                if ($this._activeProjectPicker -and ($this._activeProjectPicker.IsConfirmed -or $this._activeProjectPicker.IsCancelled)) {
+                    if ($this._enableDebugLogging) {
+                        Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') ProjectPicker confirmed/cancelled, closing widget"
+                    }
+                    $this._CloseActiveWidget()
+                }
+            }
+            elseif ($this._activeWidgetType -eq 'tags' -and $null -ne $this._activeTagEditor) {
+                $handled = $this._activeTagEditor.HandleInput($keyInfo)
+
+                # Check if widget closed itself
+                if ($this._activeTagEditor -and ($this._activeTagEditor.IsConfirmed -or $this._activeTagEditor.IsCancelled)) {
+                    $this._CloseActiveWidget()
+                }
+            }
+
+            if ($this._enableDebugLogging) {
+                Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Widget handled key, returning true (EARLY EXIT)"
+            }
+            return $true
+        }
+
+        # Tab - next column
+        if ($keyInfo.Key -eq 'Tab' -and -not ($keyInfo.Modifiers -band [ConsoleModifiers]::Shift)) {
+            # CRITICAL FIX TLS-C3: Prevent division by zero
+            if ($this._editableColumns.Count -gt 0) {
+                $this._currentColumnIndex = ($this._currentColumnIndex + 1) % $this._editableColumns.Count
+                $this.List.InvalidateCache()  # Invalidate cache to update highlighting
+                $this._ShowWidgetForColumn()
+            }
+            return $true
+        }
+        # Shift+Tab - previous column
+        if ($keyInfo.Key -eq 'Tab' -and ($keyInfo.Modifiers -band [ConsoleModifiers]::Shift)) {
+            # CRITICAL FIX TLS-C3 & EDGE-2: Prevent division by zero and negative index
+            if ($this._editableColumns.Count -gt 0) {
+                $this._currentColumnIndex--
+                if ($this._currentColumnIndex -lt 0) { $this._currentColumnIndex = $this._editableColumns.Count - 1 }
+                $this.List.InvalidateCache()  # Invalidate cache to update highlighting
+                $this._ShowWidgetForColumn()
+            }
+            return $true
+        }
+        # Enter - save
+        if ($keyInfo.Key -eq 'Enter') {
+            $item = $this.List.GetSelectedItem()
+            if ($item) {
+                if ($this._enableDebugLogging) {
+                    Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Enter pressed - _editValues.project=$($this._editValues.project)"
+                }
+
+                # Map title/details to text field for OnItemUpdated
+                # Priority is NOT editable inline - preserve existing value from original task
+                $currentItem = $this.List.GetSelectedItem()
+                $existingPriority = if ($currentItem) { Get-SafeProperty $currentItem 'priority' } else { 3 }
+                if ($null -eq $existingPriority) { $existingPriority = 3 }
+
+                $updateValues = @{
+                    text = $this._editValues.title ?? ""
+                    details = $this._editValues.details
+                    priority = $existingPriority  # Preserve existing priority (not editable inline)
+                    due = $this._editValues.due
+                    project = $this._editValues.project
+                    tags = $this._editValues.tags
+                }
+                if ($this._enableDebugLogging) {
+                    Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Enter pressed - updateValues.priority=$($updateValues.priority) (preserved from existing task)"
+                    Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Enter pressed - updateValues.project=$($updateValues.project) type=$($updateValues.project.GetType().Name)"
+                    Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Enter pressed - calling OnItemUpdated with: text='$($updateValues.text)' details='$($updateValues.details)' pri=$($updateValues.priority) project=$($updateValues.project)"
+                }
+                $this.OnItemUpdated($item, $updateValues)
+            }
+            $this._isEditingRow = $false
+            $this.List.InvalidateCache()  # Invalidate cache when exiting edit mode
+            $this._CloseActiveWidget()
+            return $true
+        }
+        # Esc - cancel
+        if ($keyInfo.Key -eq 'Escape') {
+            $this._isEditingRow = $false
+            $this.List.InvalidateCache()  # Invalidate cache when exiting edit mode
+            $this._CloseActiveWidget()
+            return $true
+        }
+
+        $col = $this._editableColumns[$this._currentColumnIndex]
+        if ($this._enableDebugLogging) {
+            Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Processing input for column: $col Key=$($keyInfo.Key)"
+        }
+
+        # Priority is NOT editable inline - removed
+        if ($col -eq 'title' -or $col -eq 'details' -or $col -eq 'tags') {
+            # Inline text editing for title, details, and tags
+            if ($keyInfo.KeyChar -match '[a-zA-Z0-9 \-_.,!?@#$%^&*()\/\\:;''"<>]') {
+                $this._editValues[$col] = ($this._editValues[$col] ?? "") + $keyInfo.KeyChar
+                if ($this._enableDebugLogging) {
+                    Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Added char to $col : '$($keyInfo.KeyChar)' -> '$($this._editValues[$col])'"
+                }
+                $this.List.InvalidateCache()  # Re-render to show new value
+            }
+            # MEDIUM FIX TLS-M6: Add defensive null check before .Length access
+            if ($keyInfo.Key -eq 'Backspace') {
+                $currentValue = $this._editValues[$col]
+                if ($null -ne $currentValue -and $currentValue.Length -gt 0) {
+                    $this._editValues[$col] = $currentValue.Substring(0, $currentValue.Length - 1)
+                    if ($this._enableDebugLogging) {
+                        Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Backspace in $col -> '$($this._editValues[$col])'"
+                    }
+                    $this.List.InvalidateCache()  # Re-render to show new value
+                }
+            }
+        }
+        elseif ($col -eq 'due' -or $col -eq 'project') {
+            # Show widget when user starts typing in these columns
+            $this._ShowWidgetForColumn()
+        }
+        return $true
+    }
+
+    # Calculate cursor position for inline editing (following TextAreaEditor pattern)
+    hidden [hashtable] _CalculateCursorPosition() {
+        # Validate we're in edit mode and have valid column index
+        if (-not $this._isEditingRow) { return $null }
+        if ($this._currentColumnIndex -lt 0 -or $this._currentColumnIndex -ge $this._editableColumns.Count) {
+            return $null
+        }
+
+        # Get selected row's screen position
+        if ($null -eq $this.List) { return $null }
+        $selectedIndex = $this.List.GetSelectedIndex()
+
+        $contentRect = $this.LayoutManager.GetRegion('Content', $this.TermWidth, $this.TermHeight)
+        if ($null -eq $contentRect) { return $null }
+
+        # Account for scroll offset
+        $scrollOffset = if ($this.List.PSObject.Properties['_scrollOffset']) {
+            $this.List._scrollOffset
+        } else {
+            0
+        }
+
+        # Calculate Y position: content top + (row index - scroll) + header offset
+        $rowY = $contentRect.Y + ($selectedIndex - $scrollOffset) + 2  # +2 for header
+
+        # Calculate X position: column start + length of current text
+        $col = $this._editableColumns[$this._currentColumnIndex]
+        $columns = $this.GetColumns()
+        if ($null -eq $columns) { return $null }
+
+        # Find column X position by summing widths of preceding columns
+        $colX = 0
+        foreach ($column in $columns) {
+            if ($column.Name -eq $col) {
+                break
+            }
+            $colX += $column.Width + 1  # +1 for separator
+        }
+
+        # Add length of typed text to get cursor position
+        $textLength = if ($this._editValues.ContainsKey($col) -and $this._editValues[$col]) {
+            $this._editValues[$col].Length
+        } else {
+            0
+        }
+
+        $cursorX = $contentRect.X + $colX + $textLength
+
+        if ($this._enableDebugLogging) {
+            Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') _CalculateCursorPosition: col=$col textLen=$textLength cursorX=$cursorX cursorY=$rowY"
+        }
+
+        return @{ X = $cursorX; Y = $rowY }
+    }
+
+    # Override RenderContent to add widget rendering
     [string] RenderContent() {
+        if ($this._enableDebugLogging) {
+            Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') RenderContent CALLED: _isEditingRow=$($this._isEditingRow)"
+        }
+
         # Get base rendering (list, filter panel, etc.)
         $output = ([StandardListScreen]$this).RenderContent()
 
-        # If inline editor is showing, render it on top
-        if ($this._showingInlineEditor -and $null -ne $this._inlineEditor) {
-            $output += $this._inlineEditor.Render()
+        # If a widget is active, render it on top
+        if ($this._activeWidgetType -ne "") {
+            if ($this._activeWidgetType -eq 'date' -and $this._activeDatePicker) {
+                $output += $this._activeDatePicker.Render()
+            }
+            elseif ($this._activeWidgetType -eq 'project' -and $this._activeProjectPicker) {
+                $output += $this._activeProjectPicker.Render()
+            }
+            elseif ($this._activeWidgetType -eq 'tags' -and $this._activeTagEditor) {
+                $output += $this._activeTagEditor.Render()
+            }
+        }
+
+        # NEW: If inline editing is active, position cursor at end of edited text
+        # Following TextAreaEditor pattern - append ANSI codes to move cursor
+        if ($this._isEditingRow -and $this._activeWidgetType -eq "") {
+            $cursorPos = $this._CalculateCursorPosition()
+            if ($null -ne $cursorPos) {
+                $output += [PraxisVT]::MoveTo($cursorPos.X, $cursorPos.Y)
+                $output += [PraxisVT]::ShowCursor()
+                if ($this._enableDebugLogging) {
+                    Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') RenderContent: Positioned cursor at X=$($cursorPos.X) Y=$($cursorPos.Y)"
+                }
+            }
         }
 
         return $output
@@ -1489,20 +2179,16 @@ class TaskListScreen : StandardListScreen {
 
     # Override: Additional keyboard shortcuts
     [bool] HandleKeyPress([ConsoleKeyInfo]$keyInfo) {
-        # Handle inline editor if showing
-        if ($this._showingInlineEditor -and $null -ne $this._inlineEditor) {
-            $handled = $this._inlineEditor.HandleInput($keyInfo)
+        if ($this._enableDebugLogging) {
+            Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') TaskListScreen.HandleKeyPress: Key=$($keyInfo.Key) _isEditingRow=$($this._isEditingRow)"
+        }
 
-            # Check if editor closed
-            if ($this._inlineEditor.IsConfirmed -or $this._inlineEditor.IsCancelled) {
-                # Callback will have been fired, just cleanup state
-                $this._showingInlineEditor = $false
-                $this._inlineEditor = $null
+        # Handle inline editing first
+        if ($this._isEditingRow) {
+            if ($this._enableDebugLogging) {
+                Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') TaskListScreen.HandleKeyPress: Calling _HandleInlineEditInput"
             }
-
-            if ($handled) {
-                return $true
-            }
+            return $this._HandleInlineEditInput($keyInfo)
         }
 
         # Custom shortcuts BEFORE base class
@@ -1554,8 +2240,8 @@ class TaskListScreen : StandardListScreen {
             return $true
         }
 
-        # Enter key: Start inline edit mode (BEFORE base class to override default behavior)
-        if ($key -eq [ConsoleKey]::Enter -and -not $ctrl -and -not $alt) {
+        # E key: Enter inline edit mode
+        if ($key -eq [ConsoleKey]::E -and -not $ctrl -and -not $alt) {
             $selected = $this.List.GetSelectedItem()
             if ($selected) {
                 $this.EditItem($selected)

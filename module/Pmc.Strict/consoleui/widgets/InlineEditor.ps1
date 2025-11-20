@@ -391,24 +391,17 @@ class InlineEditor : PmcWidget {
                     return $true
                 }
 
-                # For other fields - move to next field (or validate if last field)
-                if ($this._currentFieldIndex -eq $this._fields.Count - 1) {
-                    # Last field - validate and confirm
-                    if ($this._ValidateAllFields()) {
-                        Write-PmcTuiLog "InlineEditor: Validation passed, confirming" "DEBUG"
-                        $this.IsConfirmed = $true
-                        $values = $this.GetValues()
-                        $this._InvokeCallback($this.OnConfirmed, $values)
-                        return $true
-                    } else {
-                        # Validation failed - show errors and stay open
-                        Write-PmcTuiLog "InlineEditor: Validation FAILED - Errors: $($this._validationErrors -join ', ')" "ERROR"
-                        $this._InvokeCallback($this.OnValidationFailed, $this._validationErrors)
-                        return $true
-                    }
+                # For all other fields - Enter ALWAYS validates and saves (never moves)
+                if ($this._ValidateAllFields()) {
+                    Write-PmcTuiLog "InlineEditor: Validation passed, confirming" "DEBUG"
+                    $this.IsConfirmed = $true
+                    $values = $this.GetValues()
+                    $this._InvokeCallback($this.OnConfirmed, $values)
+                    return $true
                 } else {
-                    # Not last field - move to next
-                    $this._MoveToNextField()
+                    # Validation failed - show errors and stay open
+                    Write-PmcTuiLog "InlineEditor: Validation FAILED - Errors: $($this._validationErrors -join ', ')" "ERROR"
+                    $this._InvokeCallback($this.OnValidationFailed, $this._validationErrors)
                     return $true
                 }
             }
@@ -429,13 +422,23 @@ class InlineEditor : PmcWidget {
             return $true
         }
 
-        # Tab - move to next field
+        # Tab - open widget on widget fields, otherwise navigate
         if ($keyInfo.Key -eq 'Tab') {
             if ($keyInfo.Modifiers -band [ConsoleModifiers]::Shift) {
-                # Shift+Tab - previous field
+                # Shift+Tab - always navigate to previous field
                 $this._MoveToPreviousField()
             } else {
-                # Tab - next field
+                # Tab - check if current field is a widget type
+                if ($this._currentFieldIndex -ge 0 -and $this._currentFieldIndex -lt $this._fields.Count) {
+                    $currentField = $this._fields[$this._currentFieldIndex]
+                    # Widget fields: date, project, folder, tags
+                    if ($currentField.Type -in @('date', 'project', 'folder', 'tags')) {
+                        # Tab opens widget for these fields
+                        $this._ExpandCurrentField()
+                        return $true
+                    }
+                }
+                # For text/number fields, Tab moves to next field
                 $this._MoveToNextField()
             }
             return $true
@@ -533,6 +536,123 @@ class InlineEditor : PmcWidget {
     ANSI string ready for display
     #>
     [string] Render() {
+        # Dispatch based on layout mode
+        if ($this.LayoutMode -eq 'horizontal') {
+            return $this._RenderHorizontal()
+        } else {
+            return $this._RenderVertical()
+        }
+    }
+
+    <#
+    .SYNOPSIS
+    Render fields horizontally (inline mode)
+    #>
+    hidden [string] _RenderHorizontal() {
+        $sb = [StringBuilder]::new(2048)
+
+        # Colors from theme
+        $textColor = $this.GetThemedAnsi('Text', $false)
+        $highlightBg = $this.GetThemedAnsi('Highlight', $true)  # Theme highlight background for non-focused
+        $focusBg = "`e[7m"              # Reverse video for focused
+        $reset = "`e[0m"
+
+        # If a widget is expanded, render it instead
+        if ($this._showFieldWidgets -and -not [string]::IsNullOrWhiteSpace($this._expandedFieldName)) {
+            $field = $this._fields | Where-Object { $_.Name -eq $this._expandedFieldName } | Select-Object -First 1
+            if ($null -ne $field -and $this._fieldWidgets.ContainsKey($field.Name)) {
+                $widget = $this._fieldWidgets[$field.Name]
+
+                # Widget types that render themselves
+                if ($widget.GetType().Name -in @('DatePicker', 'ProjectPicker', 'TagEditor')) {
+                    $this.NeedsClear = $true
+                    return $widget.Render()
+                }
+            }
+        }
+
+        # Position at row
+        $sb.Append($this.BuildMoveTo($this.X, $this.Y))
+
+        # Render fields side-by-side
+        $currentX = $this.X
+        for ($i = 0; $i -lt $this._fields.Count; $i++) {
+            $field = $this._fields[$i]
+            $isFocused = ($i -eq $this._currentFieldIndex)
+
+            # Calculate field width (use Width from field definition or default)
+            $fieldWidth = if ($field.ContainsKey('Width')) { $field.Width } else { 20 }
+
+            # Get field value
+            $value = $this._GetFieldValuePreview($field)
+
+            # For focused text fields with TextInput widget, show with cursor
+            if ($isFocused -and ($field.Type -eq 'text' -or $field.Type -eq 'textarea' -or $field.Type -eq 'date' -or $field.Type -eq 'tags') -and $this._fieldWidgets.ContainsKey($field.Name)) {
+                $widget = $this._fieldWidgets[$field.Name]
+                if ($widget.GetType().Name -eq 'TextInput') {
+                    $text = $widget.GetText()
+                    $cursorPos = $widget._cursorPosition
+
+                    # Apply focus background
+                    $sb.Append($focusBg)
+
+                    # Render text with cursor
+                    if ($cursorPos -le $text.Length) {
+                        $beforeCursor = $text.Substring(0, $cursorPos)
+                        $atCursor = if ($cursorPos -lt $text.Length) { $text.Substring($cursorPos, 1) } else { " " }
+                        $afterCursor = if ($cursorPos -lt $text.Length - 1) { $text.Substring($cursorPos + 1) } else { "" }
+
+                        # Render with cursor visible
+                        $displayText = $beforeCursor + $atCursor + $afterCursor
+
+                        # Pad/truncate to field width
+                        if ($displayText.Length -gt $fieldWidth) {
+                            $displayText = $displayText.Substring(0, $fieldWidth)
+                        } else {
+                            $displayText = $displayText.PadRight($fieldWidth)
+                        }
+
+                        $sb.Append($displayText)
+                    } else {
+                        # Empty field with cursor
+                        $sb.Append(" ".PadRight($fieldWidth))
+                    }
+
+                    $sb.Append($reset)
+                } else {
+                    # Widget field (date/project/tags) - show preview with focus
+                    $sb.Append($focusBg)
+                    $displayValue = $value.PadRight($fieldWidth)
+                    if ($displayValue.Length -gt $fieldWidth) {
+                        $displayValue = $displayValue.Substring(0, $fieldWidth)
+                    }
+                    $sb.Append($displayValue)
+                    $sb.Append($reset)
+                }
+            } else {
+                # Non-focused field - show with highlight background
+                $sb.Append($highlightBg)
+                $displayValue = $value.PadRight($fieldWidth)
+                if ($displayValue.Length -gt $fieldWidth) {
+                    $displayValue = $displayValue.Substring(0, $fieldWidth)
+                }
+                $sb.Append($displayValue)
+                $sb.Append($reset)
+            }
+
+            # Add space between fields
+            $sb.Append(" ")
+            $currentX += $fieldWidth + 1
+        }
+
+        return $sb.ToString()
+    }
+
+    <#
+    .SYNOPSIS
+    Render fields vertically (popup mode)
+    #>
+    hidden [string] _RenderVertical() {
         $sb = [StringBuilder]::new(4096)
 
         # Colors from theme
