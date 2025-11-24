@@ -352,24 +352,9 @@ class ThemeEditorScreen : PmcScreen {
                 Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ThemeEditor._ApplyTheme: Updating theme to $($theme.Hex)..."
             }
 
-            # Get current config
-            $cfg = Get-PmcConfig
-
-            # Update theme hex
-            if (-not $cfg.Display) { $cfg.Display = @{} }
-            if (-not $cfg.Display.Theme) { $cfg.Display.Theme = @{} }
-            $cfg.Display.Theme.Hex = $theme.Hex
-            $cfg.Display.Theme.Enabled = $true
-
-            # Save config (auto-invalidates ConfigCache)
-            Save-PmcConfig $cfg
-
-            # Reload State System
-            Initialize-PmcThemeSystem -Force
-
-            # Reload PmcThemeManager singleton
+            # Use PmcThemeManager to set theme (handles config, state, and reload)
             $themeManager = [PmcThemeManager]::GetInstance()
-            $themeManager.Reload()
+            $themeManager.SetTheme($theme.Hex)
 
             if ($global:PmcTuiLogFile) {
                 Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ThemeEditor._ApplyTheme: Theme updated successfully"

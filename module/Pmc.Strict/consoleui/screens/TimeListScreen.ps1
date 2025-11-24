@@ -451,12 +451,12 @@ class TimeListScreen : StandardListScreen {
             @{ Key='Enter'; Label='Details'; Callback={
                 # Enter is handled by StandardListScreen's OnItemActivated
                 # which TimeListScreen doesn't override, so no action needed
-            }.GetNewClosure() }
+            }.GetNewClosure() },
             @{ Key='w'; Label='Week Report'; Callback={
                 . "$PSScriptRoot/WeeklyTimeReportScreen.ps1"
                 $screen = [WeeklyTimeReportScreen]::new()
                 $self.App.PushScreen($screen)
-            }.GetNewClosure() }
+            }.GetNewClosure() },
             @{ Key='g'; Label='Generate'; Callback={
                 $self.GenerateReport()
             }.GetNewClosure() }

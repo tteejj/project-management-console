@@ -1082,7 +1082,11 @@ class TaskListScreen : StandardListScreen {
 
     # Custom action: Mark task complete
     [void] CompleteTask([object]$task) {
-        if ($null -eq $task) { return }
+        if ($null -eq $task) {
+            Write-PmcTuiLog "CompleteTask called with null task" "WARNING"
+            return
+        }
+        Write-PmcTuiLog "CompleteTask called for task: $($task.id)" "INFO"
 
         $taskId = Get-SafeProperty $task 'id'
         $taskText = Get-SafeProperty $task 'text'
@@ -1412,9 +1416,13 @@ class TaskListScreen : StandardListScreen {
                 $self.CloneTask($selected)
             }.GetNewClosure() }
             @{ Key='s'; Label='Subtask'; Callback={
+                Write-PmcTuiLog "Action 's' (Subtask) triggered" "INFO"
                 $selected = $self.List.GetSelectedItem()
                 if ($selected) {
                     $self.AddSubtask($selected)
+                } else {
+                    Write-PmcTuiLog "Action 's': No item selected" "WARNING"
+                    $self.SetStatusMessage("Select a task to add a subtask", "warning")
                 }
             }.GetNewClosure() }
             @{ Key='h'; Label='Hide Done'; Callback={

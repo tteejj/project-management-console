@@ -49,9 +49,9 @@ class ExcelMappingService {
 
     # === Constructor (Private - use GetInstance) ===
     ExcelMappingService() {
-        # Determine profiles file location relative to PMC root
-        $pmcRoot = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))
-        $this._profilesFile = Join-Path $pmcRoot "excel_profiles.json"
+        # Determine profiles file location
+        # FIXED: Point to the actual location found in user's home directory
+        $this._profilesFile = "/home/teej/_tui/praxis-main/simpletaskpro/Data/excel-mappings.json"
 
         # Load profiles
         $this.LoadProfiles()

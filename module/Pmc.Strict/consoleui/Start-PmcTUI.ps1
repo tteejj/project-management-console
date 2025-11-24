@@ -433,6 +433,17 @@ function Start-PmcTUI {
         $global:PmcApp = $global:PmcContainer.Resolve('Application')
         Write-PmcTuiLog "Application resolved and assigned to `$global:PmcApp" "INFO"
 
+        # === Load Menus from Manifest ===
+        Write-PmcTuiLog "Loading menus from manifest..." "INFO"
+        $menuRegistry = $global:PmcContainer.Resolve('MenuRegistry')
+        $manifestPath = Join-Path $PSScriptRoot "screens/MenuItems.psd1"
+        if (Test-Path $manifestPath) {
+            $menuRegistry.LoadFromManifest($manifestPath, $global:PmcContainer)
+            Write-PmcTuiLog "Menus loaded from $manifestPath" "INFO"
+        } else {
+            Write-PmcTuiLog "Menu manifest not found at $manifestPath" "ERROR"
+        }
+
         # === Launch Initial Screen ===
         Write-PmcTuiLog "Launching screen: $StartScreen" "INFO"
         switch ($StartScreen) {

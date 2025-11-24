@@ -105,6 +105,8 @@ class PmcApplication {
 
         # Clear screen to prevent old content from showing through
         [Console]::Write("`e[2J")
+        # CRITICAL FIX: Invalidate render engine buffer since we wiped the screen
+        $this.RenderEngine.RequestClear()
 
         # Push new screen
         $this.ScreenStack.Push($screen)
@@ -149,6 +151,8 @@ class PmcApplication {
 
         # Clear screen to prevent old content from showing through
         [Console]::Write("`e[2J")
+        # CRITICAL FIX: Invalidate render engine buffer since we wiped the screen
+        $this.RenderEngine.RequestClear()
 
         # Restore previous screen
         if ($this.ScreenStack.Count -gt 0) {
