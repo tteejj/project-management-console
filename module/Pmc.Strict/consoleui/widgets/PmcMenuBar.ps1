@@ -213,16 +213,12 @@ class PmcMenuBar : PmcWidget {
     Hide dropdown
     #>
     [void] HideDropdown() {
-        # Clear the dropdown immediately before hiding
-        if ($this._prevDropdownHeight -gt 0) {
-            $clearOutput = $this._ClearPreviousDropdown()
-            # Write directly to console to clear immediately
-            [Console]::Write($clearOutput)
-        }
+        # Don't write directly to console - let render loop handle clearing through layer system
+        # The OnRender() method already clears the dropdown when DropdownVisible becomes false
 
         $this.DropdownVisible = $false
         $this.SelectedItemIndex = -1
-        $this.Invalidate()
+        $this.Invalidate()  # Trigger re-render which will clear dropdown via layer system
     }
 
     <#
@@ -419,11 +415,11 @@ class PmcMenuBar : PmcWidget {
     hidden [string] _RenderMenuBar() {
         $sb = [System.Text.StringBuilder]::new(512)
 
-        # Get colors
-        $bgColor = $this.GetThemedAnsi('Border', $true)
-        $fgColor = $this.GetThemedAnsi('Text', $false)
-        $highlightBg = $this.GetThemedAnsi('Primary', $true)
-        $highlightFg = $this.GetThemedAnsi('Text', $false)
+        # Get colors from new theme system
+        $bgColor = $this.GetThemedBg('Background.MenuBar', 1, 0)
+        $fgColor = $this.GetThemedFg('Foreground.Row')
+        $highlightBg = $this.GetThemedBg('Background.RowSelected', 1, 0)
+        $highlightFg = $this.GetThemedFg('Foreground.RowSelected')
         $reset = "`e[0m"
 
         # Position cursor
@@ -511,13 +507,13 @@ class PmcMenuBar : PmcWidget {
         # Add 2 for left/right borders
         $this._dropdownWidth = $maxWidth + 2
 
-        # Colors
-        $bgColor = $this.GetThemedAnsi('Border', $true)
-        $fgColor = $this.GetThemedAnsi('Text', $false)
-        $borderColor = $this.GetThemedAnsi('Border', $false)
-        $selectedBg = $this.GetThemedAnsi('Primary', $true)
-        $selectedFg = $this.GetThemedAnsi('Text', $false)
-        $mutedColor = $this.GetThemedAnsi('Muted', $false)
+        # Colors from new theme system
+        $bgColor = $this.GetThemedBg('Background.MenuBar', 1, 0)
+        $fgColor = $this.GetThemedFg('Foreground.Row')
+        $borderColor = $this.GetThemedFg('Border.Widget')
+        $selectedBg = $this.GetThemedBg('Background.RowSelected', 1, 0)
+        $selectedFg = $this.GetThemedFg('Foreground.RowSelected')
+        $mutedColor = $this.GetThemedFg('Foreground.Muted')
         $reset = "`e[0m"
 
         # Top border
@@ -684,7 +680,12 @@ class PmcMenuBar : PmcWidget {
                     return $true
                 }
                 'Escape' {
+                    if ($global:PmcTuiLogFile) {
+                        Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] MenuBar: ESC in dropdown mode - deactivating menu entirely"
+                    }
+                    Add-Content -Path "/tmp/pmc-esc-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [MenuBar] ESC in dropdown mode - deactivating menu entirely"
                     $this.HideDropdown()
+                    $this.Deactivate()
                     return $true
                 }
                 default {
@@ -714,6 +715,10 @@ class PmcMenuBar : PmcWidget {
                     return $true
                 }
                 'Escape' {
+                    if ($global:PmcTuiLogFile) {
+                        Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] MenuBar: ESC in menu bar mode - deactivating"
+                    }
+                    Add-Content -Path "/tmp/pmc-esc-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [MenuBar] ESC in menu bar mode - deactivating"
                     $this.Deactivate()
                     return $true
                 }

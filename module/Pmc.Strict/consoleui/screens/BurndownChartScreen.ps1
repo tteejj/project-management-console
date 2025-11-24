@@ -142,12 +142,12 @@ class BurndownChartScreen : PmcScreen {
         $contentRect = $this.LayoutManager.GetRegion('Content', $this.TermWidth, $this.TermHeight)
 
         # Colors
-        $textColor = $this.Header.GetThemedAnsi('Text', $false)
+        $textColor = $this.Header.GetThemedFg('Foreground.Field')
         $headerColor = $this.Header.GetThemedAnsi('Accent', $false)
-        $completedColor = $this.Header.GetThemedAnsi('Success', $false)
+        $completedColor = $this.Header.GetThemedFg('Foreground.Success')
         $inProgressColor = $this.Header.GetThemedAnsi('Warning', $false)
-        $blockedColor = $this.Header.GetThemedAnsi('Error', $false)
-        $mutedColor = $this.Header.GetThemedAnsi('Muted', $false)
+        $blockedColor = $this.Header.GetThemedFg('Foreground.Error')
+        $mutedColor = $this.Header.GetThemedFg('Foreground.Muted')
         $reset = "`e[0m"
 
         $y = $this.Header.Y + 4  # Start after header and breadcrumb

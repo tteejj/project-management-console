@@ -331,14 +331,15 @@ class FilterPanel : PmcWidget {
     [string] Render() {
         $sb = [StringBuilder]::new(2048)
 
-        # Colors from theme
-        $borderColor = $this.GetThemedAnsi('Border', $false)
-        $textColor = $this.GetThemedAnsi('Text', $false)
-        $primaryColor = $this.GetThemedAnsi('Primary', $false)
-        $mutedColor = $this.GetThemedAnsi('Muted', $false)
-        $errorColor = $this.GetThemedAnsi('Error', $false)
-        $successColor = $this.GetThemedAnsi('Success', $false)
-        $highlightBg = $this.GetThemedAnsi('Primary', $true)
+        # Colors from new theme system
+        $borderColor = $this.GetThemedFg('Border.Widget')
+        $textColor = $this.GetThemedFg('Foreground.Row')
+        $primaryColor = $this.GetThemedFg('Foreground.Title')
+        $mutedColor = $this.GetThemedFg('Foreground.Muted')
+        $errorColor = $this.GetThemedFg('Foreground.Error')
+        $successColor = $this.GetThemedFg('Foreground.Success')
+        $highlightBg = $this.GetThemedBg('Background.RowSelected', 1, 0)
+        $highlightFg = $this.GetThemedFg('Foreground.RowSelected')
         $reset = "`e[0m"
 
         # Draw top border

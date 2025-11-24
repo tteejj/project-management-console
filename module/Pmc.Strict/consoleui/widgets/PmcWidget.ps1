@@ -13,6 +13,12 @@ if (-not ([System.Management.Automation.PSTypeName]'Component').Type) {
     throw "SpeedTUI Component class not found. Ensure SpeedTUILoader.ps1 is loaded before PmcWidget.ps1"
 }
 
+# PmcThemeEngine must be loaded before this file
+# (loaded by SpeedTUILoader.ps1)
+if (-not ([System.Management.Automation.PSTypeName]'PmcThemeEngine').Type) {
+    throw "PmcThemeEngine class not found. Ensure PmcThemeEngine.ps1 is loaded before PmcWidget.ps1"
+}
+
 <#
 .SYNOPSIS
 Base class for all PMC widgets extending SpeedTUI Component
@@ -154,82 +160,45 @@ class PmcWidget : Component {
     Color role: Primary, Border, Text, Muted, Error, Warning, Success, Bright, Header, etc.
 
     .OUTPUTS
-    Hex color string (e.g., "#33aaff") or empty string if not found
+    String - background ANSI escape sequence
 
-    .EXAMPLE
-    $color = $this.GetThemedColor('Primary')  # Returns "#33aaff" (or current theme color)
+    .NOTES
+    NEW THEME API - Replaces GetThemedAnsi()
+    Delegates to PmcThemeEngine singleton for all color resolution
+    Supports both solid colors and gradients automatically
+
+    Property name format: "Background.Field", "Background.FieldFocused", etc.
+    For solid colors: width/charIndex ignored, same ANSI for all positions
+    For gradients: returns interpolated ANSI for specific character position
     #>
-    [string] GetThemedColor([string]$role) {
-        $this._EnsureThemeInitialized()
-        if ($this._pmcStyleTokens -and $this._pmcStyleTokens.ContainsKey($role)) {
-            $style = $this._pmcStyleTokens[$role]
-            if ($style.Fg) { return $style.Fg }
-        }
-        try {
-            $palette = Get-PmcColorPalette
-            if ($palette.ContainsKey($role)) {
-                $rgb = $palette[$role]
-                if ($rgb.R -ne $null) {
-                    return ("#{0:X2}{1:X2}{2:X2}" -f $rgb.R, $rgb.G, $rgb.B)
-                }
-            }
-        } catch {
-            if (Get-Command Write-PmcTuiLog -ErrorAction SilentlyContinue) {
-                Write-PmcTuiLog "GetThemedColor palette lookup failed for role '$role': $($_.Exception.Message)" "DEBUG"
-            }
-        }
-        $result = switch ($role) {
-            'Primary' { if ($this._pmcTheme.Hex) { $this._pmcTheme.Hex } else { '#33aaff' } }
-            'Border' { '#666666' }
-            'Text' { '#CCCCCC' }
-            'Muted' { '#888888' }
-            'Error' { '#FF4444' }
-            'Warning' { '#FFAA00' }
-            'Success' { '#44FF44' }
-            default { '#CCCCCC' }
-        }
+    [string] GetThemedBg([string]$propertyName, [int]$width, [int]$charIndex) {
+        $engine = [PmcThemeEngine]::GetInstance()
+        $result = $engine.GetBackgroundAnsi($propertyName, $width, $charIndex)
+        # CRITICAL DEBUG: Log what theme engine returns
+        Add-Content -Path "/tmp/pmc-theme-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') GetThemedBg($propertyName, $width, $charIndex) = '$result' (len=$($result.Length))"
         return $result
     }
 
     <#
     .SYNOPSIS
-    Get ANSI color sequence for a specific role
+    Get foreground ANSI color sequence from theme engine
 
-    .PARAMETER role
-    Color role (Primary, Border, Text, etc.)
-
-    .PARAMETER background
-    If true, returns background color sequence instead of foreground
+    .PARAMETER propertyName
+    Theme property name (e.g., "Foreground.Field", "Foreground.FieldFocused")
 
     .OUTPUTS
-    ANSI escape sequence string (e.g., "`e[38;2;51;170;255m")
+    String - foreground ANSI escape sequence
 
-    .EXAMPLE
-    $sb.Append($this.GetThemedAnsi('Primary'))
-    $sb.Append("Important Text")
-    $sb.Append("`e[0m")
+    .NOTES
+    NEW THEME API - Replaces GetThemedAnsi()
+    Foregrounds are typically solid colors
     #>
-    [string] GetThemedAnsi([string]$role, [bool]$background = $false) {
-        $hex = $this.GetThemedColor($role)
-        if ([string]::IsNullOrEmpty($hex)) { return '' }
-
-        # Parse hex to RGB
-        $hex = $hex.TrimStart('#')
-        if ($hex.Length -ne 6) { return '' }
-
-        try {
-            $r = [Convert]::ToInt32($hex.Substring(0, 2), 16)
-            $g = [Convert]::ToInt32($hex.Substring(2, 2), 16)
-            $b = [Convert]::ToInt32($hex.Substring(4, 2), 16)
-
-            if ($background) {
-                return "`e[48;2;${r};${g};${b}m"
-            } else {
-                return "`e[38;2;${r};${g};${b}m"
-            }
-        } catch {
-            return ''
-        }
+    [string] GetThemedFg([string]$propertyName) {
+        $engine = [PmcThemeEngine]::GetInstance()
+        $result = $engine.GetForegroundAnsi($propertyName)
+        # CRITICAL DEBUG: Log what theme engine returns
+        Add-Content -Path "/tmp/pmc-theme-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') GetThemedFg($propertyName) = '$result' (len=$($result.Length))"
+        return $result
     }
 
     # === Box Drawing Methods ===

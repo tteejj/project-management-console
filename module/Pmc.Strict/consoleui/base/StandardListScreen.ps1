@@ -244,7 +244,14 @@ class StandardListScreen : PmcScreen {
     #>
     [void] OnItemActivated($item) {
         # Default: open inline editor
-        $this.EditItem($item)
+        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [StandardListScreen.OnItemActivated] CALLED for item: $($item.text ?? $item.id)"
+        try {
+            Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [StandardListScreen.OnItemActivated] About to call EditItem"
+            $this.EditItem($item)
+            Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [StandardListScreen.OnItemActivated] EditItem completed"
+        } catch {
+            Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [StandardListScreen.OnItemActivated] ERROR calling EditItem: $($_.Exception.Message) at line $($_.InvocationInfo.ScriptLineNumber)"
+        }
     }
 
     <#
@@ -286,6 +293,12 @@ class StandardListScreen : PmcScreen {
         $this.List.AllowMultiSelect = $this.AllowMultiSelect
         $this.List.AllowInlineEdit = $this.AllowEdit
         $this.List.AllowSearch = $this.AllowSearch
+
+        # FIX Z-ORDER BUG: Disable Header separator since UniversalList draws its own box
+        # The Header separator was overlapping list content (Header z=50 beats Content z=10)
+        if ($this.Header) {
+            $this.Header.ShowSeparator = $false
+        }
 
         if ($global:PmcTuiLogFile) {
             Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] StandardListScreen._InitializeComponents: List created"
@@ -330,8 +343,11 @@ class StandardListScreen : PmcScreen {
 
         # Initialize InlineEditor
         $this.InlineEditor = [InlineEditor]::new()
-        $this.InlineEditor.SetPosition(10, 5)
-        $this.InlineEditor.SetSize(70, 25)
+        # Use properties, not methods (SetPosition/SetSize don't exist)
+        $this.InlineEditor.X = 10
+        $this.InlineEditor.Y = 5
+        $this.InlineEditor.Width = 70
+        $this.InlineEditor.Height = 25
         # Capture $this explicitly to avoid wrong screen receiving callback
         $thisScreen = $this
         $this.InlineEditor.OnConfirmed = {
@@ -339,9 +355,17 @@ class StandardListScreen : PmcScreen {
             $thisScreen._SaveEditedItem($values)
         }.GetNewClosure()
         $this.InlineEditor.OnCancelled = {
+            # Don't clear EditorMode here - let HandleInput check it first for selectedIndex restoration
             $thisScreen.ShowInlineEditor = $false
-            $thisScreen.EditorMode = ""
+            # $thisScreen.EditorMode = ""  # MOVED to HandleInput after checking wasAddMode
             $thisScreen.CurrentEditItem = $null
+        }.GetNewClosure()
+        $this.InlineEditor.OnValidationFailed = {
+            param($errors)
+            # Show first validation error in status bar
+            if ($errors -and $errors.Count -gt 0) {
+                $thisScreen.SetStatusMessage($errors[0], "error")
+            }
         }.GetNewClosure()
 
         # Wire up store events for auto-refresh
@@ -409,6 +433,7 @@ class StandardListScreen : PmcScreen {
                     $currentScreen.EditItem($selectedItem)
                 }
             }.GetNewClosure()
+            # E key for edit (Enter key triggers OnItemActivated which calls EditItem)
             $this.List.AddAction('e', 'Edit', $editAction)
         }
 
@@ -500,9 +525,17 @@ class StandardListScreen : PmcScreen {
             Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] Got $($fields.Count) edit fields"
         }
 
+        $this.InlineEditor.LayoutMode = "horizontal"
         $this.InlineEditor.SetFields($fields)
         $this.InlineEditor.Title = "Add New"
-        $this.InlineEditor.LayoutMode = "horizontal"
+
+        # Position editor at end of list (or first row if empty)
+        $itemCount = if ($this.List._filteredData) { $this.List._filteredData.Count } else { 0 }
+        $this.List._selectedIndex = $itemCount  # Select the "new row" position
+
+        if ($global:PmcTuiLogFile) {
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] AddItem: Set selectedIndex=$itemCount for add mode"
+        }
 
         if ($global:PmcTuiLogFile) {
             Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] AddItem: About to set ShowInlineEditor=true (currently: $($this.ShowInlineEditor))"
@@ -527,16 +560,31 @@ class StandardListScreen : PmcScreen {
     Item to edit
     #>
     [void] EditItem($item) {
+        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [EditItem] START"
         if ($null -eq $item) {
+            Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [EditItem] item is null, returning"
             return
         }
 
         $this.EditorMode = 'edit'
         $this.CurrentEditItem = $item
+        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [EditItem] CurrentEditItem set to: $($item.id)"
+
         $fields = $this.GetEditFields($item)
+        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [EditItem] GetEditFields returned $($fields.Count) fields"
+        foreach ($field in $fields) {
+            Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [EditItem]   Field: Name=$($field.Name) Type=$($field.Type) Width=$($field.Width)"
+        }
+
+        $this.InlineEditor.LayoutMode = "horizontal"
+        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [EditItem] LayoutMode set to horizontal"
+
         $this.InlineEditor.SetFields($fields)
+        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [EditItem] SetFields called, editor fields count=$($this.InlineEditor._fields.Count)"
+
         $this.InlineEditor.Title = "Edit"
         $this.ShowInlineEditor = $true
+        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [EditItem] ShowInlineEditor = true"
     }
 
     <#
@@ -721,8 +769,16 @@ class StandardListScreen : PmcScreen {
     True if input was handled, False otherwise
     #>
     [bool] HandleKeyPress([ConsoleKeyInfo]$keyInfo) {
+        # DEBUG: Log ALL Enter key presses at the very top
+        if ($keyInfo.Key -eq 'Enter') {
+            Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [StandardListScreen.HandleKeyPress] ENTER RECEIVED at top of method"
+        }
+
         # Re-entry guard: prevent infinite recursion
         if ($this._isHandlingInput) {
+            if ($keyInfo.Key -eq 'Enter') {
+                Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [StandardListScreen.HandleKeyPress] ENTER blocked by reentrant guard"
+            }
             return $false
         }
         $this._isHandlingInput = $true
@@ -734,22 +790,15 @@ class StandardListScreen : PmcScreen {
                 }
             }
 
-            # F10 activates menu
-            if ($keyInfo.Key -eq [ConsoleKey]::F10) {
-                if ($null -ne $this.MenuBar) {
-                    $this.MenuBar.Activate()
-                    return $true
-                }
-            }
-
-            # If menu is active, route all keys to it
+            # If menu is active, route all keys to it FIRST (including Esc to close)
             if ($null -ne $this.MenuBar -and $this.MenuBar.IsActive) {
                 if ($this.MenuBar.HandleKeyPress($keyInfo)) {
                     return $true
                 }
             }
 
-            # Route to inline editor if shown
+            # CRITICAL FIX: Route to inline editor BEFORE other menu handling
+            # This allows inline editor to handle Esc/Enter instead of menu stealing them
             if ($this.ShowInlineEditor) {
                 Write-PmcTuiLog "StandardListScreen: Routing to InlineEditor (Key=$($keyInfo.Key))" "DEBUG"
                 $handled = $this.InlineEditor.HandleInput($keyInfo)
@@ -757,18 +806,52 @@ class StandardListScreen : PmcScreen {
 
                 # Check if editor needs clear (field widget was closed)
                 if ($this.InlineEditor.NeedsClear) {
-                    Write-PmcTuiLog "StandardListScreen: Editor field widget closed - requesting clear" "DEBUG"
-                    $this.NeedsClear = $true
+                    Write-PmcTuiLog "StandardListScreen: Editor field widget closed - NO CLEAR (inline mode)" "DEBUG"
+                    # NOTE: NeedsClear NOT set - widgets render as overlays without clearing screen
                     $this.InlineEditor.NeedsClear = $false  # Reset flag
                     return $true
                 }
 
                 # Check if editor closed
                 if ($this.InlineEditor.IsConfirmed -or $this.InlineEditor.IsCancelled) {
-                    Write-PmcTuiLog "StandardListScreen: Editor confirmed/cancelled - closing editor" "DEBUG"
+                    Write-PmcTuiLog "StandardListScreen: Editor confirmed/cancelled - closing editor NO CLEAR" "DEBUG"
+
+                    # BUG FIX: Save EditorMode BEFORE it gets cleared by OnCancelled callback
+                    $wasAddMode = ($this.EditorMode -eq 'add')
+                    Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [StandardListScreen] Editor closing: EditorMode='$($this.EditorMode)' wasAddMode=$wasAddMode IsCancelled=$($this.InlineEditor.IsCancelled)"
+
                     $this.ShowInlineEditor = $false
-                    # Request full screen clear to remove editor remnants
-                    $this.NeedsClear = $true
+                    # CRITICAL: Also update the list's editor state to stay in sync
+                    $this.List._showInlineEditor = $false
+
+                    # BUG FIX: Restore selectedIndex after exiting add mode
+                    # When in add mode, selectedIndex is set to itemCount (one past the last item)
+                    # When cancelled, we need to restore it to a valid row index so the user can navigate
+                    if ($wasAddMode) {
+                        $itemCount = if ($this.List._filteredData) { $this.List._filteredData.Count } else { 0 }
+                        if ($itemCount -gt 0) {
+                            # Restore to last item (or first item if we just added one on confirm)
+                            if ($this.InlineEditor.IsCancelled) {
+                                # Cancelled - go back to last existing item
+                                $this.List._selectedIndex = $itemCount - 1
+                            } else {
+                                # Confirmed - select the newly added item (if it was added)
+                                # Keep current selectedIndex if within bounds, otherwise select last
+                                if ($this.List._selectedIndex -ge $itemCount) {
+                                    $this.List._selectedIndex = $itemCount - 1
+                                }
+                            }
+                        } else {
+                            # No items - select none (will be 0 when items are added)
+                            $this.List._selectedIndex = 0
+                        }
+                        Write-PmcTuiLog "StandardListScreen: Restored selectedIndex to $($this.List._selectedIndex) after add mode exit (itemCount=$itemCount)" "DEBUG"
+                    }
+
+                    # Clear EditorMode AFTER checking if it was add mode
+                    $this.EditorMode = ""
+
+                    # NOTE: NeedsClear NOT set - screen should not clear when closing inline editor
                     # MUST return true to trigger re-render
                     return $true
                 }
@@ -799,6 +882,16 @@ class StandardListScreen : PmcScreen {
                 # Otherwise, fall through to global shortcuts
             }
 
+            # F10 OR ESC activates menu (only if not already active and no editor/filter showing)
+            if ($keyInfo.Key -eq [ConsoleKey]::F10 -or $keyInfo.Key -eq [ConsoleKey]::Escape) {
+                Add-Content -Path "/tmp/pmc-esc-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [StandardListScreen] ESC/F10 pressed: MenuBar=$($null -ne $this.MenuBar) IsActive=$($this.MenuBar.IsActive) ShowEditor=$($this.ShowInlineEditor) ShowFilter=$($this.ShowFilterPanel)"
+                if ($null -ne $this.MenuBar -and -not $this.MenuBar.IsActive -and -not $this.ShowInlineEditor -and -not $this.ShowFilterPanel) {
+                    Add-Content -Path "/tmp/pmc-esc-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [StandardListScreen] ESC/F10 activating menu"
+                    $this.MenuBar.Activate()
+                    return $true
+                }
+            }
+
             # Global shortcuts
 
             # ? = Help
@@ -820,8 +913,21 @@ class StandardListScreen : PmcScreen {
                 return $true
             }
 
-            # Route to list
-            return $this.List.HandleInput($keyInfo)
+            # Route to list ONLY if editor and filter are NOT showing
+            # CRITICAL FIX: When editor is open, don't let list actions (a/e/d) trigger
+            # This prevents accidentally opening a new editor or deleting items while editing
+            if ($keyInfo.Key -eq 'Enter') {
+                Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [StandardListScreen.HandleInput] ENTER at routing point: ShowInlineEditor=$($this.ShowInlineEditor) ShowFilterPanel=$($this.ShowFilterPanel)"
+            }
+            if (-not $this.ShowInlineEditor -and -not $this.ShowFilterPanel) {
+                return $this.List.HandleInput($keyInfo)
+            }
+
+            # Editor/filter is showing but didn't handle key - ignore it
+            if ($keyInfo.Key -eq 'Enter') {
+                Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [StandardListScreen.HandleInput] ENTER blocked - editor or filter showing, returning false"
+            }
+            return $false
         } finally {
             $this._isHandlingInput = $false
         }
@@ -838,6 +944,8 @@ class StandardListScreen : PmcScreen {
     #>
     [string] RenderContent() {
         # Priority rendering order: editor INLINE with list > filter panel > list
+        $editItemId = if ($null -ne $this.CurrentEditItem -and $this.CurrentEditItem.PSObject.Properties['id']) { $this.CurrentEditItem.id } else { "null" }
+        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [RenderContent] START ShowInlineEditor=$($this.ShowInlineEditor) EditorMode=$($this.EditorMode) CurrentEditItem=$editItemId"
 
         if ($global:PmcTuiLogFile) {
             Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] RenderContent: ENTRY - type=$($this.GetType().Name) key=$($this.ScreenKey) ShowInlineEditor=$($this.ShowInlineEditor) EditorMode=$($this.EditorMode)"
@@ -855,15 +963,19 @@ class StandardListScreen : PmcScreen {
         # If showing inline editor, pass it to the list for inline rendering BEFORE calling Render()
         if ($this.ShowInlineEditor -and $this.InlineEditor) {
             # Set inline editor mode on list
+            Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [RenderContent] Setting List._showInlineEditor=true and _inlineEditor"
             $this.List._showInlineEditor = $true
             $this.List._inlineEditor = $this.InlineEditor
         } else {
+            Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [RenderContent] NOT showing editor"
             $this.List._showInlineEditor = $false
         }
 
         # Render list (it will handle inline editor internally)
         try {
+            Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [RenderContent] Calling List.Render()"
             $listOutput = $this.List.Render()
+            Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [RenderContent] List.Render() returned $($listOutput.Length) chars"
         } catch {
             Add-Content -Path "/tmp/pmc-list-render-error.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') ERROR in List.Render(): $($_.Exception.Message)"
             Add-Content -Path "/tmp/pmc-list-render-error.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Line: $($_.InvocationInfo.ScriptLineNumber)"

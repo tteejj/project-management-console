@@ -74,11 +74,11 @@ class TimerStopScreen : PmcScreen {
         $contentRect = $this.LayoutManager.GetRegion('Content', $this.TermWidth, $this.TermHeight)
 
         # Colors
-        $textColor = $this.Header.GetThemedAnsi('Text', $false)
-        $highlightColor = $this.Header.GetThemedAnsi('Highlight', $false)
-        $successColor = $this.Header.GetThemedAnsi('Success', $false)
+        $textColor = $this.Header.GetThemedFg('Foreground.Field')
+        $highlightColor = $this.Header.GetThemedFg('Foreground.FieldFocused')
+        $successColor = $this.Header.GetThemedFg('Foreground.Success')
         $warningColor = $this.Header.GetThemedAnsi('Warning', $false)
-        $mutedColor = $this.Header.GetThemedAnsi('Muted', $false)
+        $mutedColor = $this.Header.GetThemedFg('Foreground.Muted')
         $reset = "`e[0m"
 
         $y = $contentRect.Y + 2

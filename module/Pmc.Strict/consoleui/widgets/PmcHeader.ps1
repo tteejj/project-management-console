@@ -99,9 +99,9 @@ class PmcHeader : PmcWidget {
         $sb = [System.Text.StringBuilder]::new(512)
 
         # Colors
-        $titleColor = $this.GetThemedAnsi('Title', $false)
-        $mutedColor = $this.GetThemedAnsi('Muted', $false)
-        $borderColor = $this.GetThemedAnsi('Border', $false)
+        $titleColor = $this.GetThemedFg('Foreground.Title')
+        $mutedColor = $this.GetThemedFg('Foreground.Muted')
+        $borderColor = $this.GetThemedFg('Border.Widget')
         $reset = "`e[0m"
 
         # Line 1: Title (with optional icon and context)
@@ -175,9 +175,9 @@ class PmcHeader : PmcWidget {
     #>
     [void] RenderToEngine([object]$engine) {
         # Colors
-        $titleColor = $this.GetThemedAnsi('Title', $false)
-        $mutedColor = $this.GetThemedAnsi('Muted', $false)
-        $borderColor = $this.GetThemedAnsi('Border', $false)
+        $titleColor = $this.GetThemedFg('Foreground.Title')
+        $mutedColor = $this.GetThemedFg('Foreground.Muted')
+        $borderColor = $this.GetThemedFg('Border.Widget')
         $reset = "`e[0m"
 
         # Line 1: Title (with optional icon and context)

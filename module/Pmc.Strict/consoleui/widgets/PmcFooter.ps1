@@ -99,9 +99,9 @@ class PmcFooter : PmcWidget {
         $sb = [System.Text.StringBuilder]::new(512)
 
         # Colors
-        $keyColor = $this.GetThemedAnsi('Highlight', $false)
-        $textColor = $this.GetThemedAnsi('Muted', $false)
-        $separatorColor = $this.GetThemedAnsi('Border', $false)
+        $keyColor = $this.GetThemedFg('Foreground.Title')
+        $textColor = $this.GetThemedFg('Foreground.Muted')
+        $separatorColor = $this.GetThemedFg('Border.Widget')
         $reset = "`e[0m"
 
         # Position
@@ -150,9 +150,9 @@ class PmcFooter : PmcWidget {
         $sb = [System.Text.StringBuilder]::new(512)
 
         # Colors
-        $keyColor = $this.GetThemedAnsi('Highlight', $false)
-        $textColor = $this.GetThemedAnsi('Muted', $false)
-        $separatorColor = $this.GetThemedAnsi('Border', $false)
+        $keyColor = $this.GetThemedFg('Foreground.Title')
+        $textColor = $this.GetThemedFg('Foreground.Muted')
+        $separatorColor = $this.GetThemedFg('Border.Widget')
         $reset = "`e[0m"
 
         # Build shortcut string

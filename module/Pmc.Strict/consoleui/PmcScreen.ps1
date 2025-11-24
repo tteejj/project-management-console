@@ -115,7 +115,8 @@ class PmcScreen {
 
     hidden [void] _CreateDefaultWidgets() {
         # Menu bar - use shared MenuBar if available (populated by TaskListScreen)
-        if (Get-Variable -Name PmcSharedMenuBar -Scope Global -ErrorAction SilentlyContinue) {
+        # CRITICAL: Check if variable exists AND is not null
+        if ((Get-Variable -Name PmcSharedMenuBar -Scope Global -ErrorAction SilentlyContinue) -and $global:PmcSharedMenuBar) {
             $this.MenuBar = $global:PmcSharedMenuBar
         } else {
             # Create default empty MenuBar (will be populated by TaskListScreen)
@@ -151,11 +152,17 @@ class PmcScreen {
     Override to perform initialization when screen is displayed
     #>
     [void] OnEnter() {
+        if ($global:PmcTuiLogFile) {
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [LIFECYCLE] PmcScreen.OnEnter() - Screen='$($this.ScreenKey)' entering"
+        }
         $this.IsActive = $true
         $this.LoadData()
 
         if ($this.OnEnterHandler) {
             & $this.OnEnterHandler $this
+        }
+        if ($global:PmcTuiLogFile) {
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [LIFECYCLE] PmcScreen.OnEnter() - Screen='$($this.ScreenKey)' entered successfully"
         }
     }
 
@@ -167,10 +174,16 @@ class PmcScreen {
     Override to perform cleanup when leaving screen
     #>
     [void] OnExit() {
+        if ($global:PmcTuiLogFile) {
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [LIFECYCLE] PmcScreen.OnExit() - Screen='$($this.ScreenKey)' exiting"
+        }
         $this.IsActive = $false
 
         if ($this.OnExitHandler) {
             & $this.OnExitHandler $this
+        }
+        if ($global:PmcTuiLogFile) {
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [LIFECYCLE] PmcScreen.OnExit() - Screen='$($this.ScreenKey)' exited successfully"
         }
     }
 
@@ -182,6 +195,9 @@ class PmcScreen {
     Override to load screen-specific data
     #>
     [void] LoadData() {
+        if ($global:PmcTuiLogFile) {
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [LIFECYCLE] PmcScreen.LoadData() - Screen='$($this.ScreenKey)' (base class - no-op)"
+        }
         # Override in subclass
     }
 
@@ -434,28 +450,12 @@ class PmcScreen {
     We parse those ANSI strings and write them to the engine using WriteAt().
     #>
     [void] RenderToEngine([object]$engine) {
-        # Render MenuBar (if present) - with error boundary
-        if ($this.MenuBar) {
-            try {
-                if ($global:PmcTuiLogFile) {
-                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcScreen.RenderToEngine: Calling MenuBar.Render()"
-                }
-                $output = $this.MenuBar.Render()
-                if ($global:PmcTuiLogFile) {
-                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcScreen.RenderToEngine: MenuBar.Render() returned length=$($output.Length)"
-                }
-                if ($output) {
-                    $this._ParseAnsiAndWrite($engine, $output)
-                    if ($global:PmcTuiLogFile) {
-                        Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcScreen.RenderToEngine: MenuBar ANSI parsed and written to engine"
-                    }
-                }
-            } catch {
-                $this._HandleWidgetRenderError("MenuBar", $_, $engine, 0)
-            }
-        }
+        # Z-INDEX LAYER RENDERING
+        # All rendering now uses explicit layers for proper z-ordering.
+        # Higher z-index values render on top of lower values.
 
-        # Render Header - with error boundary
+        # Layer 50: Header
+        $engine.BeginLayer([ZIndex]::Header)
         if ($this.Header) {
             try {
                 $output = $this.Header.Render()
@@ -467,6 +467,8 @@ class PmcScreen {
             }
         }
 
+        # Layer 10: Content (main screen content)
+        $engine.BeginLayer([ZIndex]::Content)
         # Render content - wrap in try-catch to prevent rendering crashes
         try {
             # PERFORMANCE: Use direct engine rendering if available (avoids ANSI parsing)
@@ -498,6 +500,8 @@ class PmcScreen {
             $this._HandleWidgetRenderError("RenderContent", $_, $engine, 5)
         }
 
+        # Layer 20: Panel (content widgets like FilterPanel, DatePicker, etc.)
+        $engine.BeginLayer([ZIndex]::Panel)
         # Render content widgets - each with error boundary
         $widgetRow = 10  # Start position for widget error messages
         foreach ($widget in $this.ContentWidgets) {
@@ -517,7 +521,8 @@ class PmcScreen {
             }
         }
 
-        # Render Footer - with error boundary
+        # Layer 55: Footer
+        $engine.BeginLayer([ZIndex]::Footer)
         if ($this.Footer) {
             try {
                 $output = $this.Footer.Render()
@@ -531,7 +536,8 @@ class PmcScreen {
             }
         }
 
-        # Render StatusBar - with error boundary
+        # Layer 65: StatusBar
+        $engine.BeginLayer([ZIndex]::StatusBar)
         if ($this.StatusBar) {
             try {
                 $output = $this.StatusBar.Render()
@@ -542,6 +548,30 @@ class PmcScreen {
                 # StatusBar errors shown at very bottom
                 $statusRow = [Math]::Max(22, $this.TermHeight - 2)
                 $this._HandleWidgetRenderError("StatusBar", $_, $engine, $statusRow)
+            }
+        }
+
+        # Layer 100: Dropdown (MenuBar with dropdowns)
+        # CRITICAL: Render MenuBar LAST with highest z-index for proper z-ordering
+        # Dropdowns must render on top of all other content
+        $engine.BeginLayer([ZIndex]::Dropdown)
+        if ($this.MenuBar) {
+            try {
+                if ($global:PmcTuiLogFile) {
+                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcScreen.RenderToEngine: Calling MenuBar.Render() (LAST for z-order)"
+                }
+                $output = $this.MenuBar.Render()
+                if ($global:PmcTuiLogFile) {
+                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcScreen.RenderToEngine: MenuBar.Render() returned length=$($output.Length)"
+                }
+                if ($output) {
+                    $this._ParseAnsiAndWrite($engine, $output)
+                    if ($global:PmcTuiLogFile) {
+                        Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcScreen.RenderToEngine: MenuBar ANSI parsed and written to engine"
+                    }
+                }
+            } catch {
+                $this._HandleWidgetRenderError("MenuBar", $_, $engine, 0)
             }
         }
     }

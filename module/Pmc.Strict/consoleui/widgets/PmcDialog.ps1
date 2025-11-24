@@ -503,54 +503,10 @@ class ProjectFormDialog : PmcDialog {
         return $sb.ToString()
     }
 
-    # Update just the current field on screen (called after input changes)
-    [void] UpdateFieldDisplay([int]$termWidth, [int]$termHeight, [hashtable]$theme) {
-        # Calculate dialog position
-        $x = [Math]::Floor(($termWidth - $this.Width) / 2)
-        $y = [Math]::Floor(($termHeight - $this.Height) / 2)
-
-        # Colors
-        $bgColor = if ($theme.DialogBg) { $theme.DialogBg } else { "`e[48;2;45;55;72m" }
-        $fgColor = if ($theme.DialogFg) { $theme.DialogFg } else { "`e[38;2;234;241;248m" }
-        $highlightColor = if ($theme.Highlight) { $theme.Highlight } else { "`e[38;2;136;153;170m" }
-        $accentBg = if ($theme.PrimaryBg) { $theme.PrimaryBg } else { "`e[48;2;64;94;117m" }
-        $mutedColor = if ($theme.Muted) { $theme.Muted } else { "`e[38;2;136;153;170m" }
-        $reset = "`e[0m"
-
-        # Calculate field positions
-        $fieldIndex = $this.FieldOrder.IndexOf($this.CurrentField)
-        $fieldY = $y + 3 + ($fieldIndex * 2)
-        $labelX = $x + 4
-        $inputX = $x + 18
-        $inputWidth = $this.Width - 22
-
-        $label = $this.FieldLabels[$this.CurrentField]
-        $value = $this.Fields[$this.CurrentField]
-
-        # Render label
-        [Console]::Write("`e[$fieldY;${labelX}H")
-        [Console]::Write($bgColor)
-        [Console]::Write($highlightColor)
-        [Console]::Write($label.PadRight(12))
-
-        # Render input field
-        [Console]::Write("`e[$fieldY;${inputX}H")
-        [Console]::Write($accentBg)
-        [Console]::Write($fgColor)
-        $displayValue = $value
-        if ($displayValue.Length > $inputWidth) {
-            $displayValue = $displayValue.Substring(0, $inputWidth - 3) + "..."
-        }
-        [Console]::Write($displayValue.PadRight($inputWidth))
-
-        # Render cursor
-        $cursorX = $inputX + [Math]::Min($value.Length, $inputWidth - 1)
-        [Console]::Write("`e[$fieldY;${cursorX}H")
-        [Console]::Write($accentBg)
-        [Console]::Write($highlightColor)
-        [Console]::Write("_")
-        [Console]::Write($reset)
-    }
+    # REMOVED: UpdateFieldDisplay() - Dead code that was never called
+    # This method used [Console]::Write() which bypassed the render engine layer system.
+    # If field-by-field updates are needed in the future, they should use the render engine
+    # with BeginLayer([ZIndex]::Dialog) instead of direct console writes.
 
     # File picker integration
     [string]$FilePicker = ''  # Signal to caller to show file picker

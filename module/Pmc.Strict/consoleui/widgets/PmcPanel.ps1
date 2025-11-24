@@ -118,10 +118,10 @@ class PmcPanel : PmcWidget {
     [string] OnRender() {
         $sb = [System.Text.StringBuilder]::new(1024)
 
-        # Colors
-        $borderColor = $this.GetThemedAnsi('Border', $false)
-        $titleColor = $this.GetThemedAnsi('Header', $false)
-        $textColor = $this.GetThemedAnsi('Text', $false)
+        # Colors from new theme system
+        $borderColor = $this.GetThemedFg('Border.Widget')
+        $titleColor = $this.GetThemedFg('Foreground.Title')
+        $textColor = $this.GetThemedFg('Foreground.Row')
         $reset = "`e[0m"
 
         if ($this.ShowBorder) {

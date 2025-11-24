@@ -140,7 +140,7 @@ class TaskDetailScreen : PmcScreen {
             $x = $contentRect.X + [Math]::Floor(($contentRect.Width - $message.Length) / 2)
             $y = $contentRect.Y + [Math]::Floor($contentRect.Height / 2)
 
-            $errorColor = $this.Header.GetThemedAnsi('Error', $false)
+            $errorColor = $this.Header.GetThemedFg('Foreground.Error')
             $reset = "`e[0m"
 
             $sb.Append($this.Header.BuildMoveTo($x, $y))
@@ -163,13 +163,13 @@ class TaskDetailScreen : PmcScreen {
         $contentRect = $this.LayoutManager.GetRegion('Content', $this.TermWidth, $this.TermHeight)
 
         # Colors
-        $textColor = $this.Header.GetThemedAnsi('Text', $false)
-        $labelColor = $this.Header.GetThemedAnsi('Muted', $false)
-        $valueColor = $this.Header.GetThemedAnsi('Text', $false)
+        $textColor = $this.Header.GetThemedFg('Foreground.Field')
+        $labelColor = $this.Header.GetThemedFg('Foreground.Muted')
+        $valueColor = $this.Header.GetThemedFg('Foreground.Field')
         $priorityColor = $this.Header.GetThemedAnsi('Warning', $false)
-        $successColor = $this.Header.GetThemedAnsi('Success', $false)
-        $errorColor = $this.Header.GetThemedAnsi('Error', $false)
-        $mutedColor = $this.Header.GetThemedAnsi('Muted', $false)
+        $successColor = $this.Header.GetThemedFg('Foreground.Success')
+        $errorColor = $this.Header.GetThemedFg('Foreground.Error')
+        $mutedColor = $this.Header.GetThemedFg('Foreground.Muted')
         $reset = "`e[0m"
 
         $x = $contentRect.X + 4

@@ -118,15 +118,15 @@ class TimerStartScreen : PmcScreen {
         $contentRect = $this.LayoutManager.GetRegion('Content', $this.TermWidth, $this.TermHeight)
 
         # Colors
-        $textColor = $this.Header.GetThemedAnsi('Text', $false)
-        $highlightColor = $this.Header.GetThemedAnsi('Highlight', $false)
+        $textColor = $this.Header.GetThemedFg('Foreground.Field')
+        $highlightColor = $this.Header.GetThemedFg('Foreground.FieldFocused')
         $warningColor = $this.Header.GetThemedAnsi('Warning', $false)
-        $mutedColor = $this.Header.GetThemedAnsi('Muted', $false)
-        $selectedBg = $this.Header.GetThemedAnsi('Primary', $true)
-        $selectedFg = $this.Header.GetThemedAnsi('Text', $false)
-        $cursorColor = $this.Header.GetThemedAnsi('Highlight', $false)
+        $mutedColor = $this.Header.GetThemedFg('Foreground.Muted')
+        $selectedBg = $this.Header.GetThemedBg('Background.FieldFocused', 80, 0)
+        $selectedFg = $this.Header.GetThemedFg('Foreground.Field')
+        $cursorColor = $this.Header.GetThemedFg('Foreground.FieldFocused')
         $priorityColor = $this.Header.GetThemedAnsi('Warning', $false)
-        $successColor = $this.Header.GetThemedAnsi('Success', $false)
+        $successColor = $this.Header.GetThemedFg('Foreground.Success')
         $reset = "`e[0m"
 
         $y = $contentRect.Y + 1

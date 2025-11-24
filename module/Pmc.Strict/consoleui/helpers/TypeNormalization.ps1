@@ -71,7 +71,7 @@ The value to return if property doesn't exist. Default is $null.
 $id = $task.id
 $parentId = $task.parent_id $null
 #>
-function Get-SafeProperty {
+function Global:Get-SafeProperty {
     param(
         [object]$obj,
         [string]$name,
@@ -114,7 +114,7 @@ if (Test-SafeProperty $task 'parent_id') {
     Write-Host "Has parent"
 }
 #>
-function Test-SafeProperty {
+function Global:Test-SafeProperty {
     param(
         [object]$obj,
         [string]$name
@@ -128,5 +128,3 @@ function Test-SafeProperty {
 
     return $null -ne ($obj.PSObject.Properties | Where-Object Name -eq $name)
 }
-
-Export-ModuleMember -Function ConvertTo-NormalizedHashtable, Get-SafeProperty, Test-SafeProperty

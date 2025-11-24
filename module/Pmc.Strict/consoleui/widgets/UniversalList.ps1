@@ -476,21 +476,22 @@ class UniversalList : PmcWidget {
     True if input was handled, False otherwise
     #>
     [bool] HandleInput([ConsoleKeyInfo]$keyInfo) {
-        # Route input to inline editor if shown
-        if ($this._showInlineEditor) {
-            $handled = $this._inlineEditor.HandleInput($keyInfo)
-
-            if ($this._inlineEditor.IsConfirmed -or $this._inlineEditor.IsCancelled) {
-                $this._showInlineEditor = $false
-            }
-
-            # If editor handled the key, we're done
-            # Otherwise, fall through to allow parent/global handlers (e.g., Ctrl+Q)
-            if ($handled) {
-                return $true
-            }
-            # Don't return false here - let parent handlers have a chance
-        }
+        # DON'T handle inline editor input here - let StandardListScreen handle it
+        # This prevents the list and screen from getting out of sync
+        # if ($this._showInlineEditor) {
+        #     $handled = $this._inlineEditor.HandleInput($keyInfo)
+        #
+        #     if ($this._inlineEditor.IsConfirmed -or $this._inlineEditor.IsCancelled) {
+        #         $this._showInlineEditor = $false
+        #     }
+        #
+        #     # If editor handled the key, we're done
+        #     # Otherwise, fall through to allow parent/global handlers (e.g., Ctrl+Q)
+        #     if ($handled) {
+        #         return $true
+        #     }
+        #     # Don't return false here - let parent handlers have a chance
+        # }
 
         # Route input to filter panel if shown
         if ($this.IsInFilterMode) {
@@ -523,10 +524,26 @@ class UniversalList : PmcWidget {
 
         # Global shortcuts
         if ($keyInfo.Key -eq 'Enter') {
+            Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [UniversalList.HandleInput] ENTER pressed, _showInlineEditor=$($this._showInlineEditor)"
+            # Don't activate item if inline editor is showing
+            if ($this._showInlineEditor) {
+                Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [UniversalList.HandleInput] Editor showing, returning false to let parent handle"
+                return $false  # Let parent handle it
+            }
             # Activate selected item
-            $selectedItem = $this.GetSelectedItem()
-            if ($null -ne $selectedItem) {
-                $this._InvokeCallback($this.OnItemActivated, $selectedItem)
+            Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [UniversalList.HandleInput] About to call GetSelectedItem, _selectedIndex=$($this._selectedIndex) _filteredData.Count=$($this._filteredData.Count)"
+            try {
+                $selectedItem = $this.GetSelectedItem()
+                Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [UniversalList.HandleInput] GetSelectedItem returned: $($selectedItem -ne $null) id=$($selectedItem.id)"
+                if ($null -ne $selectedItem) {
+                    Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [UniversalList.HandleInput] Calling OnItemActivated callback"
+                    $this._InvokeCallback($this.OnItemActivated, $selectedItem)
+                    Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [UniversalList.HandleInput] OnItemActivated callback completed"
+                } else {
+                    Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [UniversalList.HandleInput] selectedItem is NULL - no item selected!"
+                }
+            } catch {
+                Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [UniversalList.HandleInput] ERROR in GetSelectedItem or callback: $($_.Exception.Message)"
             }
             return $true
         }
@@ -710,10 +727,6 @@ class UniversalList : PmcWidget {
     #>
     [string] Render() {
         Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') UniversalList.Render() CALLED"
-        # If inline editor is shown, render it instead
-        if ($this._showInlineEditor) {
-            return $this._inlineEditor.Render()
-        }
 
         # If filter panel is shown, render it as overlay
         if ($this.IsInFilterMode) {
@@ -728,17 +741,6 @@ class UniversalList : PmcWidget {
 
     # PERFORMANCE: Direct engine rendering (bypasses ANSI string building/parsing)
     [void] OnRenderToEngine([object]$engine) {
-        # If inline editor is shown, render it instead
-        if ($this._showInlineEditor) {
-            # Inline editor still uses string path - parse its output
-            $output = $this._inlineEditor.Render()
-            if ($output) {
-                # Parse ANSI and write to engine
-                # Note: This is temporary until InlineEditor is also converted
-                $this._ParseAnsiToEngine($engine, $output)
-            }
-            return
-        }
 
         # If filter panel is shown, render list + filter panel
         if ($this.IsInFilterMode) {
@@ -763,14 +765,28 @@ class UniversalList : PmcWidget {
     hidden [string] _RenderList() {
         $sb = [StringBuilder]::new(8192)
 
-        # Colors from theme
-        $borderColor = $this.GetThemedAnsi('Border', $false)
-        $textColor = $this.GetThemedAnsi('Text', $false)
-        $primaryColor = $this.GetThemedAnsi('Primary', $false)
-        $mutedColor = $this.GetThemedAnsi('Muted', $false)
-        $errorColor = $this.GetThemedAnsi('Error', $false)
-        $successColor = $this.GetThemedAnsi('Success', $false)
-        $highlightBg = $this.GetThemedAnsi('Primary', $true)
+        # Colors from new theme system
+        $borderColor = $this.GetThemedFg('Border.Widget')
+        $textColor = $this.GetThemedFg('Foreground.Row')
+        $primaryColor = $this.GetThemedFg('Foreground.Title')
+        $mutedColor = $this.GetThemedFg('Foreground.Muted')
+        $successColor = $this.GetThemedFg('Foreground.Success')
+
+        # Selected row colors
+        $highlightBg = $this.GetThemedBg('Background.RowSelected', 1, 0)
+        $highlightFg = $this.GetThemedFg('Foreground.RowSelected')
+
+        # CRITICAL FIX: Fallback if theme returns empty
+        if ([string]::IsNullOrWhiteSpace($highlightBg)) {
+            $highlightBg = "`e[48;2;64;94;117m"  # Fallback blue background
+        }
+        if ([string]::IsNullOrWhiteSpace($highlightFg)) {
+            $highlightFg = "`e[38;2;255;255;255m"  # Fallback white foreground
+        }
+
+        # EXTENSIVE DEBUG: Log ALL color values
+        Add-Content -Path "/tmp/pmc-colors-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') highlightBg='$highlightBg' len=$($highlightBg.Length) highlightFg='$highlightFg' len=$($highlightFg.Length)"
+
         $reset = "`e[0m"
 
         # Draw top border
@@ -879,9 +895,9 @@ class UniversalList : PmcWidget {
             }
 
             if ($global:PmcTuiLogFile) {
-                $itemDesc = $item.text
-                if (-not $itemDesc) { $itemDesc = $item.name }
-                if (-not $itemDesc) { $itemDesc = $item.id }
+                $itemDesc = if ($item.PSObject.Properties['text']) { $item.text } else { $null }
+                if (-not $itemDesc -and $item.PSObject.Properties['name']) { $itemDesc = $item.name }
+                if (-not $itemDesc -and $item.PSObject.Properties['id']) { $itemDesc = $item.id }
                 if (-not $itemDesc) { $itemDesc = "unknown" }
                 Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] UniversalList._RenderList LOOP iteration $i - item=$itemDesc"
 
@@ -896,43 +912,7 @@ class UniversalList : PmcWidget {
             $isSelected = ($i -eq $this._selectedIndex)
             $isMultiSelected = $this._selectedIndices.Contains($i)
 
-            # Check if row is in edit mode - if so, SKIP CACHE
-            $rowInEditMode = $false
-            if ($null -ne $this.GetIsInEditMode -and $this.GetIsInEditMode -is [scriptblock]) {
-                try {
-                    $result = & $this.GetIsInEditMode $item
-                    $rowInEditMode = if ($result) { $true } else { $false }
-                } catch {
-                    $rowInEditMode = $false
-                }
-            }
-
-            # Check row cache - cache key includes generation and selection state
-            # CRITICAL: Skip cache if row is in edit mode!
-            $cacheKey = "$($this._cacheGeneration)_${i}_${isSelected}_${isMultiSelected}"
-            $cachedRow = $null
-            if (-not $rowInEditMode -and $this._rowCache.ContainsKey($cacheKey)) {
-                $cachedRow = $this._rowCache[$cacheKey]
-                # H-MEM-1: Update LRU access order
-                $this._cacheAccessOrder.Remove($cacheKey)
-                [void]$this._cacheAccessOrder.AddLast($cacheKey)
-                $sb.Append($cachedRow)
-                $currentRow++
-                continue
-            }
-
-            # Build row content (not in cache)
-            $rowBuilder = [Text.StringBuilder]::new(256)
-
-            # Row border
-            $rowBuilder.Append($this.BuildMoveTo($this.X, $rowY))
-            $rowBuilder.Append($borderColor)
-            $rowBuilder.Append($this.GetBoxChar('single_vertical'))
-
-            # Row content
-            $rowBuilder.Append($this.BuildMoveTo($this.X + 2, $rowY))
-
-            # Check if row highlight should be skipped (for inline editing)
+            # CRITICAL FIX: Check skipRowHighlight BEFORE cache to determine if row should be rendered
             $skipRowHighlight = $false
             Write-PmcTuiLog "UniversalList: Checking SkipRowHighlight for row $i" "DEBUG"
             Write-PmcTuiLog "UniversalList: _columns[0] has SkipRowHighlight? $($this._columns[0].ContainsKey('SkipRowHighlight'))" "DEBUG"
@@ -951,31 +931,85 @@ class UniversalList : PmcWidget {
                 Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') UniversalList: No SkipRowHighlight callback found"
             }
 
-            # Highlight selected row (unless skipped)
-            Write-PmcTuiLog "UniversalList: skipRowHighlight=$skipRowHighlight isSelected=$isSelected" "DEBUG"
-            if (-not $skipRowHighlight) {
+            # Check if row is in edit mode - if so, SKIP CACHE
+            $rowInEditMode = $false
+            if ($null -ne $this.GetIsInEditMode -and $this.GetIsInEditMode -is [scriptblock]) {
+                try {
+                    $result = & $this.GetIsInEditMode $item
+                    $rowInEditMode = if ($result) { $true } else { $false }
+                } catch {
+                    $rowInEditMode = $false
+                }
+            }
+
+            # CRITICAL FIX: ROW CACHE COMPLETELY DISABLED - causes color bleeding between rows
+            # Cache was storing ANSI escape codes that bleed to subsequent rows
+            # Disabling cache until proper color reset and cache invalidation is implemented
+            $cacheKey = "$($this._cacheGeneration)_${i}_${isSelected}_${isMultiSelected}"
+            $cachedRow = $null
+            # CACHE DISABLED
+            # if (-not $rowInEditMode -and -not $skipRowHighlight -and $this._rowCache.ContainsKey($cacheKey)) {
+            #     $cachedRow = $this._rowCache[$cacheKey]
+            #     $sb.Append($cachedRow)
+            #     $currentRow++
+            #     continue
+            # }
+
+            # Build row content (not in cache)
+            $rowBuilder = [Text.StringBuilder]::new(256)
+
+            # Clear the line first to prevent any bleeding
+            $rowBuilder.Append($this.BuildMoveTo($this.X, $rowY))
+            $rowBuilder.Append("`e[0m`e[K")  # Reset and clear to end of line
+
+            # Row border
+            $rowBuilder.Append($this.BuildMoveTo($this.X, $rowY))
+            $rowBuilder.Append($borderColor)
+            $rowBuilder.Append($this.GetBoxChar('single_vertical'))
+
+            # Row content
+            $rowBuilder.Append($this.BuildMoveTo($this.X + 2, $rowY))
+
+            # Highlight selected row (unless skipped OR in edit mode)
+            Write-PmcTuiLog "UniversalList: skipRowHighlight=$skipRowHighlight rowInEditMode=$rowInEditMode isSelected=$isSelected" "DEBUG"
+            if (-not $skipRowHighlight -and -not $rowInEditMode) {
                 if ($isSelected) {
                     Write-PmcTuiLog "UniversalList: APPLYING ROW HIGHLIGHT" "DEBUG"
-                    Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') UniversalList: Applying ROW HIGHLIGHT (isSelected=true)"
+                    $debugMsg = "ROW $i HIGHLIGHT: isSelected=true, appending BG='$highlightBg' FG='$highlightFg' rowBuilder.Length=$($rowBuilder.Length)"
+                    Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') $debugMsg"
                     $rowBuilder.Append($highlightBg)
-                    $rowBuilder.Append("`e[30m")
+                    $rowBuilder.Append($highlightFg)  # Use Selected Fg (white) for contrast
+                    # CRITICAL DEBUG: Log what we actually appended
+                    Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') ROW $i - After append, rowBuilder.Length=$($rowBuilder.Length)"
                 } elseif ($isMultiSelected) {
                     $rowBuilder.Append($successColor)
                 } else {
                     $rowBuilder.Append($textColor)
                 }
             } else {
-                # When skipping row highlight (edit mode), cells need background set
-                # Use reset to clear any previous formatting, then cells apply their own
-                Write-PmcTuiLog "UniversalList: SKIPPING ROW HIGHLIGHT - using normal bg" "DEBUG"
-                Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') UniversalList: SKIPPING row highlight, resetting for cell colors"
-                $rowBuilder.Append("`e[48;5;235m")  # Dark gray background for entire row
+                # When skipping row highlight (edit mode) - use theme colors
+                Write-PmcTuiLog "UniversalList: SKIPPING ROW HIGHLIGHT - using edit mode colors" "DEBUG"
+                Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') UniversalList: SKIPPING row highlight, using edit mode colors"
+                $rowBuilder.Append($textColor)
             }
 
-            # Render columns
+            # Render columns (CRITICAL: Each column must handle its own colors)
             $currentX = 2
             $columnIndex = 0
             foreach ($col in $this._columns) {
+                # CRITICAL FIX: Reset colors at start of EACH column to prevent bleeding
+                if ($columnIndex -eq 0) {
+                    # First column keeps the row highlight (already applied above)
+                } else {
+                    # Subsequent columns: reset then reapply row color
+                    $rowBuilder.Append($reset)
+                    if ($isSelected -and -not $skipRowHighlight -and -not $rowInEditMode) {
+                        $rowBuilder.Append($highlightBg)
+                        $rowBuilder.Append($highlightFg)
+                    } elseif (-not $skipRowHighlight -and -not $rowInEditMode) {
+                        $rowBuilder.Append($textColor)
+                    }
+                }
                 # L-POL-22: Use custom width if set, otherwise use default
                 $width = if ($this._columnWidths.ContainsKey($col.Name)) {
                     $this._columnWidths[$col.Name]
@@ -1184,8 +1218,9 @@ class UniversalList : PmcWidget {
                 if ($this.IsInSearchMode -and -not [string]::IsNullOrWhiteSpace($this._searchText)) {
                     $searchLower = $this._searchText.ToLower()
                     $valueLower = $valueStr.ToLower()
-                    $highlightColor = "`e[43m`e[30m"  # Yellow background, black text
-                    $resetHighlight = if ($isSelected) { $highlightBg + "`e[30m" } elseif ($isMultiSelected) { $successColor } else { $textColor }
+                    # Use theme Warning color for search highlight
+                    $highlightColor = $this.GetThemedBg('Background.Warning', 1, 0) + $textColor
+                    $resetHighlight = if ($isSelected) { $highlightBg + $highlightFg } else { $textColor }
 
                     # Find all occurrences and highlight them
                     $highlightedValue = ""
@@ -1243,20 +1278,20 @@ class UniversalList : PmcWidget {
                 $currentX += $width + 2
             }
 
-            # Only reset in edit mode - in normal mode, row highlight needs to persist
-            if ($skipRowHighlight) {
-                $rowBuilder.Append($reset)
-            }
+            # CRITICAL FIX: Always reset after row content to prevent color bleeding
+            # Without this, unhighlighted rows don't clear the background color from previous frames
+            # causing the "sticky highlight" bug
+            $rowBuilder.Append($reset)
 
-            # Padding to fill row
+            # Padding to fill row - reset already applied above
             $contentWidth = $currentX - 2
             $padding = $this.Width - $contentWidth - 2
+            Add-Content -Path "/tmp/pmc-padding-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') ROW ${i} PADDING: currentX=$currentX contentWidth=$contentWidth listWidth=$($this.Width) padding=$padding builderLen=$($rowBuilder.Length)"
             if ($padding -gt 0) {
-                if ($isSelected -and -not $skipRowHighlight) {
-                    $rowBuilder.Append($highlightBg)
-                }
+                # Reset already applied above (line 1284), padding inherits clean state
+                Add-Content -Path "/tmp/pmc-padding-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') ROW ${i} PADDING: Appending padding spaces"
                 $rowBuilder.Append(" " * $padding)
-                $rowBuilder.Append($reset)
+                Add-Content -Path "/tmp/pmc-padding-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') ROW ${i} PADDING: After padding append, builderLen=$($rowBuilder.Length)"
             }
 
             # Right border
@@ -1264,21 +1299,118 @@ class UniversalList : PmcWidget {
             $rowBuilder.Append($borderColor)
             $rowBuilder.Append($this.GetBoxChar('single_vertical'))
 
-            # Cache the built row
+            # CRITICAL FIX: Reset at END of row to prevent bleeding to next row
+            Add-Content -Path "/tmp/pmc-padding-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') ROW ${i}: Appending final RESET and clear-to-EOL, builderLen=$($rowBuilder.Length)"
+            $rowBuilder.Append($reset)
+            # Clear to end of line to prevent any background color bleeding
+            $rowBuilder.Append("`e[K")
+
+            # CRITICAL FIX: DISABLE ROW CACHE - it causes color bleeding
+            # The cache stores ANSI escape codes which bleed between rows
+            # Cache disabled until proper cache invalidation is implemented
             $builtRow = $rowBuilder.ToString()
 
-            # H-MEM-1: Evict oldest cache entry if max size exceeded
-            if ($this._rowCache.Count -ge $this._maxCacheSize) {
-                $oldestKey = $this._cacheAccessOrder.First.Value
-                $this._rowCache.Remove($oldestKey)
-                $this._cacheAccessOrder.RemoveFirst()
+            # ROW CACHE DISABLED
+            # $this._rowCache[$cacheKey] = $builtRow
+            # [void]$this._cacheAccessOrder.AddLast($cacheKey)
+
+            # CRITICAL FIX: Skip rendering the row entirely when skipRowHighlight is true (inline editing mode)
+            # The inline editor will render its own content at this row position
+            if (-not $skipRowHighlight) {
+                $sb.Append($builtRow)
+            } else {
+                # Inline editor is active for this row - render the editor
+                if ($this._showInlineEditor -and $this._inlineEditor) {
+                    # Set editor position to this row (using properties, not method)
+                    $this._inlineEditor.X = $this.X + 2
+                    $this._inlineEditor.Y = $rowY
+                    # Set editor width to fit within list borders
+                    $this._inlineEditor.Width = $this.Width - 4
+                    Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [UniversalList] RENDERING INLINE EDITOR (edit mode) at row=$i position ($($this._inlineEditor.X),$($this._inlineEditor.Y)) size=$($this._inlineEditor.Width)"
+                    # Render the inline editor
+                    $editorOutput = $this._inlineEditor.Render()
+                    Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [UniversalList] InlineEditor.Render() returned $($editorOutput.Length) chars, appending to output"
+                    $sb.Append($editorOutput)
+
+                    # BUG FIX: Account for expanded widget height in edit mode
+                    # If a widget (DatePicker/ProjectPicker) is expanded, it renders below the editor row
+                    # We need to skip past the widget's height to avoid overwriting it with subsequent rows
+                    $editorHeight = 1  # Default: 1 row for collapsed editor
+                    if ($this._inlineEditor._showFieldWidgets -and -not [string]::IsNullOrWhiteSpace($this._inlineEditor._expandedFieldName)) {
+                        # Widget is expanded - add its height
+                        $expandedFieldName = $this._inlineEditor._expandedFieldName
+                        $widget = $null
+                        if ($this._inlineEditor._datePickerMode -and $this._inlineEditor._datePickerWidgets.ContainsKey($expandedFieldName)) {
+                            $widget = $this._inlineEditor._datePickerWidgets[$expandedFieldName]
+                        } elseif ($this._inlineEditor._fieldWidgets.ContainsKey($expandedFieldName)) {
+                            $widget = $this._inlineEditor._fieldWidgets[$expandedFieldName]
+                        }
+                        if ($widget -and $widget.PSObject.Properties['Height']) {
+                            $editorHeight += $widget.Height
+                            Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [UniversalList] EDIT MODE: Expanded widget detected, height=$($widget.Height), total editorHeight=$editorHeight"
+                        } else {
+                            $editorHeight += 15  # Conservative estimate
+                            Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [UniversalList] EDIT MODE: Expanded widget detected (no height property), using estimate, total editorHeight=$editorHeight"
+                        }
+                    }
+                    # Increment currentRow by the full editor height (including expanded widget if any)
+                    $currentRow += $editorHeight
+                } else {
+                    # No editor - render empty placeholder row
+                    $emptyRow = $this.BuildMoveTo($this.X, $rowY)
+                    $emptyRow += "`e[0m"  # Reset all formatting
+                    $emptyRow += $borderColor + $this.GetBoxChar('single_vertical')
+                    $emptyRow += " " * ($this.Width - 2)
+                    $emptyRow += $borderColor + $this.GetBoxChar('single_vertical')
+                    $emptyRow += "`e[0m"  # Final reset
+                    $sb.Append($emptyRow)
+                    $currentRow++
+                }
             }
 
-            $this._rowCache[$cacheKey] = $builtRow
-            [void]$this._cacheAccessOrder.AddLast($cacheKey)
-            $sb.Append($builtRow)
+            # BUG FIX: Only increment currentRow for normal rows (not when editor was rendered)
+            # When editor is rendered, currentRow was already incremented by editorHeight above
+            if (-not $skipRowHighlight) {
+                $currentRow++
+            }
+        }
 
-            $currentRow++
+        # If inline editor is shown and selectedIndex is beyond data (add mode), render editor row
+        if ($this._showInlineEditor -and $this._inlineEditor -and $this._selectedIndex -ge $this._filteredData.Count) {
+            $rowY = $this.Y + $currentRow
+            $this._inlineEditor.X = $this.X + 2
+            $this._inlineEditor.Y = $rowY
+            $this._inlineEditor.Width = $this.Width - 4
+            Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [UniversalList] RENDERING INLINE EDITOR (add mode) at position ($($this._inlineEditor.X),$($this._inlineEditor.Y)) size=$($this._inlineEditor.Width)x$($this._inlineEditor.Height)"
+            $editorOutput = $this._inlineEditor.Render()
+            Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [UniversalList] InlineEditor.Render() returned $($editorOutput.Length) chars"
+            $sb.Append($editorOutput)
+
+            # BUG FIX: Account for expanded widget height (e.g., DatePicker, ProjectPicker)
+            # The InlineEditor can contain expanded widgets that take up 10-15 rows
+            # We need to skip past the widget when filling empty rows to avoid overwriting it
+            $editorHeight = 1  # Default: 1 row for collapsed editor
+            if ($this._inlineEditor._showFieldWidgets -and -not [string]::IsNullOrWhiteSpace($this._inlineEditor._expandedFieldName)) {
+                # Widget is expanded - add its height (typically 10-15 rows for DatePicker/ProjectPicker)
+                # Get the actual widget height if available, otherwise use conservative estimate
+                $expandedFieldName = $this._inlineEditor._expandedFieldName
+                $widget = $null
+
+                # Check which widget dictionary contains the expanded widget
+                if ($this._inlineEditor._datePickerMode -and $this._inlineEditor._datePickerWidgets.ContainsKey($expandedFieldName)) {
+                    $widget = $this._inlineEditor._datePickerWidgets[$expandedFieldName]
+                } elseif ($this._inlineEditor._fieldWidgets.ContainsKey($expandedFieldName)) {
+                    $widget = $this._inlineEditor._fieldWidgets[$expandedFieldName]
+                }
+
+                if ($widget -and $widget.PSObject.Properties['Height']) {
+                    $editorHeight += $widget.Height
+                } else {
+                    # Conservative estimate: 15 rows for unknown widget height
+                    $editorHeight += 15
+                }
+            }
+            $currentRow += $editorHeight
         }
 
         # Fill empty rows
@@ -1311,9 +1443,11 @@ class UniversalList : PmcWidget {
             $selectedItem = $this.GetSelectedItem()
             if ($null -ne $selectedItem) {
                 $preview = "Selected: "
-                # Handle both hashtables and objects
-                $text = $selectedItem.text
-                $id = $selectedItem.id
+                # Handle both hashtables and objects - items may have 'text' or 'name' property
+                $text = if ($selectedItem.PSObject.Properties['text']) { $selectedItem.text }
+                        elseif ($selectedItem.PSObject.Properties['name']) { $selectedItem.name }
+                        else { $null }
+                $id = if ($selectedItem.PSObject.Properties['id']) { $selectedItem.id } else { $null }
 
                 if ($text) {
                     $preview += $text
@@ -1710,14 +1844,28 @@ class UniversalList : PmcWidget {
 
     # Render list directly to engine (no string building)
     hidden [void] _RenderListDirect([object]$engine) {
-        # Colors from theme
-        $borderColor = $this.GetThemedAnsi('Border', $false)
-        $textColor = $this.GetThemedAnsi('Text', $false)
-        $primaryColor = $this.GetThemedAnsi('Primary', $false)
-        $mutedColor = $this.GetThemedAnsi('Muted', $false)
-        $errorColor = $this.GetThemedAnsi('Error', $false)
-        $successColor = $this.GetThemedAnsi('Success', $false)
-        $highlightBg = $this.GetThemedAnsi('Primary', $true)
+        # Colors from new theme system
+        $borderColor = $this.GetThemedFg('Border.Widget')
+        $textColor = $this.GetThemedFg('Foreground.Row')
+        $primaryColor = $this.GetThemedFg('Foreground.Title')
+        $mutedColor = $this.GetThemedFg('Foreground.Muted')
+        $successColor = $this.GetThemedFg('Foreground.Success')
+
+        # Selected row colors
+        $highlightBg = $this.GetThemedBg('Background.RowSelected', 1, 0)
+        $highlightFg = $this.GetThemedFg('Foreground.RowSelected')
+
+        # CRITICAL FIX: Fallback if theme returns empty
+        if ([string]::IsNullOrWhiteSpace($highlightBg)) {
+            $highlightBg = "`e[48;2;64;94;117m"  # Fallback blue background
+        }
+        if ([string]::IsNullOrWhiteSpace($highlightFg)) {
+            $highlightFg = "`e[38;2;255;255;255m"  # Fallback white foreground
+        }
+
+        # EXTENSIVE DEBUG: Log ALL color values
+        Add-Content -Path "/tmp/pmc-colors-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') highlightBg='$highlightBg' len=$($highlightBg.Length) highlightFg='$highlightFg' len=$($highlightFg.Length)"
+
         $reset = "`e[0m"
 
         # Draw top border

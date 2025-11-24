@@ -87,10 +87,10 @@ class FocusClearScreen : PmcScreen {
         $contentRect = $this.LayoutManager.GetRegion('Content', $this.TermWidth, $this.TermHeight)
 
         # Colors
-        $textColor = $this.Header.GetThemedAnsi('Text', $false)
-        $highlightColor = $this.Header.GetThemedAnsi('Highlight', $false)
+        $textColor = $this.Header.GetThemedFg('Foreground.Field')
+        $highlightColor = $this.Header.GetThemedFg('Foreground.FieldFocused')
         $warningColor = $this.Header.GetThemedAnsi('Warning', $false)
-        $mutedColor = $this.Header.GetThemedAnsi('Muted', $false)
+        $mutedColor = $this.Header.GetThemedFg('Foreground.Muted')
         $reset = "`e[0m"
 
         # Center content vertically

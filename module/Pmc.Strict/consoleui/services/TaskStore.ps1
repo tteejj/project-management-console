@@ -1370,7 +1370,8 @@ class TaskStore {
                     $isValid = switch ($expectedType) {
                         'string' { $value -is [string] }
                         'int' {
-                            $result = $value -is [int]
+                            # Accept both Int32 and Int64
+                            $result = ($value -is [int]) -or ($value -is [int64]) -or ($value -is [int32])
                             if ($field -eq 'priority') {
                                 Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') TaskStore: Validating priority - value=$value type=$($value.GetType().FullName) isInt=$result"
                             }

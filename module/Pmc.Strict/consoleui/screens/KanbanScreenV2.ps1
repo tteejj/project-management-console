@@ -244,14 +244,14 @@ class KanbanScreenV2 : PmcScreen {
         $contentRect = $this.LayoutManager.GetRegion('Content', $this.TermWidth, $this.TermHeight)
 
         # Colors
-        $textColor = $this.Header.GetThemedAnsi('Text', $false)
-        $selectedBg = $this.Header.GetThemedAnsi('Primary', $true)
-        $selectedFg = $this.Header.GetThemedAnsi('Text', $false)
-        $cursorColor = $this.Header.GetThemedAnsi('Highlight', $false)
+        $textColor = $this.Header.GetThemedFg('Foreground.Field')
+        $selectedBg = $this.Header.GetThemedBg('Background.FieldFocused', 80, 0)
+        $selectedFg = $this.Header.GetThemedFg('Foreground.Field')
+        $cursorColor = $this.Header.GetThemedFg('Foreground.FieldFocused')
         $priorityColor = $this.Header.GetThemedAnsi('Warning', $false)
-        $mutedColor = $this.Header.GetThemedAnsi('Muted', $false)
-        $headerColor = $this.Header.GetThemedAnsi('Muted', $false)
-        $successColor = $this.Header.GetThemedAnsi('Success', $false)
+        $mutedColor = $this.Header.GetThemedFg('Foreground.Muted')
+        $headerColor = $this.Header.GetThemedFg('Foreground.Muted')
+        $successColor = $this.Header.GetThemedFg('Foreground.Success')
         $reset = "`e[0m"
 
         # Calculate dynamic column widths based on terminal width
@@ -304,14 +304,14 @@ class KanbanScreenV2 : PmcScreen {
         $contentRect = $this.LayoutManager.GetRegion('Content', $this.TermWidth, $this.TermHeight)
 
         # Colors
-        $textColor = $this.Header.GetThemedAnsi('Text', $false)
-        $selectedBg = $this.Header.GetThemedAnsi('Primary', $true)
-        $selectedFg = $this.Header.GetThemedAnsi('Text', $false)
-        $cursorColor = $this.Header.GetThemedAnsi('Highlight', $false)
+        $textColor = $this.Header.GetThemedFg('Foreground.Field')
+        $selectedBg = $this.Header.GetThemedBg('Background.FieldFocused', 80, 0)
+        $selectedFg = $this.Header.GetThemedFg('Foreground.Field')
+        $cursorColor = $this.Header.GetThemedFg('Foreground.FieldFocused')
         $priorityColor = $this.Header.GetThemedAnsi('Warning', $false)
-        $mutedColor = $this.Header.GetThemedAnsi('Muted', $false)
-        $headerColor = $this.Header.GetThemedAnsi('Muted', $false)
-        $successColor = $this.Header.GetThemedAnsi('Success', $false)
+        $mutedColor = $this.Header.GetThemedFg('Foreground.Muted')
+        $headerColor = $this.Header.GetThemedFg('Foreground.Muted')
+        $successColor = $this.Header.GetThemedFg('Foreground.Success')
         $reset = "`e[0m"
 
         # Calculate dynamic column widths based on terminal width
@@ -387,12 +387,12 @@ class KanbanScreenV2 : PmcScreen {
     hidden [string] _RenderColumn([int]$x, [int]$y, [int]$maxLines, [int]$width, [array]$tasks, [int]$selectedIndex, [int]$scrollOffset, [bool]$isActiveColumn) {
         $sb = [System.Text.StringBuilder]::new(2048)
 
-        $textColor = $this.Header.GetThemedAnsi('Text', $false)
-        $selectedBg = $this.Header.GetThemedAnsi('Primary', $true)
-        $selectedFg = $this.Header.GetThemedAnsi('Text', $false)
-        $cursorColor = $this.Header.GetThemedAnsi('Highlight', $false)
+        $textColor = $this.Header.GetThemedFg('Foreground.Field')
+        $selectedBg = $this.Header.GetThemedBg('Background.FieldFocused', 80, 0)
+        $selectedFg = $this.Header.GetThemedFg('Foreground.Field')
+        $cursorColor = $this.Header.GetThemedFg('Foreground.FieldFocused')
         $priorityColor = $this.Header.GetThemedAnsi('Warning', $false)
-        $mutedColor = $this.Header.GetThemedAnsi('Muted', $false)
+        $mutedColor = $this.Header.GetThemedFg('Foreground.Muted')
         $reset = "`e[0m"
 
         # Build flat list including subtasks based on expanded state
@@ -1107,10 +1107,10 @@ class KanbanScreenV2 : PmcScreen {
                 $x = 20
                 $y = 8
 
-                $textColor = $this.Header.GetThemedAnsi('Text', $false)
-                $selectedBg = $this.Header.GetThemedAnsi('Primary', $true)
-                $selectedFg = $this.Header.GetThemedAnsi('Text', $false)
-                $mutedColor = $this.Header.GetThemedAnsi('Muted', $false)
+                $textColor = $this.Header.GetThemedFg('Foreground.Field')
+                $selectedBg = $this.Header.GetThemedBg('Background.FieldFocused', 80, 0)
+                $selectedFg = $this.Header.GetThemedFg('Foreground.Field')
+                $mutedColor = $this.Header.GetThemedFg('Foreground.Muted')
                 $reset = "`e[0m"
 
                 # Title
@@ -1305,11 +1305,11 @@ class KanbanScreenV2 : PmcScreen {
     # LOW FIX KSV2-L1 TODO: Refactor to extract common card rendering logic shared with _RenderColumn()
     # to reduce code duplication and improve maintainability
     hidden [void] _RenderColumnDirect([object]$engine, [int]$x, [int]$y, [int]$maxLines, [int]$width, [array]$tasks, [int]$selectedIndex, [int]$scrollOffset, [bool]$isActiveColumn) {
-        $textColor = $this.Header.GetThemedAnsi('Text', $false)
-        $selectedBg = $this.Header.GetThemedAnsi('Primary', $true)
-        $selectedFg = $this.Header.GetThemedAnsi('Text', $false)
-        $cursorColor = $this.Header.GetThemedAnsi('Highlight', $false)
-        $mutedColor = $this.Header.GetThemedAnsi('Muted', $false)
+        $textColor = $this.Header.GetThemedFg('Foreground.Field')
+        $selectedBg = $this.Header.GetThemedBg('Background.FieldFocused', 80, 0)
+        $selectedFg = $this.Header.GetThemedFg('Foreground.Field')
+        $cursorColor = $this.Header.GetThemedFg('Foreground.FieldFocused')
+        $mutedColor = $this.Header.GetThemedFg('Foreground.Muted')
         $reset = "`e[0m"
 
         # Build flat list including subtasks

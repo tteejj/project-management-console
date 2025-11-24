@@ -366,13 +366,15 @@ class TagEditor : PmcWidget {
     [string] Render() {
         $sb = [StringBuilder]::new(2048)
 
-        # Colors from theme
-        $borderColor = $this.GetThemedAnsi('Border', $false)
-        $textColor = $this.GetThemedAnsi('Text', $false)
-        $primaryColor = $this.GetThemedAnsi('Primary', $false)
-        $mutedColor = $this.GetThemedAnsi('Muted', $false)
-        $errorColor = $this.GetThemedAnsi('Error', $false)
-        $successColor = $this.GetThemedAnsi('Success', $false)
+        # Colors from new theme system
+        $borderColor = $this.GetThemedFg('Border.Widget')
+        $textColor = $this.GetThemedFg('Foreground.Row')
+        $primaryColor = $this.GetThemedFg('Foreground.Title')
+        $mutedColor = $this.GetThemedFg('Foreground.Muted')
+        $errorColor = $this.GetThemedFg('Foreground.Error')
+        $successColor = $this.GetThemedFg('Foreground.Success')
+        $highlightBg = $this.GetThemedBg('Background.RowSelected', 1, 0)
+        $highlightFg = $this.GetThemedFg('Foreground.RowSelected')
         $reset = "`e[0m"
 
         # Reset any inherited formatting from parent
@@ -565,8 +567,8 @@ class TagEditor : PmcWidget {
 
                 $tag = $this._autocompleteMatches[$i]
                 if ($i -eq $this._selectedAutocompleteIndex) {
-                    $sb.Append($this.GetThemedAnsi('Primary', $true))
-                    $sb.Append("`e[30m")
+                    $sb.Append($highlightBg)
+                    $sb.Append($highlightFg)
                 } else {
                     $sb.Append($mutedColor)
                 }

@@ -45,6 +45,9 @@ try {
     $global:perfMonitor.SetLogger($global:logger)
     # Don't enable perf monitor by default in PMC
 
+    # 7. Load PMC theme engine (required by PmcWidget)
+    . "$PSScriptRoot/src/PmcThemeEngine.ps1"
+
     # SpeedTUI framework loaded successfully
 
 } catch {

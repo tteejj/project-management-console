@@ -321,13 +321,13 @@ class TextInput : PmcWidget {
             $this._lastBlinkTime = [DateTime]::Now
         }
 
-        # Colors from theme
-        $borderColor = $this.GetThemedAnsi('Border', $false)
-        $textColor = $this.GetThemedAnsi('Text', $false)
-        $primaryColor = $this.GetThemedAnsi('Primary', $false)
-        $mutedColor = $this.GetThemedAnsi('Muted', $false)
-        $errorColor = $this.GetThemedAnsi('Error', $false)
-        $successColor = $this.GetThemedAnsi('Success', $false)
+        # Colors from new theme system
+        $borderColor = $this.GetThemedFg('Border.Widget')
+        $textColor = $this.GetThemedFg('Foreground.Row')
+        $primaryColor = $this.GetThemedFg('Foreground.Title')
+        $mutedColor = $this.GetThemedFg('Foreground.Muted')
+        $errorColor = $this.GetThemedFg('Foreground.Error')
+        $successColor = $this.GetThemedFg('Foreground.Success')
         $reset = "`e[0m"
 
         # Choose border color based on validation state

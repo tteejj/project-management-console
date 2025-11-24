@@ -168,12 +168,12 @@ class ThemeEditorScreen : PmcScreen {
         $contentRect = $this.LayoutManager.GetRegion('Content', $this.TermWidth, $this.TermHeight)
 
         # Colors
-        $textColor = $this.Header.GetThemedAnsi('Text', $false)
-        $selectedBg = $this.Header.GetThemedAnsi('Primary', $true)
-        $selectedFg = $this.Header.GetThemedAnsi('Text', $false)
-        $cursorColor = $this.Header.GetThemedAnsi('Highlight', $false)
-        $mutedColor = $this.Header.GetThemedAnsi('Muted', $false)
-        $headerColor = $this.Header.GetThemedAnsi('Muted', $false)
+        $textColor = $this.Header.GetThemedFg('Foreground.Field')
+        $selectedBg = $this.Header.GetThemedBg('Background.FieldFocused', 80, 0)
+        $selectedFg = $this.Header.GetThemedFg('Foreground.Field')
+        $cursorColor = $this.Header.GetThemedFg('Foreground.FieldFocused')
+        $mutedColor = $this.Header.GetThemedFg('Foreground.Muted')
+        $headerColor = $this.Header.GetThemedFg('Foreground.Muted')
         $reset = "`e[0m"
 
         # Render column headers
@@ -235,7 +235,7 @@ class ThemeEditorScreen : PmcScreen {
             $x += 30
             $sb.Append($this.Header.BuildMoveTo($x, $y))
             if ($isCurrent) {
-                $successColor = $this.Header.GetThemedAnsi('Success', $false)
+                $successColor = $this.Header.GetThemedFg('Foreground.Success')
                 $sb.Append($successColor)
                 $sb.Append("[CURRENT]")
                 $sb.Append($reset)
@@ -257,7 +257,7 @@ class ThemeEditorScreen : PmcScreen {
                 $sb.Append($this.Header.BuildMoveTo($contentRect.X + 4, $previewY))
                 $sb.Append($textColor)
                 $sb.Append("Selected: ")
-                $sb.Append($this.Header.GetThemedAnsi('Highlight', $false))
+                $sb.Append($this.Header.GetThemedFg('Foreground.FieldFocused'))
                 $sb.Append($theme.Name)
                 $sb.Append($reset)
 
@@ -265,7 +265,7 @@ class ThemeEditorScreen : PmcScreen {
                 $sb.Append($this.Header.BuildMoveTo($contentRect.X + 4, $previewY))
                 $sb.Append($mutedColor)
                 $sb.Append("Hex Code: ")
-                $sb.Append($this.Header.GetThemedAnsi('Success', $false))
+                $sb.Append($this.Header.GetThemedFg('Foreground.Success'))
                 $sb.Append($theme.Hex)
                 $sb.Append($reset)
 

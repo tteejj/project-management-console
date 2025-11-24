@@ -147,6 +147,17 @@ try {
     throw
 }
 
+Write-PmcTuiLog "Loading ZIndex constants..." "INFO"
+
+try {
+    . "$PSScriptRoot/ZIndex.ps1"
+    Write-PmcTuiLog "ZIndex loaded" "INFO"
+} catch {
+    Write-PmcTuiLog "Failed to load ZIndex: $_" "ERROR"
+    Write-PmcTuiLog $_.ScriptStackTrace "ERROR"
+    throw
+}
+
 Write-PmcTuiLog "Loading PmcScreen base class..." "INFO"
 
 try {
@@ -270,6 +281,17 @@ function Start-PmcTUI {
     Write-PmcTuiLog "Starting PMC TUI with screen: $StartScreen" "INFO"
 
     try {
+        # === Clear stale global state ===
+        # CRITICAL FIX: Clear shared menu bar and registry singleton to ensure fresh menus are loaded
+        # This fixes the issue where Notes and Checklist screens don't appear after manifest updates
+        $global:PmcSharedMenuBar = $null
+
+        # Clear MenuRegistry singleton (it caches menu items across sessions)
+        if ([MenuRegistry]) {
+            [MenuRegistry]::_instance = $null
+        }
+        Write-PmcTuiLog "Cleared stale PmcSharedMenuBar and MenuRegistry singleton" "INFO"
+
         # === Create DI Container ===
         Write-PmcTuiLog "Creating ServiceContainer..." "INFO"
         $global:PmcContainer = [ServiceContainer]::new()
@@ -285,6 +307,13 @@ function Start-PmcTUI {
             Initialize-PmcThemeSystem
             $theme = Get-PmcState -Section 'Display' | Select-Object -ExpandProperty Theme
             Write-PmcTuiLog "Theme resolved: $($theme.Hex)" "INFO"
+
+            # CRITICAL FIX: Initialize PmcThemeEngine with theme data
+            Write-PmcTuiLog "Loading PmcThemeEngine..." "INFO"
+            $engine = [PmcThemeEngine]::GetInstance()
+            $engine._InitializeDefaultProperties()
+            Write-PmcTuiLog "PmcThemeEngine initialized with default properties" "INFO"
+
             return $theme
         }, $true)
 

@@ -106,12 +106,12 @@ class MultiSelectModeScreen : PmcScreen {
         $contentRect = $this.LayoutManager.GetRegion('Content', $this.TermWidth, $this.TermHeight)
 
         # Colors
-        $textColor = $this.Header.GetThemedAnsi('Text', $false)
-        $selectedBg = $this.Header.GetThemedAnsi('Primary', $true)
-        $selectedFg = $this.Header.GetThemedAnsi('Text', $false)
-        $cursorColor = $this.Header.GetThemedAnsi('Highlight', $false)
-        $mutedColor = $this.Header.GetThemedAnsi('Muted', $false)
-        $successColor = $this.Header.GetThemedAnsi('Success', $false)
+        $textColor = $this.Header.GetThemedFg('Foreground.Field')
+        $selectedBg = $this.Header.GetThemedBg('Background.FieldFocused', 80, 0)
+        $selectedFg = $this.Header.GetThemedFg('Foreground.Field')
+        $cursorColor = $this.Header.GetThemedFg('Foreground.FieldFocused')
+        $mutedColor = $this.Header.GetThemedFg('Foreground.Muted')
+        $successColor = $this.Header.GetThemedFg('Foreground.Success')
         $priorityColor = $this.Header.GetThemedAnsi('Warning', $false)
         $reset = "`e[0m"
 

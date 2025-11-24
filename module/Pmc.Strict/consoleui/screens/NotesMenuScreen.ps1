@@ -12,6 +12,9 @@ using namespace System.Collections.Generic
 
 Set-StrictMode -Version Latest
 
+. "$PSScriptRoot/../base/StandardListScreen.ps1"
+. "$PSScriptRoot/../services/NoteService.ps1"
+
 class NotesMenuScreen : StandardListScreen {
     # === Configuration ===
     hidden [NoteService]$_noteService = $null

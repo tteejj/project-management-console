@@ -136,7 +136,7 @@ class BackupViewScreen : PmcScreen {
             $x = $contentRect.X + [Math]::Floor(($contentRect.Width - $message.Length) / 2)
             $y = $contentRect.Y + [Math]::Floor($contentRect.Height / 2)
 
-            $textColor = $this.Header.GetThemedAnsi('Text', $false)
+            $textColor = $this.Header.GetThemedFg('Foreground.Field')
             $reset = "`e[0m"
 
             $sb.Append($this.Header.BuildMoveTo($x, $y))
@@ -159,12 +159,12 @@ class BackupViewScreen : PmcScreen {
         $contentRect = $this.LayoutManager.GetRegion('Content', $this.TermWidth, $this.TermHeight)
 
         # Colors
-        $textColor = $this.Header.GetThemedAnsi('Text', $false)
-        $selectedBg = $this.Header.GetThemedAnsi('Primary', $true)
-        $selectedFg = $this.Header.GetThemedAnsi('Text', $false)
-        $cursorColor = $this.Header.GetThemedAnsi('Highlight', $false)
-        $mutedColor = $this.Header.GetThemedAnsi('Muted', $false)
-        $headerColor = $this.Header.GetThemedAnsi('Muted', $false)
+        $textColor = $this.Header.GetThemedFg('Foreground.Field')
+        $selectedBg = $this.Header.GetThemedBg('Background.FieldFocused', 80, 0)
+        $selectedFg = $this.Header.GetThemedFg('Foreground.Field')
+        $cursorColor = $this.Header.GetThemedFg('Foreground.FieldFocused')
+        $mutedColor = $this.Header.GetThemedFg('Foreground.Muted')
+        $headerColor = $this.Header.GetThemedFg('Foreground.Muted')
         $reset = "`e[0m"
 
         # Render column headers

@@ -245,8 +245,8 @@ class WeeklyTimeReportScreen : PmcScreen {
             $contentRect = $this.LayoutManager.GetRegion('Content', $this.TermWidth, $this.TermHeight)
 
             # Colors
-            $textColor = $this.Header.GetThemedAnsi('Text', $false)
-            $highlightColor = $this.Header.GetThemedAnsi('Highlight', $false)
+            $textColor = $this.Header.GetThemedFg('Foreground.Field')
+            $highlightColor = $this.Header.GetThemedFg('Foreground.FieldFocused')
             $reset = "`e[0m"
 
             # Week header
@@ -281,11 +281,11 @@ class WeeklyTimeReportScreen : PmcScreen {
         $contentRect = $this.LayoutManager.GetRegion('Content', $this.TermWidth, $this.TermHeight)
 
         # Colors
-        $textColor = $this.Header.GetThemedAnsi('Text', $false)
-        $highlightColor = $this.Header.GetThemedAnsi('Highlight', $false)
-        $mutedColor = $this.Header.GetThemedAnsi('Muted', $false)
-        $headerColor = $this.Header.GetThemedAnsi('Muted', $false)
-        $successColor = $this.Header.GetThemedAnsi('Success', $false)
+        $textColor = $this.Header.GetThemedFg('Foreground.Field')
+        $highlightColor = $this.Header.GetThemedFg('Foreground.FieldFocused')
+        $mutedColor = $this.Header.GetThemedFg('Foreground.Muted')
+        $headerColor = $this.Header.GetThemedFg('Foreground.Muted')
+        $successColor = $this.Header.GetThemedFg('Foreground.Success')
         $warningColor = $this.Header.GetThemedAnsi('Warning', $false)
         $reset = "`e[0m"
 

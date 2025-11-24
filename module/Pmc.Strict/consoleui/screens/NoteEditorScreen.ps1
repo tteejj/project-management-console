@@ -334,7 +334,8 @@ class NoteEditorScreen : PmcScreen {
 
             # Open checklist editor
             . "$PSScriptRoot/ChecklistEditorScreen.ps1"
-            $checklistScreen = [ChecklistEditorScreen]::new($instance.id)
+            # Use New-Object to avoid parse-time type resolution
+            $checklistScreen = New-Object ChecklistEditorScreen -ArgumentList $instance.id
             $global:PmcApp.PushScreen($checklistScreen)
 
             $this.SetStatusMessage("Converted to checklist with $($lines.Count) items", "success")

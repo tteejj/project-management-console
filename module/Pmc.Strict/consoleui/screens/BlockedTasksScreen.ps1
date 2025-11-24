@@ -117,7 +117,7 @@ class BlockedTasksScreen : PmcScreen {
             $x = $contentRect.X + [Math]::Floor(($contentRect.Width - $message.Length) / 2)
             $y = $contentRect.Y + [Math]::Floor($contentRect.Height / 2)
 
-            $successColor = $this.Header.GetThemedAnsi('Success', $false)
+            $successColor = $this.Header.GetThemedFg('Foreground.Success')
             $reset = "`e[0m"
 
             $sb.Append($this.Header.BuildMoveTo($x, $y))
@@ -144,15 +144,15 @@ class BlockedTasksScreen : PmcScreen {
         $contentRect = $this.LayoutManager.GetRegion('Content', $this.TermWidth, $this.TermHeight)
 
         # Colors
-        $textColor = $this.Header.GetThemedAnsi('Text', $false)
-        $blockedColor = $this.Header.GetThemedAnsi('Error', $false)
+        $textColor = $this.Header.GetThemedFg('Foreground.Field')
+        $blockedColor = $this.Header.GetThemedFg('Foreground.Error')
         $waitingColor = $this.Header.GetThemedAnsi('Warning', $false)
-        $selectedBg = $this.Header.GetThemedAnsi('Primary', $true)
-        $selectedFg = $this.Header.GetThemedAnsi('Text', $false)
-        $cursorColor = $this.Header.GetThemedAnsi('Highlight', $false)
+        $selectedBg = $this.Header.GetThemedBg('Background.FieldFocused', 80, 0)
+        $selectedFg = $this.Header.GetThemedFg('Foreground.Field')
+        $cursorColor = $this.Header.GetThemedFg('Foreground.FieldFocused')
         $priorityColor = $this.Header.GetThemedAnsi('Warning', $false)
-        $headerColor = $this.Header.GetThemedAnsi('Muted', $false)
-        $mutedColor = $this.Header.GetThemedAnsi('Muted', $false)
+        $headerColor = $this.Header.GetThemedFg('Foreground.Muted')
+        $mutedColor = $this.Header.GetThemedFg('Foreground.Muted')
         $reset = "`e[0m"
 
         # Column widths
@@ -308,7 +308,7 @@ class BlockedTasksScreen : PmcScreen {
             $y = $startY + $maxLines
             $remaining = $this.BlockedTasks.Count - $maxLines
             $sb.Append($this.Header.BuildMoveTo($contentRect.X + 4, $y))
-            $mutedColor = $this.Header.GetThemedAnsi('Muted', $false)
+            $mutedColor = $this.Header.GetThemedFg('Foreground.Muted')
             $sb.Append($mutedColor)
             $sb.Append("... and $remaining more")
             $sb.Append($reset)

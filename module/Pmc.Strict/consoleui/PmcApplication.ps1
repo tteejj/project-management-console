@@ -47,6 +47,12 @@ class PmcApplication {
     [bool]$IsDirty = $true  # Dirty flag - true when redraw needed
     [int]$RenderErrorCount = 0  # Track consecutive render errors for recovery
 
+    # === Automation Support ===
+    [string]$AutomationCommandFile = ""  # Path to command file for automation
+    [string]$AutomationOutputFile = ""   # Path to output capture file
+    [System.Collections.Queue]$CommandQueue = $null  # Queue of simulated key presses
+    [bool]$AutomationMode = $false       # Enable automation features
+
     # === Event Handlers ===
     [scriptblock]$OnTerminalResize = $null
     [scriptblock]$OnError = $null
@@ -424,10 +430,45 @@ class PmcApplication {
             while ($this.Running -and $this.ScreenStack.Count -gt 0) {
                 $hadInput = $false
 
+                # Check for automation commands
+                if ($this.AutomationMode) {
+                    $this._ProcessAutomationCommands()
+                }
+
+                # Process queued automation commands first
+                if ($this.AutomationMode -and $this.CommandQueue.Count -gt 0) {
+                    $cmdString = $this.CommandQueue.Dequeue()
+                    if ($global:PmcTuiLogFile) {
+                        Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] Automation: Processing command '$cmdString'"
+                    }
+
+                    try {
+                        $key = $this._ParseCommand($cmdString)
+
+                        # Global keys - Ctrl+Q to exit
+                        if ($key.Modifiers -eq [ConsoleModifiers]::Control -and $key.Key -eq 'Q') {
+                            $this.Stop()
+                        } elseif ($this.CurrentScreen -and $this.CurrentScreen.PSObject.Methods['HandleKeyPress']) {
+                            $handled = $this.CurrentScreen.HandleKeyPress($key)
+                            if ($handled) {
+                                $hadInput = $true
+                            }
+                        }
+
+                        # Capture screen after command
+                        $this._CaptureScreen()
+                    } catch {
+                        if ($global:PmcTuiLogFile) {
+                            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] Automation: Error processing command '$cmdString': $_"
+                        }
+                    }
+                }
+
                 # OPTIMIZATION: Drain ALL available input before rendering
                 # This eliminates input lag from sleep delays
-                while ([Console]::KeyAvailable) {
-                    $key = [Console]::ReadKey($true)
+                try {
+                    while ([Console]::KeyAvailable) {
+                        $key = [Console]::ReadKey($true)
 
                     # Global keys - Ctrl+Q to exit
                     if ($key.Modifiers -eq [ConsoleModifiers]::Control -and $key.Key -eq 'Q') {
@@ -451,6 +492,13 @@ class PmcApplication {
                         if ($handled) {
                             $hadInput = $true
                         }
+                    }
+                    }
+                } catch {
+                    # Console input is redirected or unavailable - skip input processing
+                    # This happens when running in non-interactive mode (e.g., piped input, automated tests)
+                    if ($global:PmcTuiLogFile) {
+                        Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcApplication.Run: Console input unavailable (redirected): $($_.Exception.Message)"
                     }
                 }
 
@@ -531,6 +579,138 @@ class PmcApplication {
             # TaskStore might not be available during shutdown - safe to ignore
             if (Get-Command Write-PmcTuiLog -ErrorAction SilentlyContinue) {
                 Write-PmcTuiLog "Stop: Could not flush TaskStore: $($_.Exception.Message)" "WARNING"
+            }
+        }
+    }
+
+    # === Automation Methods ===
+
+    <#
+    .SYNOPSIS
+    Enable automation mode with command file and output capture
+
+    .PARAMETER CommandFile
+    Path to file containing commands (one per line)
+
+    .PARAMETER OutputFile
+    Path to file for capturing screen output
+    #>
+    [void] EnableAutomation([string]$CommandFile, [string]$OutputFile) {
+        $this.AutomationMode = $true
+        $this.AutomationCommandFile = $CommandFile
+        $this.AutomationOutputFile = $OutputFile
+        $this.CommandQueue = New-Object System.Collections.Queue
+
+        if ($global:PmcTuiLogFile) {
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] Automation enabled: CommandFile=$CommandFile OutputFile=$OutputFile"
+        }
+    }
+
+    <#
+    .SYNOPSIS
+    Check for new commands and queue them
+    #>
+    hidden [void] _ProcessAutomationCommands() {
+        if (-not $this.AutomationMode -or -not (Test-Path $this.AutomationCommandFile)) {
+            return
+        }
+
+        try {
+            $commands = Get-Content $this.AutomationCommandFile -ErrorAction SilentlyContinue
+            if ($commands) {
+                foreach ($cmd in $commands) {
+                    if ($cmd -and $cmd.Trim() -ne '') {
+                        $this.CommandQueue.Enqueue($cmd.Trim())
+                    }
+                }
+                # Clear the command file after reading
+                Clear-Content $this.AutomationCommandFile -ErrorAction SilentlyContinue
+
+                if ($global:PmcTuiLogFile) {
+                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] Automation: Queued $($commands.Count) commands"
+                }
+            }
+        } catch {
+            if ($global:PmcTuiLogFile) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] Automation: Error reading commands: $_"
+            }
+        }
+    }
+
+    <#
+    .SYNOPSIS
+    Convert command string to ConsoleKeyInfo
+    #>
+    hidden [System.ConsoleKeyInfo] _ParseCommand([string]$command) {
+        # Parse commands like "j", "k", "Enter", "Ctrl+Q", "Escape"
+        $parts = $command -split '\+'
+        $modifiers = [ConsoleModifiers]::None
+        $keyName = $parts[-1]
+
+        # Parse modifiers
+        foreach ($part in $parts[0..($parts.Length - 2)]) {
+            switch ($part.ToLower()) {
+                'ctrl' { $modifiers = $modifiers -bor [ConsoleModifiers]::Control }
+                'alt' { $modifiers = $modifiers -bor [ConsoleModifiers]::Alt }
+                'shift' { $modifiers = $modifiers -bor [ConsoleModifiers]::Shift }
+            }
+        }
+
+        # Parse key
+        $key = [ConsoleKey]::A
+        $keyChar = [char]0
+
+        switch ($keyName.ToLower()) {
+            'enter' { $key = [ConsoleKey]::Enter; $keyChar = "`r" }
+            'escape' { $key = [ConsoleKey]::Escape; $keyChar = [char]27 }
+            'esc' { $key = [ConsoleKey]::Escape; $keyChar = [char]27 }
+            'tab' { $key = [ConsoleKey]::Tab; $keyChar = "`t" }
+            'space' { $key = [ConsoleKey]::Spacebar; $keyChar = ' ' }
+            'up' { $key = [ConsoleKey]::UpArrow; $keyChar = [char]0 }
+            'down' { $key = [ConsoleKey]::DownArrow; $keyChar = [char]0 }
+            'left' { $key = [ConsoleKey]::LeftArrow; $keyChar = [char]0 }
+            'right' { $key = [ConsoleKey]::RightArrow; $keyChar = [char]0 }
+            default {
+                # Single character
+                if ($keyName.Length -eq 1) {
+                    $keyChar = $keyName[0]
+                    $key = [ConsoleKey]::($keyName.ToUpper())
+                }
+            }
+        }
+
+        return New-Object System.ConsoleKeyInfo($keyChar, $key, ($modifiers -band [ConsoleModifiers]::Shift) -ne 0, ($modifiers -band [ConsoleModifiers]::Alt) -ne 0, ($modifiers -band [ConsoleModifiers]::Control) -ne 0)
+    }
+
+    <#
+    .SYNOPSIS
+    Capture current screen to output file
+    #>
+    hidden [void] _CaptureScreen() {
+        if (-not $this.AutomationMode -or -not $this.AutomationOutputFile) {
+            return
+        }
+
+        try {
+            # Capture screen state information
+            $screenInfo = @"
+=== Screen Capture $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') ===
+Current Screen: $($this.CurrentScreen.GetType().Name)
+Terminal Size: $($this.TermWidth)x$($this.TermHeight)
+Screen Stack Depth: $($this.ScreenStack.Count)
+
+"@
+            # Try to capture current screen's rendered content
+            if ($this.CurrentScreen -and $this.CurrentScreen.PSObject.Properties['LastRenderedContent']) {
+                $screenInfo += "Last Rendered Content:`n"
+                $screenInfo += $this.CurrentScreen.LastRenderedContent
+                $screenInfo += "`n"
+            }
+
+            Add-Content -Path $this.AutomationOutputFile -Value $screenInfo
+        } catch {
+            if ($global:PmcTuiLogFile) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] Automation: Error capturing screen: $_"
             }
         }
     }

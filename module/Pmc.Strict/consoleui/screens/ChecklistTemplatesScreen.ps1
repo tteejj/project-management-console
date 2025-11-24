@@ -6,9 +6,8 @@ using namespace System.Text
 
 Set-StrictMode -Version Latest
 
-# StandardListScreen and ChecklistService already loaded by Start-PmcTUI.ps1
-# . "$PSScriptRoot/../base/StandardListScreen.ps1"
-# . "$PSScriptRoot/../services/ChecklistService.ps1"
+. "$PSScriptRoot/../base/StandardListScreen.ps1"
+. "$PSScriptRoot/../services/ChecklistService.ps1"
 
 <#
 .SYNOPSIS

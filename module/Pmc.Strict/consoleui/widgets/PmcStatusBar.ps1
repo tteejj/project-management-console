@@ -98,9 +98,9 @@ class PmcStatusBar : PmcWidget {
         $sb = [System.Text.StringBuilder]::new(256)
 
         # Colors
-        $bgColor = $this.GetThemedAnsi('Border', $true)
-        $fgColor = $this.GetThemedAnsi('Text', $false)
-        $mutedColor = $this.GetThemedAnsi('Muted', $false)
+        $bgColor = $this.GetThemedBg('Background.MenuBar', 1, 0)
+        $fgColor = $this.GetThemedFg('Foreground.Row')
+        $mutedColor = $this.GetThemedFg('Foreground.Muted')
         $reset = "`e[0m"
 
         # Position
@@ -151,9 +151,9 @@ class PmcStatusBar : PmcWidget {
     #>
     [void] RenderToEngine([object]$engine) {
         # Colors
-        $bgColor = $this.GetThemedAnsi('Border', $true)
-        $fgColor = $this.GetThemedAnsi('Text', $false)
-        $mutedColor = $this.GetThemedAnsi('Muted', $false)
+        $bgColor = $this.GetThemedBg('Background.MenuBar', 1, 0)
+        $fgColor = $this.GetThemedFg('Foreground.Row')
+        $mutedColor = $this.GetThemedFg('Foreground.Muted')
         $reset = "`e[0m"
 
         # Calculate section widths
