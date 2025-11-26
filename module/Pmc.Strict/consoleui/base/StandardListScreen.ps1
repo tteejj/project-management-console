@@ -806,8 +806,9 @@ class StandardListScreen : PmcScreen {
 
                 # Check if editor needs clear (field widget was closed)
                 if ($this.InlineEditor.NeedsClear) {
-                    Write-PmcTuiLog "StandardListScreen: Editor field widget closed - NO CLEAR (inline mode)" "DEBUG"
-                    # NOTE: NeedsClear NOT set - widgets render as overlays without clearing screen
+                    Write-PmcTuiLog "StandardListScreen: Editor field widget closed - PROPAGATING CLEAR TO SCREEN" "DEBUG"
+                    # CRITICAL FIX: Propagate NeedsClear to screen to remove overlay widget rendering
+                    $this.NeedsClear = $true
                     $this.InlineEditor.NeedsClear = $false  # Reset flag
                     return $true
                 }

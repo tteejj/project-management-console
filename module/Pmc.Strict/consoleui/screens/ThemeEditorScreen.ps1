@@ -352,25 +352,43 @@ class ThemeEditorScreen : PmcScreen {
                 Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ThemeEditor._ApplyTheme: Updating theme to $($theme.Hex)..."
             }
 
-            # Use PmcThemeManager to set theme (handles config, state, and reload)
+            # Use PmcThemeManager to set theme (handles config and state)
             $themeManager = [PmcThemeManager]::GetInstance()
             $themeManager.SetTheme($theme.Hex)
 
             if ($global:PmcTuiLogFile) {
-                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ThemeEditor._ApplyTheme: Theme updated successfully"
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ThemeEditor._ApplyTheme: Theme config saved"
             }
 
             # Update current theme marker
             $this.CurrentTheme = $theme.Name
 
-            try {
-                $this.ShowSuccess("Theme saved and applied! Changes visible immediately.")
-            } catch {
-                # ShowSuccess may fail
+            # HOT RELOAD: Apply theme immediately without restarting or changing screens
+            if ($global:PmcTuiLogFile) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ThemeEditor._ApplyTheme: Invoking hot reload..."
             }
 
-            if ($global:PmcTuiLogFile) {
-                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ThemeEditor._ApplyTheme: SUCCESS - Config saved, theme will apply on restart"
+            $reloadSuccess = Invoke-ThemeHotReload $theme.Hex
+
+            if ($reloadSuccess) {
+                if ($global:PmcTuiLogFile) {
+                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ThemeEditor._ApplyTheme: Hot reload SUCCESS - theme applied instantly"
+                }
+                try {
+                    $this.ShowSuccess("Theme applied! Changes visible immediately.")
+                } catch {
+                    # ShowSuccess may fail
+                }
+            } else {
+                if ($global:PmcTuiLogFile) {
+                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ThemeEditor._ApplyTheme: Hot reload FAILED - falling back to screen pop"
+                }
+                # Fallback: pop screen if hot reload fails
+                Start-Sleep -Milliseconds 800
+                if ($global:PmcApp) {
+                    $global:PmcApp.RenderEngine.RequestClear()
+                    $global:PmcApp.PopScreen()
+                }
             }
         } catch {
             if ($global:PmcTuiLogFile) {
@@ -409,6 +427,6 @@ function Show-ThemeEditorScreen {
         throw "PmcApplication required"
     }
 
-    $screen = [ThemeEditorScreen]::new()
+    $screen = New-Object ThemeEditorScreen
     $App.PushScreen($screen)
 }

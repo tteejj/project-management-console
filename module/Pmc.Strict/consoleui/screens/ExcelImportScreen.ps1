@@ -45,7 +45,7 @@ class ExcelImportScreen : PmcScreen {
     static [void] RegisterMenuItems([object]$registry) {
         $registry.AddMenuItem('Projects', 'Import from Excel', 'I', {
             . "$PSScriptRoot/ExcelImportScreen.ps1"
-            $global:PmcApp.PushScreen([ExcelImportScreen]::new())
+            $global:PmcApp.PushScreen((New-Object -TypeName ExcelImportScreen))
         }, 40)
     }
 

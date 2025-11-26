@@ -27,7 +27,7 @@ class ChecklistTemplatesScreen : StandardListScreen {
     static [void] RegisterMenuItems([object]$registry) {
         $registry.AddMenuItem('Tools', 'Checklist Templates', 'H', {
             . "$PSScriptRoot/ChecklistTemplatesScreen.ps1"
-            $global:PmcApp.PushScreen([ChecklistTemplatesScreen]::new())
+            $global:PmcApp.PushScreen((New-Object -TypeName ChecklistTemplatesScreen))
         }, 30)
     }
 

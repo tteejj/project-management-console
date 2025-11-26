@@ -308,11 +308,26 @@ function Start-PmcTUI {
             $theme = Get-PmcState -Section 'Display' | Select-Object -ExpandProperty Theme
             Write-PmcTuiLog "Theme resolved: $($theme.Hex)" "INFO"
 
-            # CRITICAL FIX: Initialize PmcThemeEngine with theme data
+            # CRITICAL FIX: Initialize PmcThemeEngine with theme data from PMC palette
             Write-PmcTuiLog "Loading PmcThemeEngine..." "INFO"
             $engine = [PmcThemeEngine]::GetInstance()
-            $engine._InitializeDefaultProperties()
-            Write-PmcTuiLog "PmcThemeEngine initialized with default properties" "INFO"
+
+            # Get PMC color palette (derived from theme hex)
+            $palette = Get-PmcColorPalette
+
+            # Convert RGB objects to hex strings for PmcThemeEngine
+            $paletteHex = @{}
+            foreach ($key in $palette.Keys) {
+                $rgb = $palette[$key]
+                $paletteHex[$key] = "#{0:X2}{1:X2}{2:X2}" -f $rgb.R, $rgb.G, $rgb.B
+            }
+
+            # Load theme config with palette
+            $themeConfig = @{
+                Palette = $paletteHex
+            }
+            $engine.LoadFromConfig($themeConfig)
+            Write-PmcTuiLog "PmcThemeEngine initialized with PMC palette ($($paletteHex.Count) colors)" "INFO"
 
             return $theme
         }, $true)
@@ -333,8 +348,9 @@ function Start-PmcTUI {
             Write-PmcTuiLog "Resolving Config..." "INFO"
 
             # Determine config path (same logic as Get-PmcConfig)
-            $moduleRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
-            $configPath = Join-Path $moduleRoot 'config.json'
+            # CRITICAL FIX: Use workspace root (three levels up from module dir)
+            $root = Split-Path (Split-Path (Split-Path $PSScriptRoot -Parent) -Parent) -Parent
+            $configPath = Join-Path $root 'config.json'
 
             # Use cached config for performance (eliminates repeated file I/O)
             try {

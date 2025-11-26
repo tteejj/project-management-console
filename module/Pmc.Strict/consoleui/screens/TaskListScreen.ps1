@@ -9,7 +9,7 @@
 # - Custom actions (complete, archive, clone, bulk operations)
 #
 # Usage:
-#   $screen = [TaskListScreen]::new()
+#   $screen = New-Object TaskListScreen
 #   $screen.Initialize()
 #   $screen.Render()
 #   $screen.HandleInput($key)
@@ -34,7 +34,7 @@ Extends StandardListScreen to provide:
 - Comprehensive keyboard shortcuts
 
 .EXAMPLE
-$screen = [TaskListScreen]::new()
+$screen = New-Object TaskListScreen
 $screen.Initialize()
 while (-not $screen.ShouldExit) {
     $output = $screen.Render()
@@ -543,11 +543,19 @@ class TaskListScreen : StandardListScreen {
         $getSafe = ${function:Global:Get-SafeProperty}
         $testSafe = ${function:Global:Test-SafeProperty}
 
+        # Calculate column widths based on terminal width
+        $availableWidth = if ($this.List -and $this.List.Width -gt 4) { $this.List.Width - 4 } else { 113 }
+        $titleWidth = [Math]::Max(20, [Math]::Floor($availableWidth * 0.32))
+        $detailsWidth = [Math]::Max(15, [Math]::Floor($availableWidth * 0.22))
+        $dueWidth = 12
+        $projectWidth = [Math]::Max(12, [Math]::Floor($availableWidth * 0.14))
+        $tagsWidth = [Math]::Max(10, [Math]::Floor($availableWidth * 0.18))
+
         return @(
             @{
                 Name = 'title'
                 Label = 'Task'
-                Width = 35
+                Width = $titleWidth
                 Align = 'left'
                 SkipRowHighlight = { param($item)
                     # Skip row highlighting ONLY for the row being edited
@@ -625,11 +633,11 @@ class TaskListScreen : StandardListScreen {
             @{
                 Name = 'details'
                 Label = 'Details'
-                Width = 25
+                Width = $detailsWidth
                 Align = 'left'
                 Format = { param($task, $cellInfo)
                     $d = & $getSafe $task 'details'
-                    if ($d -and $d.Length -gt 25) { return $d.Substring(0, 22) + "..." }
+                    if ($d -and $d.Length -gt $detailsWidth) { return $d.Substring(0, $detailsWidth - 3) + "..." }
                     return $d ?? ''
                 }.GetNewClosure()
                 Color = { return "`e[90m" }
@@ -637,7 +645,7 @@ class TaskListScreen : StandardListScreen {
             @{
                 Name = 'due'
                 Label = 'Due'
-                Width = 12
+                Width = $dueWidth
                 Align = 'left'
                 Format = { param($task, $cellInfo)
                     $d = & $getSafe $task 'due'
@@ -670,11 +678,11 @@ class TaskListScreen : StandardListScreen {
             @{
                 Name = 'project'
                 Label = 'Project'
-                Width = 15
+                Width = $projectWidth
                 Align = 'left'
                 Format = { param($task, $cellInfo)
                     $p = & $getSafe $task 'project'
-                    if ($p -and $p.Length -gt 15) { return $p.Substring(0, 12) + "..." }
+                    if ($p -and $p.Length -gt $projectWidth) { return $p.Substring(0, $projectWidth - 3) + "..." }
                     return $p ?? ''
                 }.GetNewClosure()
                 Color = { return "`e[96m" }
@@ -682,7 +690,7 @@ class TaskListScreen : StandardListScreen {
             @{
                 Name = 'tags'
                 Label = 'Tags'
-                Width = 20
+                Width = $tagsWidth
                 Align = 'left'
                 Format = { param($task, $cellInfo)
                     $t = & $getSafe $task 'tags'
@@ -694,7 +702,7 @@ class TaskListScreen : StandardListScreen {
                     if ($t -is [array]) { $t = $t -join ', ' }
                     # Convert to string explicitly
                     $t = [string]$t
-                    if ($t -and $t.Length -gt 20) { return $t.Substring(0, 17) + "..." }
+                    if ($t -and $t.Length -gt $tagsWidth) { return $t.Substring(0, $tagsWidth - 3) + "..." }
                     return $t ?? ''
                 }.GetNewClosure()
                 Color = { return "`e[95m" }
@@ -1194,6 +1202,11 @@ class TaskListScreen : StandardListScreen {
             parent_id = $parentId
         }
 
+        # CRITICAL FIX: Set EditorMode so UniversalList knows to render the editor
+        # This was missing, causing the editor to be invisible (though functionally active)
+        $this.EditorMode = 'add'
+        $this.CurrentEditItem = $subtask
+
         # Use base class inline editor system
         # Configure for horizontal inline editing
         $this.InlineEditor.LayoutMode = 'horizontal'
@@ -1201,10 +1214,10 @@ class TaskListScreen : StandardListScreen {
         $this.InlineEditor.SetFields($fields)
         $this.InlineEditor.Title = "Add Subtask"
 
-        # Set position for inline editing (below parent task)
-        # TODO: Calculate proper position based on parent task location
-        $this.InlineEditor.SetPosition($this.List.X + 2, $this.List.Y + 10)
-        $this.InlineEditor.SetSize($this.TermWidth, 1)
+        # CRITICAL FIX: Position editor using List selection like AddItem() does
+        # Don't use manual SetPosition - let UniversalList render it inline
+        $itemCount = if ($this.List._filteredData) { $this.List._filteredData.Count } else { 0 }
+        $this.List._selectedIndex = $itemCount  # Select the "new row" position
 
         # Set up callbacks for subtask creation
         $self = $this
@@ -1673,7 +1686,7 @@ class TaskListScreen : StandardListScreen {
         # Task List (all tasks)
         $registry.AddMenuItem('Tasks', 'Task List', 'L', {
             . "$PSScriptRoot/TaskListScreen.ps1"
-            $global:PmcApp.PushScreen([TaskListScreen]::new())
+            $global:PmcApp.PushScreen((New-Object -TypeName TaskListScreen))
         }, 5)
 
         # Today's tasks

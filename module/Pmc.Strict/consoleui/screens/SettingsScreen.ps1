@@ -47,7 +47,7 @@ class SettingsScreen : PmcScreen {
                 throw "SettingsScreen.ps1 not found"
             }
             . $scriptPath
-            $global:PmcApp.PushScreen([SettingsScreen]::new())
+            $global:PmcApp.PushScreen((New-Object -TypeName SettingsScreen))
         }, 20)
     }
 
@@ -315,7 +315,7 @@ class SettingsScreen : PmcScreen {
                         # PSTypeName check may not work reliably in all PowerShell versions
                         if ($global:PmcApp) {
                             try {
-                                $themeScreen = [ThemeEditorScreen]::new()
+                                $themeScreen = New-Object ThemeEditorScreen
                             } catch {
                                 throw "ThemeEditorScreen class not available after loading file: $_"
                             }

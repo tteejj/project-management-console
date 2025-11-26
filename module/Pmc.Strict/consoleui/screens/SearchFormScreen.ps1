@@ -309,6 +309,6 @@ function Show-SearchFormScreen {
         throw "PmcApplication required"
     }
 
-    $screen = [SearchFormScreen]::new()
+    $screen = New-Object SearchFormScreen
     $App.PushScreen($screen)
 }

@@ -31,7 +31,7 @@ class TimeReportScreen : PmcScreen {
     static [void] RegisterMenuItems([object]$registry) {
         $registry.AddMenuItem('Time', 'Time Report', 'R', {
             . "$PSScriptRoot/TimeReportScreen.ps1"
-            $global:PmcApp.PushScreen([TimeReportScreen]::new())
+            $global:PmcApp.PushScreen((New-Object -TypeName TimeReportScreen))
         }, 20)
     }
 
@@ -359,7 +359,7 @@ class TimeReportScreen : PmcScreen {
         # Weekly report on W key
         if ($keyInfo.Key -eq ([ConsoleKey]::W)) {
             . "$PSScriptRoot/WeeklyTimeReportScreen.ps1"
-            $screen = [WeeklyTimeReportScreen]::new()
+            $screen = New-Object WeeklyTimeReportScreen
             $global:PmcApp.PushScreen($screen)
             return $true
         }
@@ -376,6 +376,6 @@ function Show-TimeReportScreen {
         throw "PmcApplication required"
     }
 
-    $screen = [TimeReportScreen]::new()
+    $screen = New-Object TimeReportScreen
     $App.PushScreen($screen)
 }

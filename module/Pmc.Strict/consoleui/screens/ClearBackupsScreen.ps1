@@ -322,6 +322,6 @@ function Show-ClearBackupsScreen {
         throw "PmcApplication required"
     }
 
-    $screen = [ClearBackupsScreen]::new()
+    $screen = New-Object ClearBackupsScreen
     $App.PushScreen($screen)
 }

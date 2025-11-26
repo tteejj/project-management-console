@@ -27,7 +27,7 @@ class CommandLibraryScreen : StandardListScreen {
     static [void] RegisterMenuItems([object]$registry) {
         $registry.AddMenuItem('Tools', 'Command Library', 'C', {
             . "$PSScriptRoot/CommandLibraryScreen.ps1"
-            $global:PmcApp.PushScreen([CommandLibraryScreen]::new())
+            $global:PmcApp.PushScreen((New-Object -TypeName CommandLibraryScreen))
         }, 10)
     }
 

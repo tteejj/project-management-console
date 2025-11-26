@@ -240,11 +240,12 @@ class MenuRegistry {
                         param($c)
                         # Dot-source screen file to load class
                         . $factoryScreenPath
-                        # Create screen instance with container
+                        # CRITICAL FIX: Use -ArgumentList parameter for reliable argument passing
+                        # Positional arguments don't work correctly with New-Object in closures
                         if ($factoryViewMode) {
-                            return New-Object $factoryScreenTypeName $c, $factoryViewMode
+                            return New-Object $factoryScreenTypeName -ArgumentList $c, $factoryViewMode
                         } else {
-                            return New-Object $factoryScreenTypeName $c
+                            return New-Object $factoryScreenTypeName -ArgumentList $c
                         }
                     }.GetNewClosure(), $false)  # Non-singleton: create new instance each time
 

@@ -186,6 +186,6 @@ function Show-FocusClearScreen {
         throw "PmcApplication required"
     }
 
-    $screen = [FocusClearScreen]::new()
+    $screen = New-Object FocusClearScreen
     $App.PushScreen($screen)
 }

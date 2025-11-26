@@ -105,8 +105,15 @@ class ProjectInfoScreen : PmcScreen {
     }
 
     [void] LoadData() {
+        if ($global:PmcTuiLogFile) {
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'HH:mm:ss.fff')] LoadData START: ProjectName='$($this.ProjectName)'"
+        }
+
         if ([string]::IsNullOrWhiteSpace($this.ProjectName)) {
             $this.ShowError("No project selected")
+            if ($global:PmcTuiLogFile) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'HH:mm:ss.fff')] LoadData: ProjectName empty"
+            }
             return
         }
 
@@ -116,11 +123,19 @@ class ProjectInfoScreen : PmcScreen {
             # Get all projects from TaskStore
             $allProjects = $this.Store.GetAllProjects()
 
+            if ($global:PmcTuiLogFile) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'HH:mm:ss.fff')] LoadData: allProjects count=$($allProjects.Count)"
+            }
+
             # Find project
             $this.ProjectData = $allProjects | Where-Object {
                 ($_ -is [string] -and $_ -eq $this.ProjectName) -or
                 ((Get-SafeProperty $_ 'name') -eq $this.ProjectName)
             } | Select-Object -First 1
+
+            if ($global:PmcTuiLogFile) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'HH:mm:ss.fff')] LoadData: ProjectData found=$($null -ne $this.ProjectData)"
+            }
 
             if (-not $this.ProjectData) {
                 $this.ShowError("Project '$($this.ProjectName)' not found")
@@ -201,7 +216,7 @@ class ProjectInfoScreen : PmcScreen {
         $mutedColor = $this.Header.GetThemedFg('Foreground.Muted')
         $headerColor = $this.Header.GetThemedFg('Foreground.Muted')
         $successColor = $this.Header.GetThemedFg('Foreground.Success')
-        $warningColor = $this.Header.GetThemedAnsi('Warning', $false)
+        $warningColor = $this.Header.GetThemedFg('Foreground.Warning')
         $reset = "`e[0m"
 
         $y = $contentRect.Y + 1
@@ -245,9 +260,20 @@ class ProjectInfoScreen : PmcScreen {
         if ($this.ProjectData -isnot [string]) {
             $y++
 
+            if ($global:PmcTuiLogFile) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'HH:mm:ss.fff')] ProjectInfoScreen: EditMode=$($this.EditMode) EditableFields.Count=$($this.EditableFields.Count) ProjectData type=$($this.ProjectData.GetType().Name)"
+            }
+
             # In edit mode, display fields in 3 columns with selection highlighting
             if ($this.EditMode) {
+                Add-Content -Path "/tmp/pmc-project-render.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') EDIT MODE: EditableFields.Count=$($this.EditableFields.Count) SelectedFieldIndex=$($this.SelectedFieldIndex) IsEditingField=$($this.IsEditingField)"
                 $selectColor = "`e[30;47m"  # Black text on white background for selected field
+
+                # Clear entire content area first
+                for ($clearY = $contentRect.Y; $clearY -lt ($contentRect.Y + $contentRect.Height); $clearY++) {
+                    $sb.Append($this.Header.BuildMoveTo($contentRect.X, $clearY))
+                    $sb.Append("`e[K")
+                }
 
                 # Display fields in three columns (same as view mode)
                 $colWidth = 42
@@ -255,34 +281,33 @@ class ProjectInfoScreen : PmcScreen {
                 $col2X = $col1X + $colWidth
                 $col3X = $col2X + $colWidth
 
+                Add-Content -Path "/tmp/pmc-project-render.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Column positions: col1X=$col1X col2X=$col2X col3X=$col3X contentRect.Width=$($contentRect.Width)"
+
                 for ($i = 0; $i -lt $this.EditableFields.Count; $i += 3) {
+                    if ($i -lt 6) {  # Only log first 2 rows
+                        $f1Label = $this.EditableFields[$i].Label
+                        $f2Label = if ($i+1 -lt $this.EditableFields.Count) { $this.EditableFields[$i+1].Label } else { "N/A" }
+                        $f3Label = if ($i+2 -lt $this.EditableFields.Count) { $this.EditableFields[$i+2].Label } else { "N/A" }
+                        Add-Content -Path "/tmp/pmc-project-render.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Row i=$i y=$y Labels: [$f1Label] [$f2Label] [$f3Label]"
+                    }
+
                     # Column 1
                     $field1 = $this.EditableFields[$i]
                     $isSelected1 = ($i -eq $this.SelectedFieldIndex)
 
-                    $sb.Append($this.Header.BuildMoveTo($col1X, $y))
-
-                    if ($isSelected1) {
-                        $sb.Append($selectColor)
-                    } else {
-                        $sb.Append($mutedColor)
+                    if ($i -lt 6 -and $isSelected1) {
+                        Add-Content -Path "/tmp/pmc-project-render.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   COL1 SELECTED: i=$i field=$($field1.Label)"
                     }
 
+                    $sb.Append($this.Header.BuildMoveTo($col1X, $y))
+
+                    # Render label - SIMPLIFIED - no colors
                     $label1 = $field1.Label
                     if ($label1.Length -gt 20) { $label1 = $label1.Substring(0, 17) + "..." }
                     $sb.Append($label1.PadRight(22))
 
-                    if ($isSelected1) {
-                        $sb.Append($reset)
-                        $sb.Append($highlightColor)
-                    } else {
-                        $sb.Append($reset)
-                        $sb.Append($textColor)
-                    }
-
                     # Value - if currently editing this field, show EditingValue with cursor
                     if ($this.IsEditingField -and $isSelected1) {
-                        # Show editing value with cursor
                         $sb.Append($this.EditingValue)
                         $sb.Append("`e[7m `e[0m")  # Block cursor
                         $sb.Append($reset)
@@ -304,28 +329,32 @@ class ProjectInfoScreen : PmcScreen {
                         $field2 = $this.EditableFields[$i + 1]
                         $isSelected2 = (($i + 1) -eq $this.SelectedFieldIndex)
 
+                        if ($i -lt 6 -and $isSelected2) {
+                            Add-Content -Path "/tmp/pmc-project-render.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   COL2 SELECTED: i+1=$($i+1) field=$($field2.Label)"
+                        }
+
                         $sb.Append($this.Header.BuildMoveTo($col2X, $y))
+
+                        # Render label with selection color
+                        $label2 = $field2.Label
+                        if ($label2.Length -gt 20) { $label2 = $label2.Substring(0, 17) + "..." }
 
                         if ($isSelected2) {
                             $sb.Append($selectColor)
-                        } else {
-                            $sb.Append($mutedColor)
-                        }
-
-                        $label2 = $field2.Label
-                        if ($label2.Length -gt 20) { $label2 = $label2.Substring(0, 17) + "..." }
-                        $sb.Append($label2.PadRight(22))
-
-                        if ($isSelected2) {
+                            $sb.Append($label2)
                             $sb.Append($reset)
+                            $sb.Append(' ' * (22 - $label2.Length))  # Pad without color
                             $sb.Append($highlightColor)
                         } else {
+                            $sb.Append($mutedColor)
+                            $sb.Append($label2)
                             $sb.Append($reset)
+                            $sb.Append(' ' * (22 - $label2.Length))  # Pad without color
                             $sb.Append($textColor)
                         }
 
                         if ($this.IsEditingField -and $isSelected2) {
-                            # Show editing value with cursor
+                            # DON'T use BuildMoveTo - just let it flow naturally after the label
                             $sb.Append($this.EditingValue)
                             $sb.Append("`e[7m `e[0m")  # Block cursor
                             $sb.Append($reset)
@@ -348,28 +377,32 @@ class ProjectInfoScreen : PmcScreen {
                         $field3 = $this.EditableFields[$i + 2]
                         $isSelected3 = (($i + 2) -eq $this.SelectedFieldIndex)
 
+                        if ($i -lt 6 -and $isSelected3) {
+                            Add-Content -Path "/tmp/pmc-project-render.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   COL3 SELECTED: i+2=$($i+2) field=$($field3.Label)"
+                        }
+
                         $sb.Append($this.Header.BuildMoveTo($col3X, $y))
+
+                        # Render label with selection color
+                        $label3 = $field3.Label
+                        if ($label3.Length -gt 20) { $label3 = $label3.Substring(0, 17) + "..." }
 
                         if ($isSelected3) {
                             $sb.Append($selectColor)
-                        } else {
-                            $sb.Append($mutedColor)
-                        }
-
-                        $label3 = $field3.Label
-                        if ($label3.Length -gt 20) { $label3 = $label3.Substring(0, 17) + "..." }
-                        $sb.Append($label3.PadRight(22))
-
-                        if ($isSelected3) {
+                            $sb.Append($label3)
                             $sb.Append($reset)
+                            $sb.Append(' ' * (22 - $label3.Length))  # Pad without color
                             $sb.Append($highlightColor)
                         } else {
+                            $sb.Append($mutedColor)
+                            $sb.Append($label3)
                             $sb.Append($reset)
+                            $sb.Append(' ' * (22 - $label3.Length))  # Pad without color
                             $sb.Append($textColor)
                         }
 
                         if ($this.IsEditingField -and $isSelected3) {
-                            # Show editing value with cursor
+                            # DON'T use BuildMoveTo - just let it flow naturally after the label
                             $sb.Append($this.EditingValue)
                             $sb.Append("`e[7m `e[0m")  # Block cursor
                             $sb.Append($reset)
@@ -624,35 +657,45 @@ class ProjectInfoScreen : PmcScreen {
         if ($this.EditMode) {
             if ($key -eq [ConsoleKey]::UpArrow) {
                 # Move up 3 positions (one row up in 3-column layout)
+                Add-Content -Path "/tmp/pmc-project-render.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') UP ARROW: SelectedFieldIndex=$($this.SelectedFieldIndex)"
                 if ($this.SelectedFieldIndex -ge 3) {
                     $this.SelectedFieldIndex -= 3
+                    Add-Content -Path "/tmp/pmc-project-render.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') UP ARROW: New SelectedFieldIndex=$($this.SelectedFieldIndex)"
                 }
                 return $true
             }
             elseif ($key -eq [ConsoleKey]::DownArrow) {
                 # Move down 3 positions (one row down in 3-column layout)
+                Add-Content -Path "/tmp/pmc-project-render.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') DOWN ARROW: SelectedFieldIndex=$($this.SelectedFieldIndex)"
                 if ($this.SelectedFieldIndex + 3 -lt $this.EditableFields.Count) {
                     $this.SelectedFieldIndex += 3
+                    Add-Content -Path "/tmp/pmc-project-render.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') DOWN ARROW: New SelectedFieldIndex=$($this.SelectedFieldIndex)"
                 }
                 return $true
             }
             elseif ($key -eq [ConsoleKey]::LeftArrow) {
                 # Move to previous field (left in row)
+                Add-Content -Path "/tmp/pmc-project-render.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') LEFT ARROW: SelectedFieldIndex=$($this.SelectedFieldIndex)"
                 if ($this.SelectedFieldIndex -gt 0) {
                     $this.SelectedFieldIndex--
+                    Add-Content -Path "/tmp/pmc-project-render.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') LEFT ARROW: New SelectedFieldIndex=$($this.SelectedFieldIndex)"
                 }
                 return $true
             }
             elseif ($key -eq [ConsoleKey]::RightArrow) {
                 # Move to next field (right in row)
+                Add-Content -Path "/tmp/pmc-project-render.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') RIGHT ARROW: SelectedFieldIndex=$($this.SelectedFieldIndex)"
                 if ($this.SelectedFieldIndex -lt ($this.EditableFields.Count - 1)) {
                     $this.SelectedFieldIndex++
+                    Add-Content -Path "/tmp/pmc-project-render.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') RIGHT ARROW: New SelectedFieldIndex=$($this.SelectedFieldIndex)"
                 }
                 return $true
             }
             elseif ($key -eq [ConsoleKey]::Enter) {
                 # Start editing the selected field
+                Add-Content -Path "/tmp/pmc-project-render.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') ENTER PRESSED: SelectedFieldIndex=$($this.SelectedFieldIndex)"
                 $selectedField = $this.EditableFields[$this.SelectedFieldIndex]
+                Add-Content -Path "/tmp/pmc-project-render.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') EDITING FIELD: Name=$($selectedField.Name) Label=$($selectedField.Label) Value=$($selectedField.Value)"
                 $this.EditingValue = if ($selectedField.Value) { $selectedField.Value } else { "" }
                 $this.IsEditingField = $true
                 $this._UpdateFooterShortcuts()
@@ -788,6 +831,7 @@ class ProjectInfoScreen : PmcScreen {
     }
 
     hidden [void] _EditProject() {
+        Add-Content -Path "/tmp/pmc-project-render.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') _EditProject CALLED: EditMode=$($this.EditMode)"
         if ($this.EditMode) {
             # Already in edit mode - save and exit
             $this._SaveAllEdits()
@@ -796,6 +840,7 @@ class ProjectInfoScreen : PmcScreen {
             $this.ShowStatus("Edit mode off - changes saved")
         } else {
             # Enter edit mode
+            Add-Content -Path "/tmp/pmc-project-render.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') _EditProject: ENTERING EDIT MODE, resetting SelectedFieldIndex to 0"
             $this.EditMode = $true
             $this.SelectedFieldIndex = 0
             $this._BuildEditableFieldsList()
@@ -805,6 +850,9 @@ class ProjectInfoScreen : PmcScreen {
     }
 
     hidden [void] _BuildEditableFieldsList() {
+        if ($global:PmcTuiLogFile) {
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'HH:mm:ss.fff')] _BuildEditableFieldsList START: ProjectData=$($this.ProjectData -ne $null)"
+        }
         # Build list of ALL 48 fields for editing - matching the view display order
         $this.EditableFields = @(
             @{Name='ID1'; Label='ID1'; Value=(Get-SafeProperty $this.ProjectData 'ID1')}
@@ -1085,7 +1133,7 @@ function Show-ProjectInfoScreen {
         throw "PmcApplication required"
     }
 
-    $screen = [ProjectInfoScreen]::new()
+    $screen = New-Object ProjectInfoScreen
     if ($ProjectName) {
         $screen.SetProject($ProjectName)
     }

@@ -584,6 +584,6 @@ function Show-BlockedTasksScreen {
         throw "PmcApplication required"
     }
 
-    $screen = [BlockedTasksScreen]::new()
+    $screen = New-Object BlockedTasksScreen
     $App.PushScreen($screen)
 }

@@ -50,7 +50,7 @@ class ProjectListScreen : StandardListScreen {
     static [void] RegisterMenuItems([object]$registry) {
         $registry.AddMenuItem('Projects', 'Project List', 'L', {
             . "$PSScriptRoot/ProjectListScreen.ps1"
-            $global:PmcApp.PushScreen([ProjectListScreen]::new())
+            $global:PmcApp.PushScreen((New-Object -TypeName ProjectListScreen))
         }, 10)
     }
 
@@ -159,210 +159,42 @@ class ProjectListScreen : StandardListScreen {
 
     # Define columns for list display
     [array] GetColumns() {
+        # Use fixed widths that match the visual layout
         return @(
-            @{ Name='name'; Label='Project'; Width=30; Align='left' }
-            @{ Name='status'; Label='Status'; Width=12; Align='left' }
-            @{ Name='task_count'; Label='Tasks'; Width=8; Align='center' }
-            @{ Name='description'; Label='Description'; Width=40; Align='left' }
+            @{ Name='name'; Label='Project'; Width=41; Align='left' }
+            @{ Name='status'; Label='Status'; Width=19; Align='left' }
+            @{ Name='task_count'; Label='Tasks'; Width=10; Align='center' }
+            @{ Name='description'; Label='Description'; Width=62; Align='left' }
         )
     }
 
-    # Define edit fields for InlineEditor
+    # Define edit fields for InlineEditor (only core fields for quick add/edit)
+    # Full field editing is available via the Project Detail view (V action)
     [array] GetEditFields([object]$item) {
+        # Column widths INCLUDING the 2-space separator after each column
+        # UniversalList adds 2 spaces after each column, so field width = col.Width + 2
+        $nameWidth = 41 + 2
+        $statusWidth = 19 + 2
+        $taskCountWidth = 10 + 2
+        $descWidth = 62  # Last column, no trailing spaces
+
         if ($null -eq $item -or $item.Count -eq 0) {
-            # New project - empty fields (48 Excel fields)
+            # New project - include all columns to match layout
+            # task_count is a spacer field (not editable)
             return @(
-                # Core fields
-                @{ Name='name'; Type='text'; Label='Project Name'; Required=$true; Value='' }
-                @{ Name='description'; Type='text'; Label='Description'; Value='' }
-                # MEDIUM FIX PLS-M3: Use script-level constant for default status
-                @{ Name='status'; Type='text'; Label='Status'; Value=$script:DEFAULT_STATUS }
-                @{ Name='tags'; Type='text'; Label='Tags (comma-separated)'; Value='' }
-
-                # ID fields
-                @{ Name='ID1'; Type='text'; Label='ID1'; Value='' }
-                @{ Name='ID2'; Type='text'; Label='ID2'; Value='' }
-
-                # Path fields
-                @{ Name='ProjFolder'; Type='folder'; Label='Project Folder'; Value='' }
-                @{ Name='CAAName'; Type='file'; Label='CAA Name'; Value='' }
-                @{ Name='RequestName'; Type='file'; Label='Request Name'; Value='' }
-                @{ Name='T2020'; Type='file'; Label='T2020'; Value='' }
-
-                # Date fields
-                @{ Name='AssignedDate'; Type='date'; Label='Assigned Date'; Value=$null }
-                @{ Name='DueDate'; Type='date'; Label='Due Date'; Value=$null }
-                @{ Name='BFDate'; Type='date'; Label='BF Date'; Value=$null }
-
-                # Project Info (9 fields)
-                @{ Name='RequestDate'; Type='date'; Label='Request Date'; Value=$null }
-                @{ Name='AuditType'; Type='text'; Label='Audit Type'; Value='' }
-                @{ Name='AuditorName'; Type='text'; Label='Auditor Name'; Value='' }
-                @{ Name='AuditorPhone'; Type='text'; Label='Auditor Phone'; Value='' }
-                @{ Name='AuditorTL'; Type='text'; Label='Auditor TL'; Value='' }
-                @{ Name='AuditorTLPhone'; Type='text'; Label='Auditor TL Phone'; Value='' }
-                @{ Name='AuditCase'; Type='text'; Label='Audit Case'; Value='' }
-                @{ Name='CASCase'; Type='text'; Label='CAS Case'; Value='' }
-                @{ Name='AuditStartDate'; Type='date'; Label='Audit Start Date'; Value=$null }
-
-                # Contact Details (10 fields)
-                @{ Name='TPName'; Type='text'; Label='TP Name'; Value='' }
-                @{ Name='TPNum'; Type='text'; Label='TP Number'; Value='' }
-                @{ Name='Address'; Type='text'; Label='Address'; Value='' }
-                @{ Name='City'; Type='text'; Label='City'; Value='' }
-                @{ Name='Province'; Type='text'; Label='Province'; Value='' }
-                @{ Name='PostalCode'; Type='text'; Label='Postal Code'; Value='' }
-                @{ Name='Country'; Type='text'; Label='Country'; Value='' }
-
-                # Audit Periods (10 fields)
-                @{ Name='AuditPeriodFrom'; Type='date'; Label='Audit Period From'; Value=$null }
-                @{ Name='AuditPeriodTo'; Type='date'; Label='Audit Period To'; Value=$null }
-                @{ Name='AuditPeriod1Start'; Type='date'; Label='Audit Period 1 Start'; Value=$null }
-                @{ Name='AuditPeriod1End'; Type='date'; Label='Audit Period 1 End'; Value=$null }
-                @{ Name='AuditPeriod2Start'; Type='date'; Label='Audit Period 2 Start'; Value=$null }
-                @{ Name='AuditPeriod2End'; Type='date'; Label='Audit Period 2 End'; Value=$null }
-                @{ Name='AuditPeriod3Start'; Type='date'; Label='Audit Period 3 Start'; Value=$null }
-                @{ Name='AuditPeriod3End'; Type='date'; Label='Audit Period 3 End'; Value=$null }
-                @{ Name='AuditPeriod4Start'; Type='date'; Label='Audit Period 4 Start'; Value=$null }
-                @{ Name='AuditPeriod4End'; Type='date'; Label='Audit Period 4 End'; Value=$null }
-                @{ Name='AuditPeriod5Start'; Type='date'; Label='Audit Period 5 Start'; Value=$null }
-                @{ Name='AuditPeriod5End'; Type='date'; Label='Audit Period 5 End'; Value=$null }
-
-                # Contacts (10 fields)
-                @{ Name='Contact1Name'; Type='text'; Label='Contact 1 Name'; Value='' }
-                @{ Name='Contact1Phone'; Type='text'; Label='Contact 1 Phone'; Value='' }
-                @{ Name='Contact1Ext'; Type='text'; Label='Contact 1 Ext'; Value='' }
-                @{ Name='Contact1Address'; Type='text'; Label='Contact 1 Address'; Value='' }
-                @{ Name='Contact1Title'; Type='text'; Label='Contact 1 Title'; Value='' }
-                @{ Name='Contact2Name'; Type='text'; Label='Contact 2 Name'; Value='' }
-                @{ Name='Contact2Phone'; Type='text'; Label='Contact 2 Phone'; Value='' }
-                @{ Name='Contact2Ext'; Type='text'; Label='Contact 2 Ext'; Value='' }
-                @{ Name='Contact2Address'; Type='text'; Label='Contact 2 Address'; Value='' }
-                @{ Name='Contact2Title'; Type='text'; Label='Contact 2 Title'; Value='' }
-
-                # System Info (7 fields)
-                @{ Name='AuditProgram'; Type='text'; Label='Audit Program'; Value='' }
-                @{ Name='AccountingSoftware1'; Type='text'; Label='Accounting Software 1'; Value='' }
-                @{ Name='AccountingSoftware1Other'; Type='text'; Label='Accounting Software 1 Other'; Value='' }
-                @{ Name='AccountingSoftware1Type'; Type='text'; Label='Accounting Software 1 Type'; Value='' }
-                @{ Name='AccountingSoftware2'; Type='text'; Label='Accounting Software 2'; Value='' }
-                @{ Name='AccountingSoftware2Other'; Type='text'; Label='Accounting Software 2 Other'; Value='' }
-                @{ Name='AccountingSoftware2Type'; Type='text'; Label='Accounting Software 2 Type'; Value='' }
-                @{ Name='Comments'; Type='text'; Label='Comments'; Value='' }
-
-                # Additional (2 fields)
-                @{ Name='FXInfo'; Type='text'; Label='FX Info'; Value='' }
-                @{ Name='ShipToAddress'; Type='text'; Label='Ship To Address'; Value='' }
+                @{ Name='name'; Type='text'; Label=''; Required=$true; Value=''; Width=$nameWidth }
+                @{ Name='status'; Type='text'; Label=''; Value=$script:DEFAULT_STATUS; Width=$statusWidth }
+                @{ Name='task_count'; Type='text'; Label=''; Value=''; Width=$taskCountWidth; Readonly=$true }
+                @{ Name='description'; Type='text'; Label=''; Value=''; Width=$descWidth }
             )
         } else {
-            # Existing project - populate from item
-            # Helper to convert array to comma-separated string
-            # MEDIUM FIX PLS-M2: Use script-level constant for array separator
-            $arrayToStr = {
-                param($arr)
-                if ($arr -and $arr.Count -gt 0) { $arr -join $script:ARRAY_SEPARATOR } else { '' }
-            }
-
-            # Helper to parse dates
-            # HIGH FIX PLS-H2: Use ParseExact with InvariantCulture to avoid locale issues
-            # MEDIUM FIX PLS-M6: Use script-level constant for supported date formats
-            $parseDate = {
-                param($val)
-                if ($val) {
-                    try {
-                        # Try common ISO formats first, then fall back to Parse
-                        foreach ($format in $script:SUPPORTED_DATE_FORMATS) {
-                            try {
-                                return [DateTime]::ParseExact($val, $format, [System.Globalization.CultureInfo]::InvariantCulture)
-                            } catch { }
-                        }
-                        # Last resort: culture-aware parse
-                        [DateTime]::Parse($val, [System.Globalization.CultureInfo]::InvariantCulture)
-                    } catch { $null }
-                } else { $null }
-            }
-
+            # Existing project - include all columns to match layout
+            $taskCount = if ($item.ContainsKey('task_count')) { $item.task_count } else { '' }
             return @(
-                # Core fields
-                @{ Name='name'; Type='text'; Label='Project Name'; Required=$true; Value=(Get-SafeProperty $item 'name') }
-                @{ Name='description'; Type='text'; Label='Description'; Value=(Get-SafeProperty $item 'description') }
-                @{ Name='status'; Type='text'; Label='Status'; Value=(Get-SafeProperty $item 'status') }
-                @{ Name='tags'; Type='text'; Label='Tags (comma-separated)'; Value=(& $arrayToStr (Get-SafeProperty $item 'tags')) }
-
-                # ID fields
-                @{ Name='ID1'; Type='text'; Label='ID1'; Value=(Get-SafeProperty $item 'ID1') }
-                @{ Name='ID2'; Type='text'; Label='ID2'; Value=(Get-SafeProperty $item 'ID2') }
-
-                # Path fields
-                @{ Name='ProjFolder'; Type='folder'; Label='Project Folder'; Value=(Get-SafeProperty $item 'ProjFolder') }
-                @{ Name='CAAName'; Type='file'; Label='CAA Name'; Value=(Get-SafeProperty $item 'CAAName') }
-                @{ Name='RequestName'; Type='file'; Label='Request Name'; Value=(Get-SafeProperty $item 'RequestName') }
-                @{ Name='T2020'; Type='file'; Label='T2020'; Value=(Get-SafeProperty $item 'T2020') }
-
-                # Date fields
-                @{ Name='AssignedDate'; Type='date'; Label='Assigned Date'; Value=(& $parseDate (Get-SafeProperty $item 'AssignedDate')) }
-                @{ Name='DueDate'; Type='date'; Label='Due Date'; Value=(& $parseDate (Get-SafeProperty $item 'DueDate')) }
-                @{ Name='BFDate'; Type='date'; Label='BF Date'; Value=(& $parseDate (Get-SafeProperty $item 'BFDate')) }
-
-                # Project Info (9 fields)
-                @{ Name='RequestDate'; Type='date'; Label='Request Date'; Value=(& $parseDate (Get-SafeProperty $item 'RequestDate')) }
-                @{ Name='AuditType'; Type='text'; Label='Audit Type'; Value=(Get-SafeProperty $item 'AuditType') }
-                @{ Name='AuditorName'; Type='text'; Label='Auditor Name'; Value=(Get-SafeProperty $item 'AuditorName') }
-                @{ Name='AuditorPhone'; Type='text'; Label='Auditor Phone'; Value=(Get-SafeProperty $item 'AuditorPhone') }
-                @{ Name='AuditorTL'; Type='text'; Label='Auditor TL'; Value=(Get-SafeProperty $item 'AuditorTL') }
-                @{ Name='AuditorTLPhone'; Type='text'; Label='Auditor TL Phone'; Value=(Get-SafeProperty $item 'AuditorTLPhone') }
-                @{ Name='AuditCase'; Type='text'; Label='Audit Case'; Value=(Get-SafeProperty $item 'AuditCase') }
-                @{ Name='CASCase'; Type='text'; Label='CAS Case'; Value=(Get-SafeProperty $item 'CASCase') }
-                @{ Name='AuditStartDate'; Type='date'; Label='Audit Start Date'; Value=(& $parseDate (Get-SafeProperty $item 'AuditStartDate')) }
-
-                # Contact Details (10 fields)
-                @{ Name='TPName'; Type='text'; Label='TP Name'; Value=(Get-SafeProperty $item 'TPName') }
-                @{ Name='TPNum'; Type='text'; Label='TP Number'; Value=(Get-SafeProperty $item 'TPNum') }
-                @{ Name='Address'; Type='text'; Label='Address'; Value=(Get-SafeProperty $item 'Address') }
-                @{ Name='City'; Type='text'; Label='City'; Value=(Get-SafeProperty $item 'City') }
-                @{ Name='Province'; Type='text'; Label='Province'; Value=(Get-SafeProperty $item 'Province') }
-                @{ Name='PostalCode'; Type='text'; Label='Postal Code'; Value=(Get-SafeProperty $item 'PostalCode') }
-                @{ Name='Country'; Type='text'; Label='Country'; Value=(Get-SafeProperty $item 'Country') }
-
-                # Audit Periods (10 fields)
-                @{ Name='AuditPeriodFrom'; Type='date'; Label='Audit Period From'; Value=(& $parseDate (Get-SafeProperty $item 'AuditPeriodFrom')) }
-                @{ Name='AuditPeriodTo'; Type='date'; Label='Audit Period To'; Value=(& $parseDate (Get-SafeProperty $item 'AuditPeriodTo')) }
-                @{ Name='AuditPeriod1Start'; Type='date'; Label='Audit Period 1 Start'; Value=(& $parseDate (Get-SafeProperty $item 'AuditPeriod1Start')) }
-                @{ Name='AuditPeriod1End'; Type='date'; Label='Audit Period 1 End'; Value=(& $parseDate (Get-SafeProperty $item 'AuditPeriod1End')) }
-                @{ Name='AuditPeriod2Start'; Type='date'; Label='Audit Period 2 Start'; Value=(& $parseDate (Get-SafeProperty $item 'AuditPeriod2Start')) }
-                @{ Name='AuditPeriod2End'; Type='date'; Label='Audit Period 2 End'; Value=(& $parseDate (Get-SafeProperty $item 'AuditPeriod2End')) }
-                @{ Name='AuditPeriod3Start'; Type='date'; Label='Audit Period 3 Start'; Value=(& $parseDate (Get-SafeProperty $item 'AuditPeriod3Start')) }
-                @{ Name='AuditPeriod3End'; Type='date'; Label='Audit Period 3 End'; Value=(& $parseDate (Get-SafeProperty $item 'AuditPeriod3End')) }
-                @{ Name='AuditPeriod4Start'; Type='date'; Label='Audit Period 4 Start'; Value=(& $parseDate (Get-SafeProperty $item 'AuditPeriod4Start')) }
-                @{ Name='AuditPeriod4End'; Type='date'; Label='Audit Period 4 End'; Value=(& $parseDate (Get-SafeProperty $item 'AuditPeriod4End')) }
-                @{ Name='AuditPeriod5Start'; Type='date'; Label='Audit Period 5 Start'; Value=(& $parseDate (Get-SafeProperty $item 'AuditPeriod5Start')) }
-                @{ Name='AuditPeriod5End'; Type='date'; Label='Audit Period 5 End'; Value=(& $parseDate (Get-SafeProperty $item 'AuditPeriod5End')) }
-
-                # Contacts (10 fields)
-                @{ Name='Contact1Name'; Type='text'; Label='Contact 1 Name'; Value=(Get-SafeProperty $item 'Contact1Name') }
-                @{ Name='Contact1Phone'; Type='text'; Label='Contact 1 Phone'; Value=(Get-SafeProperty $item 'Contact1Phone') }
-                @{ Name='Contact1Ext'; Type='text'; Label='Contact 1 Ext'; Value=(Get-SafeProperty $item 'Contact1Ext') }
-                @{ Name='Contact1Address'; Type='text'; Label='Contact 1 Address'; Value=(Get-SafeProperty $item 'Contact1Address') }
-                @{ Name='Contact1Title'; Type='text'; Label='Contact 1 Title'; Value=(Get-SafeProperty $item 'Contact1Title') }
-                @{ Name='Contact2Name'; Type='text'; Label='Contact 2 Name'; Value=(Get-SafeProperty $item 'Contact2Name') }
-                @{ Name='Contact2Phone'; Type='text'; Label='Contact 2 Phone'; Value=(Get-SafeProperty $item 'Contact2Phone') }
-                @{ Name='Contact2Ext'; Type='text'; Label='Contact 2 Ext'; Value=(Get-SafeProperty $item 'Contact2Ext') }
-                @{ Name='Contact2Address'; Type='text'; Label='Contact 2 Address'; Value=(Get-SafeProperty $item 'Contact2Address') }
-                @{ Name='Contact2Title'; Type='text'; Label='Contact 2 Title'; Value=(Get-SafeProperty $item 'Contact2Title') }
-
-                # System Info (7 fields)
-                @{ Name='AuditProgram'; Type='text'; Label='Audit Program'; Value=(Get-SafeProperty $item 'AuditProgram') }
-                @{ Name='AccountingSoftware1'; Type='text'; Label='Accounting Software 1'; Value=(Get-SafeProperty $item 'AccountingSoftware1') }
-                @{ Name='AccountingSoftware1Other'; Type='text'; Label='Accounting Software 1 Other'; Value=(Get-SafeProperty $item 'AccountingSoftware1Other') }
-                @{ Name='AccountingSoftware1Type'; Type='text'; Label='Accounting Software 1 Type'; Value=(Get-SafeProperty $item 'AccountingSoftware1Type') }
-                @{ Name='AccountingSoftware2'; Type='text'; Label='Accounting Software 2'; Value=(Get-SafeProperty $item 'AccountingSoftware2') }
-                @{ Name='AccountingSoftware2Other'; Type='text'; Label='Accounting Software 2 Other'; Value=(Get-SafeProperty $item 'AccountingSoftware2Other') }
-                @{ Name='AccountingSoftware2Type'; Type='text'; Label='Accounting Software 2 Type'; Value=(Get-SafeProperty $item 'AccountingSoftware2Type') }
-                @{ Name='Comments'; Type='text'; Label='Comments'; Value=(Get-SafeProperty $item 'Comments') }
-
-                # Additional (2 fields)
-                @{ Name='FXInfo'; Type='text'; Label='FX Info'; Value=(Get-SafeProperty $item 'FXInfo') }
-                @{ Name='ShipToAddress'; Type='text'; Label='Ship To Address'; Value=(Get-SafeProperty $item 'ShipToAddress') }
+                @{ Name='name'; Type='text'; Label=''; Required=$true; Value=(Get-SafeProperty $item 'name'); Width=$nameWidth }
+                @{ Name='status'; Type='text'; Label=''; Value=(Get-SafeProperty $item 'status'); Width=$statusWidth }
+                @{ Name='task_count'; Type='text'; Label=''; Value=$taskCount; Width=$taskCountWidth; Readonly=$true }
+                @{ Name='description'; Type='text'; Label=''; Value=(Get-SafeProperty $item 'description'); Width=$descWidth }
             )
         }
     }
@@ -722,7 +554,7 @@ class ProjectListScreen : StandardListScreen {
         # This provides profile-based mapping, preview, and validation
         try {
             . "$PSScriptRoot/ExcelImportScreen.ps1"
-            $importScreen = [ExcelImportScreen]::new()
+            $importScreen = New-Object ExcelImportScreen
             $this.App.PushScreen($importScreen)
         } catch {
             $this.SetStatusMessage("Failed to launch Excel import wizard: $($_.Exception.Message)", "error")

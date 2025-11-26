@@ -290,6 +290,6 @@ function Show-ProjectStatsScreen {
         throw "PmcApplication required"
     }
 
-    $screen = [ProjectStatsScreen]::new()
+    $screen = New-Object ProjectStatsScreen
     $App.PushScreen($screen)
 }

@@ -28,7 +28,7 @@ class HelpViewScreen : PmcScreen {
     static [void] RegisterMenuItems([object]$registry) {
         $registry.AddMenuItem('Help', 'Help', 'H', {
             . "$PSScriptRoot/HelpViewScreen.ps1"
-            $global:PmcApp.PushScreen([HelpViewScreen]::new())
+            $global:PmcApp.PushScreen((New-Object -TypeName HelpViewScreen))
         }, 10)
     }
 
@@ -297,6 +297,6 @@ function Show-HelpViewScreen {
         throw "PmcApplication required"
     }
 
-    $screen = [HelpViewScreen]::new()
+    $screen = New-Object HelpViewScreen
     $App.PushScreen($screen)
 }

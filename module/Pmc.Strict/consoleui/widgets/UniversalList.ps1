@@ -1319,6 +1319,12 @@ class UniversalList : PmcWidget {
             if (-not $skipRowHighlight) {
                 $sb.Append($builtRow)
             } else {
+                # CRITICAL FIX: Clear the line BEFORE rendering inline editor to prevent highlight bleeding
+                # Even though we skip the row content, we need to clear any previous highlighting
+                $sb.Append($this.BuildMoveTo($this.X, $rowY))
+                $sb.Append($reset)
+                $sb.Append("`e[K")  # Clear to end of line
+
                 # Inline editor is active for this row - render the editor
                 if ($this._showInlineEditor -and $this._inlineEditor) {
                     # Set editor position to this row (using properties, not method)

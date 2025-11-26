@@ -265,6 +265,6 @@ function Show-TimeDeleteFormScreen {
         throw "PmcApplication required"
     }
 
-    $screen = [TimeDeleteFormScreen]::new($TimeEntry)
+    $screen = New-Object TimeDeleteFormScreen -ArgumentList $TimeEntry
     $App.PushScreen($screen)
 }

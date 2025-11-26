@@ -481,7 +481,7 @@ class TaskDetailScreen : PmcScreen {
             $this.ShowStatus("Edit task: [$taskIdValue]")
             . "$PSScriptRoot/TaskListScreen.ps1"
             $global:PmcApp.PopScreen()
-            $global:PmcApp.PushScreen((New-Object TaskListScreen))
+            $global:PmcApp.PushScreen((New-Object -TypeName TaskListScreen))
         }
     }
 
@@ -541,6 +541,6 @@ function Show-TaskDetailScreen {
         throw "PmcApplication required"
     }
 
-    $screen = [TaskDetailScreen]::new($TaskId)
+    $screen = New-Object TaskDetailScreen -ArgumentList $TaskId
     $App.PushScreen($screen)
 }

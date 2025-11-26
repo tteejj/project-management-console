@@ -246,6 +246,6 @@ function Show-RestoreBackupScreen {
         throw "PmcApplication required"
     }
 
-    $screen = [RestoreBackupScreen]::new($Backup)
+    $screen = New-Object RestoreBackupScreen -ArgumentList $Backup
     $App.PushScreen($screen)
 }

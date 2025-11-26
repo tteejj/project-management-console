@@ -319,8 +319,8 @@ class BackupViewScreen : PmcScreen {
         if ($this.Backups.Count -gt 0) {
             $backup = $this.Backups[$this.SelectedIndex]
             . "$PSScriptRoot/RestoreBackupScreen.ps1"
-            $screen = New-Object RestoreBackupScreen
-            $screen.SetBackupFile($backup.path)
+            $screen = New-Object RestoreBackupScreen -ArgumentList $backup
+            # Backup object already set via constructor parameter
             $global:PmcApp.PushScreen($screen)
         }
     }
@@ -355,6 +355,6 @@ function Show-BackupViewScreen {
         throw "PmcApplication required"
     }
 
-    $screen = [BackupViewScreen]::new()
+    $screen = New-Object BackupViewScreen
     $App.PushScreen($screen)
 }

@@ -418,6 +418,17 @@ class PmcThemeManager {
 
             # Reload this manager
             $this.Reload()
+
+            # CRITICAL FIX: Notify PmcThemeEngine of theme change
+            # The engine caches theme properties and needs to reload
+            try {
+                $engine = [PmcThemeEngine]::GetInstance()
+                if ($engine) {
+                    $engine.InvalidateCache()
+                }
+            } catch {
+                # PmcThemeEngine may not be available in all contexts
+            }
         } catch {
             throw "Failed to set theme: $_"
         }

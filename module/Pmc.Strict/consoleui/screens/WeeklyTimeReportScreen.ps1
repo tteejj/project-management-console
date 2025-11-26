@@ -43,7 +43,7 @@ class WeeklyTimeReportScreen : PmcScreen {
     static [void] RegisterMenuItems([object]$registry) {
         $registry.AddMenuItem('Time', 'Weekly Report', 'W', {
             . "$PSScriptRoot/WeeklyTimeReportScreen.ps1"
-            $global:PmcApp.PushScreen([WeeklyTimeReportScreen]::new())
+            $global:PmcApp.PushScreen((New-Object -TypeName WeeklyTimeReportScreen))
         }, 10)
     }
 
@@ -453,6 +453,6 @@ function Show-WeeklyTimeReportScreen {
         throw "PmcApplication required"
     }
 
-    $screen = [WeeklyTimeReportScreen]::new()
+    $screen = New-Object WeeklyTimeReportScreen
     $App.PushScreen($screen)
 }

@@ -160,6 +160,6 @@ function Show-RedoViewScreen {
         throw "PmcApplication required"
     }
 
-    $screen = [RedoViewScreen]::new()
+    $screen = New-Object RedoViewScreen
     $App.PushScreen($screen)
 }

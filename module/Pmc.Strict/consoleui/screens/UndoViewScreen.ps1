@@ -167,6 +167,6 @@ function Show-UndoViewScreen {
         throw "PmcApplication required"
     }
 
-    $screen = [UndoViewScreen]::new()
+    $screen = New-Object UndoViewScreen
     $App.PushScreen($screen)
 }

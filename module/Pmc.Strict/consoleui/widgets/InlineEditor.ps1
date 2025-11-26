@@ -262,7 +262,7 @@ class InlineEditor : PmcWidget {
     #>
     [bool] HandleInput([ConsoleKeyInfo]$keyInfo) {
         Write-PmcTuiLog "InlineEditor.HandleInput: Key=$($keyInfo.Key) Expanded=$($this._expandedFieldName)" "DEBUG"
-        Add-Content -Path "/tmp/pmc-widget-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [InlineEditor.HandleInput] START Key=$($keyInfo.Key) Expanded=$($this._expandedFieldName) ShowFieldWidgets=$($this._showFieldWidgets)"
+        Add-Content -Path "/tmp/pmc-widget-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [InlineEditor.HandleInput] START Key=$($keyInfo.Key) Expanded=$($this._expandedFieldName) ShowFieldWidgets=$($this._showFieldWidgets) CurrentFieldIndex=$($this._currentFieldIndex) FieldsCount=$($this._fields.Count) LayoutMode=$($this.LayoutMode)"
 
         # If a field widget is expanded, route input to it
         if ($this._showFieldWidgets -and -not [string]::IsNullOrWhiteSpace($this._expandedFieldName)) {
@@ -1194,6 +1194,27 @@ class InlineEditor : PmcWidget {
                 }
             }
 
+            'file' {
+                # File picker - use TextInput for inline display
+                $widget = [TextInput]::new()
+                $widget.MaxLength = 255
+                $widget.Placeholder = 'Press Enter to browse...'
+
+                if ($value) {
+                    $widget.SetText($value.ToString())
+                } else {
+                    $widget.SetText('')
+                }
+
+                # Wire up callback
+                $editor = $this
+                $field = $fieldDef
+                $widget.OnTextChanged = {
+                    param($newText)
+                    $editor._SetFieldValue($field.Name, $newText)
+                }
+            }
+
             'number' {
                 # Number is handled inline (no separate widget)
                 # Store value in field definition
@@ -1361,6 +1382,18 @@ class InlineEditor : PmcWidget {
 
             'folder' {
                 # Folder path stored as text in TextInput (or PmcFilePicker if still expanded)
+                $widget = $this._fieldWidgets[$fieldName]
+                if ($widget.GetType().Name -eq 'PmcFilePicker') {
+                    # Still showing picker - return current path
+                    return $widget.CurrentPath
+                } else {
+                    # TextInput - return text
+                    return $widget.GetText()
+                }
+            }
+
+            'file' {
+                # File path stored as text in TextInput (or PmcFilePicker if still expanded)
                 $widget = $this._fieldWidgets[$fieldName]
                 if ($widget.GetType().Name -eq 'PmcFilePicker') {
                     # Still showing picker - return current path

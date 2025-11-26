@@ -496,7 +496,7 @@ class KanbanScreen : PmcScreen {
                 return
             }
             . "$PSScriptRoot/TaskDetailScreen.ps1"
-            $detailScreen = [TaskDetailScreen]::new($taskId)
+            $detailScreen = New-Object TaskDetailScreen -ArgumentList $taskId
             $global:PmcApp.PushScreen($detailScreen)
         } else {
             $this.ShowError("Selected task has no ID")
@@ -520,6 +520,6 @@ function Show-KanbanScreen {
         throw "PmcApplication does not have PushScreen method"
     }
 
-    $screen = [KanbanScreen]::new()
+    $screen = New-Object KanbanScreen
     $App.PushScreen($screen)
 }

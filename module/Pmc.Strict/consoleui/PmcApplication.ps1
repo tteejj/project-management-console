@@ -103,14 +103,37 @@ class PmcApplication {
             }
         }
 
-        # Clear screen to prevent old content from showing through
-        [Console]::Write("`e[2J")
-        # CRITICAL FIX: Invalidate render engine buffer since we wiped the screen
+        # CRITICAL FIX: Reset shared MenuBar state before switching screens
+        # The MenuBar is shared across screens and tracks previous dropdown position.
+        # We need to reset this so it doesn't write blank spaces on the new screen.
+        if ($global:PmcSharedMenuBar) {
+            if ($global:PmcTuiLogFile) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PushScreen: BEFORE reset - Height=$($global:PmcSharedMenuBar._prevDropdownHeight) X=$($global:PmcSharedMenuBar._prevDropdownX) Y=$($global:PmcSharedMenuBar._prevDropdownY) Width=$($global:PmcSharedMenuBar._prevDropdownWidth)"
+            }
+            $global:PmcSharedMenuBar._prevDropdownHeight = 0
+            $global:PmcSharedMenuBar._prevDropdownX = 0
+            $global:PmcSharedMenuBar._prevDropdownY = 0
+            $global:PmcSharedMenuBar._prevDropdownWidth = 0
+            if ($global:PmcTuiLogFile) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PushScreen: AFTER reset - Height=$($global:PmcSharedMenuBar._prevDropdownHeight) X=$($global:PmcSharedMenuBar._prevDropdownX) Y=$($global:PmcSharedMenuBar._prevDropdownY) Width=$($global:PmcSharedMenuBar._prevDropdownWidth)"
+            }
+        }
+
+        # CRITICAL FIX: Invalidate render cache to force full redraw
+        # The differential engine will naturally overwrite old content
+        # No screen clearing means no flicker or blank space
+        if ($global:PmcTuiLogFile) {
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PushScreen: About to RequestClear() for screen '$($screen.ScreenKey)'"
+        }
         $this.RenderEngine.RequestClear()
 
         # Push new screen
         $this.ScreenStack.Push($screen)
         $this.CurrentScreen = $screen
+
+        if ($global:PmcTuiLogFile) {
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PushScreen: Screen '$($screen.ScreenKey)' pushed, stack depth now $($this.ScreenStack.Count)"
+        }
 
         # Initialize screen with render engine and container
         if ($screen.PSObject.Methods['Initialize']) {
@@ -149,9 +172,28 @@ class PmcApplication {
             $poppedScreen.OnExit()
         }
 
-        # Clear screen to prevent old content from showing through
-        [Console]::Write("`e[2J")
-        # CRITICAL FIX: Invalidate render engine buffer since we wiped the screen
+        # CRITICAL FIX: Reset shared MenuBar state before switching screens
+        # The MenuBar is shared across screens and tracks previous dropdown position.
+        # We need to reset this so it doesn't write blank spaces on the new screen.
+        if ($global:PmcSharedMenuBar) {
+            if ($global:PmcTuiLogFile) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PopScreen: BEFORE reset - Height=$($global:PmcSharedMenuBar._prevDropdownHeight) X=$($global:PmcSharedMenuBar._prevDropdownX) Y=$($global:PmcSharedMenuBar._prevDropdownY) Width=$($global:PmcSharedMenuBar._prevDropdownWidth)"
+            }
+            $global:PmcSharedMenuBar._prevDropdownHeight = 0
+            $global:PmcSharedMenuBar._prevDropdownX = 0
+            $global:PmcSharedMenuBar._prevDropdownY = 0
+            $global:PmcSharedMenuBar._prevDropdownWidth = 0
+            if ($global:PmcTuiLogFile) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PopScreen: AFTER reset - Height=$($global:PmcSharedMenuBar._prevDropdownHeight) X=$($global:PmcSharedMenuBar._prevDropdownX) Y=$($global:PmcSharedMenuBar._prevDropdownY) Width=$($global:PmcSharedMenuBar._prevDropdownWidth)"
+            }
+        }
+
+        # CRITICAL FIX: Invalidate render cache to force full redraw
+        # The differential engine will naturally overwrite old content
+        # No screen clearing means no flicker or blank space
+        if ($global:PmcTuiLogFile) {
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PopScreen: About to RequestClear() after popping '$($poppedScreen.ScreenKey)'"
+        }
         $this.RenderEngine.RequestClear()
 
         # Restore previous screen
@@ -331,7 +373,7 @@ class PmcApplication {
                 }
 
                 # Try to recover by requesting full clear and redraw
-                $this.RequestClear = $true
+                $this.RenderEngine.RequestClear()
                 $this.IsDirty = $true
 
                 # If current screen is problematic, try to go back

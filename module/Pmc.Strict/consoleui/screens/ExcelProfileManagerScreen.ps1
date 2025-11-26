@@ -26,7 +26,7 @@ class ExcelProfileManagerScreen : StandardListScreen {
     static [void] RegisterMenuItems([object]$registry) {
         $registry.AddMenuItem('Projects', 'Excel Profiles', 'M', {
             . "$PSScriptRoot/ExcelProfileManagerScreen.ps1"
-            $global:PmcApp.PushScreen([ExcelProfileManagerScreen]::new())
+            $global:PmcApp.PushScreen((New-Object -TypeName ExcelProfileManagerScreen))
         }, 50)
     }
 

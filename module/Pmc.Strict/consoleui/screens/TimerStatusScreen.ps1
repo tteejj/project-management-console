@@ -192,6 +192,6 @@ function Show-TimerStatusScreen {
         throw "PmcApplication required"
     }
 
-    $screen = [TimerStatusScreen]::new()
+    $screen = New-Object TimerStatusScreen
     $App.PushScreen($screen)
 }

@@ -381,6 +381,6 @@ function Show-MultiSelectModeScreen {
         throw "PmcApplication required"
     }
 
-    $screen = [MultiSelectModeScreen]::new()
+    $screen = New-Object MultiSelectModeScreen
     $App.PushScreen($screen)
 }

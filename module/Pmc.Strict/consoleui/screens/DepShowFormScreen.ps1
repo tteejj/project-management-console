@@ -273,6 +273,6 @@ function Show-DepShowFormScreen {
         throw "PmcApplication required"
     }
 
-    $screen = [DepShowFormScreen]::new()
+    $screen = New-Object DepShowFormScreen
     $App.PushScreen($screen)
 }

@@ -4,7 +4,7 @@
 # Allows creating new notes, editing existing notes, and deleting notes
 #
 # Usage:
-#   $screen = [NotesMenuScreen]::new()
+#   $screen = New-Object NotesMenuScreen
 #   $global:PmcApp.PushScreen($screen)
 
 using namespace System
@@ -418,7 +418,7 @@ class NotesMenuScreen : StandardListScreen {
     static [void] RegisterMenuItems([object]$registry) {
         $registry.AddMenuItem('Tools', 'Notes', 'N', {
             . "$PSScriptRoot/NotesMenuScreen.ps1"
-            $global:PmcApp.PushScreen([NotesMenuScreen]::new())
+            $global:PmcApp.PushScreen((New-Object -TypeName NotesMenuScreen))
         }, 20)
     }
 }

@@ -363,7 +363,7 @@ class PmcMenuBar : PmcWidget {
 
     [string] OnRender() {
         if ($global:PmcTuiLogFile) {
-            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] MenuBar.OnRender: Called (Visible=$($this.Visible) X=$($this.X) Y=$($this.Y) Width=$($this.Width))"
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] MenuBar.OnRender: Called (DropdownVisible=$($this.DropdownVisible) _prevHeight=$($this._prevDropdownHeight) _prevX=$($this._prevDropdownX) _prevY=$($this._prevDropdownY))"
         }
 
         $sb = [System.Text.StringBuilder]::new(1024)
@@ -375,17 +375,30 @@ class PmcMenuBar : PmcWidget {
             if (-not $this.DropdownVisible) {
                 # Dropdown closed - need to clear
                 $needsClear = $true
+                if ($global:PmcTuiLogFile) {
+                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] MenuBar.OnRender: needsClear=TRUE (dropdown closed)"
+                }
             } elseif ($this.SelectedMenuIndex -ge 0 -and $this.SelectedMenuIndex -lt $this._menuXPositions.Count) {
                 # Check if dropdown moved to different position
                 $currentDropdownX = $this.X + $this._menuXPositions[$this.SelectedMenuIndex]
                 if ($currentDropdownX -ne $this._prevDropdownX) {
                     # Dropdown moved - need to clear old position
                     $needsClear = $true
+                    if ($global:PmcTuiLogFile) {
+                        Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] MenuBar.OnRender: needsClear=TRUE (dropdown moved: $($this._prevDropdownX) -> $currentDropdownX)"
+                    }
                 }
+            }
+        } else {
+            if ($global:PmcTuiLogFile) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] MenuBar.OnRender: needsClear=FALSE (_prevDropdownHeight <= 0)"
             }
         }
 
         if ($needsClear) {
+            if ($global:PmcTuiLogFile) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] MenuBar.OnRender: Calling _ClearPreviousDropdown()..."
+            }
             $clearOutput = $this._ClearPreviousDropdown()
             $sb.Append($clearOutput)
         }
@@ -396,9 +409,15 @@ class PmcMenuBar : PmcWidget {
 
         # Render dropdown if visible
         if ($this.DropdownVisible -and $this.SelectedMenuIndex -ge 0) {
+            if ($global:PmcTuiLogFile) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] MenuBar.OnRender: Rendering dropdown (visible)"
+            }
             $dropdown = $this._RenderDropdown()
             $sb.Append($dropdown)
         } else {
+            if ($global:PmcTuiLogFile) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] MenuBar.OnRender: No dropdown, resetting _prevDropdownHeight to 0"
+            }
             # No dropdown visible - reset tracking
             $this._prevDropdownHeight = 0
         }
@@ -600,8 +619,19 @@ class PmcMenuBar : PmcWidget {
     }
 
     hidden [string] _ClearPreviousDropdown() {
+        if ($global:PmcTuiLogFile) {
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] MenuBar._ClearPreviousDropdown: _prevDropdownHeight=$($this._prevDropdownHeight)"
+        }
+
         if ($this._prevDropdownHeight -le 0) {
+            if ($global:PmcTuiLogFile) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] MenuBar._ClearPreviousDropdown: Skipping (height <= 0)"
+            }
             return ""
+        }
+
+        if ($global:PmcTuiLogFile) {
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] MenuBar._ClearPreviousDropdown: Writing blanks - X=$($this._prevDropdownX) Y=$($this._prevDropdownY) Width=$($this._prevDropdownWidth) Height=$($this._prevDropdownHeight)"
         }
 
         $sb = [System.Text.StringBuilder]::new(512)
@@ -610,6 +640,9 @@ class PmcMenuBar : PmcWidget {
         # Clear each line of the previous dropdown
         for ($i = 0; $i -lt $this._prevDropdownHeight; $i++) {
             $y = $this._prevDropdownY + $i
+            if ($global:PmcTuiLogFile) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] MenuBar._ClearPreviousDropdown: Writing blanks at X=$($this._prevDropdownX) Y=$y"
+            }
             $sb.Append($this.BuildMoveTo($this._prevDropdownX, $y))
             $sb.Append($spaces)
         }

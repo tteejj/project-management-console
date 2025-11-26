@@ -39,7 +39,7 @@ class TimeListScreen : StandardListScreen {
     static [void] RegisterMenuItems([object]$registry) {
         $registry.AddMenuItem('Time', 'Time Tracking', 'T', {
             . "$PSScriptRoot/TimeListScreen.ps1"
-            $global:PmcApp.PushScreen([TimeListScreen]::new())
+            $global:PmcApp.PushScreen((New-Object -TypeName TimeListScreen))
         }, 5)
     }
 
@@ -259,16 +259,26 @@ class TimeListScreen : StandardListScreen {
 
     # Define edit fields for InlineEditor
     [array] GetEditFields([object]$item) {
+        # CRITICAL FIX: Use SAME widths as GetListColumns() for column alignment
+        # GetListColumns defines: date_display=12, task=25, project=15, duration=10, notes=35
+        # But we have 6 edit fields vs 5 display columns, so we combine task+timecode
+        $dateWidth = 12      # Matches date_display column
+        $taskWidth = 25      # Matches task column
+        $projectWidth = 15   # Matches project column
+        $timecodeWidth = 8   # Shares space with task
+        $hoursWidth = 10     # Matches duration column
+        $notesWidth = 30     # Matches notes column (reduced to fit)
+
         if ($null -eq $item -or $item.Count -eq 0) {
             # New time entry - empty fields
             return @(
-                @{ Name='date'; Type='date'; Label='Date'; Required=$true; Value=[DateTime]::Now }
-                @{ Name='task'; Type='text'; Label='Task'; Value='' }
-                @{ Name='project'; Type='project'; Label='Project (or leave blank for timecode)'; Value='' }
-                @{ Name='timecode'; Type='text'; Label='Timecode (2-5 digits, or leave blank for project)'; Value=''; MaxLength=5 }
+                @{ Name='date'; Type='date'; Label='Date'; Required=$true; Value=[DateTime]::Now; Width=$dateWidth }
+                @{ Name='task'; Type='text'; Label='Task'; Value=''; Width=$taskWidth }
+                @{ Name='project'; Type='project'; Label='Project (or leave blank for timecode)'; Value=''; Width=$projectWidth }
+                @{ Name='timecode'; Type='text'; Label='Timecode (2-5 digits, or leave blank for project)'; Value=''; MaxLength=5; Width=$timecodeWidth }
                 # MEDIUM FIX TMS-M3 & TLS-M2: Use constant for max hours validation
-                @{ Name='hours'; Type='number'; Label='Hours'; Min=$script:MIN_HOURS_PER_ENTRY; Max=$script:MAX_HOURS_PER_ENTRY; Step=0.25; Value=$script:MIN_HOURS_PER_ENTRY }
-                @{ Name='notes'; Type='text'; Label='Notes'; Value='' }
+                @{ Name='hours'; Type='number'; Label='Hours'; Min=$script:MIN_HOURS_PER_ENTRY; Max=$script:MAX_HOURS_PER_ENTRY; Step=0.25; Value=$script:MIN_HOURS_PER_ENTRY; Width=$hoursWidth }
+                @{ Name='notes'; Type='text'; Label='Notes'; Value=''; Width=$notesWidth }
             )
         } else {
             # Existing time entry - populate from item
@@ -281,13 +291,13 @@ class TimeListScreen : StandardListScreen {
             # HIGH FIX TLS-H2: Add null check for notes field
             $notesVal = if ($item.ContainsKey('notes')) { $item.notes } else { '' }
             return @(
-                @{ Name='date'; Type='date'; Label='Date'; Required=$true; Value=$item.date }
-                @{ Name='task'; Type='text'; Label='Task'; Value=$taskVal }
-                @{ Name='project'; Type='project'; Label='Project (or leave blank for timecode)'; Value=$projectVal }
-                @{ Name='timecode'; Type='text'; Label='Timecode (2-5 digits, or leave blank for project)'; Value=$timecodeVal; MaxLength=5 }
+                @{ Name='date'; Type='date'; Label='Date'; Required=$true; Value=$item.date; Width=$dateWidth }
+                @{ Name='task'; Type='text'; Label='Task'; Value=$taskVal; Width=$taskWidth }
+                @{ Name='project'; Type='project'; Label='Project (or leave blank for timecode)'; Value=$projectVal; Width=$projectWidth }
+                @{ Name='timecode'; Type='text'; Label='Timecode (2-5 digits, or leave blank for project)'; Value=$timecodeVal; MaxLength=5; Width=$timecodeWidth }
                 # MEDIUM FIX TMS-M3 & TLS-M2: Use constant for max hours validation
-                @{ Name='hours'; Type='number'; Label='Hours'; Min=$script:MIN_HOURS_PER_ENTRY; Max=$script:MAX_HOURS_PER_ENTRY; Step=0.25; Value=$hoursVal }
-                @{ Name='notes'; Type='text'; Label='Notes'; Value=$notesVal }
+                @{ Name='hours'; Type='number'; Label='Hours'; Min=$script:MIN_HOURS_PER_ENTRY; Max=$script:MAX_HOURS_PER_ENTRY; Step=0.25; Value=$hoursVal; Width=$hoursWidth }
+                @{ Name='notes'; Type='text'; Label='Notes'; Value=$notesVal; Width=$notesWidth }
             )
         }
     }
@@ -454,7 +464,7 @@ class TimeListScreen : StandardListScreen {
             }.GetNewClosure() },
             @{ Key='w'; Label='Week Report'; Callback={
                 . "$PSScriptRoot/WeeklyTimeReportScreen.ps1"
-                $screen = [WeeklyTimeReportScreen]::new()
+                $screen = New-Object WeeklyTimeReportScreen
                 $self.App.PushScreen($screen)
             }.GetNewClosure() },
             @{ Key='g'; Label='Generate'; Callback={
@@ -547,7 +557,7 @@ class TimeListScreen : StandardListScreen {
     [void] GenerateReport() {
         # Navigate to time report screen
         . "$PSScriptRoot/TimeReportScreen.ps1"
-        $screen = [TimeReportScreen]::new()
+        $screen = New-Object TimeReportScreen
         $this.App.PushScreen($screen)
     }
 
@@ -576,7 +586,7 @@ class TimeListScreen : StandardListScreen {
         # Custom key: W = Weekly time report
         if ($keyInfo.KeyChar -eq 'w' -or $keyInfo.KeyChar -eq 'W') {
             . "$PSScriptRoot/WeeklyTimeReportScreen.ps1"
-            $screen = [WeeklyTimeReportScreen]::new()
+            $screen = New-Object WeeklyTimeReportScreen
             $this.App.PushScreen($screen)
             return $true
         }

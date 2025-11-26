@@ -230,6 +230,6 @@ function Show-FocusSetFormScreen {
         throw "PmcApplication required"
     }
 
-    $screen = [FocusSetFormScreen]::new()
+    $screen = New-Object FocusSetFormScreen
     $App.PushScreen($screen)
 }

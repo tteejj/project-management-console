@@ -319,6 +319,6 @@ function Show-BurndownChartScreen {
         throw "PmcApplication required"
     }
 
-    $screen = [BurndownChartScreen]::new()
+    $screen = New-Object BurndownChartScreen
     $App.PushScreen($screen)
 }

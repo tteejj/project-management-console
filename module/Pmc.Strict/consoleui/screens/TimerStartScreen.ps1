@@ -363,6 +363,6 @@ function Show-TimerStartScreen {
         throw "PmcApplication required"
     }
 
-    $screen = [TimerStartScreen]::new()
+    $screen = New-Object TimerStartScreen
     $App.PushScreen($screen)
 }

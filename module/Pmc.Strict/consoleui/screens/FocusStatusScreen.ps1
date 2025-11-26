@@ -187,6 +187,6 @@ function Show-FocusStatusScreen {
         throw "PmcApplication required"
     }
 
-    $screen = [FocusStatusScreen]::new()
+    $screen = New-Object FocusStatusScreen
     $App.PushScreen($screen)
 }
