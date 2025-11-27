@@ -106,6 +106,8 @@ class PmcFooter : PmcWidget {
 
         # Position
         $sb.Append($this.BuildMoveTo($this.X, $this.Y))
+        # CRITICAL: Clear the entire line first to prevent text corruption
+        $sb.Append("`e[K")
 
         # Build shortcut string
         $shortcutParts = [List[string]]::new()
@@ -171,6 +173,8 @@ class PmcFooter : PmcWidget {
 
         # Note: This includes ANSI codes, so actual display width will be shorter
         # For now, just output it (proper width calculation would need ANSI stripping)
+        # CRITICAL: Clear the line first before writing footer
+        $sb.Append("`e[K")
         $sb.Append($footerText)
         $sb.Append($reset)
 

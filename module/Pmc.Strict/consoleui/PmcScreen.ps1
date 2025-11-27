@@ -397,13 +397,8 @@ class PmcScreen {
             }
         }
 
-        # Render Footer
-        if ($this.Footer) {
-            $output = $this.Footer.Render()
-            if ($output) {
-                $sb.Append($output)
-            }
-        }
+        # NOTE: Footer rendering removed from here - now handled by RenderToEngine() at Layer 55
+        # This prevents double-rendering when RenderToEngine() calls RenderContent() then also renders Footer
 
         # H-UI-4: Check if message expired (3 seconds) and clear status
         if ($this.StatusBar -and ([DateTime]::Now - $this._lastMessageTime).TotalSeconds -gt 3) {
@@ -663,6 +658,16 @@ class PmcScreen {
 
             if ($global:PmcTuiLogFile) {
                 Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] _ParseAnsiAndWrite: Match $i - pos($x,$y) content_length=$($content.Length)"
+            }
+
+            # Debug: dump full content for first two position writes
+            if ($i -lt 2 -and ($x -eq 9 -or $x -eq 51) -and $y -eq 10) {
+                $debugFile = "/tmp/pmc-layer-parse-debug.log"
+                $timestamp = Get-Date -Format 'HH:mm:ss.fff'
+                Add-Content -Path $debugFile -Value "=== $timestamp WriteAt($x,$y) content_length=$($content.Length) ==="
+                Add-Content -Path $debugFile -Value "Raw: $($content -replace "`e", '<ESC>')"
+                Add-Content -Path $debugFile -Value "Bytes: $([System.Text.Encoding]::UTF8.GetBytes($content) | ForEach-Object { $_.ToString('X2') } | Join-String -Separator ' ')"
+                Add-Content -Path $debugFile -Value "==="
             }
 
             if ($content) {
