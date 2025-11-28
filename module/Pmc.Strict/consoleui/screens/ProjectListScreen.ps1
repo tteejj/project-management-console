@@ -635,8 +635,8 @@ class ProjectListScreen : StandardListScreen {
             @{ Key='v'; Label='View'; Callback={
                 $selected = $self.List.GetSelectedItem()
                 if ($selected) {
-                    . "$PSScriptRoot/ProjectInfoScreen.ps1"
-                    $screen = New-Object ProjectInfoScreen
+                    . "$PSScriptRoot/ProjectInfoScreenV2.ps1"
+                    $screen = New-Object ProjectInfoScreenV2
                     $screen.SetProject((Get-SafeProperty $selected 'name'))
                     $global:PmcApp.PushScreen($screen)
                 }
@@ -675,25 +675,25 @@ class ProjectListScreen : StandardListScreen {
             $selected = $this.List.GetSelectedItem()
             if ($selected) {
                 try {
-                    # Register ProjectInfoScreen in container if not already registered
-                    if (-not $global:PmcContainer.IsRegistered('ProjectInfoScreen')) {
-                        $screenPath = "$PSScriptRoot/ProjectInfoScreen.ps1"
-                        $global:PmcContainer.Register('ProjectInfoScreen', {
+                    # Register ProjectInfoScreenV3 in container if not already registered
+                    if (-not $global:PmcContainer.IsRegistered('ProjectInfoScreenV3')) {
+                        $screenPath = "$PSScriptRoot/ProjectInfoScreenV3.ps1"
+                        $global:PmcContainer.Register('ProjectInfoScreenV3', {
                             param($c)
                             . $screenPath
-                            return New-Object ProjectInfoScreen
+                            return New-Object ProjectInfoScreenV3
                         }.GetNewClosure(), $false)
                     }
 
                     # Resolve screen from container (this handles all the loading)
-                    $screen = $global:PmcContainer.Resolve('ProjectInfoScreen')
+                    $screen = $global:PmcContainer.Resolve('ProjectInfoScreenV3')
                     $projectName = Get-SafeProperty $selected 'name'
                     $screen.SetProject($projectName)
                     $global:PmcApp.PushScreen($screen)
                     $this.SetStatusMessage("Viewing project: $projectName", "success")
                 } catch {
                     # PS-H2 FIX: Add user-visible error message
-                    Write-PmcTuiLog "Failed to open ProjectInfoScreen: $_" "ERROR"
+                    Write-PmcTuiLog "Failed to open ProjectInfoScreenV2: $_" "ERROR"
                     Write-PmcTuiLog "Stack trace: $($_.ScriptStackTrace)" "ERROR"
                     $this.SetStatusMessage("Failed to load project details: $($_.Exception.Message)", "error")
                 }

@@ -33,11 +33,9 @@ class ProjectInfoScreen : PmcScreen {
     [hashtable]$ProjectStats = @{}
     [TaskStore]$Store = $null
 
-    # Direct field editing
+    # Direct field editing (legacy - to be replaced)
     [bool]$EditMode = $false
     [int]$SelectedFieldIndex = 0
-    [string]$EditingValue = ""
-    [bool]$IsEditingField = $false
     [array]$EditableFields = @()
 
     # Constructor
@@ -102,51 +100,6 @@ class ProjectInfoScreen : PmcScreen {
     [void] OnEnter() {
         ([PmcScreen]$this).OnEnter()  # Call parent
         $this.LoadData()
-    }
-
-    # Override Render() to add cursor repositioning AFTER all widgets (including StatusBar)
-    [string] Render() {
-        # Call base class Render() which renders MenuBar, Header, Content, StatusBar
-        $output = ([PmcScreen]$this).Render()
-
-        # CRITICAL FIX: If editing a field, reposition cursor AFTER all rendering
-        # StatusBar rendering moves cursor, so we must reposition AFTER StatusBar
-        if ($this.EditMode -and $this.IsEditingField) {
-            # Calculate cursor position for the currently editing field
-            if ($this.SelectedFieldIndex -ge 0 -and $this.SelectedFieldIndex -lt $this.EditableFields.Count) {
-                $field = $this.EditableFields[$this.SelectedFieldIndex]
-                $fieldIndex = $this.SelectedFieldIndex
-
-                # Determine which column this field is in
-                $colIndex = $fieldIndex % 3
-                $rowIndex = [Math]::Floor($fieldIndex / 3)
-
-                # Calculate positions
-                $contentRect = $this.LayoutManager.GetRegion('Content', $this.TermWidth, $this.TermHeight)
-                $col1X = $contentRect.X + 5
-                $col2X = $col1X + 42
-                $col3X = $col2X + 42
-                $y = $contentRect.Y + 2 + $rowIndex
-
-                $cursorCol = 0
-                if ($colIndex -eq 0) {
-                    $cursorCol = $col1X + 22 + $this.EditingValue.Length
-                } elseif ($colIndex -eq 1) {
-                    $cursorCol = $col2X + 22 + $this.EditingValue.Length
-                } else {
-                    $cursorCol = $col3X + 22 + $this.EditingValue.Length
-                }
-
-                # Append cursor repositioning to output
-                $moveSeq = $this.Header.BuildMoveTo($cursorCol, $y)
-                $output += $moveSeq
-                $output += "`e[?25h"  # Make cursor visible
-
-                Add-Content -Path "/tmp/pmc-project-render.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [Render Override] REPOSITIONED CURSOR AFTER STATUSBAR: row=$y col=$cursorCol colIndex=$colIndex rowIndex=$rowIndex fieldIndex=$fieldIndex"
-            }
-        }
-
-        return $output
     }
 
     [void] LoadData() {
@@ -865,13 +818,6 @@ class ProjectInfoScreen : PmcScreen {
     }
 
     [bool] HandleKeyPress([ConsoleKeyInfo]$keyInfo) {
-        # If editor is showing, route input to it
-        if ($this.ShowEditor -and $this.Editor) {
-            $handled = $this.Editor.HandleInput($keyInfo)
-            # InlineEditor handles its own OnConfirmed/OnCancelled callbacks
-            return $true
-        }
-
         $keyChar = [char]::ToLower($keyInfo.KeyChar)
         $key = $keyInfo.Key
 
@@ -953,11 +899,10 @@ class ProjectInfoScreen : PmcScreen {
                 # Start editing the selected field
                 Add-Content -Path "/tmp/pmc-project-render.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') ENTER PRESSED: SelectedFieldIndex=$($this.SelectedFieldIndex)"
                 $selectedField = $this.EditableFields[$this.SelectedFieldIndex]
-                Add-Content -Path "/tmp/pmc-project-render.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') EDITING FIELD: Name=$($selectedField.Name) Label=$($selectedField.Label) Value=$($selectedField.Value)"
-                $this.EditingValue = if ($selectedField.Value) { $selectedField.Value } else { "" }
+                $this.EditingValue = if ($selectedField.Value) { [string]$selectedField.Value } else { "" }
                 $this.IsEditingField = $true
                 $this._UpdateFooterShortcuts()
-                $this.ShowStatus("Editing: $($selectedField.Label) - Enter to save, Esc to cancel")
+                Add-Content -Path "/tmp/pmc-project-render.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') STARTED EDITING: Field=$($selectedField.Name) InitialValue='$($this.EditingValue)' IsEditingField=$($this.IsEditingField)"
                 return $true
             }
             elseif ($keyChar -eq 'e') {

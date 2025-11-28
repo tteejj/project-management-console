@@ -308,6 +308,18 @@ class UniversalList : PmcWidget {
 
     <#
     .SYNOPSIS
+    Set selected index
+    #>
+    [void] SelectIndex([int]$index) {
+        if ($index -ge 0 -and $index -lt $this._filteredData.Count) {
+            $this._selectedIndex = $index
+            $this._AdjustScrollOffset()
+            $this._TriggerSelectionChanged()
+        }
+    }
+
+    <#
+    .SYNOPSIS
     Get all selected items (multi-select mode)
 
     .OUTPUTS
