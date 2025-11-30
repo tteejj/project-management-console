@@ -47,6 +47,15 @@ class ProjectInfoScreenV2 : StandardListScreen {
     }
 
     hidden [void] _InitializeScreen() {
+        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') *** ProjectInfoScreenV2._InitializeScreen CALLED - CLASS LOADED ***"
+
+        # CRITICAL FIX: Hide the UniversalList widget since we use custom 3-column grid rendering
+        # The List widget from StandardListScreen overlaps our custom grid
+        if ($this.List) {
+            $this.List.Visible = $false
+            Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   List.Visible set to FALSE to prevent overlap with custom grid"
+        }
+
         # Configure header
         $this.Header.SetBreadcrumb(@("Home", "Projects", "Info"))
 
@@ -61,6 +70,9 @@ class ProjectInfoScreenV2 : StandardListScreen {
             OverdueTasks = 0
             CompletionPercent = 0
         }
+
+        # Enable editing - Enter key will work via OnItemActivated
+        $this.AllowEdit = $true
     }
 
     hidden [void] _UpdateFooterShortcuts() {
@@ -102,29 +114,37 @@ class ProjectInfoScreenV2 : StandardListScreen {
     }
 
     [void] SetProject([string]$projectName) {
+        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') *** SetProject CALLED with projectName='$projectName' ***"
         if ($global:PmcTuiLogFile) {
             Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'HH:mm:ss.fff')] ProjectInfoScreenV2.SetProject: projectName='$projectName'"
         }
         $this.ProjectName = $projectName
+        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') *** SetProject END ***"
     }
 
     # Override OnEnter to load data
     [void] OnEnter() {
+        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') *** OnEnter START - ProjectName='$($this.ProjectName)' ***"
         if ($global:PmcTuiLogFile) {
             Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'HH:mm:ss.fff')] ProjectInfoScreenV2.OnEnter: ProjectName='$($this.ProjectName)'"
         }
 
         $this.IsActive = $true
+        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   IsActive set to true"
 
         # CRITICAL: Ensure InlineEditor is hidden on entry
         $this.ShowInlineEditor = $false
+        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   ShowInlineEditor=$($this.ShowInlineEditor)"
 
         # Set columns
         $columns = $this.GetColumns()
         $this.List.SetColumns($columns)
+        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   Columns set: $($columns.Count) columns"
 
         # Load data (don't call parent's LoadData - it expects different data structure)
+        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   Calling LoadData..."
         $this.LoadData()
+        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   LoadData complete - AllFields.Count=$($this.AllFields.Count)"
 
         # Update header breadcrumb
         if ($this.Header) {
@@ -136,13 +156,16 @@ class ProjectInfoScreenV2 : StandardListScreen {
             $itemCount = if ($this.AllFields) { $this.AllFields.Count } else { 0 }
             $this.StatusBar.SetLeftText("$itemCount fields")
         }
+        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') *** OnEnter END ***"
     }
 
     [void] LoadData() {
+        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') *** LoadData START - ProjectName='$($this.ProjectName)' ***"
         if ($global:PmcTuiLogFile) {
             Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'HH:mm:ss.fff')] ProjectInfoScreenV2.LoadData: ProjectName='$($this.ProjectName)' IsNullOrWhiteSpace=$([string]::IsNullOrWhiteSpace($this.ProjectName))"
         }
         if ([string]::IsNullOrWhiteSpace($this.ProjectName)) {
+            Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   ABORT - ProjectName is empty"
             $this.ShowError("No project selected")
             return
         }
@@ -151,7 +174,9 @@ class ProjectInfoScreenV2 : StandardListScreen {
 
         try {
             # Get all projects from TaskStore
+            Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   Getting all projects from Store..."
             $allProjects = $this.Store.GetAllProjects()
+            Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   Got $($allProjects.Count) projects"
             if ($global:PmcTuiLogFile) {
                 Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'HH:mm:ss.fff')] ProjectInfoScreenV2.LoadData: Got $($allProjects.Count) projects from Store"
             }
@@ -257,70 +282,86 @@ class ProjectInfoScreenV2 : StandardListScreen {
     }
 
     hidden [void] _BuildFieldList() {
+        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') *** _BuildFieldList START - ProjectData=$($null -ne $this.ProjectData) ***"
         # EXACT COPY of ProjectInfoScreen.ps1 lines 1060-1118
+        # NOTE: Added 'id' property for UniversalList compatibility
         $this.AllFields = @(
-            @{Name='ID1'; Label='ID1'; Value=(Get-SafeProperty $this.ProjectData 'ID1')}
-            @{Name='ID2'; Label='ID2'; Value=(Get-SafeProperty $this.ProjectData 'ID2')}
-            @{Name='ProjFolder'; Label='Project Folder'; Value=(Get-SafeProperty $this.ProjectData 'ProjFolder')}
-            @{Name='CAAName'; Label='CAA Name'; Value=(Get-SafeProperty $this.ProjectData 'CAAName')}
-            @{Name='RequestName'; Label='Request Name'; Value=(Get-SafeProperty $this.ProjectData 'RequestName')}
-            @{Name='T2020'; Label='T2020'; Value=(Get-SafeProperty $this.ProjectData 'T2020')}
-            @{Name='AssignedDate'; Label='Assigned Date'; Value=(Get-SafeProperty $this.ProjectData 'AssignedDate')}
-            @{Name='DueDate'; Label='Due Date'; Value=(Get-SafeProperty $this.ProjectData 'DueDate')}
-            @{Name='BFDate'; Label='BF Date'; Value=(Get-SafeProperty $this.ProjectData 'BFDate')}
-            @{Name='RequestDate'; Label='Request Date'; Value=(Get-SafeProperty $this.ProjectData 'RequestDate')}
-            @{Name='AuditType'; Label='Audit Type'; Value=(Get-SafeProperty $this.ProjectData 'AuditType')}
-            @{Name='AuditorName'; Label='Auditor Name'; Value=(Get-SafeProperty $this.ProjectData 'AuditorName')}
-            @{Name='AuditorPhone'; Label='Auditor Phone'; Value=(Get-SafeProperty $this.ProjectData 'AuditorPhone')}
-            @{Name='AuditorTL'; Label='Auditor TL'; Value=(Get-SafeProperty $this.ProjectData 'AuditorTL')}
-            @{Name='AuditorTLPhone'; Label='Auditor TL Phone'; Value=(Get-SafeProperty $this.ProjectData 'AuditorTLPhone')}
-            @{Name='AuditCase'; Label='Audit Case'; Value=(Get-SafeProperty $this.ProjectData 'AuditCase')}
-            @{Name='CASCase'; Label='CAS Case'; Value=(Get-SafeProperty $this.ProjectData 'CASCase')}
-            @{Name='AuditStartDate'; Label='Audit Start Date'; Value=(Get-SafeProperty $this.ProjectData 'AuditStartDate')}
-            @{Name='TPName'; Label='TP Name'; Value=(Get-SafeProperty $this.ProjectData 'TPName')}
-            @{Name='TPNum'; Label='TP Number'; Value=(Get-SafeProperty $this.ProjectData 'TPNum')}
-            @{Name='Address'; Label='Address'; Value=(Get-SafeProperty $this.ProjectData 'Address')}
-            @{Name='City'; Label='City'; Value=(Get-SafeProperty $this.ProjectData 'City')}
-            @{Name='Province'; Label='Province'; Value=(Get-SafeProperty $this.ProjectData 'Province')}
-            @{Name='PostalCode'; Label='Postal Code'; Value=(Get-SafeProperty $this.ProjectData 'PostalCode')}
-            @{Name='Country'; Label='Country'; Value=(Get-SafeProperty $this.ProjectData 'Country')}
-            @{Name='AuditPeriodFrom'; Label='Audit Period From'; Value=(Get-SafeProperty $this.ProjectData 'AuditPeriodFrom')}
-            @{Name='AuditPeriodTo'; Label='Audit Period To'; Value=(Get-SafeProperty $this.ProjectData 'AuditPeriodTo')}
-            @{Name='AuditPeriod1Start'; Label='Audit Period 1 Start'; Value=(Get-SafeProperty $this.ProjectData 'AuditPeriod1Start')}
-            @{Name='AuditPeriod1End'; Label='Audit Period 1 End'; Value=(Get-SafeProperty $this.ProjectData 'AuditPeriod1End')}
-            @{Name='AuditPeriod2Start'; Label='Audit Period 2 Start'; Value=(Get-SafeProperty $this.ProjectData 'AuditPeriod2Start')}
-            @{Name='AuditPeriod2End'; Label='Audit Period 2 End'; Value=(Get-SafeProperty $this.ProjectData 'AuditPeriod2End')}
-            @{Name='AuditPeriod3Start'; Label='Audit Period 3 Start'; Value=(Get-SafeProperty $this.ProjectData 'AuditPeriod3Start')}
-            @{Name='AuditPeriod3End'; Label='Audit Period 3 End'; Value=(Get-SafeProperty $this.ProjectData 'AuditPeriod3End')}
-            @{Name='AuditPeriod4Start'; Label='Audit Period 4 Start'; Value=(Get-SafeProperty $this.ProjectData 'AuditPeriod4Start')}
-            @{Name='AuditPeriod4End'; Label='Audit Period 4 End'; Value=(Get-SafeProperty $this.ProjectData 'AuditPeriod4End')}
-            @{Name='AuditPeriod5Start'; Label='Audit Period 5 Start'; Value=(Get-SafeProperty $this.ProjectData 'AuditPeriod5Start')}
-            @{Name='AuditPeriod5End'; Label='Audit Period 5 End'; Value=(Get-SafeProperty $this.ProjectData 'AuditPeriod5End')}
-            @{Name='Contact1Name'; Label='Contact 1 Name'; Value=(Get-SafeProperty $this.ProjectData 'Contact1Name')}
-            @{Name='Contact1Phone'; Label='Contact 1 Phone'; Value=(Get-SafeProperty $this.ProjectData 'Contact1Phone')}
-            @{Name='Contact1Ext'; Label='Contact 1 Ext'; Value=(Get-SafeProperty $this.ProjectData 'Contact1Ext')}
-            @{Name='Contact1Address'; Label='Contact 1 Address'; Value=(Get-SafeProperty $this.ProjectData 'Contact1Address')}
-            @{Name='Contact1Title'; Label='Contact 1 Title'; Value=(Get-SafeProperty $this.ProjectData 'Contact1Title')}
-            @{Name='Contact2Name'; Label='Contact 2 Name'; Value=(Get-SafeProperty $this.ProjectData 'Contact2Name')}
-            @{Name='Contact2Phone'; Label='Contact 2 Phone'; Value=(Get-SafeProperty $this.ProjectData 'Contact2Phone')}
-            @{Name='Contact2Ext'; Label='Contact 2 Ext'; Value=(Get-SafeProperty $this.ProjectData 'Contact2Ext')}
-            @{Name='Contact2Address'; Label='Contact 2 Address'; Value=(Get-SafeProperty $this.ProjectData 'Contact2Address')}
-            @{Name='Contact2Title'; Label='Contact 2 Title'; Value=(Get-SafeProperty $this.ProjectData 'Contact2Title')}
-            @{Name='AuditProgram'; Label='Audit Program'; Value=(Get-SafeProperty $this.ProjectData 'AuditProgram')}
-            @{Name='AccountingSoftware1'; Label='Accounting Software 1'; Value=(Get-SafeProperty $this.ProjectData 'AccountingSoftware1')}
-            @{Name='AccountingSoftware1Other'; Label='Accounting Software 1 Other'; Value=(Get-SafeProperty $this.ProjectData 'AccountingSoftware1Other')}
-            @{Name='AccountingSoftware1Type'; Label='Accounting Software 1 Type'; Value=(Get-SafeProperty $this.ProjectData 'AccountingSoftware1Type')}
-            @{Name='AccountingSoftware2'; Label='Accounting Software 2'; Value=(Get-SafeProperty $this.ProjectData 'AccountingSoftware2')}
-            @{Name='AccountingSoftware2Other'; Label='Accounting Software 2 Other'; Value=(Get-SafeProperty $this.ProjectData 'AccountingSoftware2Other')}
-            @{Name='AccountingSoftware2Type'; Label='Accounting Software 2 Type'; Value=(Get-SafeProperty $this.ProjectData 'AccountingSoftware2Type')}
-            @{Name='Comments'; Label='Comments'; Value=(Get-SafeProperty $this.ProjectData 'Comments')}
-            @{Name='FXInfo'; Label='FX Info'; Value=(Get-SafeProperty $this.ProjectData 'FXInfo')}
-            @{Name='ShipToAddress'; Label='Ship To Address'; Value=(Get-SafeProperty $this.ProjectData 'ShipToAddress')}
+            @{id='ID1'; Name='ID1'; Label='ID1'; Value=(Get-SafeProperty $this.ProjectData 'ID1')}
+            @{id='ID2'; Name='ID2'; Label='ID2'; Value=(Get-SafeProperty $this.ProjectData 'ID2')}
+            @{id='ProjFolder'; Name='ProjFolder'; Label='Project Folder'; Value=(Get-SafeProperty $this.ProjectData 'ProjFolder')}
+            @{id='CAAName'; Name='CAAName'; Label='CAA Name'; Value=(Get-SafeProperty $this.ProjectData 'CAAName')}
+            @{id='RequestName'; Name='RequestName'; Label='Request Name'; Value=(Get-SafeProperty $this.ProjectData 'RequestName')}
+            @{id='T2020'; Name='T2020'; Label='T2020'; Value=(Get-SafeProperty $this.ProjectData 'T2020')}
+            @{id='AssignedDate'; Name='AssignedDate'; Label='Assigned Date'; Value=(Get-SafeProperty $this.ProjectData 'AssignedDate')}
+            @{id='DueDate'; Name='DueDate'; Label='Due Date'; Value=(Get-SafeProperty $this.ProjectData 'DueDate')}
+            @{id='BFDate'; Name='BFDate'; Label='BF Date'; Value=(Get-SafeProperty $this.ProjectData 'BFDate')}
+            @{id='RequestDate'; Name='RequestDate'; Label='Request Date'; Value=(Get-SafeProperty $this.ProjectData 'RequestDate')}
+            @{id='AuditType'; Name='AuditType'; Label='Audit Type'; Value=(Get-SafeProperty $this.ProjectData 'AuditType')}
+            @{id='AuditorName'; Name='AuditorName'; Label='Auditor Name'; Value=(Get-SafeProperty $this.ProjectData 'AuditorName')}
+            @{id='AuditorPhone'; Name='AuditorPhone'; Label='Auditor Phone'; Value=(Get-SafeProperty $this.ProjectData 'AuditorPhone')}
+            @{id='AuditorTL'; Name='AuditorTL'; Label='Auditor TL'; Value=(Get-SafeProperty $this.ProjectData 'AuditorTL')}
+            @{id='AuditorTLPhone'; Name='AuditorTLPhone'; Label='Auditor TL Phone'; Value=(Get-SafeProperty $this.ProjectData 'AuditorTLPhone')}
+            @{id='AuditCase'; Name='AuditCase'; Label='Audit Case'; Value=(Get-SafeProperty $this.ProjectData 'AuditCase')}
+            @{id='CASCase'; Name='CASCase'; Label='CAS Case'; Value=(Get-SafeProperty $this.ProjectData 'CASCase')}
+            @{id='AuditStartDate'; Name='AuditStartDate'; Label='Audit Start Date'; Value=(Get-SafeProperty $this.ProjectData 'AuditStartDate')}
+            @{id='TPName'; Name='TPName'; Label='TP Name'; Value=(Get-SafeProperty $this.ProjectData 'TPName')}
+            @{id='TPNum'; Name='TPNum'; Label='TP Number'; Value=(Get-SafeProperty $this.ProjectData 'TPNum')}
+            @{id='Address'; Name='Address'; Label='Address'; Value=(Get-SafeProperty $this.ProjectData 'Address')}
+            @{id='City'; Name='City'; Label='City'; Value=(Get-SafeProperty $this.ProjectData 'City')}
+            @{id='Province'; Name='Province'; Label='Province'; Value=(Get-SafeProperty $this.ProjectData 'Province')}
+            @{id='PostalCode'; Name='PostalCode'; Label='Postal Code'; Value=(Get-SafeProperty $this.ProjectData 'PostalCode')}
+            @{id='Country'; Name='Country'; Label='Country'; Value=(Get-SafeProperty $this.ProjectData 'Country')}
+            @{id='AuditPeriodFrom'; Name='AuditPeriodFrom'; Label='Audit Period From'; Value=(Get-SafeProperty $this.ProjectData 'AuditPeriodFrom')}
+            @{id='AuditPeriodTo'; Name='AuditPeriodTo'; Label='Audit Period To'; Value=(Get-SafeProperty $this.ProjectData 'AuditPeriodTo')}
+            @{id='AuditPeriod1Start'; Name='AuditPeriod1Start'; Label='Audit Period 1 Start'; Value=(Get-SafeProperty $this.ProjectData 'AuditPeriod1Start')}
+            @{id='AuditPeriod1End'; Name='AuditPeriod1End'; Label='Audit Period 1 End'; Value=(Get-SafeProperty $this.ProjectData 'AuditPeriod1End')}
+            @{id='AuditPeriod2Start'; Name='AuditPeriod2Start'; Label='Audit Period 2 Start'; Value=(Get-SafeProperty $this.ProjectData 'AuditPeriod2Start')}
+            @{id='AuditPeriod2End'; Name='AuditPeriod2End'; Label='Audit Period 2 End'; Value=(Get-SafeProperty $this.ProjectData 'AuditPeriod2End')}
+            @{id='AuditPeriod3Start'; Name='AuditPeriod3Start'; Label='Audit Period 3 Start'; Value=(Get-SafeProperty $this.ProjectData 'AuditPeriod3Start')}
+            @{id='AuditPeriod3End'; Name='AuditPeriod3End'; Label='Audit Period 3 End'; Value=(Get-SafeProperty $this.ProjectData 'AuditPeriod3End')}
+            @{id='AuditPeriod4Start'; Name='AuditPeriod4Start'; Label='Audit Period 4 Start'; Value=(Get-SafeProperty $this.ProjectData 'AuditPeriod4Start')}
+            @{id='AuditPeriod4End'; Name='AuditPeriod4End'; Label='Audit Period 4 End'; Value=(Get-SafeProperty $this.ProjectData 'AuditPeriod4End')}
+            @{id='AuditPeriod5Start'; Name='AuditPeriod5Start'; Label='Audit Period 5 Start'; Value=(Get-SafeProperty $this.ProjectData 'AuditPeriod5Start')}
+            @{id='AuditPeriod5End'; Name='AuditPeriod5End'; Label='Audit Period 5 End'; Value=(Get-SafeProperty $this.ProjectData 'AuditPeriod5End')}
+            @{id='Contact1Name'; Name='Contact1Name'; Label='Contact 1 Name'; Value=(Get-SafeProperty $this.ProjectData 'Contact1Name')}
+            @{id='Contact1Phone'; Name='Contact1Phone'; Label='Contact 1 Phone'; Value=(Get-SafeProperty $this.ProjectData 'Contact1Phone')}
+            @{id='Contact1Ext'; Name='Contact1Ext'; Label='Contact 1 Ext'; Value=(Get-SafeProperty $this.ProjectData 'Contact1Ext')}
+            @{id='Contact1Address'; Name='Contact1Address'; Label='Contact 1 Address'; Value=(Get-SafeProperty $this.ProjectData 'Contact1Address')}
+            @{id='Contact1Title'; Name='Contact1Title'; Label='Contact 1 Title'; Value=(Get-SafeProperty $this.ProjectData 'Contact1Title')}
+            @{id='Contact2Name'; Name='Contact2Name'; Label='Contact 2 Name'; Value=(Get-SafeProperty $this.ProjectData 'Contact2Name')}
+            @{id='Contact2Phone'; Name='Contact2Phone'; Label='Contact 2 Phone'; Value=(Get-SafeProperty $this.ProjectData 'Contact2Phone')}
+            @{id='Contact2Ext'; Name='Contact2Ext'; Label='Contact 2 Ext'; Value=(Get-SafeProperty $this.ProjectData 'Contact2Ext')}
+            @{id='Contact2Address'; Name='Contact2Address'; Label='Contact 2 Address'; Value=(Get-SafeProperty $this.ProjectData 'Contact2Address')}
+            @{id='Contact2Title'; Name='Contact2Title'; Label='Contact 2 Title'; Value=(Get-SafeProperty $this.ProjectData 'Contact2Title')}
+            @{id='AuditProgram'; Name='AuditProgram'; Label='Audit Program'; Value=(Get-SafeProperty $this.ProjectData 'AuditProgram')}
+            @{id='AccountingSoftware1'; Name='AccountingSoftware1'; Label='Accounting Software 1'; Value=(Get-SafeProperty $this.ProjectData 'AccountingSoftware1')}
+            @{id='AccountingSoftware1Other'; Name='AccountingSoftware1Other'; Label='Accounting Software 1 Other'; Value=(Get-SafeProperty $this.ProjectData 'AccountingSoftware1Other')}
+            @{id='AccountingSoftware1Type'; Name='AccountingSoftware1Type'; Label='Accounting Software 1 Type'; Value=(Get-SafeProperty $this.ProjectData 'AccountingSoftware1Type')}
+            @{id='AccountingSoftware2'; Name='AccountingSoftware2'; Label='Accounting Software 2'; Value=(Get-SafeProperty $this.ProjectData 'AccountingSoftware2')}
+            @{id='AccountingSoftware2Other'; Name='AccountingSoftware2Other'; Label='Accounting Software 2 Other'; Value=(Get-SafeProperty $this.ProjectData 'AccountingSoftware2Other')}
+            @{id='AccountingSoftware2Type'; Name='AccountingSoftware2Type'; Label='Accounting Software 2 Type'; Value=(Get-SafeProperty $this.ProjectData 'AccountingSoftware2Type')}
+            @{id='Comments'; Name='Comments'; Label='Comments'; Value=(Get-SafeProperty $this.ProjectData 'Comments')}
+            @{id='FXInfo'; Name='FXInfo'; Label='FX Info'; Value=(Get-SafeProperty $this.ProjectData 'FXInfo')}
+            @{id='ShipToAddress'; Name='ShipToAddress'; Label='Ship To Address'; Value=(Get-SafeProperty $this.ProjectData 'ShipToAddress')}
         )
+        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') *** _BuildFieldList END - Built $($this.AllFields.Count) fields ***"
+        if ($this.AllFields.Count -gt 0) {
+            Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   First 3 fields: $($this.AllFields[0].Label)='$($this.AllFields[0].Value)' | $($this.AllFields[1].Label)='$($this.AllFields[1].Value)' | $($this.AllFields[2].Label)='$($this.AllFields[2].Value)'"
+        }
     }
 
     # Override RenderContent to render 3-column grid (EXACTLY matching original)
     [string] RenderContent() {
+        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') ========================================="
+        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') *** ProjectInfoScreenV2.RenderContent START ***"
+        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   AllFields.Count=$($this.AllFields.Count)"
+        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   ProjectData=$($null -ne $this.ProjectData)"
+        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   ProjectName='$($this.ProjectName)'"
+        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   EditMode=$($this.EditMode)"
+        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   ShowInlineEditor=$($this.ShowInlineEditor)"
+        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   List=$($null -ne $this.List)"
+        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   LayoutManager=$($null -ne $this.LayoutManager)"
+
         if ($global:PmcTuiLogFile) {
             Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'HH:mm:ss.fff')] ProjectInfoScreenV2.RenderContent: ProjectData=$($null -ne $this.ProjectData) ProjectName='$($this.ProjectName)'"
         }
@@ -328,11 +369,14 @@ class ProjectInfoScreenV2 : StandardListScreen {
         $sb = [System.Text.StringBuilder]::new(4096)
 
         if (-not $this.LayoutManager) {
+            Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') *** ABORT - NO LAYOUT MANAGER! ***"
             return $sb.ToString()
         }
 
         # Get content area
         $contentRect = $this.LayoutManager.GetRegion('Content', $this.TermWidth, $this.TermHeight)
+        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   contentRect.X=$($contentRect.X) Y=$($contentRect.Y) W=$($contentRect.Width) H=$($contentRect.Height)"
+        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   TermWidth=$($this.TermWidth) TermHeight=$($this.TermHeight)"
 
         # Colors
         $textColor = $this.Header.GetThemedFg('Foreground.Field')
@@ -388,112 +432,265 @@ class ProjectInfoScreenV2 : StandardListScreen {
         }
 
         # Render 3-column grid (EXACTLY matching original layout)
-        # FIX: Always render grid if we have fields, regardless of EditMode
+        # NOTE: Grid always renders; InlineEditor overlays on top when active
+        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   Checking AllFields.Count > 0: $($this.AllFields.Count -gt 0)"
         if ($this.AllFields.Count -gt 0) {
+            Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   RENDERING 3-COLUMN GRID with $($this.AllFields.Count) fields"
             $y++
 
             # Column positions (matching original)
             $col1X = $contentRect.X + 5
             $col2X = $col1X + 42
             $col3X = $col2X + 42
+            Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   Column positions: col1X=$col1X col2X=$col2X col3X=$col3X"
 
             # Render fields in rows of 3
             $fieldIndex = 0
             $rowY = $y + 1
+            $rowsRendered = 0
+            Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   Starting grid render loop, initial rowY=$rowY"
 
             while ($fieldIndex -lt $this.AllFields.Count) {
+                Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') === ROW $rowsRendered START: fieldIndex=$fieldIndex rowY=$rowY ==="
+
                 # Get 3 fields for this row
                 $field1 = if ($fieldIndex -lt $this.AllFields.Count) { $this.AllFields[$fieldIndex] } else { $null }
                 $field2 = if ($fieldIndex + 1 -lt $this.AllFields.Count) { $this.AllFields[$fieldIndex + 1] } else { $null }
                 $field3 = if ($fieldIndex + 2 -lt $this.AllFields.Count) { $this.AllFields[$fieldIndex + 2] } else { $null }
 
+                $ts = Get-Date -Format 'HH:mm:ss.fff'
+                Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$ts   ROW $rowsRendered - field1=$(if($field1){$field1.Label}else{'null'}) field2=$(if($field2){$field2.Label}else{'null'}) field3=$(if($field3){$field3.Label}else{'null'})"
+                Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$ts   ROW $rowsRendered - values='$(if($field1){$field1.Value}else{'N/A'})' '$(if($field2){$field2.Value}else{'N/A'})' '$(if($field3){$field3.Value}else{'N/A'})'"
+                Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$ts   ROW $rowsRendered - CurrentSelectedIndex=$($this.List.GetSelectedIndex())"
+
                 # Render COL1
                 if ($field1) {
                     $isSelected1 = ($fieldIndex -eq $this.List.GetSelectedIndex())
-                    $sb.Append($this.Header.BuildMoveTo($col1X, $rowY))
+                    Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   COL1 render start: row=$rowsRendered fieldIdx=$fieldIndex label=$($field1.Label) isSelected=$isSelected1 ShowInlineEditor=$($this.ShowInlineEditor)"
+
+                    $moveToCode = $this.Header.BuildMoveTo($col1X, $rowY)
+                    Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   COL1 MoveTo: col1X=$col1X rowY=$rowY code='$($moveToCode.Replace("`e", '<ESC>'))'"
+                    # CRITICAL: Reset ALL formatting BEFORE writing row content (clears any blinking cursor/inverse video from InlineEditor)
+                    $sb.Append($reset)
+                    $sb.Append($moveToCode)
 
                     $label1 = $field1.Label
                     if ($label1.Length -gt 20) { $label1 = $label1.Substring(0, 17) + "..." }
+                    Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   COL1 label truncated: '$label1' (original='$($field1.Label)')"
 
-                    if ($isSelected1) {
+                    # Render label with selection highlight when selected (but not editing)
+                    if ($isSelected1 -and -not $this.ShowInlineEditor) {
+                        # Show selection highlight
+                        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   COL1 BRANCH: SELECTED + NOT EDITING - applying highlight"
+                        $beforeLen = $sb.Length
+                        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   COL1 appending selectColor='$($selectColor.Replace("`e", '<ESC>'))'"
                         $sb.Append($selectColor)
+                        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   COL1 appending label='$label1'"
                         $sb.Append($label1)
-                        $sb.Append(' ' * (22 - $label1.Length))
+                        $spaces = ' ' * (22 - $label1.Length)
+                        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   COL1 appending $($spaces.Length) spaces"
+                        $sb.Append($spaces)
+                        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   COL1 appending reset='$($reset.Replace("`e", '<ESC>'))'"
                         $sb.Append($reset)
+                        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   COL1 appending highlightColor='$($highlightColor.Replace("`e", '<ESC>'))'"
                         $sb.Append($highlightColor)
+                        $afterLen = $sb.Length
+                        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   COL1 highlight complete: added=$($afterLen - $beforeLen) chars, sb.Length now=$afterLen"
                     } else {
+                        # Normal rendering
+                        if ($isSelected1) {
+                            Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   COL1 BRANCH: SELECTED + EDITING - NO highlight"
+                        } else {
+                            Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   COL1 BRANCH: NOT SELECTED - normal render"
+                        }
+                        $beforeLen = $sb.Length
+                        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   COL1 appending mutedColor='$($mutedColor.Replace("`e", '<ESC>'))'"
                         $sb.Append($mutedColor)
+                        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   COL1 appending label='$label1'"
                         $sb.Append($label1)
+                        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   COL1 appending reset='$($reset.Replace("`e", '<ESC>'))'"
                         $sb.Append($reset)
-                        $sb.Append(' ' * (22 - $label1.Length))
-                        $sb.Append($textColor)
+                        $spaces = ' ' * (22 - $label1.Length)
+                        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   COL1 appending $($spaces.Length) spaces"
+                        $sb.Append($spaces)
+                        $afterLen = $sb.Length
+                        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   COL1 normal render complete: added=$($afterLen - $beforeLen) chars"
                     }
 
-                    $val1 = if ($field1.Value) { [string]$field1.Value } else { $mutedColor + "(empty)" + $reset }
-                    if ($val1.Length -gt 18) { $val1 = $val1.Substring(0, 15) + "..." }
-                    $sb.Append($val1)
-                    $sb.Append($reset)
+                    # Only render value if NOT in edit mode for this field
+                    if (-not ($isSelected1 -and $this.ShowInlineEditor)) {
+                        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   COL1 rendering value (not editing this field)"
+                        $beforeLen = $sb.Length
+                        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   COL1 appending textColor='$($textColor.Replace("`e", '<ESC>'))'"
+                        $sb.Append($textColor)
+                        $val1 = if ($field1.Value) { [string]$field1.Value } else { $mutedColor + "(empty)" + $reset }
+                        if ($val1.Length -gt 18) { $val1 = $val1.Substring(0, 15) + "..." }
+                        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   COL1 appending value='$val1'"
+                        $sb.Append($val1)
+                        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   COL1 appending reset"
+                        $sb.Append($reset)
+                        $afterLen = $sb.Length
+                        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   COL1 value render complete: added=$($afterLen - $beforeLen) chars"
+                    } else {
+                        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   COL1 SKIPPING value render (editing this field, InlineEditor will render)"
+                    }
+                    Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   COL1 render complete for fieldIdx=$fieldIndex"
                 }
+
+                # Check if editor is active on this row (affects col2 and col3 rendering)
+                $editorActiveOnThisRow = $this.ShowInlineEditor -and ($fieldIndex -eq $this.List.GetSelectedIndex() -or ($fieldIndex + 1) -eq $this.List.GetSelectedIndex() -or ($fieldIndex + 2) -eq $this.List.GetSelectedIndex())
+                $ts = Get-Date -Format 'HH:mm:ss.fff'
+                Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$ts   ROW $rowsRendered - editorActiveOnThisRow=$editorActiveOnThisRow (ShowInlineEditor=$($this.ShowInlineEditor) SelectedIndex=$($this.List.GetSelectedIndex()))"
 
                 # Render COL2
                 if ($field2) {
                     $isSelected2 = ($fieldIndex + 1 -eq $this.List.GetSelectedIndex())
-                    $sb.Append($this.Header.BuildMoveTo($col2X, $rowY))
+                    Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   COL2 render start: row=$rowsRendered fieldIdx=$($fieldIndex + 1) label=$($field2.Label) isSelected=$isSelected2 ShowInlineEditor=$($this.ShowInlineEditor)"
+
+                    $moveToCode = $this.Header.BuildMoveTo($col2X, $rowY)
+                    Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   COL2 MoveTo: col2X=$col2X rowY=$rowY code='$($moveToCode.Replace("`e", '<ESC>'))'"
+                    $sb.Append($reset)
+                    $sb.Append($moveToCode)
 
                     $label2 = $field2.Label
                     if ($label2.Length -gt 20) { $label2 = $label2.Substring(0, 17) + "..." }
+                    Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   COL2 label truncated: '$label2' (original='$($field2.Label)')"
 
-                    if ($isSelected2) {
+                    # Render label with selection highlight when selected (but not editing)
+                    if ($isSelected2 -and -not $this.ShowInlineEditor) {
+                        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   COL2 BRANCH: SELECTED + NOT EDITING - applying highlight"
+                        $beforeLen = $sb.Length
+                        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   COL2 appending selectColor='$($selectColor.Replace("`e", '<ESC>'))'"
                         $sb.Append($selectColor)
+                        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   COL2 appending label='$label2'"
                         $sb.Append($label2)
-                        $sb.Append(' ' * (22 - $label2.Length))
+                        $spaces = ' ' * (22 - $label2.Length)
+                        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   COL2 appending $($spaces.Length) spaces"
+                        $sb.Append($spaces)
+                        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   COL2 appending reset='$($reset.Replace("`e", '<ESC>'))'"
                         $sb.Append($reset)
+                        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   COL2 appending highlightColor='$($highlightColor.Replace("`e", '<ESC>'))'"
                         $sb.Append($highlightColor)
+                        $afterLen = $sb.Length
+                        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   COL2 highlight complete: added=$($afterLen - $beforeLen) chars"
                     } else {
+                        if ($isSelected2) {
+                            Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   COL2 BRANCH: SELECTED + EDITING - NO highlight"
+                        } else {
+                            Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   COL2 BRANCH: NOT SELECTED - normal render"
+                        }
+                        $beforeLen = $sb.Length
+                        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   COL2 appending mutedColor='$($mutedColor.Replace("`e", '<ESC>'))'"
                         $sb.Append($mutedColor)
+                        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   COL2 appending label='$label2'"
                         $sb.Append($label2)
+                        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   COL2 appending reset='$($reset.Replace("`e", '<ESC>'))'"
                         $sb.Append($reset)
-                        $sb.Append(' ' * (22 - $label2.Length))
-                        $sb.Append($textColor)
+                        $spaces = ' ' * (22 - $label2.Length)
+                        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   COL2 appending $($spaces.Length) spaces"
+                        $sb.Append($spaces)
+                        $afterLen = $sb.Length
+                        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   COL2 normal render complete: added=$($afterLen - $beforeLen) chars"
                     }
 
-                    $val2 = if ($field2.Value) { [string]$field2.Value } else { $mutedColor + "(empty)" + $reset }
-                    if ($val2.Length -gt 18) { $val2 = $val2.Substring(0, 15) + "..." }
-                    $sb.Append($val2)
-                    $sb.Append($reset)
+                    # Only render value if NOT in edit mode for this field
+                    if (-not ($isSelected2 -and $this.ShowInlineEditor)) {
+                        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   COL2 rendering value (not editing this field)"
+                        $beforeLen = $sb.Length
+                        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   COL2 appending textColor='$($textColor.Replace("`e", '<ESC>'))'"
+                        $sb.Append($textColor)
+                        $val2 = if ($field2.Value) { [string]$field2.Value } else { $mutedColor + "(empty)" + $reset }
+                        if ($val2.Length -gt 18) { $val2 = $val2.Substring(0, 15) + "..." }
+                        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   COL2 appending value='$val2'"
+                        $sb.Append($val2)
+                        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   COL2 appending reset"
+                        $sb.Append($reset)
+                        $afterLen = $sb.Length
+                        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   COL2 value render complete: added=$($afterLen - $beforeLen) chars"
+                    } else {
+                        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   COL2 SKIPPING value render (editing this field)"
+                    }
+                    Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   COL2 render complete for fieldIdx=$($fieldIndex + 1)"
                 }
 
                 # Render COL3
                 if ($field3) {
                     $isSelected3 = ($fieldIndex + 2 -eq $this.List.GetSelectedIndex())
-                    $sb.Append($this.Header.BuildMoveTo($col3X, $rowY))
+                    Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   COL3 render start: row=$rowsRendered fieldIdx=$($fieldIndex + 2) label=$($field3.Label) isSelected=$isSelected3 ShowInlineEditor=$($this.ShowInlineEditor)"
+
+                    $moveToCode = $this.Header.BuildMoveTo($col3X, $rowY)
+                    Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   COL3 MoveTo: col3X=$col3X rowY=$rowY code='$($moveToCode.Replace("`e", '<ESC>'))'"
+                    $sb.Append($reset)
+                    $sb.Append($moveToCode)
 
                     $label3 = $field3.Label
                     if ($label3.Length -gt 20) { $label3 = $label3.Substring(0, 17) + "..." }
+                    Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   COL3 label truncated: '$label3' (original='$($field3.Label)')"
 
-                    if ($isSelected3) {
+                    # Render label with selection highlight when selected (but not editing)
+                    if ($isSelected3 -and -not $this.ShowInlineEditor) {
+                        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   COL3 BRANCH: SELECTED + NOT EDITING - applying highlight"
+                        $beforeLen = $sb.Length
+                        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   COL3 appending selectColor='$($selectColor.Replace("`e", '<ESC>'))'"
                         $sb.Append($selectColor)
+                        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   COL3 appending label='$label3'"
                         $sb.Append($label3)
-                        $sb.Append(' ' * (22 - $label3.Length))
+                        $spaces = ' ' * (22 - $label3.Length)
+                        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   COL3 appending $($spaces.Length) spaces"
+                        $sb.Append($spaces)
+                        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   COL3 appending reset='$($reset.Replace("`e", '<ESC>'))'"
                         $sb.Append($reset)
+                        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   COL3 appending highlightColor='$($highlightColor.Replace("`e", '<ESC>'))'"
                         $sb.Append($highlightColor)
+                        $afterLen = $sb.Length
+                        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   COL3 highlight complete: added=$($afterLen - $beforeLen) chars"
                     } else {
+                        if ($isSelected3) {
+                            Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   COL3 BRANCH: SELECTED + EDITING - NO highlight"
+                        } else {
+                            Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   COL3 BRANCH: NOT SELECTED - normal render"
+                        }
+                        $beforeLen = $sb.Length
+                        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   COL3 appending mutedColor='$($mutedColor.Replace("`e", '<ESC>'))'"
                         $sb.Append($mutedColor)
+                        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   COL3 appending label='$label3'"
                         $sb.Append($label3)
+                        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   COL3 appending reset='$($reset.Replace("`e", '<ESC>'))'"
                         $sb.Append($reset)
-                        $sb.Append(' ' * (22 - $label3.Length))
-                        $sb.Append($textColor)
+                        $spaces = ' ' * (22 - $label3.Length)
+                        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   COL3 appending $($spaces.Length) spaces"
+                        $sb.Append($spaces)
+                        $afterLen = $sb.Length
+                        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   COL3 normal render complete: added=$($afterLen - $beforeLen) chars"
                     }
 
-                    $val3 = if ($field3.Value) { [string]$field3.Value } else { $mutedColor + "(empty)" + $reset }
-                    if ($val3.Length -gt 18) { $val3 = $val3.Substring(0, 15) + "..." }
-                    $sb.Append($val3)
-                    $sb.Append($reset)
+                    # Only render value if NOT in edit mode for this field
+                    if (-not ($isSelected3 -and $this.ShowInlineEditor)) {
+                        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   COL3 rendering value (not editing this field)"
+                        $beforeLen = $sb.Length
+                        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   COL3 appending textColor='$($textColor.Replace("`e", '<ESC>'))'"
+                        $sb.Append($textColor)
+                        $val3 = if ($field3.Value) { [string]$field3.Value } else { $mutedColor + "(empty)" + $reset }
+                        if ($val3.Length -gt 18) { $val3 = $val3.Substring(0, 15) + "..." }
+                        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   COL3 appending value='$val3'"
+                        $sb.Append($val3)
+                        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   COL3 appending reset"
+                        $sb.Append($reset)
+                        $afterLen = $sb.Length
+                        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   COL3 value render complete: added=$($afterLen - $beforeLen) chars"
+                    } else {
+                        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   COL3 SKIPPING value render (editing this field)"
+                    }
+                    Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   COL3 render complete for fieldIdx=$($fieldIndex + 2)"
                 }
 
                 $fieldIndex += 3
                 $rowY++
+                $rowsRendered++
+                Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') === ROW $($rowsRendered - 1) END: fieldIndex now=$fieldIndex rowY now=$rowY ==="
             }
+
+            Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   Grid render complete: $rowsRendered rows rendered"
 
             # Render stats section at bottom
             $rowY += 2
@@ -511,25 +708,48 @@ class ProjectInfoScreenV2 : StandardListScreen {
             $sb.Append("  Overdue: ")
             $sb.Append([string]$this.ProjectStats.OverdueTasks)
             $sb.Append($reset)
+        } else {
+            Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   SKIPPING grid render - AllFields.Count is 0"
         }
 
-        # IF IN EDIT MODE: Render InlineEditor if active
-        # FIX: Render this LAST so it overlays the grid
+        # Append InlineEditor rendering if active
+        # NOTE: InlineEditor renders as overlay, positioned at specific coordinates
         if ($this.ShowInlineEditor -and $null -ne $this.InlineEditor) {
-            # StandardListScreen handles InlineEditor rendering
-            # We just need to append it here
             $editorOutput = $this.InlineEditor.Render()
             if ($editorOutput) {
                 $sb.Append($editorOutput)
             }
         }
 
-        return $sb.ToString()
+        $result = $sb.ToString()
+        $ts = Get-Date -Format 'HH:mm:ss.fff'
+        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$ts *** ProjectInfoScreenV2.RenderContent END ***"
+        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$ts   Output length=$($result.Length) characters"
+        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$ts   First 200 chars - $($result.Substring(0, [Math]::Min(200, $result.Length)).Replace("`e", '<ESC>').Replace("`n", '<LF>'))"
+
+        # Dump the area around the selected field (CAA Name at position ~450-550)
+        if ($result.Length -gt 600) {
+            Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$ts   Chars 400-600 - $($result.Substring(400, [Math]::Min(200, $result.Length - 400)).Replace("`e", '<ESC>').Replace("`n", '<LF>'))"
+        }
+        if ($result.Length -gt 800) {
+            Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$ts   Chars 600-800 - $($result.Substring(600, [Math]::Min(200, $result.Length - 600)).Replace("`e", '<ESC>').Replace("`n", '<LF>'))"
+        }
+
+        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$ts ========================================="
+        return $result
     }
 
     # Override EditItem to edit a field using InlineEditor (TaskListScreen pattern)
     [void] EditItem($field) {
-        if ($null -eq $field) { return }
+        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') *** ProjectInfoScreenV2.EditItem CALLED ***"
+        if ($global:PmcTuiLogFile) {
+            $fieldName = if ($field) { $field.Name } else { 'NULL' }
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'HH:mm:ss.fff')] ProjectInfoScreenV2.EditItem: CALLED with field=$fieldName"
+        }
+        if ($null -eq $field) {
+            Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') *** ProjectInfoScreenV2.EditItem field is NULL, returning ***"
+            return
+        }
 
         # Get field index
         $fieldIndex = -1
@@ -550,7 +770,7 @@ class ProjectInfoScreenV2 : StandardListScreen {
         $col1X = $contentRect.X + 5
         $col2X = $col1X + 42
         $col3X = $col2X + 42
-        $rowY = $contentRect.Y + 2 + $rowIndex
+        $rowY = $contentRect.Y + 4 + $rowIndex
 
         # Determine column X position
         $editorX = switch ($colIndex) {
@@ -563,35 +783,45 @@ class ProjectInfoScreenV2 : StandardListScreen {
         $fieldDef = @{
             Name = $field.Name
             Label = ""
-            Type = $field.Type
+            Type = 'text'  # All fields are text type
             Value = $field.Value
             Required = $false
-            Width = 20
+            Width = 18  # Match value display width from grid
         }
 
-        # Configure InlineEditor (EXACT TaskListScreen pattern)
+        # Configure InlineEditor
         $this.InlineEditor.LayoutMode = 'horizontal'
         $this.InlineEditor.SetFields(@($fieldDef))
         $this.InlineEditor.SetPosition($editorX + 22, $rowY)  # Position after label (22 chars)
-        $this.InlineEditor.SetSize(20, 1)
+        $this.InlineEditor.SetSize(18, 1)  # Width=18 to avoid overlapping next column
 
         # Set up save callback
         $self = $this
         $fieldName = $field.Name
+        $savedIndex = $fieldIndex  # Capture the field index to restore selection
         $this.InlineEditor.OnConfirmed = {
             param($values)
-            # Update the field value
-            for ($i = 0; $i -lt $self.AllFields.Count; $i++) {
-                if ($self.AllFields[$i].Name -eq $fieldName) {
-                    $self.AllFields[$i].Value = $values[$fieldName]
-                    break
-                }
-            }
+            Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') *** OnConfirmed CALLBACK - fieldName=$fieldName value='$($values[$fieldName])' ***"
+
             # Update ProjectData
             $self.ProjectData.$fieldName = $values[$fieldName]
+
+            # Rebuild field list to reflect the change
+            $self._BuildFieldList()
+
+            # Update the List widget's data AND restore selection to edited field
+            $self.List.SetData($self.AllFields)
+
+            # Close editor FIRST
             $self.ShowInlineEditor = $false
             $self.EditorMode = ""
             $self.CurrentEditItem = $null
+            Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   Editor closed, ShowInlineEditor=$($self.ShowInlineEditor)"
+
+            # THEN update selection (after editor is closed so render shows clean grid)
+            $self.List.SelectIndex($savedIndex)  # Keep focus on edited field
+            Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff')   Selection restored to index $savedIndex"
+
             $self.ShowStatus("Field updated - Press E to save all changes")
         }.GetNewClosure()
 
@@ -608,7 +838,20 @@ class ProjectInfoScreenV2 : StandardListScreen {
         $this.ShowInlineEditor = $true
     }
 
-    # Override HandleKeyPress for custom navigation
+    # Override OnItemActivated to handle Enter key press
+    [void] OnItemActivated($item) {
+        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') *** ProjectInfoScreenV2.OnItemActivated CALLED ***"
+        if ($global:PmcTuiLogFile) {
+            $itemName = if ($item) { $item.Name } else { 'NULL' }
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'HH:mm:ss.fff')] ProjectInfoScreenV2.OnItemActivated: item=$itemName"
+        }
+        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') *** ProjectInfoScreenV2.OnItemActivated about to call EditItem ***"
+        # Edit the selected field
+        $this.EditItem($item)
+        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') *** ProjectInfoScreenV2.OnItemActivated EditItem returned ***"
+    }
+
+    # Override HandleKeyPress for custom 3-column grid navigation
     [bool] HandleKeyPress([ConsoleKeyInfo]$keyInfo) {
         # If InlineEditor is active, let StandardListScreen handle it
         if ($this.ShowInlineEditor) {
@@ -616,78 +859,45 @@ class ProjectInfoScreenV2 : StandardListScreen {
         }
 
         $key = $keyInfo.Key
-        $keyChar = [char]::ToLower($keyInfo.KeyChar)
+        $currentIndex = $this.List.GetSelectedIndex()
 
-        # In edit mode - custom navigation for 3-column grid
-        if ($this.EditMode) {
-            $currentIndex = $this.List.GetSelectedIndex()
-
-            if ($key -eq [ConsoleKey]::UpArrow) {
-                # Move up one row (3 fields)
-                $newIndex = $currentIndex - 3
-                if ($newIndex -ge 0) {
-                    $this.List.SelectIndex($newIndex)
-                }
-                return $true
+        # Custom navigation for 3-column grid
+        if ($key -eq [ConsoleKey]::UpArrow) {
+            # Move up one row (3 fields)
+            $newIndex = $currentIndex - 3
+            if ($newIndex -ge 0) {
+                $this.List.SelectIndex($newIndex)
             }
-            elseif ($key -eq [ConsoleKey]::DownArrow) {
-                # Move down one row (3 fields)
-                $newIndex = $currentIndex + 3
-                if ($newIndex -lt $this.AllFields.Count) {
-                    $this.List.SelectIndex($newIndex)
-                }
-                return $true
-            }
-            elseif ($key -eq [ConsoleKey]::LeftArrow) {
-                # Move left one field
-                if ($currentIndex -gt 0) {
-                    $this.List.SelectIndex($currentIndex - 1)
-                }
-                return $true
-            }
-            elseif ($key -eq [ConsoleKey]::RightArrow) {
-                # Move right one field
-                if ($currentIndex + 1 -lt $this.AllFields.Count) {
-                    $this.List.SelectIndex($currentIndex + 1)
-                }
-                return $true
-            }
-            elseif ($key -eq [ConsoleKey]::Enter) {
-                # Edit selected field
-                $selectedField = $this.AllFields[$currentIndex]
-                $this.EditItem($selectedField)
-                return $true
-            }
-            elseif ($keyChar -eq 'e') {
-                # Save and exit edit mode
-                $this._SaveAllEdits()
-                return $true
-            }
-            elseif ($key -eq [ConsoleKey]::Escape) {
-                # Exit edit mode without saving
-                $this.EditMode = $false
-                $this._UpdateFooterShortcuts()
-                $this.ShowStatus("Edit mode cancelled")
-                return $true
-            }
+            return $true
         }
-        else {
-            # Normal mode
-            if ($keyChar -eq 'e') {
-                # Enter edit mode
-                $this.EditMode = $true
-                $this.List.SelectIndex(0)
-                $this._UpdateFooterShortcuts()
-                $this.ShowStatus("Edit mode - Arrow keys to navigate, Enter to edit field, E to save & exit")
-                return $true
+        elseif ($key -eq [ConsoleKey]::DownArrow) {
+            # Move down one row (3 fields)
+            $newIndex = $currentIndex + 3
+            if ($newIndex -lt $this.AllFields.Count) {
+                $this.List.SelectIndex($newIndex)
             }
-            elseif ($key -eq [ConsoleKey]::Escape) {
-                $global:PmcApp.PopScreen()
-                return $true
+            return $true
+        }
+        elseif ($key -eq [ConsoleKey]::LeftArrow) {
+            # Move left one field
+            if ($currentIndex -gt 0) {
+                $this.List.SelectIndex($currentIndex - 1)
             }
+            return $true
+        }
+        elseif ($key -eq [ConsoleKey]::RightArrow) {
+            # Move right one field
+            if ($currentIndex + 1 -lt $this.AllFields.Count) {
+                $this.List.SelectIndex($currentIndex + 1)
+            }
+            return $true
+        }
+        elseif ($key -eq [ConsoleKey]::Escape) {
+            $global:PmcApp.PopScreen()
+            return $true
         }
 
-        # Let parent handle other keys
+        # Let parent handle other keys (including Enter which calls OnItemActivated)
         return ([StandardListScreen]$this).HandleKeyPress($keyInfo)
     }
 
@@ -713,3 +923,4 @@ class ProjectInfoScreenV2 : StandardListScreen {
 
 # Export class
 Export-ModuleMember -Variable @()
+

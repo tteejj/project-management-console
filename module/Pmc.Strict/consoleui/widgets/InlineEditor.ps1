@@ -748,12 +748,8 @@ class InlineEditor : PmcWidget {
         $sb.Append($reset)  # Reset colors first
         $sb.Append("`e[K")  # Then clear to end of line
 
-        # CRITICAL FIX: Clear the next line to prevent bleeding
-        $sb.Append($this.BuildMoveTo($this.X, $this.Y + 1))
-        $sb.Append("`e[K")  # Clear line below
-
-        # Move cursor back to editor line
-        $sb.Append($this.BuildMoveTo($this.X, $this.Y))
+        # DO NOT clear line below in horizontal mode - InlineEditor is rendering WITHIN the grid
+        # Clearing the line below would erase grid content
 
         return $sb.ToString()
     }

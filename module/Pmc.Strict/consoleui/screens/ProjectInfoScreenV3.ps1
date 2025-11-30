@@ -6,9 +6,14 @@ using namespace System.Text
 
 Set-StrictMode -Version Latest
 
+# Load StandardListScreen if not already loaded
+if (-not ([System.Management.Automation.PSTypeName]'StandardListScreen').Type) {
+    . "$PSScriptRoot/../base/StandardListScreen.ps1"
+}
+
 <#
 .SYNOPSIS
-Project information screen (V3 - StandardListScreen-based)
+Project information screen (V2 - StandardListScreen-based)
 
 .DESCRIPTION
 Reimplementation of ProjectInfoScreen using StandardListScreen architecture:
@@ -32,12 +37,12 @@ class ProjectInfoScreenV3 : StandardListScreen {
     [array]$AllFields = @()  # All 57 fields for editing
 
     # Constructor
-    ProjectInfoScreenV3() : base("ProjectInfoV3", "Project Information") {
+    ProjectInfoScreenV3() : base("ProjectInfoV2", "Project Information") {
         $this._InitializeScreen()
     }
 
     # Constructor with container
-    ProjectInfoScreenV3([object]$container) : base("ProjectInfoV3", "Project Information", $container) {
+    ProjectInfoScreenV3([object]$container) : base("ProjectInfoV2", "Project Information", $container) {
         $this._InitializeScreen()
     }
 
@@ -220,7 +225,10 @@ class ProjectInfoScreenV3 : StandardListScreen {
             # Populate UniversalList with fields so navigation works
             try {
                 $this.List.SetData($this.AllFields)
-                # NOTE: SetData automatically sets selectedIndex to 0
+                # FIX: Select first item by default so cursor is visible
+                if ($this.AllFields.Count -gt 0) {
+                    $this.List.SelectIndex(0)
+                }
                 if ($global:PmcTuiLogFile) {
                     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'HH:mm:ss.fff')] ProjectInfoScreenV3.LoadData: List.SetData completed"
                 }
@@ -249,11 +257,6 @@ class ProjectInfoScreenV3 : StandardListScreen {
     }
 
     hidden [void] _BuildFieldList() {
-        if ($global:PmcTuiLogFile) {
-            $keys = if ($this.ProjectData -is [System.Collections.IDictionary]) { $this.ProjectData.Keys -join ',' } else { "Not a dictionary" }
-            Add-Content -Path $global:PmcTuiLogFile -Value "[_BuildFieldList] ProjectData Keys: $keys"
-            Add-Content -Path $global:PmcTuiLogFile -Value "[_BuildFieldList] ID1 raw: $($this.ProjectData['ID1'])"
-        }
         # EXACT COPY of ProjectInfoScreen.ps1 lines 1060-1118
         $this.AllFields = @(
             @{Name='ID1'; Label='ID1'; Value=(Get-SafeProperty $this.ProjectData 'ID1')}
@@ -426,11 +429,6 @@ class ProjectInfoScreenV3 : StandardListScreen {
                         $sb.Append($textColor)
                     }
 
-                    # DEBUG: Log value for first field
-                    if ($fieldIndex -eq 0 -and $global:PmcTuiLogFile) {
-                        Add-Content -Path $global:PmcTuiLogFile -Value "[Render] Field 0 Value='$($field1.Value)' Type='$($field1.Value.GetType().Name)'"
-                    }
-
                     $val1 = if ($field1.Value) { [string]$field1.Value } else { $mutedColor + "(empty)" + $reset }
                     if ($val1.Length -gt 18) { $val1 = $val1.Substring(0, 15) + "..." }
                     $sb.Append($val1)
@@ -518,18 +516,11 @@ class ProjectInfoScreenV3 : StandardListScreen {
         # IF IN EDIT MODE: Render InlineEditor if active
         # FIX: Render this LAST so it overlays the grid
         if ($this.ShowInlineEditor -and $null -ne $this.InlineEditor) {
-            if ($global:PmcTuiLogFile) {
-                Add-Content -Path $global:PmcTuiLogFile -Value "[Render] Rendering InlineEditor at $($this.InlineEditor.X),$($this.InlineEditor.Y)"
-            }
             # StandardListScreen handles InlineEditor rendering
             # We just need to append it here
             $editorOutput = $this.InlineEditor.Render()
             if ($editorOutput) {
                 $sb.Append($editorOutput)
-            } else {
-                if ($global:PmcTuiLogFile) {
-                    Add-Content -Path $global:PmcTuiLogFile -Value "[Render] InlineEditor.Render() returned empty!"
-                }
             }
         }
 
@@ -538,6 +529,9 @@ class ProjectInfoScreenV3 : StandardListScreen {
 
     # Override EditItem to edit a field using InlineEditor (TaskListScreen pattern)
     [void] EditItem($field) {
+        if ($global:PmcTuiLogFile) {
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'HH:mm:ss.fff')] ProjectInfoScreenV3.EditItem: CALLED with field=$($field.Name if $field else 'NULL')"
+        }
         if ($null -eq $field) { return }
 
         # Get field index
@@ -617,7 +611,16 @@ class ProjectInfoScreenV3 : StandardListScreen {
         $this.ShowInlineEditor = $true
     }
 
-    # Override HandleKeyPress for custom navigation
+    # Override OnItemActivated to handle Enter key press
+    [void] OnItemActivated($item) {
+        if ($global:PmcTuiLogFile) {
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'HH:mm:ss.fff')] ProjectInfoScreenV3.OnItemActivated: item=$($item.Name if $item else 'NULL')"
+        }
+        # Edit the selected field
+        $this.EditItem($item)
+    }
+
+    # Override HandleKeyPress for custom 3-column grid navigation
     [bool] HandleKeyPress([ConsoleKeyInfo]$keyInfo) {
         # If InlineEditor is active, let StandardListScreen handle it
         if ($this.ShowInlineEditor) {
@@ -625,78 +628,45 @@ class ProjectInfoScreenV3 : StandardListScreen {
         }
 
         $key = $keyInfo.Key
-        $keyChar = [char]::ToLower($keyInfo.KeyChar)
+        $currentIndex = $this.List.GetSelectedIndex()
 
-        # In edit mode - custom navigation for 3-column grid
-        if ($this.EditMode) {
-            $currentIndex = $this.List.GetSelectedIndex()
-
-            if ($key -eq [ConsoleKey]::UpArrow) {
-                # Move up one row (3 fields)
-                $newIndex = $currentIndex - 3
-                if ($newIndex -ge 0) {
-                    $this.List.SelectIndex($newIndex)
-                }
-                return $true
+        # Custom navigation for 3-column grid
+        if ($key -eq [ConsoleKey]::UpArrow) {
+            # Move up one row (3 fields)
+            $newIndex = $currentIndex - 3
+            if ($newIndex -ge 0) {
+                $this.List.SelectIndex($newIndex)
             }
-            elseif ($key -eq [ConsoleKey]::DownArrow) {
-                # Move down one row (3 fields)
-                $newIndex = $currentIndex + 3
-                if ($newIndex -lt $this.AllFields.Count) {
-                    $this.List.SelectIndex($newIndex)
-                }
-                return $true
-            }
-            elseif ($key -eq [ConsoleKey]::LeftArrow) {
-                # Move left one field
-                if ($currentIndex -gt 0) {
-                    $this.List.SelectIndex($currentIndex - 1)
-                }
-                return $true
-            }
-            elseif ($key -eq [ConsoleKey]::RightArrow) {
-                # Move right one field
-                if ($currentIndex + 1 -lt $this.AllFields.Count) {
-                    $this.List.SelectIndex($currentIndex + 1)
-                }
-                return $true
-            }
-            elseif ($key -eq [ConsoleKey]::Enter) {
-                # Edit selected field
-                $selectedField = $this.AllFields[$currentIndex]
-                $this.EditItem($selectedField)
-                return $true
-            }
-            elseif ($keyChar -eq 'e') {
-                # Save and exit edit mode
-                $this._SaveAllEdits()
-                return $true
-            }
-            elseif ($key -eq [ConsoleKey]::Escape) {
-                # Exit edit mode without saving
-                $this.EditMode = $false
-                $this._UpdateFooterShortcuts()
-                $this.ShowStatus("Edit mode cancelled")
-                return $true
-            }
+            return $true
         }
-        else {
-            # Normal mode
-            if ($keyChar -eq 'e') {
-                # Enter edit mode
-                $this.EditMode = $true
-                $this.List.SelectIndex(0)
-                $this._UpdateFooterShortcuts()
-                $this.ShowStatus("Edit mode - Arrow keys to navigate, Enter to edit field, E to save & exit")
-                return $true
+        elseif ($key -eq [ConsoleKey]::DownArrow) {
+            # Move down one row (3 fields)
+            $newIndex = $currentIndex + 3
+            if ($newIndex -lt $this.AllFields.Count) {
+                $this.List.SelectIndex($newIndex)
             }
-            elseif ($key -eq [ConsoleKey]::Escape) {
-                $global:PmcApp.PopScreen()
-                return $true
+            return $true
+        }
+        elseif ($key -eq [ConsoleKey]::LeftArrow) {
+            # Move left one field
+            if ($currentIndex -gt 0) {
+                $this.List.SelectIndex($currentIndex - 1)
             }
+            return $true
+        }
+        elseif ($key -eq [ConsoleKey]::RightArrow) {
+            # Move right one field
+            if ($currentIndex + 1 -lt $this.AllFields.Count) {
+                $this.List.SelectIndex($currentIndex + 1)
+            }
+            return $true
+        }
+        elseif ($key -eq [ConsoleKey]::Escape) {
+            $global:PmcApp.PopScreen()
+            return $true
         }
 
-        # Let parent handle other keys
+        # Let parent handle other keys (including Enter which calls OnItemActivated)
         return ([StandardListScreen]$this).HandleKeyPress($keyInfo)
     }
 

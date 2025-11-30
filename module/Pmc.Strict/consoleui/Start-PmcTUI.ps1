@@ -182,7 +182,8 @@ try {
         "UniversalList.ps1",
         "TimeEntryDetailDialog.ps1",
         "TextAreaEditor.ps1",
-        "PmcFilePicker.ps1"
+        "PmcFilePicker.ps1",
+        "TabPanel.ps1"
     )
 
     foreach ($widgetFile in $widgetFiles) {
@@ -215,6 +216,7 @@ try {
     . "$PSScriptRoot/base/StandardFormScreen.ps1"
     . "$PSScriptRoot/base/StandardListScreen.ps1"
     . "$PSScriptRoot/base/StandardDashboard.ps1"
+    . "$PSScriptRoot/base/TabbedScreen.ps1"
     Write-PmcTuiLog "Base classes loaded" "INFO"
 } catch {
     Write-PmcTuiLog "Failed to load base classes: $_" "ERROR"

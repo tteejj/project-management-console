@@ -426,15 +426,9 @@ class StandardListScreen : PmcScreen {
         }
 
         if ($this.AllowEdit) {
-            $editAction = {
-                $currentScreen = $global:PmcApp.CurrentScreen
-                $selectedItem = $currentScreen.List.GetSelectedItem()
-                if ($null -ne $selectedItem) {
-                    $currentScreen.EditItem($selectedItem)
-                }
-            }.GetNewClosure()
-            # E key for edit (Enter key triggers OnItemActivated which calls EditItem)
-            $this.List.AddAction('e', 'Edit', $editAction)
+            # Enter key triggers OnItemActivated which calls EditItem
+            # No need for separate 'e' key - Enter is sufficient
+            # (Removed 'e' key action registration)
         }
 
         if ($this.AllowDelete) {
