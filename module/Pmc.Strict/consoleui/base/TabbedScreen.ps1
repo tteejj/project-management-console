@@ -212,15 +212,13 @@ class TabbedScreen : PmcScreen {
         }
 
         # Force FULL SCREEN CLEAR to wipe old tab content from layer system
-        if ($this.App) {
-            $this.App.NeedsClear = $true
-        }
+        $this.NeedsClear = $true
 
         # Force full redraw to clear old tab content
         $this.TabPanel.Invalidate()
 
         if ($global:PmcTuiLogFile) {
-            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] TabbedScreen.OnTabChanged: Forced screen clear and TabPanel invalidated"
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] TabbedScreen.OnTabChanged: NeedsClear=$($this.NeedsClear) TabPanel invalidated"
         }
 
         # Default: update status bar
@@ -335,11 +333,14 @@ class TabbedScreen : PmcScreen {
         $this.ShowEditor = $false
         $this.CurrentEditField = $null
 
-        # Force TabPanel to invalidate and redraw (clears editor artifacts)
+        # Force FULL SCREEN CLEAR to wipe editor artifacts from layer system
+        $this.NeedsClear = $true
+
+        # Force TabPanel to invalidate and redraw
         $this.TabPanel.Invalidate()
 
         if ($global:PmcTuiLogFile) {
-            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] TabbedScreen._SaveEditedField: Editor closed, TabPanel invalidated"
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] TabbedScreen._SaveEditedField: Editor closed, NeedsClear=$($this.NeedsClear), TabPanel invalidated"
         }
 
         # Show success message

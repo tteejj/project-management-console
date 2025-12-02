@@ -214,24 +214,34 @@ class ProjectInfoScreenV4 : TabbedScreen {
             Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ProjectInfoScreenV4.SaveChanges: Saving project '$($this.ProjectName)' with $($values.Count) fields"
         }
 
-        # Update project in store
+        # Update project in store (this updates in-memory but doesn't persist)
         $success = $this.Store.UpdateProject($this.ProjectName, $values)
 
         if ($success) {
-            # DON'T reload - it wipes out the current tab state
-            # Just update status
+            # FORCE persist to disk
+            if (-not $this.Store.SaveData()) {
+                if ($this.StatusBar) {
+                    $this.StatusBar.SetRightText("Save to disk failed")
+                }
+                if ($global:PmcTuiLogFile) {
+                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ProjectInfoScreenV4.SaveChanges: SaveData FAILED"
+                }
+                return
+            }
+
+            # Update status
             if ($this.StatusBar) {
                 $this.StatusBar.SetRightText("Saved")
             }
             if ($global:PmcTuiLogFile) {
-                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ProjectInfoScreenV4.SaveChanges: Save successful"
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ProjectInfoScreenV4.SaveChanges: Save successful and persisted to disk"
             }
         } else {
             if ($this.StatusBar) {
                 $this.StatusBar.SetRightText("Save failed: $($this.Store.LastError)")
             }
             if ($global:PmcTuiLogFile) {
-                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ProjectInfoScreenV4.SaveChanges: Save FAILED - $($this.Store.LastError)"
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ProjectInfoScreenV4.SaveChanges: UpdateProject FAILED - $($this.Store.LastError)"
             }
         }
     }
