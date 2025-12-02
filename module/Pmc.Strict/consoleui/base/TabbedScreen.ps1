@@ -211,15 +211,24 @@ class TabbedScreen : PmcScreen {
             Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ========== TabbedScreen.OnTabChanged: Switched to tab $tabIndex '$tabName' =========="
         }
 
-        # Force FULL SCREEN CLEAR to wipe old tab content from layer system
-        $this.NeedsClear = $true
+        # Surgically invalidate TabPanel content region to clear old tab content
+        # Calculate Y range: contentY to contentY + max visible rows
+        # contentY = TabPanel.Y + TabBarHeight (2 rows for tabs)
+        # We need to clear the entire possible field rendering area
+        $contentY = $this.TabPanel.Y + $this.TabPanel.TabBarHeight
+        $maxRows = $this.TabPanel.Height  # Clear entire content area
+        $minY = $contentY
+        $maxY = $contentY + $maxRows
+
+        if ($this.RenderEngine) {
+            $this.RenderEngine.InvalidateCachedRegion($minY, $maxY)
+            if ($global:PmcTuiLogFile) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] TabbedScreen.OnTabChanged: Invalidated cache region Y=$minY-$maxY (no flicker)"
+            }
+        }
 
         # Force full redraw to clear old tab content
         $this.TabPanel.Invalidate()
-
-        if ($global:PmcTuiLogFile) {
-            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] TabbedScreen.OnTabChanged: NeedsClear=$($this.NeedsClear) TabPanel invalidated"
-        }
 
         # Default: update status bar
         if ($this.StatusBar) {
@@ -333,14 +342,23 @@ class TabbedScreen : PmcScreen {
         $this.ShowEditor = $false
         $this.CurrentEditField = $null
 
-        # Force FULL SCREEN CLEAR to wipe editor artifacts from layer system
-        $this.NeedsClear = $true
+        # Surgically invalidate editor region to clear artifacts
+        # InlineEditor in horizontal mode may render validation messages, borders, etc.
+        # Invalidate the field line AND next 3 lines to ensure all editor artifacts are cleared
+        if ($this.RenderEngine -and $this.InlineEditor) {
+            $editorY = $this.InlineEditor.Y
+            $editorHeight = 4  # Field + potential validation message + padding
+            $this.RenderEngine.InvalidateCachedRegion($editorY, $editorY + $editorHeight - 1)
+            if ($global:PmcTuiLogFile) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] TabbedScreen._SaveEditedField: Invalidated editor region Y=$editorY-$($editorY + $editorHeight - 1) (no flicker)"
+            }
+        }
 
         # Force TabPanel to invalidate and redraw
         $this.TabPanel.Invalidate()
 
         if ($global:PmcTuiLogFile) {
-            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] TabbedScreen._SaveEditedField: Editor closed, NeedsClear=$($this.NeedsClear), TabPanel invalidated"
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] TabbedScreen._SaveEditedField: Editor closed, TabPanel invalidated"
         }
 
         # Show success message
@@ -352,7 +370,21 @@ class TabbedScreen : PmcScreen {
     # === Input Handling ===
 
     [bool] HandleKeyPress([ConsoleKeyInfo]$keyInfo) {
-        # If editor is showing, route to it first
+        # Check Alt+key for menu bar first (before editor)
+        if ($keyInfo.Modifiers -band [ConsoleModifiers]::Alt) {
+            if ($null -ne $this.MenuBar -and $this.MenuBar.HandleKeyPress($keyInfo)) {
+                return $true
+            }
+        }
+
+        # If menu is active, route all keys to it FIRST (including Esc to close)
+        if ($null -ne $this.MenuBar -and $this.MenuBar.IsActive) {
+            if ($this.MenuBar.HandleKeyPress($keyInfo)) {
+                return $true
+            }
+        }
+
+        # If editor is showing, route to it next
         if ($this.ShowEditor) {
             $handled = $this.InlineEditor.HandleInput($keyInfo)
 
@@ -391,12 +423,18 @@ class TabbedScreen : PmcScreen {
 
         # Escape - go back
         if ($keyInfo.Key -eq 'Escape') {
-            $this.App.PopScreen()
+            $global:PmcApp.PopScreen()
             return $true
         }
 
         # Route to TabPanel
-        return $this.TabPanel.HandleInput($keyInfo)
+        $handled = $this.TabPanel.HandleInput($keyInfo)
+        if ($handled) {
+            return $true
+        }
+
+        # Not handled by TabPanel - return false so it bubbles up to app (for menu shortcuts, etc)
+        return $false
     }
 
     # === Rendering ===

@@ -204,6 +204,49 @@ class UniversalList : PmcWidget {
         }
     }
 
+    # === Helper Methods ===
+
+    <#
+    .SYNOPSIS
+    Get property value from item (handles both hashtable and PSCustomObject)
+
+    .PARAMETER item
+    The item (hashtable or PSCustomObject)
+
+    .PARAMETER propertyName
+    Property name to retrieve
+
+    .OUTPUTS
+    Property value or $null if not found
+    #>
+    hidden [object] _GetItemProperty([object]$item, [string]$propertyName) {
+        if ($null -eq $item) { return $null }
+
+        if ($item -is [hashtable]) {
+            if ($item.ContainsKey($propertyName)) {
+                return $item[$propertyName]
+            }
+        } elseif ($item.PSObject.Properties[$propertyName]) {
+            return $item.$propertyName
+        }
+
+        return $null
+    }
+
+    <#
+    .SYNOPSIS
+    Check if item has property (handles both hashtable and PSCustomObject)
+    #>
+    hidden [bool] _HasItemProperty([object]$item, [string]$propertyName) {
+        if ($null -eq $item) { return $false }
+
+        if ($item -is [hashtable]) {
+            return $item.ContainsKey($propertyName)
+        } else {
+            return $null -ne $item.PSObject.Properties[$propertyName]
+        }
+    }
+
     # === Public API Methods ===
 
     <#
@@ -907,15 +950,19 @@ class UniversalList : PmcWidget {
             }
 
             if ($global:PmcTuiLogFile) {
-                $itemDesc = if ($item.PSObject.Properties['text']) { $item.text } else { $null }
-                if (-not $itemDesc -and $item.PSObject.Properties['name']) { $itemDesc = $item.name }
-                if (-not $itemDesc -and $item.PSObject.Properties['id']) { $itemDesc = $item.id }
+                $itemDesc = $this._GetItemProperty($item, 'text')
+                if (-not $itemDesc) { $itemDesc = $this._GetItemProperty($item, 'name') }
+                if (-not $itemDesc) { $itemDesc = $this._GetItemProperty($item, 'id') }
                 if (-not $itemDesc) { $itemDesc = "unknown" }
                 Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] UniversalList._RenderList LOOP iteration $i - item=$itemDesc"
 
                 # DEBUG: Log first item's properties
                 if ($i -eq 0) {
-                    $propNames = ($item.PSObject.Properties | ForEach-Object { $_.Name }) -join ', '
+                    if ($item -is [hashtable]) {
+                        $propNames = ($item.Keys) -join ', '
+                    } else {
+                        $propNames = ($item.PSObject.Properties | ForEach-Object { $_.Name }) -join ', '
+                    }
                     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] UniversalList._RenderList FIRST ITEM PROPERTIES: $propNames"
                 }
             }
@@ -1206,7 +1253,8 @@ class UniversalList : PmcWidget {
                             Write-PmcTuiLog "Column format error for '$($col.Name)': $($_.Exception.Message)" "ERROR"
                         }
                         # Return original unformatted value instead of error text - use safe property access
-                        $value = if ($item.PSObject.Properties[$col.Name]) { $item.($col.Name) } else { "" }
+                        $value = $this._GetItemProperty($item, $col.Name)
+                        if ($null -eq $value) { $value = "" }
                     }
                 }
 
@@ -1710,7 +1758,8 @@ class UniversalList : PmcWidget {
             # Search in all columns
             $match = $false
             foreach ($col in $this._columns) {
-                $value = if ($item.PSObject.Properties[$col.Name]) { $item.($col.Name) } else { "" }
+                $value = $this._GetItemProperty($item, $col.Name)
+                if ($null -eq $value) { $value = "" }
                 if ($null -ne $value) {
                     $valueStr = $value.ToString().ToLower()
                     if ($valueStr.Contains($searchLower)) {
@@ -1970,8 +2019,9 @@ class UniversalList : PmcWidget {
             $currentX = 2
 
             foreach ($col in $this._columns) {
-                $cellValue = if ($item.PSObject.Properties[$col.Name]) {
-                    $item.($col.Name)
+                $cellValue = $this._GetItemProperty($item, $col.Name)
+                if ($null -eq $cellValue) {
+                    $cellValue = ""
                 } else {
                     ""
                 }

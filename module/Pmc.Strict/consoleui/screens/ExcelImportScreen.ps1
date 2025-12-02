@@ -60,7 +60,13 @@ class ExcelImportScreen : PmcScreen {
     }
 
     hidden [void] _InitializeScreen() {
-        $this._reader = [ExcelComReader]::new()
+        try {
+            $this._reader = [ExcelComReader]::new()
+        } catch {
+            $this._errorMessage = "Excel COM not available: $($_.Exception.Message). Excel must be installed to use this feature."
+            Write-PmcTuiLog "ExcelImportScreen: Failed to initialize ExcelComReader - $_" "ERROR"
+        }
+
         $this._mappingService = [ExcelMappingService]::GetInstance()
 
         # CRITICAL FIX #1: Initialize TaskStore for AddProject() call at line 379
@@ -123,6 +129,27 @@ class ExcelImportScreen : PmcScreen {
         $sb.Append($this.Header.BuildMoveTo(2, $y))
         $sb.Append("`e[1mStep 1: Connect to Excel`e[0m")
         $y += 2
+
+        # Check if Excel COM is available
+        if ($null -eq $this._reader) {
+            $sb.Append($this.Header.BuildMoveTo(4, $y))
+            $sb.Append("`e[31m")  # Red text
+            $sb.Append("Excel COM is not available on this system.")
+            $sb.Append("`e[0m")
+            $y += 2
+
+            $sb.Append($this.Header.BuildMoveTo(4, $y))
+            $sb.Append("`e[90m")  # Gray text
+            $sb.Append("This feature requires Microsoft Excel to be installed.")
+            $sb.Append("`e[0m")
+            $y++
+
+            $sb.Append($this.Header.BuildMoveTo(4, $y))
+            $sb.Append("`e[90m")  # Gray text
+            $sb.Append("Press Esc to return to the project list.")
+            $sb.Append("`e[0m")
+            return
+        }
 
         # Option 1: Attach to running Excel
         $sb.Append($this.Header.BuildMoveTo(4, $y))
@@ -291,6 +318,11 @@ class ExcelImportScreen : PmcScreen {
 
         # Enter - Next step
         if ($keyInfo.Key -eq ([ConsoleKey]::Enter)) {
+            # Don't allow proceeding if Excel COM is not available
+            if ($null -eq $this._reader -and $this._step -eq 1) {
+                $this._errorMessage = "Excel COM not available. Cannot proceed."
+                return $true
+            }
             $this._ProcessStep()
             return $true
         }
@@ -325,6 +357,13 @@ class ExcelImportScreen : PmcScreen {
     }
 
     hidden [void] _ProcessStep() {
+        # Check if Excel COM is available
+        if ($null -eq $this._reader -and $this._step -eq 1) {
+            $this._errorMessage = "Excel COM not available. Excel must be installed to use this feature."
+            Write-PmcTuiLog "ExcelImportScreen: Cannot proceed - ExcelComReader is null" "ERROR"
+            return
+        }
+
         try {
             switch ($this._step) {
                 1 {

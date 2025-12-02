@@ -223,11 +223,11 @@ class TaskStore {
                 Write-PmcTuiLog "TaskStore.LoadData: Calling Get-PmcData" "DEBUG"
                 $pmcModule = Get-Module -Name 'Pmc.Strict'
                 $pmcData = & $pmcModule { Get-PmcData }
-                Write-PmcTuiLog "TaskStore.LoadData: Get-PmcData returned, has tasks: $($null -ne $pmcData.tasks), count: $($pmcData.tasks.Count)" "DEBUG"
+                Write-PmcTuiLog "TaskStore.LoadData: Get-PmcData returned - tasks=$($pmcData.tasks.Count) projects=$($pmcData.projects.Count) timelogs=$($pmcData.timelogs.Count)" "DEBUG"
 
                 if ($null -eq $pmcData) {
-                    $this.LastError = "Get-PmcAllData returned null"
-                    Write-PmcTuiLog "TaskStore.LoadData: ERROR - Get-PmcAllData returned null" "ERROR"
+                    $this.LastError = "Get-PmcData returned null"
+                    Write-PmcTuiLog "TaskStore.LoadData: ERROR - Get-PmcData returned null" "ERROR"
                     $this._InvokeCallback($this.OnLoadError, $this.LastError)
                     return $false
                 }
@@ -267,8 +267,14 @@ class TaskStore {
                             [void]$this._data.projects.Add($project)
                         }
                     }
+                    Write-PmcTuiLog "TaskStore.LoadData: Loaded $($this._data.projects.Count) projects" "DEBUG"
+                    if ($this._data.projects.Count -gt 0) {
+                        $firstProj = $this._data.projects[0]
+                        Write-PmcTuiLog "TaskStore.LoadData: First project name='$(Get-SafeProperty $firstProj 'name')' ID1='$(Get-SafeProperty $firstProj 'ID1')'" "DEBUG"
+                    }
                 } else {
                     $this._data.projects = [System.Collections.ArrayList]::new()
+                    Write-PmcTuiLog "TaskStore.LoadData: No projects in data, initialized empty list" "DEBUG"
                 }
 
                 if ($pmcData.timelogs) {
@@ -359,7 +365,12 @@ class TaskStore {
                     settings = $this._data.settings
                 }
 
-                Write-PmcTuiLog "SaveData: Calling Save-PmcData with $($dataToSave.tasks.Count) tasks" "DEBUG"
+                Write-PmcTuiLog "SaveData: Calling Save-PmcData with tasks=$($dataToSave.tasks.Count) projects=$($dataToSave.projects.Count) timelogs=$($dataToSave.timelogs.Count)" "DEBUG"
+                if ($dataToSave.projects.Count -gt 0) {
+                    $firstProject = $dataToSave.projects[0]
+                    Write-PmcTuiLog "SaveData: First project name='$($firstProject.name)' ID1='$(Get-SafeProperty $firstProject 'ID1')'" "DEBUG"
+                }
+
                 # FIX: Call Save-PmcData via explicit module invocation
                 $pmcModule = Get-Module -Name 'Pmc.Strict'
                 & $pmcModule { param($data) Save-PmcData -Data $data } $dataToSave
@@ -913,37 +924,63 @@ class TaskStore {
     [bool] UpdateProject([string]$name, [hashtable]$changes) {
         [Monitor]::Enter($this._dataLock)
         try {
+            Write-PmcTuiLog "UpdateProject: START - name='$name' changes=$($changes.Count)" "DEBUG"
+
             # Find project
             $project = $this._data.projects | Where-Object { $_.name -eq $name } | Select-Object -First 1
 
             if ($null -eq $project) {
                 $this.LastError = "Project not found: $name"
+                Write-PmcTuiLog "UpdateProject: Project not found: $name" "ERROR"
                 return $false
             }
+
+            Write-PmcTuiLog "UpdateProject: Found project, type=$($project.GetType().Name) BEFORE ID1='$(Get-SafeProperty $project 'ID1')'" "DEBUG"
 
             # Create backup BEFORE any modifications
             $this._CreateBackup()
 
-            # Apply changes - use Add-Member for PSObject compatibility
+            # Apply changes - handle both hashtable and PSCustomObject
             foreach ($key in $changes.Keys) {
-                if ($project.PSObject.Properties.Name -contains $key) {
-                    $project.$key = $changes[$key]
+                if ($key -eq 'ID1') {
+                    Write-PmcTuiLog "UpdateProject: Updating ID1 from '$(Get-SafeProperty $project 'ID1')' to '$($changes[$key])'" "DEBUG"
+                }
+
+                # Check if hashtable or PSCustomObject
+                if ($project -is [hashtable]) {
+                    # Hashtable: direct assignment
+                    $project[$key] = $changes[$key]
+                    if ($key -eq 'ID1') {
+                        Write-PmcTuiLog "UpdateProject: Hashtable assignment - project['ID1']='$($project[$key])'" "DEBUG"
+                    }
                 } else {
-                    Add-Member -InputObject $project -MemberType NoteProperty -Name $key -Value $changes[$key] -Force
+                    # PSCustomObject: use PSObject.Properties or Add-Member
+                    if ($project.PSObject.Properties.Name -contains $key) {
+                        $project.$key = $changes[$key]
+                    } else {
+                        Add-Member -InputObject $project -MemberType NoteProperty -Name $key -Value $changes[$key] -Force
+                    }
                 }
             }
 
+            Write-PmcTuiLog "UpdateProject: AFTER applying changes - ID1='$(Get-SafeProperty $project 'ID1')'" "DEBUG"
+
             # Update modified timestamp
-            if ($project.PSObject.Properties.Name -contains 'modified') {
-                $project.modified = Get-Date
+            if ($project -is [hashtable]) {
+                $project['modified'] = Get-Date
             } else {
-                Add-Member -InputObject $project -MemberType NoteProperty -Name 'modified' -Value (Get-Date) -Force
+                if ($project.PSObject.Properties.Name -contains 'modified') {
+                    $project.modified = Get-Date
+                } else {
+                    Add-Member -InputObject $project -MemberType NoteProperty -Name 'modified' -Value (Get-Date) -Force
+                }
             }
 
             # Validate updated project
             $validationErrors = $this._ValidateEntity($project, 'project')
             if ($validationErrors.Count -gt 0) {
                 $this.LastError = "Project validation failed: $($validationErrors -join ', ')"
+                Write-PmcTuiLog "UpdateProject: Validation FAILED - $($validationErrors -join ', ')" "ERROR"
                 $this._Rollback()
                 return $false
             }
@@ -951,11 +988,22 @@ class TaskStore {
             # Mark pending changes
             $this.HasPendingChanges = $true
 
+            # Verify the change is in the projects array BEFORE SaveData
+            $verifyProject = $this._data.projects | Where-Object { $_.name -eq $name } | Select-Object -First 1
+            if ($verifyProject) {
+                Write-PmcTuiLog "UpdateProject: VERIFY before SaveData - project in array has ID1='$(Get-SafeProperty $verifyProject 'ID1')'" "DEBUG"
+            }
+
             # Persist only if AutoSave is enabled
             if ($this.AutoSave) {
+                Write-PmcTuiLog "UpdateProject: AutoSave is enabled, calling SaveData" "DEBUG"
                 if (-not $this.SaveData()) {
+                    Write-PmcTuiLog "UpdateProject: SaveData FAILED" "ERROR"
                     return $false
                 }
+                Write-PmcTuiLog "UpdateProject: SaveData succeeded" "DEBUG"
+            } else {
+                Write-PmcTuiLog "UpdateProject: AutoSave is DISABLED, skipping SaveData" "WARNING"
             }
 
             # Fire events

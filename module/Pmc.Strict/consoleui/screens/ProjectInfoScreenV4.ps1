@@ -107,7 +107,12 @@ class ProjectInfoScreenV4 : TabbedScreen {
     }
 
     hidden [object] _GetValue([string]$key) {
-        if ($this.ProjectData.PSObject.Properties[$key]) {
+        # Handle both hashtable and PSCustomObject
+        if ($this.ProjectData -is [hashtable]) {
+            if ($this.ProjectData.ContainsKey($key)) {
+                return $this.ProjectData[$key]
+            }
+        } elseif ($this.ProjectData.PSObject.Properties[$key]) {
             return $this.ProjectData.$key
         }
         return $null
@@ -211,22 +216,60 @@ class ProjectInfoScreenV4 : TabbedScreen {
         $values = $this.TabPanel.GetAllValues()
 
         if ($global:PmcTuiLogFile) {
-            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ProjectInfoScreenV4.SaveChanges: Saving project '$($this.ProjectName)' with $($values.Count) fields"
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ProjectInfoScreenV4.SaveChanges: START - project='$($this.ProjectName)' fields=$($values.Count)"
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ProjectInfoScreenV4.SaveChanges: Field values: $($values.Keys -join ', ')"
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ProjectInfoScreenV4.SaveChanges: Store.AutoSave=$($this.Store.AutoSave)"
+        }
+
+        # Get project BEFORE update to compare
+        $projectBefore = $this.Store.GetProject($this.ProjectName)
+        if ($global:PmcTuiLogFile -and $projectBefore) {
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ProjectInfoScreenV4.SaveChanges: BEFORE update - ID1='$($projectBefore.ID1)'"
         }
 
         # Update project in store (this updates in-memory but doesn't persist)
         $success = $this.Store.UpdateProject($this.ProjectName, $values)
 
         if ($success) {
-            # FORCE persist to disk
+            # Get project AFTER update to verify
+            $projectAfter = $this.Store.GetProject($this.ProjectName)
+            if ($global:PmcTuiLogFile -and $projectAfter) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ProjectInfoScreenV4.SaveChanges: AFTER UpdateProject - ID1='$($projectAfter.ID1)'"
+            }
+
+            # FORCE persist to disk (UpdateProject already persists if AutoSave is true)
+            # But we double-check by explicitly calling SaveData
             if (-not $this.Store.SaveData()) {
                 if ($this.StatusBar) {
-                    $this.StatusBar.SetRightText("Save to disk failed")
+                    $this.StatusBar.SetRightText("Save to disk failed: $($this.Store.LastError)")
                 }
                 if ($global:PmcTuiLogFile) {
-                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ProjectInfoScreenV4.SaveChanges: SaveData FAILED"
+                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ProjectInfoScreenV4.SaveChanges: SaveData FAILED - $($this.Store.LastError)"
                 }
                 return
+            }
+
+            # Verify file on disk
+            if ($global:PmcTuiLogFile) {
+                # Get actual task file path from Pmc module
+                $pmcModule = Get-Module -Name 'Pmc.Strict'
+                $taskFile = & $pmcModule { Get-PmcTaskFilePath }
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ProjectInfoScreenV4.SaveChanges: Verifying tasks file: $taskFile"
+                if (Test-Path $taskFile) {
+                    try {
+                        $fileContent = Get-Content $taskFile -Raw | ConvertFrom-Json
+                        $savedProject = $fileContent.projects | Where-Object { $_.name -eq $this.ProjectName } | Select-Object -First 1
+                        if ($savedProject) {
+                            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ProjectInfoScreenV4.SaveChanges: File verification SUCCESS - project found, ID1='$($savedProject.ID1)'"
+                        } else {
+                            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ProjectInfoScreenV4.SaveChanges: File verification FAILED - PROJECT NOT FOUND (projects count=$($fileContent.projects.Count))"
+                        }
+                    } catch {
+                        Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ProjectInfoScreenV4.SaveChanges: File verification ERROR - $_"
+                    }
+                } else {
+                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ProjectInfoScreenV4.SaveChanges: File verification FAILED - FILE DOES NOT EXIST at $taskFile"
+                }
             }
 
             # Update status
@@ -234,7 +277,7 @@ class ProjectInfoScreenV4 : TabbedScreen {
                 $this.StatusBar.SetRightText("Saved")
             }
             if ($global:PmcTuiLogFile) {
-                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ProjectInfoScreenV4.SaveChanges: Save successful and persisted to disk"
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ProjectInfoScreenV4.SaveChanges: SUCCESS - persisted to disk"
             }
         } else {
             if ($this.StatusBar) {
