@@ -49,30 +49,51 @@ class ExcelImportScreen : PmcScreen {
         }, 40)
     }
 
-    # Legacy constructor (backward compatible)
+    # Constructor
     ExcelImportScreen() : base("ExcelImport", "Import from Excel") {
-        $this._InitializeScreen()
-    }
+        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') ========== EXCELIMPORTSCREEN CONSTRUCTOR CALLED =========="
 
-    # Container constructor
-    ExcelImportScreen([object]$container) : base("ExcelImport", "Import from Excel", $container) {
-        $this._InitializeScreen()
-    }
-
-    hidden [void] _InitializeScreen() {
         try {
             $this._reader = [ExcelComReader]::new()
+            Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') EXCELIMPORTSCREEN: ExcelComReader created successfully"
         } catch {
             $this._errorMessage = "Excel COM not available: $($_.Exception.Message). Excel must be installed to use this feature."
+            Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') EXCELIMPORTSCREEN: FAILED to create ExcelComReader - $($_.Exception.Message)"
             Write-PmcTuiLog "ExcelImportScreen: Failed to initialize ExcelComReader - $_" "ERROR"
         }
 
         $this._mappingService = [ExcelMappingService]::GetInstance()
-
-        # CRITICAL FIX #1: Initialize TaskStore for AddProject() call at line 379
         $this.Store = [TaskStore]::GetInstance()
 
-        # ES-H4 FIX: Validate Store initialization
+        if ($null -eq $this.Store) {
+            throw "Failed to initialize TaskStore singleton. Cannot proceed with Excel import."
+        }
+
+        # Configure header
+        $this.Header.SetBreadcrumb(@("Projects", "Import from Excel"))
+
+        # Configure footer
+        $this.Footer.ClearShortcuts()
+        $this.Footer.AddShortcut("Enter", "Next")
+        $this.Footer.AddShortcut("Esc", "Cancel")
+    }
+
+    # Constructor with container
+    ExcelImportScreen([object]$container) : base("ExcelImport", "Import from Excel", $container) {
+        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') ========== EXCELIMPORTSCREEN CONTAINER CONSTRUCTOR CALLED =========="
+
+        try {
+            $this._reader = [ExcelComReader]::new()
+            Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') EXCELIMPORTSCREEN: ExcelComReader created successfully"
+        } catch {
+            $this._errorMessage = "Excel COM not available: $($_.Exception.Message). Excel must be installed to use this feature."
+            Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') EXCELIMPORTSCREEN: FAILED to create ExcelComReader - $($_.Exception.Message)"
+            Write-PmcTuiLog "ExcelImportScreen: Failed to initialize ExcelComReader - $_" "ERROR"
+        }
+
+        $this._mappingService = [ExcelMappingService]::GetInstance()
+        $this.Store = [TaskStore]::GetInstance()
+
         if ($null -eq $this.Store) {
             throw "Failed to initialize TaskStore singleton. Cannot proceed with Excel import."
         }
@@ -94,6 +115,7 @@ class ExcelImportScreen : PmcScreen {
     }
 
     [string] Render() {
+        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') EXCELIMPORTSCREEN.Render: CALLED step=$($this._step)"
         $sb = [StringBuilder]::new()
 
         # Render base widgets
@@ -109,10 +131,22 @@ class ExcelImportScreen : PmcScreen {
 
         # Render based on step
         switch ($this._step) {
-            1 { $this._RenderStep1($sb, $y, $contentWidth) }
-            2 { $this._RenderStep2($sb, $y, $contentWidth) }
-            3 { $this._RenderStep3($sb, $y, $contentWidth) }
-            4 { $this._RenderStep4($sb, $y, $contentWidth) }
+            1 {
+                Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') EXCELIMPORTSCREEN.Render: Calling _RenderStep1"
+                $this._RenderStep1($sb, $y, $contentWidth)
+            }
+            2 {
+                Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') EXCELIMPORTSCREEN.Render: Calling _RenderStep2"
+                $this._RenderStep2($sb, $y, $contentWidth)
+            }
+            3 {
+                Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') EXCELIMPORTSCREEN.Render: Calling _RenderStep3"
+                $this._RenderStep3($sb, $y, $contentWidth)
+            }
+            4 {
+                Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') EXCELIMPORTSCREEN.Render: Calling _RenderStep4"
+                $this._RenderStep4($sb, $y, $contentWidth)
+            }
         }
 
         # Render error if any
@@ -202,7 +236,15 @@ class ExcelImportScreen : PmcScreen {
         } else {
             # HIGH FIX ES-H2: Validate GetActiveProfile() return before property access
             $activeProfile = $this._mappingService.GetActiveProfile()
-            $activeId = if ($null -ne $activeProfile -and $activeProfile.ContainsKey('id')) { $activeProfile['id'] } else { $null }
+            $activeId = if ($null -ne $activeProfile) {
+                if ($activeProfile -is [hashtable]) {
+                    if ($activeProfile.ContainsKey('id')) { $activeProfile['id'] } else { $null }
+                } else {
+                    if ($activeProfile.PSObject.Properties['id']) { $activeProfile.id } else { $null }
+                }
+            } else {
+                $null
+            }
 
             for ($i = 0; $i -lt $profiles.Count; $i++) {
                 $profile = $profiles[$i]
@@ -211,14 +253,27 @@ class ExcelImportScreen : PmcScreen {
                     Write-PmcTuiLog "ExcelImportScreen: Null profile at index $i" "WARNING"
                     continue
                 }
-                $profileId = if ($profile.ContainsKey('id')) { $profile['id'] } else { $null }
+
+                # Handle both hashtables and PSCustomObjects
+                $profileId = if ($profile -is [hashtable]) {
+                    if ($profile.ContainsKey('id')) { $profile['id'] } else { $null }
+                } else {
+                    if ($profile.PSObject.Properties['id']) { $profile.id } else { $null }
+                }
                 $isActive = if ($profileId -eq $activeId) { " [ACTIVE]" } else { "" }
 
                 $sb.Append($this.Header.BuildMoveTo(4, $y + $i))
                 if ($i -eq $this._selectedOption) {
                     $sb.Append("`e[7m")
                 }
-                $profileName = if ($profile.ContainsKey('name')) { $profile['name'] } else { 'Unnamed' }
+
+                # Handle both hashtables and PSCustomObjects
+                $profileName = if ($profile -is [hashtable]) {
+                    if ($profile.ContainsKey('name')) { $profile['name'] } else { 'Unnamed' }
+                } else {
+                    if ($profile.PSObject.Properties['name']) { $profile.name } else { 'Unnamed' }
+                }
+
                 $sb.Append("$($i + 1). $profileName$isActive")
                 if ($i -eq $this._selectedOption) {
                     $sb.Append("`e[0m")
@@ -240,8 +295,12 @@ class ExcelImportScreen : PmcScreen {
         }
 
         # HIGH FIX ES-H4: Validate profile name before string interpolation
-        $profileName = if ($null -ne $this._activeProfile -and $this._activeProfile.ContainsKey('name')) {
-            $this._activeProfile['name']
+        $profileName = if ($null -ne $this._activeProfile) {
+            if ($this._activeProfile -is [hashtable]) {
+                if ($this._activeProfile.ContainsKey('name')) { $this._activeProfile['name'] } else { 'Unnamed Profile' }
+            } else {
+                if ($this._activeProfile.PSObject.Properties['name']) { $this._activeProfile.name } else { 'Unnamed Profile' }
+            }
         } else {
             'Unnamed Profile'
         }
@@ -464,7 +523,6 @@ class ExcelImportScreen : PmcScreen {
                         }
 
                         $this._step = 3
-                }
                         $this._selectedOption = 0
                     }
                 }

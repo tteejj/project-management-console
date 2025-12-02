@@ -164,8 +164,8 @@ class UniversalList : PmcWidget {
 
     # === Private State ===
     hidden [List[hashtable]]$_columns = [List[hashtable]]::new()         # Column definitions
-    hidden [array]$_data = @()                                           # Original data array
-    hidden [array]$_filteredData = @()                                   # Filtered/sorted data
+    hidden [object[]]$_data = @()                                        # Original data array
+    hidden [object[]]$_filteredData = @()                                # Filtered/sorted data
     hidden [int]$_selectedIndex = 0                                      # Selected item index
     hidden [HashSet[int]]$_selectedIndices = [HashSet[int]]::new()       # Multi-select indices
     hidden [int]$_scrollOffset = 0                                       # Virtual scroll offset
@@ -303,23 +303,70 @@ class UniversalList : PmcWidget {
     Array of objects to display
     #>
     [void] SetData([array]$data) {
-        $this._data = if ($null -ne $data) { @($data) } else { @() }
-        $this._filteredData = @($this._data)
+        try {
+            $dataTypeStr = if ($null -eq $data) { "NULL" } else { $data.GetType().FullName }
+            Write-PmcTuiLog "UniversalList.SetData: START, data param type=$dataTypeStr" "DEBUG"
+        } catch {
+            Write-PmcTuiLog "UniversalList.SetData: ERROR getting data type: $_" "ERROR"
+        }
+        try {
+            Write-PmcTuiLog "UniversalList.SetData: About to assign _data" "DEBUG"
+            if ($null -ne $data) {
+                $this._data = [object[]]@($data)
+            } else {
+                $this._data = [object[]]@()
+            }
+            Write-PmcTuiLog "UniversalList.SetData: _data assigned successfully" "DEBUG"
+            Write-PmcTuiLog "UniversalList.SetData: About to check _data type" "DEBUG"
+            $dataType = $this._data.GetType().FullName
+            Write-PmcTuiLog "UniversalList.SetData: _data type=$dataType" "DEBUG"
+            Write-PmcTuiLog "UniversalList.SetData: About to access _data.Count" "DEBUG"
+            $dataCount = $this._data.Count
+            Write-PmcTuiLog "UniversalList.SetData: _data.Count=$dataCount" "DEBUG"
+        } catch {
+            Write-PmcTuiLog "UniversalList.SetData: ERROR in _data assignment: $_" "ERROR"
+            Write-PmcTuiLog "UniversalList.SetData: Stack: $($_.ScriptStackTrace)" "ERROR"
+            throw
+        }
+        $this._filteredData = [object[]]@($this._data)
+        Write-PmcTuiLog "UniversalList.SetData: _filteredData assigned" "DEBUG"
         $this._selectedIndex = 0
         $this._scrollOffset = 0
+        Write-PmcTuiLog "UniversalList.SetData: About to clear _selectedIndices" "DEBUG"
         $this._selectedIndices.Clear()
+        Write-PmcTuiLog "UniversalList.SetData: _selectedIndices cleared" "DEBUG"
+
+        Write-PmcTuiLog "UniversalList.SetData: Received $($this._data.Count) items" "DEBUG"
+        if ($this._data.Count -gt 0) {
+            $firstItem = $this._data[0]
+            if ($null -ne $firstItem) {
+                Write-PmcTuiLog "UniversalList.SetData: First item type=$($firstItem.GetType().Name) isHashtable=$($firstItem -is [hashtable])" "DEBUG"
+                if ($firstItem -is [hashtable]) {
+                    Write-PmcTuiLog "UniversalList.SetData: First item keys: $($firstItem.Keys -join ', ')" "DEBUG"
+                }
+            } else {
+                Write-PmcTuiLog "UniversalList.SetData: First item is null" "DEBUG"
+            }
+        }
 
         # Invalidate row cache when data changes
+        Write-PmcTuiLog "UniversalList.SetData: Incrementing cache generation" "DEBUG"
         $this._cacheGeneration++
+        Write-PmcTuiLog "UniversalList.SetData: Clearing row cache" "DEBUG"
         $this._rowCache.Clear()
         # H-MEM-1: Clear LRU access order as well
+        Write-PmcTuiLog "UniversalList.SetData: Clearing cache access order" "DEBUG"
         $this._cacheAccessOrder.Clear()
 
         # Apply any active filters/search
+        Write-PmcTuiLog "UniversalList.SetData: Applying filters" "DEBUG"
         $this._ApplyFilters()
+        Write-PmcTuiLog "UniversalList.SetData: Applying search" "DEBUG"
         $this._ApplySearch()
 
+        Write-PmcTuiLog "UniversalList.SetData: Invoking OnDataChanged callback" "DEBUG"
         $this._InvokeCallback($this.OnDataChanged, $this._data)
+        Write-PmcTuiLog "UniversalList.SetData: COMPLETE" "DEBUG"
     }
 
     <#
@@ -957,7 +1004,7 @@ class UniversalList : PmcWidget {
                 Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] UniversalList._RenderList LOOP iteration $i - item=$itemDesc"
 
                 # DEBUG: Log first item's properties
-                if ($i -eq 0) {
+                if ($i -eq 0 -and $null -ne $item) {
                     if ($item -is [hashtable]) {
                         $propNames = ($item.Keys) -join ', '
                     } else {
@@ -1131,13 +1178,8 @@ class UniversalList : PmcWidget {
 
                 # If not editing, get normal value - handle both hashtables and PSObjects
                 if (-not $hasEditValue) {
-                    $value = if ($item -is [hashtable]) {
-                        if ($item.ContainsKey($col.Name)) { $item[$col.Name] } else { "" }
-                    } elseif ($item.PSObject.Properties[$col.Name]) {
-                        $item.($col.Name)
-                    } else {
-                        ""
-                    }
+                    $value = $this._GetItemProperty($item, $col.Name)
+                    if ($null -eq $value) { $value = "" }
                     Write-PmcTuiLog "UniversalList._RenderList: Using NORMAL value for row=$i col=$($col.Name): '$value'" "DEBUG"
                     Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') CELL[$i,$columnIndex $($col.Name)] Using NORMAL value: '$value'"
                 } else {
@@ -1510,10 +1552,9 @@ class UniversalList : PmcWidget {
             if ($null -ne $selectedItem) {
                 $preview = "Selected: "
                 # Handle both hashtables and objects - items may have 'text' or 'name' property
-                $text = if ($selectedItem.PSObject.Properties['text']) { $selectedItem.text }
-                        elseif ($selectedItem.PSObject.Properties['name']) { $selectedItem.name }
-                        else { $null }
-                $id = if ($selectedItem.PSObject.Properties['id']) { $selectedItem.id } else { $null }
+                $text = $this._GetItemProperty($selectedItem, 'text')
+                if (-not $text) { $text = $this._GetItemProperty($selectedItem, 'name') }
+                $id = $this._GetItemProperty($selectedItem, 'id')
 
                 if ($text) {
                     $preview += $text
@@ -2022,12 +2063,17 @@ class UniversalList : PmcWidget {
                 $cellValue = $this._GetItemProperty($item, $col.Name)
                 if ($null -eq $cellValue) {
                     $cellValue = ""
+                }
+
+                # Format cell value - convert to string
+                $cellText = if ($cellValue -is [array]) {
+                    ($cellValue -join ', ')
+                } elseif ($null -ne $cellValue) {
+                    $cellValue.ToString()
                 } else {
                     ""
                 }
 
-                # Format cell value
-                $cellText = $this._FormatCellValue($cellValue, $col.Type)
                 $width = if ($this._columnWidths.ContainsKey($col.Name)) {
                     $this._columnWidths[$col.Name]
                 } else {

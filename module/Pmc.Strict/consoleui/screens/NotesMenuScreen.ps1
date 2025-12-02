@@ -382,14 +382,15 @@ class NotesMenuScreen : StandardListScreen {
     Add custom keyboard shortcuts
     #>
     [array] GetCustomActions() {
+        $self = $this
         return @(
             @{
                 Key = 'O'
                 Label = 'Open'
                 Callback = {
-                    $selected = $this.List.GetSelectedItem()
+                    $selected = $self.List.GetSelectedItem()
                     if ($selected) {
-                        $this.OnItemActivated($selected)
+                        $self.OnItemActivated($selected)
                     }
                 }.GetNewClosure()
             }

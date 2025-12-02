@@ -30,19 +30,39 @@ class ExcelProfileManagerScreen : StandardListScreen {
         }, 50)
     }
 
-    # Legacy constructor (backward compatible)
+    # Constructor
     ExcelProfileManagerScreen() : base("ExcelProfiles", "Excel Import Profiles") {
-        $this._InitializeScreen()
-    }
+        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') ========== EXCELPROFILEMANAGERSCREEN CONSTRUCTOR CALLED =========="
 
-    # Container constructor
-    ExcelProfileManagerScreen([object]$container) : base("ExcelProfiles", "Excel Import Profiles", $container) {
-        $this._InitializeScreen()
-    }
-
-    hidden [void] _InitializeScreen() {
         # Initialize service
         $this._mappingService = [ExcelMappingService]::GetInstance()
+        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') EXCELPROFILEMANAGERSCREEN: Got mappingService"
+
+        # Configure capabilities
+        $this.AllowAdd = $true
+        $this.AllowEdit = $true
+        $this.AllowDelete = $true
+        $this.AllowFilter = $false
+
+        # Configure header
+        $this.Header.SetBreadcrumb(@("Home", "Projects", "Excel Profiles"))
+
+        # Setup event handlers
+        $self = $this
+        $this._mappingService.OnProfilesChanged = {
+            if ($null -ne $self -and $self.IsActive) {
+                $self.LoadData()
+            }
+        }.GetNewClosure()
+    }
+
+    # Constructor with container
+    ExcelProfileManagerScreen([object]$container) : base("ExcelProfiles", "Excel Import Profiles", $container) {
+        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') ========== EXCELPROFILEMANAGERSCREEN CONTAINER CONSTRUCTOR CALLED =========="
+
+        # Initialize service
+        $this._mappingService = [ExcelMappingService]::GetInstance()
+        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') EXCELPROFILEMANAGERSCREEN: Got mappingService"
 
         # Configure capabilities
         $this.AllowAdd = $true
@@ -75,6 +95,7 @@ class ExcelProfileManagerScreen : StandardListScreen {
     }
 
     [array] GetColumns() {
+        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') EXCELPROFILEMANAGERSCREEN.GetColumns: CALLED"
         return @(
             @{ Name='name'; Label='Profile Name'; Width=30 }
             @{ Name='description'; Label='Description'; Width=40 }
@@ -84,20 +105,47 @@ class ExcelProfileManagerScreen : StandardListScreen {
     }
 
     [void] LoadData() {
-        $items = $this.LoadItems()
-        $this.List.SetData($items)
+        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') EXCELPROFILEMANAGERSCREEN.LoadData: CALLED"
+        try {
+            $items = $this.LoadItems()
+            Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') EXCELPROFILEMANAGERSCREEN.LoadData: Got $($items.Count) items from LoadItems()"
+            Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') EXCELPROFILEMANAGERSCREEN.LoadData: About to call List.SetData"
+            Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') EXCELPROFILEMANAGERSCREEN.LoadData: List is null? $($null -eq $this.List)"
+            $this.List.SetData($items)
+            Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') EXCELPROFILEMANAGERSCREEN.LoadData: SetData complete"
+        } catch {
+            Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') EXCELPROFILEMANAGERSCREEN.LoadData: EXCEPTION - $($_.Exception.Message)"
+            Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') EXCELPROFILEMANAGERSCREEN.LoadData: STACK - $($_.ScriptStackTrace)"
+            throw
+        }
     }
 
     # Helper method - not part of StandardListScreen contract
     [array] LoadItems() {
+        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') EXCELPROFILEMANAGERSCREEN.LoadItems: START"
         $profiles = @($this._mappingService.GetAllProfiles())
+        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') EXCELPROFILEMANAGERSCREEN.LoadItems: Got $($profiles.Count) profiles from service"
+        Write-PmcTuiLog "ExcelProfileManagerScreen.LoadItems: Got $($profiles.Count) profiles from service" "DEBUG"
+
         $activeProfile = $this._mappingService.GetActiveProfile()
         $activeId = if ($activeProfile) { $activeProfile['id'] } else { $null }
 
         # Format for display
         foreach ($profile in $profiles) {
-            $profile['mapping_count'] = if ($profile['mappings']) { $profile['mappings'].Count } else { 0 }
-            $profile['is_active'] = if ($profile['id'] -eq $activeId) { "Yes" } else { "No" }
+            if ($null -ne $profile) {
+                Write-PmcTuiLog "ExcelProfileManagerScreen.LoadItems: Processing profile - type=$($profile.GetType().Name) isHashtable=$($profile -is [hashtable])" "DEBUG"
+                if ($profile -is [hashtable]) {
+                    Write-PmcTuiLog "ExcelProfileManagerScreen.LoadItems: Profile keys: $($profile.Keys -join ', ')" "DEBUG"
+                    Write-PmcTuiLog "ExcelProfileManagerScreen.LoadItems: Profile name='$($profile['name'])' desc='$($profile['description'])'" "DEBUG"
+                }
+
+                $profile['mapping_count'] = if ($profile['mappings']) { $profile['mappings'].Count } else { 0 }
+                $profile['is_active'] = if ($profile['id'] -eq $activeId) { "Yes" } else { "No" }
+
+                Write-PmcTuiLog "ExcelProfileManagerScreen.LoadItems: After formatting - mapping_count=$($profile['mapping_count']) is_active=$($profile['is_active'])" "DEBUG"
+            } else {
+                Write-PmcTuiLog "ExcelProfileManagerScreen.LoadItems: Null profile in list" "DEBUG"
+            }
         }
 
         return $profiles

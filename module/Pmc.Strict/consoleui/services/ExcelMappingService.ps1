@@ -59,23 +59,40 @@ class ExcelMappingService {
 
     # === Profile Management ===
     hidden [void] LoadProfiles() {
+        Write-PmcTuiLog "ExcelMappingService.LoadProfiles: START - file=$($this._profilesFile)" "DEBUG"
         if (Test-Path $this._profilesFile) {
             # CRITICAL FIX ES-C3: Robust JSON parsing with null validation
             try {
                 $jsonContent = Get-Content $this._profilesFile -Raw -ErrorAction Stop
+                Write-PmcTuiLog "ExcelMappingService.LoadProfiles: Read $($jsonContent.Length) chars from file" "DEBUG"
                 $json = $jsonContent | ConvertFrom-Json -ErrorAction Stop
+                Write-PmcTuiLog "ExcelMappingService.LoadProfiles: JSON parsed successfully" "DEBUG"
 
                 if ($null -eq $json) {
                     throw "JSON deserialization returned null"
                 }
 
+                Write-PmcTuiLog "ExcelMappingService.LoadProfiles: Checking for active_profile_id property" "DEBUG"
+                if (-not $json.PSObject.Properties['active_profile_id']) {
+                    throw "JSON missing 'active_profile_id' property"
+                }
                 $this._profilesCache = @{}
                 $this._activeProfileId = $json.active_profile_id
+                Write-PmcTuiLog "ExcelMappingService.LoadProfiles: active_profile_id=$($this._activeProfileId)" "DEBUG"
 
+                Write-PmcTuiLog "ExcelMappingService.LoadProfiles: Found $($json.profiles.Count) profiles" "DEBUG"
                 foreach ($profile in $json.profiles) {
+                    Write-PmcTuiLog "ExcelMappingService.LoadProfiles: Processing profile id=$($profile.id) name=$($profile.name)" "DEBUG"
+
+                    # Check for start_cell
+                    if (-not $profile.PSObject.Properties['start_cell']) {
+                        throw "Profile '$($profile.id)' missing 'start_cell' property"
+                    }
+
                     $mappings = @()
                     # Check if mappings property exists and is not null - JSON deserialization can omit empty arrays
                     if ($profile.PSObject.Properties['mappings'] -and $null -ne $profile.mappings) {
+                        Write-PmcTuiLog "ExcelMappingService.LoadProfiles: Profile has $($profile.mappings.Count) mappings" "DEBUG"
                         foreach ($mapping in $profile.mappings) {
                             # ES-M4 FIX: Type validation before casting JSON booleans
                             $requiredValue = $false
@@ -143,12 +160,17 @@ class ExcelMappingService {
                         created = $created
                         modified = $modified
                     }
+                    Write-PmcTuiLog "ExcelMappingService.LoadProfiles: Cached profile id=$($profile.id) with $($mappings.Count) mappings" "DEBUG"
                 }
                 $this._cacheLoadTime = [datetime]::Now
+                Write-PmcTuiLog "ExcelMappingService.LoadProfiles: SUCCESS - loaded $($this._profilesCache.Count) profiles" "DEBUG"
             } catch {
                 Write-PmcTuiLog "Failed to load Excel profiles: $_" "ERROR"
+                Write-PmcTuiLog "ExcelMappingService.LoadProfiles: STACK TRACE: $($_.ScriptStackTrace)" "ERROR"
                 $this._profilesCache = @{}
             }
+        } else {
+            Write-PmcTuiLog "ExcelMappingService.LoadProfiles: File not found: $($this._profilesFile)" "WARN"
         }
     }
 

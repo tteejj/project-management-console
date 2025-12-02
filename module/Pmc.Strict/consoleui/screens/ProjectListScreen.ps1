@@ -633,7 +633,7 @@ class ProjectListScreen : StandardListScreen {
             @{ Key='r'; Label='Archive'; Callback={
                 $selected = $self.List.GetSelectedItem()
                 $self.ToggleProjectArchive($selected)
-            }.GetNewClosure() }
+            }.GetNewClosure() },
             @{ Key='v'; Label='View'; Callback={
                 $selected = $self.List.GetSelectedItem()
                 if ($selected) {
@@ -651,11 +651,11 @@ class ProjectListScreen : StandardListScreen {
                     $screen.SetProject($projectName)
                     $global:PmcApp.PushScreen($screen)
                 }
-            }.GetNewClosure() }
+            }.GetNewClosure() },
             @{ Key='o'; Label='Open Folder'; Callback={
                 $selected = $self.List.GetSelectedItem()
                 $self.OpenProjectFolder($selected)
-            }.GetNewClosure() }
+            }.GetNewClosure() },
             @{ Key='i'; Label='Import Excel'; Callback={
                 $self.ImportFromExcel()
             }.GetNewClosure() }

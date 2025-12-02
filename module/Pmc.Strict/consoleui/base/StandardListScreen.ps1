@@ -229,9 +229,13 @@ class StandardListScreen : PmcScreen {
     #>
     [void] OnItemSelected($item) {
         # Default: update status bar
-        if ($null -ne $item -and $item.Count -gt 0 -and $this.StatusBar) {
-            $text = if ($null -ne $item.text) { $item.text } elseif ($null -ne $item.name) { $item.name } else { "Item selected" }
-            $this.StatusBar.SetLeftText($text)
+        if ($null -ne $item -and $this.StatusBar) {
+            try {
+                $text = if ($null -ne $item.text) { $item.text } elseif ($null -ne $item.name) { $item.name } else { "Item selected" }
+                $this.StatusBar.SetLeftText($text)
+            } catch {
+                Write-PmcTuiLog "OnItemSelected: Error accessing item properties: $_" "ERROR"
+            }
         }
     }
 
@@ -390,12 +394,16 @@ class StandardListScreen : PmcScreen {
                 }.GetNewClosure()
             }
             'timelog' {
+                Write-PmcTuiLog "StandardListScreen._InitializeComponents: Setting OnTimeLogsChanged callback" "DEBUG"
                 $this.Store.OnTimeLogsChanged = {
                     param($logs)
+                    Write-PmcTuiLog "OnTimeLogsChanged callback invoked, IsActive=$($self.IsActive)" "DEBUG"
                     if ($self.IsActive) {
+                        Write-PmcTuiLog "OnTimeLogsChanged: Calling RefreshList" "DEBUG"
                         $self.RefreshList()
                     }
                 }.GetNewClosure()
+                Write-PmcTuiLog "StandardListScreen._InitializeComponents: OnTimeLogsChanged callback set" "DEBUG"
             }
         }
 
@@ -412,7 +420,10 @@ class StandardListScreen : PmcScreen {
             Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] _ConfigureListActions: Screen instance type=$($this.GetType().Name) key=$($this.ScreenKey)"
         }
 
+        Write-PmcTuiLog "_ConfigureListActions: START AllowAdd=$($this.AllowAdd) AllowEdit=$($this.AllowEdit) AllowDelete=$($this.AllowDelete)" "DEBUG"
+
         if ($this.AllowAdd) {
+            Write-PmcTuiLog "_ConfigureListActions: Creating Add action" "DEBUG"
             # Use GetNewClosure() to capture current scope
             $addAction = {
                 # Find the screen that owns this List by walking up
@@ -422,16 +433,27 @@ class StandardListScreen : PmcScreen {
                 }
                 $currentScreen.AddItem()
             }.GetNewClosure()
+            Write-PmcTuiLog "_ConfigureListActions: Add action created, adding to list" "DEBUG"
             $this.List.AddAction('a', 'Add', $addAction)
+            Write-PmcTuiLog "_ConfigureListActions: Add action added successfully" "DEBUG"
         }
 
         if ($this.AllowEdit) {
-            # Enter key triggers OnItemActivated which calls EditItem
-            # No need for separate 'e' key - Enter is sufficient
-            # (Removed 'e' key action registration)
+            Write-PmcTuiLog "_ConfigureListActions: Creating Edit action" "DEBUG"
+            $editAction = {
+                $currentScreen = $global:PmcApp.CurrentScreen
+                $selectedItem = $currentScreen.List.GetSelectedItem()
+                if ($null -ne $selectedItem) {
+                    $currentScreen.EditItem($selectedItem)
+                }
+            }.GetNewClosure()
+            Write-PmcTuiLog "_ConfigureListActions: Edit action created, adding to list" "DEBUG"
+            $this.List.AddAction('e', 'Edit', $editAction)
+            Write-PmcTuiLog "_ConfigureListActions: Edit action added successfully" "DEBUG"
         }
 
         if ($this.AllowDelete) {
+            Write-PmcTuiLog "_ConfigureListActions: Creating Delete action" "DEBUG"
             $deleteAction = {
                 $currentScreen = $global:PmcApp.CurrentScreen
                 $selectedItem = $currentScreen.List.GetSelectedItem()
@@ -439,14 +461,33 @@ class StandardListScreen : PmcScreen {
                     $currentScreen.DeleteItem($selectedItem)
                 }
             }.GetNewClosure()
+            Write-PmcTuiLog "_ConfigureListActions: Delete action created, adding to list" "DEBUG"
             $this.List.AddAction('d', 'Delete', $deleteAction)
+            Write-PmcTuiLog "_ConfigureListActions: Delete action added successfully" "DEBUG"
         }
 
         # Add custom actions from subclass
-        $customActions = $this.GetCustomActions()
-        foreach ($action in $customActions) {
-            $this.List.AddAction($action.Key, $action.Label, $action.Callback)
+        Write-PmcTuiLog "_ConfigureListActions: Getting custom actions from subclass" "DEBUG"
+        try {
+            $customActions = $this.GetCustomActions()
+            Write-PmcTuiLog "_ConfigureListActions: Got custom actions, type=$($customActions.GetType().FullName)" "DEBUG"
+            $actionCount = if ($customActions -is [array]) { $customActions.Count } else { 1 }
+            Write-PmcTuiLog "_ConfigureListActions: Custom actions count=$actionCount" "DEBUG"
+            if ($null -ne $customActions) {
+                foreach ($action in $customActions) {
+                    Write-PmcTuiLog "_ConfigureListActions: Processing action type=$($action.GetType().FullName)" "DEBUG"
+                    if ($null -ne $action -and $action -is [hashtable] -and $action.ContainsKey('Key') -and $action.ContainsKey('Label') -and $action.ContainsKey('Callback')) {
+                        Write-PmcTuiLog "_ConfigureListActions: Adding custom action key=$($action.Key)" "DEBUG"
+                        $this.List.AddAction($action.Key, $action.Label, $action.Callback)
+                    }
+                }
+            }
+            Write-PmcTuiLog "_ConfigureListActions: Custom actions added successfully" "DEBUG"
+        } catch {
+            Write-PmcTuiLog "_ConfigureListActions: Error adding custom actions: $_" "ERROR"
+            Write-PmcTuiLog "_ConfigureListActions: Error stack: $($_.ScriptStackTrace)" "ERROR"
         }
+        Write-PmcTuiLog "_ConfigureListActions: COMPLETE" "DEBUG"
     }
 
     # === Lifecycle Methods ===
@@ -456,14 +497,32 @@ class StandardListScreen : PmcScreen {
     Called when screen enters view
     #>
     [void] OnEnter() {
+        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') ===== StandardListScreen.OnEnter: START for screen=$($this.ScreenKey) ====="
         $this.IsActive = $true
 
         # Set columns
-        $columns = $this.GetColumns()
-        $this.List.SetColumns($columns)
+        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') StandardListScreen.OnEnter: Calling GetColumns()"
+        try {
+            $columns = $this.GetColumns()
+            Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') StandardListScreen.OnEnter: Got $($columns.Count) columns"
+            Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') StandardListScreen.OnEnter: Calling List.SetColumns()"
+            $this.List.SetColumns($columns)
+            Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') StandardListScreen.OnEnter: SetColumns complete"
+        } catch {
+            Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') StandardListScreen.OnEnter: EXCEPTION in GetColumns/SetColumns - $($_.Exception.Message)"
+            throw
+        }
 
         # Load data
-        $this.LoadData()
+        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') StandardListScreen.OnEnter: Calling LoadData()"
+        try {
+            $this.LoadData()
+            Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') StandardListScreen.OnEnter: LoadData complete"
+        } catch {
+            Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') StandardListScreen.OnEnter: EXCEPTION in LoadData - $($_.Exception.Message)"
+            Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') StandardListScreen.OnEnter: STACK - $($_.ScriptStackTrace)"
+            throw
+        }
 
         # Update header breadcrumb
         if ($this.Header) {
@@ -475,6 +534,8 @@ class StandardListScreen : PmcScreen {
             $itemCount = $this.List.GetItemCount()
             $this.StatusBar.SetLeftText("$itemCount items")
         }
+
+        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') ===== StandardListScreen.OnEnter: COMPLETE ====="
     }
 
     <#

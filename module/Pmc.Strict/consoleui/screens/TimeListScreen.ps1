@@ -65,7 +65,9 @@ class TimeListScreen : StandardListScreen {
 
     # Constructor with container (DI-enabled)
     TimeListScreen([object]$container) : base("TimeList", "Time Tracking", $container) {
+        Write-PmcTuiLog "TimeListScreen: Constructor called, about to ConfigureCapabilities" "DEBUG"
         $this.ConfigureCapabilities()
+        Write-PmcTuiLog "TimeListScreen: Constructor complete" "DEBUG"
     }
 
     # === Abstract Method Implementations ===
@@ -89,8 +91,20 @@ class TimeListScreen : StandardListScreen {
 
     # Load data and refresh list (required by StandardListScreen)
     [void] LoadData() {
+        Write-PmcTuiLog "TimeListScreen.LoadData: START" "DEBUG"
         $items = $this.LoadItems()
+        Write-PmcTuiLog "TimeListScreen.LoadData: LoadItems completed, checking type" "DEBUG"
+        Write-PmcTuiLog "TimeListScreen.LoadData: items type=$($items.GetType().FullName)" "DEBUG"
+        if ($null -eq $items) {
+            Write-PmcTuiLog "TimeListScreen.LoadData: items is null, setting to empty array" "DEBUG"
+            $items = @()
+        }
+        Write-PmcTuiLog "TimeListScreen.LoadData: About to count items" "DEBUG"
+        $itemCount = if ($items -is [array]) { $items.Count } else { 1 }
+        Write-PmcTuiLog "TimeListScreen.LoadData: LoadItems returned $itemCount items" "DEBUG"
+        Write-PmcTuiLog "TimeListScreen.LoadData: Calling SetData" "DEBUG"
         $this.List.SetData($items)
+        Write-PmcTuiLog "TimeListScreen.LoadData: COMPLETE" "DEBUG"
     }
 
     # Load items from data store
@@ -243,7 +257,9 @@ class TimeListScreen : StandardListScreen {
 
         # Sort by date descending (most recent first)
         # HIGH FIX TLS-H5: Handle null dates in sort
-        return $aggregated | Sort-Object { if ($null -ne $_.date) { $_.date } else { [DateTime]::MaxValue } } -Descending
+        $sorted = $aggregated | Sort-Object { if ($null -ne $_.date) { $_.date } else { [DateTime]::MaxValue } } -Descending
+        # Ensure we always return an array (PowerShell returns single object if count=1)
+        return @($sorted)
     }
 
     # Define columns for list display
@@ -269,7 +285,7 @@ class TimeListScreen : StandardListScreen {
         $hoursWidth = 10     # Matches duration column
         $notesWidth = 30     # Matches notes column (reduced to fit)
 
-        if ($null -eq $item -or $item.Count -eq 0) {
+        if ($null -eq $item -or ($item -is [hashtable] -and $item.Count -eq 0)) {
             # New time entry - empty fields
             return @(
                 @{ Name='date'; Type='date'; Label='Date'; Required=$true; Value=[DateTime]::Now; Width=$dateWidth }
@@ -458,14 +474,11 @@ class TimeListScreen : StandardListScreen {
     [array] GetCustomActions() {
         $self = $this
         return @(
-            @{ Key='Enter'; Label='Details'; Callback={
-                # Enter is handled by StandardListScreen's OnItemActivated
-                # which TimeListScreen doesn't override, so no action needed
-            }.GetNewClosure() },
             @{ Key='w'; Label='Week Report'; Callback={
-                . "$PSScriptRoot/WeeklyTimeReportScreen.ps1"
+                $screenPath = "$PSScriptRoot/WeeklyTimeReportScreen.ps1"
+                . $screenPath
                 $screen = New-Object WeeklyTimeReportScreen
-                $self.App.PushScreen($screen)
+                $global:PmcApp.PushScreen($screen)
             }.GetNewClosure() },
             @{ Key='g'; Label='Generate'; Callback={
                 $self.GenerateReport()
