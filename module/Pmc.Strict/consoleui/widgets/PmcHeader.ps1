@@ -230,7 +230,12 @@ class PmcHeader : PmcWidget {
         # Line 4: Column headers will be rendered by TaskListScreen here
         # Line 5: Separator (if enabled)
         if ($this.ShowSeparator) {
-            $separatorY = if ($this.Breadcrumb -and $this.Breadcrumb.Count -gt 0) { $this.Y + 4 } else { $this.Y + 2 }
+            $hasBreadcrumb = ($this.Breadcrumb -and $this.Breadcrumb.Count -gt 0)
+            $separatorY = if ($hasBreadcrumb) { $this.Y + 4 } else { $this.Y + 2 }
+
+            if ($global:PmcTuiLogFile) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcHeader.RenderToEngine: Rendering separator at Y=$separatorY (this.Y=$($this.Y) hasBreadcrumb=$hasBreadcrumb)"
+            }
 
             $separatorLine = [System.Text.StringBuilder]::new(256)
             $separatorLine.Append($borderColor)

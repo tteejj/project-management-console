@@ -49,19 +49,41 @@ class ProjectInfoScreenV4 : TabbedScreen {
     # === Constructor ===
     ProjectInfoScreenV4([string]$projectName) : base("ProjectInfo", "Project Information") {
         $this.ProjectName = $projectName
-
-        # Get TaskStore instance
         $this.Store = [TaskStore]::GetInstance()
+        $this._UpdateBreadcrumb()
+    }
 
-        # Update header
+    # Constructor with container
+    ProjectInfoScreenV4([object]$container) : base("ProjectInfo", "Project Information", $container) {
+        $this.Store = $container.Resolve('TaskStore')
+        $this._UpdateBreadcrumb()
+    }
+
+    [void] SetProject([string]$projectName) {
+        $this.ProjectName = $projectName
+        $this._UpdateBreadcrumb()
+    }
+
+    hidden [void] _UpdateBreadcrumb() {
         if ($this.Header) {
-            $this.Header.SetBreadcrumb(@("Home", "Projects", $projectName))
+            $name = if ($this.ProjectName) { $this.ProjectName } else { "Select Project" }
+            $this.Header.SetBreadcrumb(@("Home", "Projects", $name))
         }
     }
 
     # === Data Loading ===
 
     [void] LoadData() {
+        if ([string]::IsNullOrWhiteSpace($this.ProjectName)) {
+            if ($this.StatusBar) {
+                $this.StatusBar.SetLeftText("No project selected")
+                $this.StatusBar.SetRightText("")
+            }
+            $this.ProjectData = @{}
+            $this._BuildTabs()
+            return
+        }
+
         # Load project data from store
         $project = $this.Store.GetProject($this.ProjectName)
 
@@ -70,6 +92,7 @@ class ProjectInfoScreenV4 : TabbedScreen {
                 $this.StatusBar.SetRightText("Project not found: $($this.ProjectName)")
             }
             $this.ProjectData = @{}
+            $this._BuildTabs()
             return
         }
 
@@ -187,19 +210,28 @@ class ProjectInfoScreenV4 : TabbedScreen {
         # Get all field values from TabPanel
         $values = $this.TabPanel.GetAllValues()
 
+        if ($global:PmcTuiLogFile) {
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ProjectInfoScreenV4.SaveChanges: Saving project '$($this.ProjectName)' with $($values.Count) fields"
+        }
+
         # Update project in store
         $success = $this.Store.UpdateProject($this.ProjectName, $values)
 
         if ($success) {
-            # Reload data to reflect changes
-            $this.LoadData()
-
+            # DON'T reload - it wipes out the current tab state
+            # Just update status
             if ($this.StatusBar) {
-                $this.StatusBar.SetRightText("Project saved")
+                $this.StatusBar.SetRightText("Saved")
+            }
+            if ($global:PmcTuiLogFile) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ProjectInfoScreenV4.SaveChanges: Save successful"
             }
         } else {
             if ($this.StatusBar) {
                 $this.StatusBar.SetRightText("Save failed: $($this.Store.LastError)")
+            }
+            if ($global:PmcTuiLogFile) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ProjectInfoScreenV4.SaveChanges: Save FAILED - $($this.Store.LastError)"
             }
         }
     }
@@ -214,8 +246,11 @@ class ProjectInfoScreenV4 : TabbedScreen {
     }
 
     [void] OnFieldEdited($field, $newValue) {
-        # Auto-save on each field edit (optional)
-        # Uncomment if you want immediate persistence:
+        # Auto-save on each field edit
+        if ($global:PmcTuiLogFile) {
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ProjectInfoScreenV4.OnFieldEdited: field=$($field.Name) value='$newValue' - auto-saving"
+        }
+        $this.SaveChanges()
         # $this.SaveChanges()
 
         # Or just log the change

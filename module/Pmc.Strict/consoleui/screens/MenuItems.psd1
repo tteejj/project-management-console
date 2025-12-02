@@ -36,6 +36,9 @@
         ScreenFile = 'ProjectListScreen.ps1'
     }
 
+    # ProjectInfoScreenV4 removed from menu - accessed via 'V' key in ProjectListScreen
+    # Requires a project to be selected, so should not be directly accessible from menu
+
     'ExcelImportScreen' = @{
         Menu = 'Projects'
         Label = 'Import from Excel'

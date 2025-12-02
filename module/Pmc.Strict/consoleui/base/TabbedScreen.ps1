@@ -111,11 +111,14 @@ class TabbedScreen : PmcScreen {
         $this.TabPanel = [TabPanel]::new()
 
         # Position and size TabPanel to fit in content area
-        # Account for header (3 rows), footer (2 rows), menu (1 row)
-        $contentHeight = $this.TermHeight - 6
+        # Account for header (title=1 + breadcrumb=1 + separator=1 = 3 rows), footer (2 rows), menu (1 row)
+        # TabPanel Y must be AFTER header separator
+        # Header: Y=2 (title), Y=4 (breadcrumb), Y=6 (separator)
+        # TabPanel starts at Y=7
+        $contentHeight = $this.TermHeight - 9  # header(3) + footer(2) + menu(1) + TabPanel tabs(2) + padding(1)
 
         $this.TabPanel.X = 2
-        $this.TabPanel.Y = 4  # Below header
+        $this.TabPanel.Y = 7  # After header separator at Y=6
         $this.TabPanel.Width = $this.TermWidth - 4
         $this.TabPanel.Height = $contentHeight
 
@@ -202,6 +205,24 @@ class TabbedScreen : PmcScreen {
     Handle tab change (optional override)
     #>
     [void] OnTabChanged([int]$tabIndex) {
+        if ($global:PmcTuiLogFile) {
+            $tab = $this.TabPanel.GetCurrentTab()
+            $tabName = if ($tab) { $tab.Name } else { "null" }
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ========== TabbedScreen.OnTabChanged: Switched to tab $tabIndex '$tabName' =========="
+        }
+
+        # Force FULL SCREEN CLEAR to wipe old tab content from layer system
+        if ($this.App) {
+            $this.App.NeedsClear = $true
+        }
+
+        # Force full redraw to clear old tab content
+        $this.TabPanel.Invalidate()
+
+        if ($global:PmcTuiLogFile) {
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] TabbedScreen.OnTabChanged: Forced screen clear and TabPanel invalidated"
+        }
+
         # Default: update status bar
         if ($this.StatusBar) {
             $tab = $this.TabPanel.GetCurrentTab()
@@ -244,10 +265,11 @@ class TabbedScreen : PmcScreen {
         $fieldType = if ($field.ContainsKey('Type')) { $field.Type } else { 'text' }
         $fieldDef = @{
             Name = $field.Name
-            Label = $field.Label
+            Label = ''  # No label for inline editing
             Type = $fieldType
             Value = $field.Value
             Required = if ($field.ContainsKey('Required')) { $field.Required } else { $false }
+            Width = $this.TabPanel.Width - $this.TabPanel.LabelWidth - ($this.TabPanel.ContentPadding * 2) - 2
         }
 
         # Add type-specific properties
@@ -256,8 +278,40 @@ class TabbedScreen : PmcScreen {
             if ($field.ContainsKey('Max')) { $fieldDef.Max = $field.Max }
         }
 
+        # Calculate position for inline editor
+        # It should be over the value part of the field
+        $tab = $this.TabPanel.GetCurrentTab()
+        $fieldIndex = $this.TabPanel.SelectedFieldIndex
+        $visibleIndex = $fieldIndex - $tab.ScrollOffset
+
+        # Calculate absolute position
+        # X: TabPanel X + Padding + LabelWidth (align with value column)
+        $editorX = $this.TabPanel.X + $this.TabPanel.ContentPadding + $this.TabPanel.LabelWidth
+        # Y: Match TabPanel._RenderContent calculation exactly
+        # contentY = TabPanel.Y + TabBarHeight (Y+2)
+        # field Y = contentY + row + 1
+        # For first field (row=0): Y+2+0+1 = Y+3
+        # For visibleIndex N: Y + TabBarHeight + N + 1
+        $contentY = $this.TabPanel.Y + $this.TabPanel.TabBarHeight
+        $editorY = $contentY + $visibleIndex + 1
+
+        if ($global:PmcTuiLogFile) {
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] TabbedScreen.EditCurrentField: field='$($field.Name)' fieldIndex=$fieldIndex visibleIndex=$visibleIndex"
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] TabbedScreen.EditCurrentField: TabPanel.Y=$($this.TabPanel.Y) TabBarHeight=$($this.TabPanel.TabBarHeight) contentY=$contentY"
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] TabbedScreen.EditCurrentField: Calculated editor position: X=$editorX Y=$editorY"
+        }
+
+        # CRITICAL: Set LayoutMode BEFORE SetFields() because SetFields() adds Save button based on LayoutMode
+        $this.InlineEditor.LayoutMode = "horizontal"  # No Save button in horizontal mode
+        $this.InlineEditor.Title = ""  # No title for inline editing
+        $this.InlineEditor.X = $editorX
+        $this.InlineEditor.Y = $editorY
+        $this.InlineEditor.Width = $fieldDef.Width
+        $this.InlineEditor.Height = 1  # Single line
+
+        # SetFields() must be called AFTER LayoutMode is set
         $this.InlineEditor.SetFields(@($fieldDef))
-        $this.InlineEditor.Title = "Edit $($field.Label)"
+
         $this.ShowEditor = $true
     }
 
@@ -273,9 +327,20 @@ class TabbedScreen : PmcScreen {
         # Call subclass hook
         $this.OnFieldEdited($this.CurrentEditField, $newValue)
 
+        if ($global:PmcTuiLogFile) {
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] TabbedScreen._SaveEditedField: Closing editor, field='$fieldName' newValue='$newValue'"
+        }
+
         # Close editor
         $this.ShowEditor = $false
         $this.CurrentEditField = $null
+
+        # Force TabPanel to invalidate and redraw (clears editor artifacts)
+        $this.TabPanel.Invalidate()
+
+        if ($global:PmcTuiLogFile) {
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] TabbedScreen._SaveEditedField: Editor closed, TabPanel invalidated"
+        }
 
         # Show success message
         if ($this.StatusBar) {
@@ -337,15 +402,35 @@ class TabbedScreen : PmcScreen {
 
     [string] RenderContent() {
         if (-not $this.TabPanel) {
+            if ($global:PmcTuiLogFile) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] TabbedScreen.RenderContent: No TabPanel"
+            }
             return ""
+        }
+
+        if ($global:PmcTuiLogFile) {
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ========== TabbedScreen.RenderContent START =========="
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] TabbedScreen: ShowEditor=$($this.ShowEditor)"
         }
 
         # Render TabPanel
         $output = $this.TabPanel.Render()
 
+        if ($global:PmcTuiLogFile) {
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] TabbedScreen: TabPanel rendered, length=$($output.Length)"
+        }
+
         # If editor is showing, render it on top
         if ($this.ShowEditor -and $this.InlineEditor) {
-            $output += "`n" + $this.InlineEditor.Render()
+            $editorOutput = $this.InlineEditor.Render()
+            if ($global:PmcTuiLogFile) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] TabbedScreen: InlineEditor rendered at X=$($this.InlineEditor.X) Y=$($this.InlineEditor.Y), length=$($editorOutput.Length)"
+            }
+            $output += "`n" + $editorOutput
+        }
+
+        if ($global:PmcTuiLogFile) {
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ========== TabbedScreen.RenderContent END (total=$($output.Length)) =========="
         }
 
         return $output

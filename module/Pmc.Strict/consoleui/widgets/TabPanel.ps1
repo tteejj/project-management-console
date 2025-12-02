@@ -292,6 +292,13 @@ class TabPanel : PmcWidget {
     [string] Render() {
         $sb = [StringBuilder]::new(4096)
 
+        if ($global:PmcTuiLogFile) {
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ========== TabPanel.Render START =========="
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] TabPanel: X=$($this.X) Y=$($this.Y) Width=$($this.Width) Height=$($this.Height)"
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] TabPanel: TabBarHeight=$($this.TabBarHeight) ContentPadding=$($this.ContentPadding) LabelWidth=$($this.LabelWidth)"
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] TabPanel: CurrentTabIndex=$($this.CurrentTabIndex) SelectedFieldIndex=$($this.SelectedFieldIndex)"
+        }
+
         if ($this.Tabs.Count -eq 0) {
             return $this._RenderEmpty()
         }
@@ -309,10 +316,19 @@ class TabPanel : PmcWidget {
         $reset = "`e[0m"
 
         # Render tab bar
-        $sb.Append($this._RenderTabBar($tabActiveBg, $tabActiveText, $tabInactiveBg, $tabInactiveText, $reset))
+        $tabBarOutput = $this._RenderTabBar($tabActiveBg, $tabActiveText, $tabInactiveBg, $tabInactiveText, $reset)
+        if ($global:PmcTuiLogFile) {
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] TabPanel: Tab bar rendered, length=$($tabBarOutput.Length)"
+        }
+        $sb.Append($tabBarOutput)
 
         # Render content area
-        $sb.Append($this._RenderContent($borderColor, $labelColor, $valueColor, $selectBg, $selectText, $reset))
+        $contentOutput = $this._RenderContent($borderColor, $labelColor, $valueColor, $selectBg, $selectText, $reset)
+        if ($global:PmcTuiLogFile) {
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] TabPanel: Content rendered, length=$($contentOutput.Length)"
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ========== TabPanel.Render END (total=$($sb.Length + $contentOutput.Length)) =========="
+        }
+        $sb.Append($contentOutput)
 
         return $sb.ToString()
     }
@@ -360,7 +376,11 @@ class TabPanel : PmcWidget {
         }
 
         # Separator line
-        $sb.Append($this.BuildMoveTo($this.X, $this.Y + 1))
+        $separatorY = $this.Y + 1
+        if ($global:PmcTuiLogFile) {
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] TabPanel._RenderTabBar: Separator at Y=$separatorY X=$($this.X) Width=$($this.Width)"
+        }
+        $sb.Append($this.BuildMoveTo($this.X, $separatorY))
         $borderColor = $this.GetThemedFg('Border.Widget')
         $sb.Append($borderColor)
         $sb.Append($this.GetBoxChar('single_horizontal') * $this.Width)
@@ -374,15 +394,28 @@ class TabPanel : PmcWidget {
 
         $tab = $this.GetCurrentTab()
         if ($null -eq $tab) {
+            if ($global:PmcTuiLogFile) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] TabPanel._RenderContent: No current tab"
+            }
             return $sb.ToString()
         }
 
         $contentY = $this.Y + $this.TabBarHeight
         $visibleRows = $this.Height - $this.TabBarHeight - 2
 
+        if ($global:PmcTuiLogFile) {
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] TabPanel._RenderContent: Tab='$($tab.Name)' Fields=$($tab.Fields.Count) ScrollOffset=$($tab.ScrollOffset)"
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] TabPanel._RenderContent: contentY=$contentY (Y=$($this.Y) + TabBarHeight=$($this.TabBarHeight))"
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] TabPanel._RenderContent: visibleRows=$visibleRows (Height=$($this.Height) - TabBarHeight=$($this.TabBarHeight) - 2)"
+        }
+
         # Render fields
         $startIndex = $tab.ScrollOffset
         $endIndex = [Math]::Min($startIndex + $visibleRows, $tab.Fields.Count)
+
+        if ($global:PmcTuiLogFile) {
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] TabPanel._RenderContent: Rendering fields $startIndex to $endIndex"
+        }
 
         $row = 0
         for ($i = $startIndex; $i -lt $endIndex; $i++) {
@@ -392,8 +425,17 @@ class TabPanel : PmcWidget {
             $y = $contentY + $row + 1
             $x = $this.X + $this.ContentPadding
 
-            # Move to position
+            if ($global:PmcTuiLogFile) {
+                $debugPrefix = if ($i -eq 0) { "FIRST" } else { "Field" }
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] TabPanel._RenderContent: $debugPrefix field[$i] '$($field.Label)' Y=$y X=$x (contentY=$contentY + row=$row + 1) selected=$isSelected"
+            }
+
+            # Move to field position (no pre-clear needed - we'll fill the entire row)
             $sb.Append($this.BuildMoveTo($x, $y))
+
+            if ($global:PmcTuiLogFile -and $i -le 2) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] TabPanel._RenderContent: Rendering at position ($x,$y)"
+            }
 
             # Render label
             $label = $field.Label
@@ -401,35 +443,58 @@ class TabPanel : PmcWidget {
                 $label = $label.Substring(0, $this.LabelWidth - 5) + "..."
             }
 
+            # Calculate widths
+            $maxValueWidth = $this.Width - $this.LabelWidth - ($this.ContentPadding * 2)
+            $value = if ($null -ne $field.Value) { [string]$field.Value } else { "(empty)" }
+
+            # Build the complete row content
             if ($isSelected) {
-                # Selected field - highlight entire row
+                # Selected field - highlight entire row from left padding to right edge
                 $sb.Append($selectBg)
                 $sb.Append($selectText)
+
+                # Label (padded to LabelWidth)
                 $sb.Append($label.PadRight($this.LabelWidth))
+
+                # Value (truncate if needed, then pad to fill remaining width)
+                if ($value.Length -gt $maxValueWidth) {
+                    $value = $value.Substring(0, $maxValueWidth - 3) + "..."
+                }
+                $sb.Append($value.PadRight($maxValueWidth))
+
+                $sb.Append($reset)
             } else {
-                # Normal field
+                # Normal field - label in muted color, value in field color
                 $sb.Append($labelColor)
                 $sb.Append($label.PadRight($this.LabelWidth))
                 $sb.Append($reset)
-            }
 
-            # Render value
-            $value = if ($null -ne $field.Value) { [string]$field.Value } else { "(empty)" }
-            $maxValueWidth = $this.Width - $this.LabelWidth - ($this.ContentPadding * 2) - 2
-            if ($value.Length -gt $maxValueWidth) {
-                $value = $value.Substring(0, $maxValueWidth - 3) + "..."
-            }
-
-            if ($isSelected) {
-                $sb.Append($value.PadRight($maxValueWidth))
-                $sb.Append($reset)
-            } else {
                 $sb.Append($valueColor)
-                $sb.Append($value)
+                if ($value.Length -gt $maxValueWidth) {
+                    $value = $value.Substring(0, $maxValueWidth - 3) + "..."
+                }
+                # Pad value to fill to edge (clears old content from other tabs)
+                $sb.Append($value.PadRight($maxValueWidth))
                 $sb.Append($reset)
             }
 
             $row++
+        }
+
+        # Clear any remaining rows in content area (fixes artifacts when switching tabs)
+        if ($global:PmcTuiLogFile) {
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] TabPanel._RenderContent: Clearing remaining rows from $row to $visibleRows"
+        }
+        $bgColor = $this.GetThemedBg('Background.Primary', $this.Width, 0)
+        for ($i = $row; $i -lt $visibleRows; $i++) {
+            $y = $contentY + $i + 1
+            $sb.Append($this.BuildMoveTo($this.X, $y))
+            $sb.Append($bgColor)
+            $sb.Append(' ' * $this.Width)  # Fill with background color
+            $sb.Append($reset)
+            if ($global:PmcTuiLogFile -and $i -lt ($row + 3)) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] TabPanel._RenderContent: Cleared remaining row at Y=$y with background"
+            }
         }
 
         # Show scroll indicators if needed

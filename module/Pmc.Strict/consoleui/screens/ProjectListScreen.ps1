@@ -63,7 +63,9 @@ class ProjectListScreen : StandardListScreen {
         $this.AllowFilter = $true
 
         # Configure header
-        $this.Header.SetBreadcrumb(@("Home", "Projects"))
+        if ($this.Header) {
+            $this.Header.SetBreadcrumb(@("Home", "Projects"))
+        }
 
         # Currently uses default columns from UniversalList (works as expected)
         # Future enhancement: Add ConfigureColumns() method to StandardListScreen for custom column layouts
@@ -635,9 +637,18 @@ class ProjectListScreen : StandardListScreen {
             @{ Key='v'; Label='View'; Callback={
                 $selected = $self.List.GetSelectedItem()
                 if ($selected) {
-                    . "$PSScriptRoot/ProjectInfoScreenV4.ps1"
                     $projectName = Get-SafeProperty $selected 'name'
-                    $screen = [ProjectInfoScreenV4]::new($projectName)
+                    # Use container to resolve screen (avoids type resolution at parse time)
+                    if (-not $global:PmcContainer.IsRegistered('ProjectInfoScreenV4')) {
+                        $screenPath = "$PSScriptRoot/ProjectInfoScreenV4.ps1"
+                        $global:PmcContainer.Register('ProjectInfoScreenV4', {
+                            param($c)
+                            . $screenPath
+                            return New-Object ProjectInfoScreenV4 -ArgumentList $c
+                        }.GetNewClosure(), $false)
+                    }
+                    $screen = $global:PmcContainer.Resolve('ProjectInfoScreenV4')
+                    $screen.SetProject($projectName)
                     $global:PmcApp.PushScreen($screen)
                 }
             }.GetNewClosure() }
@@ -681,15 +692,15 @@ class ProjectListScreen : StandardListScreen {
                         $global:PmcContainer.Register('ProjectInfoScreenV4', {
                             param($c)
                             . $screenPath
-                            # V4 constructor takes project name directly
-                            return $null  # Will be created per-project below
+                            return New-Object ProjectInfoScreenV4 -ArgumentList $c
                         }.GetNewClosure(), $false)
                     }
 
-                    # Load screen file and create instance with project name
-                    . "$PSScriptRoot/ProjectInfoScreenV4.ps1"
+                    # Resolve screen and set project
                     $projectName = Get-SafeProperty $selected 'name'
-                    $screen = [ProjectInfoScreenV4]::new($projectName)
+                    $screen = $global:PmcContainer.Resolve('ProjectInfoScreenV4')
+                    $screen.SetProject($projectName)
+                    
                     $global:PmcApp.PushScreen($screen)
                     $this.SetStatusMessage("Viewing project: $projectName", "success")
                 } catch {
