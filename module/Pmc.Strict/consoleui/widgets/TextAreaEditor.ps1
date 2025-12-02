@@ -99,11 +99,12 @@ class TextAreaEditor {
         $this._lineStarts.Clear()
         $this._lineStarts.Add(0) | Out-Null  # First line starts at position 0
 
-        $length = $this._gapBuffer.GetLength()
-        for ($i = 0; $i -lt $length; $i++) {
-            if ($this._gapBuffer.GetChar($i) -eq "`n") {
-                $this._lineStarts.Add($i + 1) | Out-Null
-            }
+        $this._lineStarts.Add(0) | Out-Null  # First line starts at position 0
+        
+        # Optimized: Use GapBuffer.FindAll to get all newlines at once
+        $newlines = $this._gapBuffer.FindAll("`n")
+        foreach ($index in $newlines) {
+            $this._lineStarts.Add($index + 1) | Out-Null
         }
 
         $this._lineIndexDirty = $false
@@ -1115,12 +1116,11 @@ class TextAreaEditor {
     }
 
     # Statistics for status bar
+    [hashtable] GetStatistics() {
+        return $this._gapBuffer.GetContentStatistics()
+    }
+
     [int] GetWordCount() {
-        $text = $this.GetText()
-        if ([string]::IsNullOrWhiteSpace($text)) {
-            return 0
-        }
-        $words = $text -split '\s+' | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
-        return $words.Count
+        return $this.GetStatistics().Words
     }
 }

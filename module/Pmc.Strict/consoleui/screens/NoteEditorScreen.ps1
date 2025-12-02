@@ -352,26 +352,11 @@ class NoteEditorScreen : PmcScreen {
         }
 
         try {
-            # Get editor stats
-            $text = $this._editor.GetText()
-            if ($null -eq $text) {
-                $text = ""
-            }
-
-            # Count lines
-            if ([string]::IsNullOrEmpty($text)) {
-                $lines = 1
-                $words = 0
-                $chars = 0
-            } else {
-                $lineArray = @($text -split "`n")
-                $lines = $lineArray.Count
-
-                $wordArray = @($text -split '\s+' | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
-                $words = if ($wordArray) { $wordArray.Count } else { 0 }
-
-                $chars = $text.Length
-            }
+            # Optimized: Get stats directly from buffer
+            $stats = $this._editor.GetStatistics()
+            $lines = $stats.Lines
+            $words = $stats.Words
+            $chars = $stats.Chars
 
             # Build status message
             $modifiedFlag = if ($this._editor.Modified) { "*" } else { "" }

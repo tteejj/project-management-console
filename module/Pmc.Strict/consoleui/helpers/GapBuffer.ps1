@@ -4,6 +4,64 @@
 
 Set-StrictMode -Version Latest
 
+# Compile C# helper for high-performance buffer operations
+try {
+    [void][GapBufferUtils]
+} catch {
+    $csharpCode = @"
+using System;
+using System.Collections.Generic;
+
+public class GapBufferUtils {
+    public static int[] FindAll(char[] buffer, int gapStart, int gapEnd, char target) {
+        List<int> indices = new List<int>();
+        int gapSize = gapEnd - gapStart;
+        
+        // Search before gap
+        for (int i = 0; i < gapStart; i++) {
+            if (buffer[i] == target) {
+                indices.Add(i);
+            }
+        }
+        
+        // Search after gap
+        for (int i = gapEnd; i < buffer.Length; i++) {
+            if (buffer[i] == target) {
+                indices.Add(i - gapSize);
+            }
+        }
+        
+        return indices.ToArray();
+    }
+
+    public static int[] GetStatistics(char[] buffer, int gapStart, int gapEnd) {
+        int lines = 1;
+        int words = 0;
+        int chars = 0;
+        bool inWord = false;
+
+        // Helper to process char
+        Action<char> process = (c) => {
+            chars++;
+            if (c == '\n') lines++;
+            if (char.IsWhiteSpace(c)) {
+                inWord = false;
+            } else if (!inWord) {
+                words++;
+                inWord = true;
+            }
+        };
+
+        for (int i = 0; i < gapStart; i++) process(buffer[i]);
+        for (int i = gapEnd; i < buffer.Length; i++) process(buffer[i]);
+
+        return new int[] { lines, words, chars };
+    }
+}
+"@
+    Add-Type -TypeDefinition $csharpCode -Language CSharp
+}
+
 class GapBuffer {
     # Internal buffer with gap
     hidden [char[]]$_buffer
@@ -211,8 +269,21 @@ class GapBuffer {
         $count = [Math]::Min($count, $length - $start)
         $chars = [char[]]::new($count)
 
-        for ($i = 0; $i -lt $count; $i++) {
-            $chars[$i] = $this.GetChar($start + $i)
+        # Optimize: Use Array.Copy instead of loop
+        if ($start -lt $this._gapStart) {
+            # Starts before gap
+            $firstChunkLen = [Math]::Min($count, $this._gapStart - $start)
+            [array]::Copy($this._buffer, $start, $chars, 0, $firstChunkLen)
+            
+            if ($firstChunkLen -lt $count) {
+                # Spans across gap
+                $secondChunkLen = $count - $firstChunkLen
+                [array]::Copy($this._buffer, $this._gapEnd, $chars, $firstChunkLen, $secondChunkLen)
+            }
+        } else {
+            # Starts after gap
+            $bufferStart = $start + ($this._gapEnd - $this._gapStart)
+            [array]::Copy($this._buffer, $bufferStart, $chars, 0, $count)
         }
 
         return [string]::new($chars)
@@ -220,6 +291,16 @@ class GapBuffer {
 
     [string] GetText() {
         return $this.GetText(0, $this.GetLength())
+    }
+
+    # Optimized search for all occurrences of a character
+    # Returns an array of indices
+    [int[]] FindAll([char]$char) {
+        # Use reflection to avoid parse-time dependency on GapBufferUtils
+        # which is defined via Add-Type in this same file
+        $type = "GapBufferUtils" -as [type]
+        if ($null -eq $type) { throw "GapBufferUtils type not found" }
+        return $type::FindAll($this._buffer, $this._gapStart, $this._gapEnd, $char)
     }
 
     [string] GetSubstring([int]$start, [int]$length) {
@@ -308,6 +389,25 @@ class GapBuffer {
             } else {
                 "N/A"
             }
+        }
+    }
+
+    [hashtable] GetContentStatistics() {
+        $type = "GapBufferUtils" -as [type]
+        if ($null -ne $type) {
+            $stats = $type::GetStatistics($this._buffer, $this._gapStart, $this._gapEnd)
+            return @{
+                Lines = $stats[0]
+                Words = $stats[1]
+                Chars = $stats[2]
+            }
+        }
+        
+        # Fallback if C# type not available (should not happen)
+        return @{
+            Lines = 0
+            Words = 0
+            Chars = 0
         }
     }
 

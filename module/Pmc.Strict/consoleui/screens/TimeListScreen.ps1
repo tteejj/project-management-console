@@ -80,12 +80,12 @@ class TimeListScreen : StandardListScreen {
     # Define columns for list display
     [array] GetColumns() {
         return @(
-            @{ Name='date_display'; Label='Date'; Width=12 }
-            @{ Name='task'; Label='Task'; Width=25 }
-            @{ Name='project'; Label='Project'; Width=15 }
-            @{ Name='timecode'; Label='Code'; Width=8 }
-            @{ Name='duration'; Label='Duration'; Width=10 }
-            @{ Name='notes'; Label='Notes'; Width=35 }
+            @{ Name='date_display'; Label='Date'; Width=12 },
+            @{ Name='task'; Label='Task'; Width=25 },
+            @{ Name='project'; Label='Project'; Width=16 },
+            @{ Name='timecode'; Label='Code'; Width=10 },
+            @{ Name='duration'; Label='Duration'; Width=12 },
+            @{ Name='notes'; Label='Notes'; Width=40 }
         )
     }
 
