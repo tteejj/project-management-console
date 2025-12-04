@@ -105,7 +105,9 @@ class ChecklistsMenuScreen : StandardListScreen {
     }
 
     [array] LoadItems() {
+        Write-PmcTuiLog "ChecklistsMenuScreen.LoadItems: Loading checklists for owner type=$($this._ownerType) id=$($this._ownerId)" "INFO"
         $checklists = @($this._checklistService.GetInstancesByOwner($this._ownerType, $this._ownerId))
+        Write-PmcTuiLog "ChecklistsMenuScreen.LoadItems: Loaded $($checklists.Count) checklists" "INFO"
 
         # Format for display
         foreach ($checklist in $checklists) {
@@ -211,8 +213,8 @@ class ChecklistsMenuScreen : StandardListScreen {
 
     # Custom action: Show template picker
     [void] ShowTemplatePicker() {
-        . "$PSScriptRoot/ChecklistTemplatesScreen.ps1"
-        $templateScreen = New-Object ChecklistTemplatesScreen
+        . "$PSScriptRoot/ChecklistTemplatesFolderScreen.ps1"
+        $templateScreen = New-Object ChecklistTemplatesFolderScreen
         $global:PmcApp.PushScreen($templateScreen)
     }
 

@@ -6,7 +6,7 @@
     'CommandLibraryScreen' = @{
         Menu = 'Tools'
         Label = 'Command Library'
-        Hotkey = 'C'
+        Hotkey = 'L'
         Order = 10
         ScreenFile = 'CommandLibraryScreen.ps1'
     }
@@ -19,12 +19,20 @@
         ScreenFile = 'NotesMenuScreen.ps1'
     }
 
-    'ChecklistTemplatesScreen' = @{
+    'ChecklistsLauncherScreen' = @{
+        Menu = 'Tools'
+        Label = 'Checklists'
+        Hotkey = 'C'
+        Order = 25
+        ScreenFile = 'ChecklistsLauncherScreen.ps1'
+    }
+
+    'ChecklistTemplatesFolderScreen' = @{
         Menu = 'Tools'
         Label = 'Checklist Templates'
         Hotkey = 'H'
         Order = 30
-        ScreenFile = 'ChecklistTemplatesScreen.ps1'
+        ScreenFile = 'ChecklistTemplatesFolderScreen.ps1'
     }
 
     # ===== PROJECTS MENU =====
@@ -103,7 +111,7 @@
     'TaskListScreen_Overdue' = @{
         Menu = 'Tasks'
         Label = 'Overdue'
-        Hotkey = 'V'
+        Hotkey = 'O'
         Order = 30
         ScreenFile = 'TaskListScreen.ps1'
         ViewMode = 'overdue'

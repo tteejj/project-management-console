@@ -500,6 +500,11 @@ class StandardListScreen : PmcScreen {
         Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') ===== StandardListScreen.OnEnter: START for screen=$($this.ScreenKey) ====="
         $this.IsActive = $true
 
+        # Configure list actions (ensures custom actions are registered even for singleton screens)
+        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') StandardListScreen.OnEnter: Calling _ConfigureListActions()"
+        $this._ConfigureListActions()
+        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') StandardListScreen.OnEnter: _ConfigureListActions complete"
+
         # Set columns
         Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') StandardListScreen.OnEnter: Calling GetColumns()"
         try {
@@ -661,6 +666,8 @@ class StandardListScreen : PmcScreen {
             $itemDesc = $item.text
         } elseif ($item.name) {
             $itemDesc = $item.name
+        } elseif ($item.title) {
+            $itemDesc = $item.title
         } elseif ($item.id) {
             $itemDesc = "ID $($item.id)"
         } else {
@@ -679,6 +686,26 @@ class StandardListScreen : PmcScreen {
             }
         }
 
+        # Try to call subclass-specific delete handler first
+        try {
+            $this.OnItemDeleted($item)
+            # If OnItemDeleted is implemented and doesn't throw, assume success
+            if ($this.StatusBar) {
+                $this.StatusBar.SetLeftText("Item deleted: $itemDesc")
+            }
+            return
+        } catch {
+            # If OnItemDeleted throws "must be implemented" or similar, fall through to default behavior
+            if ($_.Exception.Message -notmatch "must be implemented") {
+                # Real error - report it
+                if ($this.StatusBar) {
+                    $this.StatusBar.SetLeftText("Delete failed: $($_.Exception.Message)")
+                }
+                return
+            }
+        }
+
+        # Default behavior for TaskStore entity types
         $entityType = $this.GetEntityType()
         $success = $false
 

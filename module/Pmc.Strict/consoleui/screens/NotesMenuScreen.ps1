@@ -82,13 +82,15 @@ class NotesMenuScreen : StandardListScreen {
     Load notes data into the list
     #>
     [void] LoadData() {
-        Write-PmcTuiLog "NotesMenuScreen.LoadData: Loading notes for owner=$($this._ownerType):$($this._ownerId)" "DEBUG"
+        Write-PmcTuiLog "NotesMenuScreen.LoadData: Loading notes for owner=$($this._ownerType):$($this._ownerId)" "INFO"
 
         try {
             # Get notes from service (filtered by owner if specified)
             if ($this._ownerType -eq "global" -or $null -eq $this._ownerId) {
+                Write-PmcTuiLog "NotesMenuScreen.LoadData: Getting all notes (global)" "INFO"
                 $notes = $this._noteService.GetAllNotes()
             } else {
+                Write-PmcTuiLog "NotesMenuScreen.LoadData: Getting notes by owner type=$($this._ownerType) id=$($this._ownerId)" "INFO"
                 $notes = $this._noteService.GetNotesByOwner($this._ownerType, $this._ownerId)
             }
 
@@ -99,7 +101,7 @@ class NotesMenuScreen : StandardListScreen {
                 $notes = @($notes)
             }
 
-            Write-PmcTuiLog "NotesMenuScreen.LoadData: Loaded $($notes.Count) notes" "DEBUG"
+            Write-PmcTuiLog "NotesMenuScreen.LoadData: Loaded $($notes.Count) notes" "INFO"
 
             # Set data in list
             $this.List.SetData($notes)
@@ -393,8 +395,75 @@ class NotesMenuScreen : StandardListScreen {
                         $self.OnItemActivated($selected)
                     }
                 }.GetNewClosure()
+            },
+            @{
+                Key = 'P'
+                Label = 'Assign Project'
+                Callback = {
+                    $selected = $self.List.GetSelectedItem()
+                    if ($selected) {
+                        $self._AssignToProject($selected)
+                    }
+                }.GetNewClosure()
             }
         )
+    }
+
+    hidden [void] _AssignToProject($note) {
+        # Show project picker and reassign note
+        $noteId = if ($note -is [hashtable]) { $note['id'] } else { $note.id }
+        $noteTitle = if ($note -is [hashtable]) { $note['title'] } else { $note.title }
+
+        # Get all projects
+        $store = [TaskStore]::GetInstance()
+        $projects = @($store.GetAllProjects())
+
+        if ($projects.Count -eq 0) {
+            $this.SetStatusMessage("No projects available", "error")
+            return
+        }
+
+        # Simple inline selection - show project list in status bar
+        # For now, just prompt for project name
+        # TODO: Use proper project picker widget when available
+        $this.SetStatusMessage("Assign '$noteTitle' to project (type name): ", "info")
+        $this.Render() | Out-Host
+
+        # Read project name from user
+        [Console]::CursorVisible = $true
+        $projectName = [Console]::ReadLine()
+        [Console]::CursorVisible = $false
+
+        if ([string]::IsNullOrWhiteSpace($projectName)) {
+            $this.SetStatusMessage("Assignment cancelled", "info")
+            return
+        }
+
+        # Verify project exists
+        $projectExists = $projects | Where-Object {
+            ($_ -is [string] -and $_ -eq $projectName) -or
+            ((Get-SafeProperty $_ 'name') -eq $projectName)
+        } | Select-Object -First 1
+
+        if (-not $projectExists) {
+            $this.SetStatusMessage("Project '$projectName' not found", "error")
+            return
+        }
+
+        # Reassign note
+        try {
+            $changes = @{
+                owner_type = "project"
+                owner_id = $projectName
+            }
+            $this._noteService.UpdateNoteMetadata($noteId, $changes)
+            $this.SetStatusMessage("Note assigned to '$projectName'", "success")
+
+            # Refresh list
+            $this.LoadData()
+        } catch {
+            $this.SetStatusMessage("Failed to assign note: $($_.Exception.Message)", "error")
+        }
     }
 
     # === Menu Registration ===

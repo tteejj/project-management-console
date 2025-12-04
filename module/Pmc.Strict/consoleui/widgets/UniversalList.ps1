@@ -179,6 +179,14 @@ class UniversalList : PmcWidget {
     hidden [string]$_lastRenderedContent = ""                            # Last rendered content (for diff)
     # L-POL-22: Column width adjustment
     hidden [hashtable]$_columnWidths = @{}                               # Custom column widths (overrides defaults)
+
+    # Reset column widths to defaults
+    [void] ResetColumnWidths() {
+        $this._columnWidths.Clear()
+        $this._cacheGeneration++
+        $this._rowCache.Clear()
+        $this._cacheAccessOrder.Clear()
+    }
     hidden [int]$_selectedColumnIndex = -1                               # Currently selected column for width adjustment
 
     # === Row-Level Caching for Performance ===
@@ -223,13 +231,21 @@ class UniversalList : PmcWidget {
         if ($null -eq $item) { return $null }
 
         if ($item -is [hashtable]) {
-            if ($item.ContainsKey($propertyName)) {
-                return $item[$propertyName]
+            $hasKey = $item.ContainsKey($propertyName)
+            Write-PmcTuiLog "_GetItemProperty: hashtable propertyName='$propertyName' hasKey=$hasKey"
+            if ($hasKey) {
+                $value = $item[$propertyName]
+                $typeStr = if ($null -ne $value) { $value.GetType().Name } else { 'NULL' }
+                Write-PmcTuiLog "_GetItemProperty: returning value='$value' (type=$typeStr)"
+                return $value
             }
         } elseif ($item.PSObject.Properties[$propertyName]) {
-            return $item.$propertyName
+            $value = $item.$propertyName
+            Write-PmcTuiLog "_GetItemProperty: PSObject propertyName='$propertyName' value='$value'"
+            return $value
         }
 
+        Write-PmcTuiLog "_GetItemProperty: propertyName='$propertyName' NOT FOUND, returning null"
         return $null
     }
 
@@ -305,68 +321,68 @@ class UniversalList : PmcWidget {
     [void] SetData([array]$data) {
         try {
             $dataTypeStr = if ($null -eq $data) { "NULL" } else { $data.GetType().FullName }
-            Write-PmcTuiLog "UniversalList.SetData: START, data param type=$dataTypeStr" "DEBUG"
+            Write-PmcTuiLog "UniversalList.SetData: START, data param type=$dataTypeStr"
         } catch {
             Write-PmcTuiLog "UniversalList.SetData: ERROR getting data type: $_" "ERROR"
         }
         try {
-            Write-PmcTuiLog "UniversalList.SetData: About to assign _data" "DEBUG"
+            Write-PmcTuiLog "UniversalList.SetData: About to assign _data"
             if ($null -ne $data) {
                 $this._data = [object[]]@($data)
             } else {
                 $this._data = [object[]]@()
             }
-            Write-PmcTuiLog "UniversalList.SetData: _data assigned successfully" "DEBUG"
-            Write-PmcTuiLog "UniversalList.SetData: About to check _data type" "DEBUG"
+            Write-PmcTuiLog "UniversalList.SetData: _data assigned successfully"
+            Write-PmcTuiLog "UniversalList.SetData: About to check _data type"
             $dataType = $this._data.GetType().FullName
-            Write-PmcTuiLog "UniversalList.SetData: _data type=$dataType" "DEBUG"
-            Write-PmcTuiLog "UniversalList.SetData: About to access _data.Count" "DEBUG"
+            Write-PmcTuiLog "UniversalList.SetData: _data type=$dataType"
+            Write-PmcTuiLog "UniversalList.SetData: About to access _data.Count"
             $dataCount = $this._data.Count
-            Write-PmcTuiLog "UniversalList.SetData: _data.Count=$dataCount" "DEBUG"
+            Write-PmcTuiLog "UniversalList.SetData: _data.Count=$dataCount"
         } catch {
             Write-PmcTuiLog "UniversalList.SetData: ERROR in _data assignment: $_" "ERROR"
             Write-PmcTuiLog "UniversalList.SetData: Stack: $($_.ScriptStackTrace)" "ERROR"
             throw
         }
         $this._filteredData = [object[]]@($this._data)
-        Write-PmcTuiLog "UniversalList.SetData: _filteredData assigned" "DEBUG"
+        Write-PmcTuiLog "UniversalList.SetData: _filteredData assigned"
         $this._selectedIndex = 0
         $this._scrollOffset = 0
-        Write-PmcTuiLog "UniversalList.SetData: About to clear _selectedIndices" "DEBUG"
+        Write-PmcTuiLog "UniversalList.SetData: About to clear _selectedIndices"
         $this._selectedIndices.Clear()
-        Write-PmcTuiLog "UniversalList.SetData: _selectedIndices cleared" "DEBUG"
+        Write-PmcTuiLog "UniversalList.SetData: _selectedIndices cleared"
 
-        Write-PmcTuiLog "UniversalList.SetData: Received $($this._data.Count) items" "DEBUG"
+        Write-PmcTuiLog "UniversalList.SetData: Received $($this._data.Count) items"
         if ($this._data.Count -gt 0) {
             $firstItem = $this._data[0]
             if ($null -ne $firstItem) {
-                Write-PmcTuiLog "UniversalList.SetData: First item type=$($firstItem.GetType().Name) isHashtable=$($firstItem -is [hashtable])" "DEBUG"
+                Write-PmcTuiLog "UniversalList.SetData: First item type=$($firstItem.GetType().Name) isHashtable=$($firstItem -is [hashtable])"
                 if ($firstItem -is [hashtable]) {
-                    Write-PmcTuiLog "UniversalList.SetData: First item keys: $($firstItem.Keys -join ', ')" "DEBUG"
+                    Write-PmcTuiLog "UniversalList.SetData: First item keys: $($firstItem.Keys -join ', ')"
                 }
             } else {
-                Write-PmcTuiLog "UniversalList.SetData: First item is null" "DEBUG"
+                Write-PmcTuiLog "UniversalList.SetData: First item is null"
             }
         }
 
         # Invalidate row cache when data changes
-        Write-PmcTuiLog "UniversalList.SetData: Incrementing cache generation" "DEBUG"
+        Write-PmcTuiLog "UniversalList.SetData: Incrementing cache generation"
         $this._cacheGeneration++
-        Write-PmcTuiLog "UniversalList.SetData: Clearing row cache" "DEBUG"
+        Write-PmcTuiLog "UniversalList.SetData: Clearing row cache"
         $this._rowCache.Clear()
         # H-MEM-1: Clear LRU access order as well
-        Write-PmcTuiLog "UniversalList.SetData: Clearing cache access order" "DEBUG"
+        Write-PmcTuiLog "UniversalList.SetData: Clearing cache access order"
         $this._cacheAccessOrder.Clear()
 
         # Apply any active filters/search
-        Write-PmcTuiLog "UniversalList.SetData: Applying filters" "DEBUG"
+        Write-PmcTuiLog "UniversalList.SetData: Applying filters"
         $this._ApplyFilters()
-        Write-PmcTuiLog "UniversalList.SetData: Applying search" "DEBUG"
+        Write-PmcTuiLog "UniversalList.SetData: Applying search"
         $this._ApplySearch()
 
-        Write-PmcTuiLog "UniversalList.SetData: Invoking OnDataChanged callback" "DEBUG"
+        Write-PmcTuiLog "UniversalList.SetData: Invoking OnDataChanged callback"
         $this._InvokeCallback($this.OnDataChanged, $this._data)
-        Write-PmcTuiLog "UniversalList.SetData: COMPLETE" "DEBUG"
+        Write-PmcTuiLog "UniversalList.SetData: COMPLETE"
     }
 
     <#
@@ -754,7 +770,7 @@ class UniversalList : PmcWidget {
             return $true
         }
 
-        # L-POL-22: Alt+Left/Right - adjust column width
+        # L-POL-22: Alt+Left/Right - adjust column width, Alt+0 - reset all widths
         if ($keyInfo.Modifiers -band [ConsoleModifiers]::Alt) {
             if ($keyInfo.Key -eq 'LeftArrow') {
                 # Decrease width of current column
@@ -788,6 +804,11 @@ class UniversalList : PmcWidget {
                     $this._rowCache.Clear()
                     $this._cacheAccessOrder.Clear()
                 }
+                return $true
+            }
+            if ($keyInfo.Key -eq 'D0' -or $keyInfo.KeyChar -eq '0') {
+                # Reset all column widths to defaults
+                $this.ResetColumnWidths()
                 return $true
             }
         }
@@ -941,9 +962,13 @@ class UniversalList : PmcWidget {
                 $label += $sortIndicator
             }
 
-            $sb.Append($this.PadText($label, $width, $col.Align))
-            $sb.Append("  ")
-            $currentX += $width + 2
+            # Use EXACT SAME logic as data rows
+            $targetWidth = $width + 2
+            $truncated = $this.TruncateText($label, $targetWidth)
+            $padded = $this.PadText($truncated, $targetWidth, $col.Align)
+            $sb.Append($padded)
+            $sb.Append("    ")
+            $currentX += $width + 6
         }
 
         $sb.Append($this.BuildMoveTo($this.X + $this.Width - 1, $headerY))
@@ -1020,12 +1045,12 @@ class UniversalList : PmcWidget {
 
             # CRITICAL FIX: Check skipRowHighlight BEFORE cache to determine if row should be rendered
             $skipRowHighlight = $false
-            Write-PmcTuiLog "UniversalList: Checking SkipRowHighlight for row $i" "DEBUG"
-            Write-PmcTuiLog "UniversalList: _columns[0] has SkipRowHighlight? $($this._columns[0].ContainsKey('SkipRowHighlight'))" "DEBUG"
+            Write-PmcTuiLog "UniversalList: Checking SkipRowHighlight for row $i"
+            Write-PmcTuiLog "UniversalList: _columns[0] has SkipRowHighlight? $($this._columns[0].ContainsKey('SkipRowHighlight'))"
             if ($this._columns[0].ContainsKey('SkipRowHighlight') -and $null -ne $this._columns[0].SkipRowHighlight) {
                 try {
                     $skipRowHighlight = & $this._columns[0].SkipRowHighlight $item
-                    Write-PmcTuiLog "UniversalList: SkipRowHighlight callback returned: $skipRowHighlight" "DEBUG"
+                    Write-PmcTuiLog "UniversalList: SkipRowHighlight callback returned: $skipRowHighlight"
                     Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') UniversalList: SkipRowHighlight callback returned: $skipRowHighlight"
                 } catch {
                     Write-PmcTuiLog "UniversalList: SkipRowHighlight callback ERROR: $($_.Exception.Message)" "ERROR"
@@ -1033,7 +1058,7 @@ class UniversalList : PmcWidget {
                     $skipRowHighlight = $false
                 }
             } else {
-                Write-PmcTuiLog "UniversalList: No SkipRowHighlight callback found" "DEBUG"
+                Write-PmcTuiLog "UniversalList: No SkipRowHighlight callback found"
                 Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') UniversalList: No SkipRowHighlight callback found"
             }
 
@@ -1077,10 +1102,10 @@ class UniversalList : PmcWidget {
             $rowBuilder.Append($this.BuildMoveTo($this.X + 2, $rowY))
 
             # Highlight selected row (unless skipped OR in edit mode)
-            Write-PmcTuiLog "UniversalList: skipRowHighlight=$skipRowHighlight rowInEditMode=$rowInEditMode isSelected=$isSelected" "DEBUG"
+            Write-PmcTuiLog "UniversalList: skipRowHighlight=$skipRowHighlight rowInEditMode=$rowInEditMode isSelected=$isSelected"
             if (-not $skipRowHighlight -and -not $rowInEditMode) {
                 if ($isSelected) {
-                    Write-PmcTuiLog "UniversalList: APPLYING ROW HIGHLIGHT" "DEBUG"
+                    Write-PmcTuiLog "UniversalList: APPLYING ROW HIGHLIGHT"
                     $debugMsg = "ROW $i HIGHLIGHT: isSelected=true, appending BG='$highlightBg' FG='$highlightFg' rowBuilder.Length=$($rowBuilder.Length)"
                     Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') $debugMsg"
                     $rowBuilder.Append($highlightBg)
@@ -1094,7 +1119,7 @@ class UniversalList : PmcWidget {
                 }
             } else {
                 # When skipping row highlight (edit mode) - use theme colors
-                Write-PmcTuiLog "UniversalList: SKIPPING ROW HIGHLIGHT - using edit mode colors" "DEBUG"
+                Write-PmcTuiLog "UniversalList: SKIPPING ROW HIGHLIGHT - using edit mode colors"
                 Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') UniversalList: SKIPPING row highlight, using edit mode colors"
                 $rowBuilder.Append($textColor)
             }
@@ -1122,6 +1147,8 @@ class UniversalList : PmcWidget {
                 } else {
                     $col.Width
                 }
+                $customWidthKeys = ($this._columnWidths.Keys | Sort-Object) -join ', '
+                Write-PmcTuiLog "UniversalList._RenderList: row=$i col=$($col.Name) WIDTH=$width (colWidth=$($col.Width) hasCustom=$($this._columnWidths.ContainsKey($col.Name)) customKeys=[$customWidthKeys])"
 
                 # SKIP columns with width=0 (hidden columns)
                 if ($width -eq 0) {
@@ -1133,11 +1160,11 @@ class UniversalList : PmcWidget {
                 # Get value - check if cell is being edited first
                 $value = $null
                 $hasEditValue = $false
-                Write-PmcTuiLog "UniversalList._RenderList: row=$i col=$columnIndex ($($col.Name)) CHECKING GetEditValue callback - IsNull=$($null -eq $this.GetEditValue) Type=$(if ($null -ne $this.GetEditValue) { $this.GetEditValue.GetType().Name } else { 'NULL' })" "DEBUG"
+                Write-PmcTuiLog "UniversalList._RenderList: row=$i col=$columnIndex ($($col.Name)) CHECKING GetEditValue callback - IsNull=$($null -eq $this.GetEditValue) Type=$(if ($null -ne $this.GetEditValue) { $this.GetEditValue.GetType().Name } else { 'NULL' })"
                 Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') CELL[$i,$columnIndex $($col.Name)] GetEditValue IsNull=$($null -eq $this.GetEditValue) Type=$(if ($null -ne $this.GetEditValue) { $this.GetEditValue.GetType().Name } else { 'NULL' })"
                 if ($null -ne $this.GetEditValue) {
                     try {
-                        Write-PmcTuiLog "UniversalList._RenderList: CALLING GetEditValue for row=$i col=$($col.Name)" "DEBUG"
+                        Write-PmcTuiLog "UniversalList._RenderList: CALLING GetEditValue for row=$i col=$($col.Name)"
                         Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') CELL[$i,$columnIndex $($col.Name)] CALLING GetEditValue"
                         $editValueRaw = & $this.GetEditValue $item $col.Name
                         # DEBUG: Log what we actually received
@@ -1155,7 +1182,7 @@ class UniversalList : PmcWidget {
                         } else {
                             $editValueRaw
                         }
-                        Write-PmcTuiLog "UniversalList._RenderList: GetEditValue returned: '$editValue' (null=$($null -eq $editValue))" "DEBUG"
+                        Write-PmcTuiLog "UniversalList._RenderList: GetEditValue returned: '$editValue' (null=$($null -eq $editValue))"
                         $typeStr = if ($null -eq $editValue) { "NULL" } else { $editValue.GetType().FullName }
                         Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') CELL[$i,$columnIndex $($col.Name)] GetEditValue returned: '$editValue' (null=$($null -eq $editValue)) type=$typeStr"
 
@@ -1164,7 +1191,7 @@ class UniversalList : PmcWidget {
                         if ($null -ne $editValue) {
                             $value = $editValue
                             $hasEditValue = $true
-                            Write-PmcTuiLog "UniversalList._RenderList: USING EDIT VALUE: '$value'" "DEBUG"
+                            Write-PmcTuiLog "UniversalList._RenderList: USING EDIT VALUE: '$value'"
                             Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') CELL[$i,$columnIndex $($col.Name)] USING EDIT VALUE: '$value'"
                         } else {
                             Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') CELL[$i,$columnIndex $($col.Name)] GetEditValue was NULL, using normal value"
@@ -1178,9 +1205,12 @@ class UniversalList : PmcWidget {
 
                 # If not editing, get normal value - handle both hashtables and PSObjects
                 if (-not $hasEditValue) {
+                    Write-PmcTuiLog "UniversalList._RenderList: BEFORE _GetItemProperty row=$i colName='$($col.Name)'"
                     $value = $this._GetItemProperty($item, $col.Name)
                     if ($null -eq $value) { $value = "" }
-                    Write-PmcTuiLog "UniversalList._RenderList: Using NORMAL value for row=$i col=$($col.Name): '$value'" "DEBUG"
+                    $valueLen = if ($null -ne $value -and $value -is [string]) { $value.Length } else { 0 }
+                    Write-PmcTuiLog "UniversalList._RenderList: AFTER _GetItemProperty row=$i colName='$($col.Name)' value='$value' valueLen=$valueLen"
+                    Write-PmcTuiLog "UniversalList._RenderList: Using NORMAL value for row=$i col=$($col.Name): '$value'"
                     Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') CELL[$i,$columnIndex $($col.Name)] Using NORMAL value: '$value'"
                 } else {
                     Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') CELL[$i,$columnIndex $($col.Name)] hasEditValue=TRUE, skipping normal value"
@@ -1190,33 +1220,33 @@ class UniversalList : PmcWidget {
                 $isInEditMode = $false
                 $focusedColumnIdx = -1
                 # DEBUG: Check callback state BEFORE null check
-                Write-PmcTuiLog "UniversalList._RenderList: row=$i col=$columnIndex CHECKING GetIsInEditMode callback - IsNull=$($null -eq $this.GetIsInEditMode) Type=$(if ($null -ne $this.GetIsInEditMode) { $this.GetIsInEditMode.GetType().Name } else { 'NULL' })" "DEBUG"
+                Write-PmcTuiLog "UniversalList._RenderList: row=$i col=$columnIndex CHECKING GetIsInEditMode callback - IsNull=$($null -eq $this.GetIsInEditMode) Type=$(if ($null -ne $this.GetIsInEditMode) { $this.GetIsInEditMode.GetType().Name } else { 'NULL' })"
                 Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') CELL[$i,$columnIndex $($col.Name)] GetIsInEditMode IsNull=$($null -eq $this.GetIsInEditMode) Type=$(if ($null -ne $this.GetIsInEditMode) { $this.GetIsInEditMode.GetType().Name } else { 'NULL' }) IsScriptBlock=$($this.GetIsInEditMode -is [scriptblock])"
                 if ($null -ne $this.GetIsInEditMode -and $this.GetIsInEditMode -is [scriptblock]) {
                     try {
-                        Write-PmcTuiLog "UniversalList._RenderList: CALLING GetIsInEditMode for row=$i" "DEBUG"
+                        Write-PmcTuiLog "UniversalList._RenderList: CALLING GetIsInEditMode for row=$i"
                         Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') CELL[$i,$columnIndex $($col.Name)] CALLING GetIsInEditMode"
                         $result = & $this.GetIsInEditMode $item
                         # Ensure boolean - PowerShell can return weird types
                         $isInEditMode = if ($result) { $true } else { $false }
-                        Write-PmcTuiLog "UniversalList._RenderList: GetIsInEditMode returned: $isInEditMode (raw result=$result)" "DEBUG"
+                        Write-PmcTuiLog "UniversalList._RenderList: GetIsInEditMode returned: $isInEditMode (raw result=$result)"
                         Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') CELL[$i,$columnIndex $($col.Name)] GetIsInEditMode returned: $isInEditMode (raw=$result)"
-                        Write-PmcTuiLog "UniversalList: GetIsInEditMode returned: $isInEditMode for row $i col $columnIndex ($($col.Name))" "DEBUG"
+                        Write-PmcTuiLog "UniversalList: GetIsInEditMode returned: $isInEditMode for row $i col $columnIndex ($($col.Name))"
                     } catch {
                         $isInEditMode = $false
                         Write-PmcTuiLog "UniversalList: GetIsInEditMode ERROR: $($_.Exception.Message)" "ERROR"
                     }
                 }
-                Write-PmcTuiLog "UniversalList._RenderList: row=$i col=$columnIndex isInEditMode=$isInEditMode - CHECKING GetFocusedColumnIndex callback - IsNull=$($null -eq $this.GetFocusedColumnIndex) Type=$(if ($null -ne $this.GetFocusedColumnIndex) { $this.GetFocusedColumnIndex.GetType().Name } else { 'NULL' })" "DEBUG"
+                Write-PmcTuiLog "UniversalList._RenderList: row=$i col=$columnIndex isInEditMode=$isInEditMode - CHECKING GetFocusedColumnIndex callback - IsNull=$($null -eq $this.GetFocusedColumnIndex) Type=$(if ($null -ne $this.GetFocusedColumnIndex) { $this.GetFocusedColumnIndex.GetType().Name } else { 'NULL' })"
                 Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') CELL[$i,$columnIndex $($col.Name)] isInEditMode=$isInEditMode GetFocusedColumnIndex IsNull=$($null -eq $this.GetFocusedColumnIndex) Type=$(if ($null -ne $this.GetFocusedColumnIndex) { $this.GetFocusedColumnIndex.GetType().Name } else { 'NULL' })"
                 if ($isInEditMode -and $null -ne $this.GetFocusedColumnIndex -and $this.GetFocusedColumnIndex -is [scriptblock]) {
                     try {
-                        Write-PmcTuiLog "UniversalList._RenderList: CALLING GetFocusedColumnIndex" "DEBUG"
+                        Write-PmcTuiLog "UniversalList._RenderList: CALLING GetFocusedColumnIndex"
                         Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') CELL[$i,$columnIndex $($col.Name)] CALLING GetFocusedColumnIndex"
                         $focusedColumnIdx = & $this.GetFocusedColumnIndex $item
                         # Ensure int
                         if ($null -eq $focusedColumnIdx) { $focusedColumnIdx = -1 }
-                        Write-PmcTuiLog "UniversalList: GetFocusedColumnIndex returned: $focusedColumnIdx" "DEBUG"
+                        Write-PmcTuiLog "UniversalList: GetFocusedColumnIndex returned: $focusedColumnIdx"
                         Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') CELL[$i,$columnIndex $($col.Name)] GetFocusedColumnIndex returned: $focusedColumnIdx"
                     } catch {
                         $focusedColumnIdx = -1
@@ -1228,10 +1258,10 @@ class UniversalList : PmcWidget {
                 }
                 # Ensure boolean
                 $isFocused = if ($isInEditMode -and $focusedColumnIdx -eq $columnIndex) { $true } else { $false }
-                Write-PmcTuiLog "UniversalList._RenderList: isFocused=$isFocused (isInEditMode=$isInEditMode focusedColumnIdx=$focusedColumnIdx columnIndex=$columnIndex)" "DEBUG"
+                Write-PmcTuiLog "UniversalList._RenderList: isFocused=$isFocused (isInEditMode=$isInEditMode focusedColumnIdx=$focusedColumnIdx columnIndex=$columnIndex)"
                 Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') CELL[$i,$columnIndex $($col.Name)] isFocused=$isFocused (isInEditMode=$isInEditMode focusedIdx=$focusedColumnIdx thisIdx=$columnIndex)"
                 if ($isFocused) {
-                    Write-PmcTuiLog "UniversalList: CELL IS FOCUSED! row=$i col=$columnIndex ($($col.Name)) editMode=$isInEditMode focusedIdx=$focusedColumnIdx" "DEBUG"
+                    Write-PmcTuiLog "UniversalList: CELL IS FOCUSED! row=$i col=$columnIndex ($($col.Name)) editMode=$isInEditMode focusedIdx=$focusedColumnIdx"
                     Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') *** CELL[$i,$columnIndex $($col.Name)] IS FOCUSED ***"
                 }
 
@@ -1281,11 +1311,11 @@ class UniversalList : PmcWidget {
                 # Format value if formatter provided
                 if ($col.ContainsKey('Format') -and $null -ne $col.Format) {
                     try {
-                        Write-PmcTuiLog "UniversalList: Calling Format callback for col=$($col.Name) isFocused=$($cellInfo.IsFocused) isInEdit=$($cellInfo.IsInEditMode)" "DEBUG"
+                        Write-PmcTuiLog "UniversalList: Calling Format callback for col=$($col.Name) isFocused=$($cellInfo.IsFocused) isInEdit=$($cellInfo.IsInEditMode)"
                         Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') CELL[$i,$columnIndex $($col.Name)] CALLING Format callback - CellInfo.IsFocused=$($cellInfo.IsFocused) CellInfo.IsInEditMode=$($cellInfo.IsInEditMode)"
                         # Pass the WHOLE ITEM + CellInfo to formatter
                         $value = & $col.Format $item $cellInfo
-                        Write-PmcTuiLog "UniversalList: Format returned value with length=$($value.Length)" "DEBUG"
+                        Write-PmcTuiLog "UniversalList: Format returned value with length=$($value.Length)"
                         Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') CELL[$i,$columnIndex $($col.Name)] Format returned value length=$($value.Length) value='$value'"
                     } catch {
                         Write-PmcTuiLog "UniversalList: Format ERROR for col=$($col.Name): $($_.Exception.Message)" "ERROR"
@@ -1360,24 +1390,30 @@ class UniversalList : PmcWidget {
                     $rowBuilder.Append($reset)
                     # Add fixed-width spacing to reach column width (now without background color)
                     $visibleLen = $this.GetVisibleLength($valueStr)
-                    if ($visibleLen -lt $width) {
-                        $rowBuilder.Append(" " * ($width - $visibleLen))
+                    $targetWidth = $width + 2
+                    if ($visibleLen -lt $targetWidth) {
+                        $rowBuilder.Append(" " * ($targetWidth - $visibleLen))
                     }
                     # Separator spaces
-                    $rowBuilder.Append("  ")
+                    $rowBuilder.Append("    ")
                 } else {
                     # Normal mode - use padding
-                    $displayValue = $this.PadText($this.TruncateText($valueStr, $width), $width, $col.Align)
+                    $valueStrLen = if ($null -ne $valueStr -and $valueStr -is [string]) { $valueStr.Length } else { 0 }
+                    $targetWidth = $width + 2
+                    $truncated = $this.TruncateText($valueStr, $targetWidth)
+                    $truncLen = if ($null -ne $truncated -and $truncated -is [string]) { $truncated.Length } else { 0 }
+                    $displayValue = $this.PadText($truncated, $targetWidth, $col.Align)
+                    $dispLen = if ($null -ne $displayValue -and $displayValue -is [string]) { $displayValue.Length } else { 0 }
                     try {
                         $rowBuilder.Append([string]$displayValue)
                     } catch {
                         Add-Content -Path "/tmp/pmc-cell-error.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') ERROR appending displayValue: col=$($col.Name) displayValue=$displayValue type=$($displayValue.GetType().FullName) error=$($_.Exception.Message)"
                         throw
                     }
-                    $rowBuilder.Append("  ")
+                    $rowBuilder.Append("    ")
                 }
 
-                $currentX += $width + 2
+                $currentX += $width + 6
             }
 
             # CRITICAL FIX: Always reset after row content to prevent color bleeding
@@ -2014,8 +2050,12 @@ class UniversalList : PmcWidget {
                 $label += $sortIndicator
             }
 
-            $headerBuilder.Append($this.PadText($label, $width, $col.Align))
-            $headerBuilder.Append("  ")
+            # Use EXACT SAME logic as data rows
+            $targetWidth = $width + 2
+            $truncated = $this.TruncateText($label, $targetWidth)
+            $padded = $this.PadText($truncated, $targetWidth, $col.Align)
+            $headerBuilder.Append($padded)
+            $headerBuilder.Append("    ")
         }
 
         $engine.WriteAt($this.X + 1, $headerY - 1, $primaryColor + $headerBuilder.ToString() + $reset)

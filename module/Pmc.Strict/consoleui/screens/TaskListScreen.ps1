@@ -1423,11 +1423,11 @@ class TaskListScreen : StandardListScreen {
             @{ Key='c'; Label='Complete'; Callback={
                 $selected = $self.List.GetSelectedItem()
                 $self.CompleteTask($selected)
-            }.GetNewClosure() }
+            }.GetNewClosure() },
             @{ Key='x'; Label='Clone'; Callback={
                 $selected = $self.List.GetSelectedItem()
                 $self.CloneTask($selected)
-            }.GetNewClosure() }
+            }.GetNewClosure() },
             @{ Key='s'; Label='Subtask'; Callback={
                 Write-PmcTuiLog "Action 's' (Subtask) triggered" "INFO"
                 $selected = $self.List.GetSelectedItem()
@@ -1437,25 +1437,25 @@ class TaskListScreen : StandardListScreen {
                     Write-PmcTuiLog "Action 's': No item selected" "WARNING"
                     $self.SetStatusMessage("Select a task to add a subtask", "warning")
                 }
-            }.GetNewClosure() }
+            }.GetNewClosure() },
             @{ Key='h'; Label='Hide Done'; Callback={
                 $self.ToggleShowCompleted()
-            }.GetNewClosure() }
+            }.GetNewClosure() },
             @{ Key='1'; Label='All'; Callback={
                 $self.SetViewMode('all')
-            }.GetNewClosure() }
+            }.GetNewClosure() },
             @{ Key='2'; Label='Active'; Callback={
                 $self.SetViewMode('active')
-            }.GetNewClosure() }
+            }.GetNewClosure() },
             @{ Key='3'; Label='Done'; Callback={
                 $self.SetViewMode('completed')
-            }.GetNewClosure() }
+            }.GetNewClosure() },
             @{ Key='4'; Label='Overdue'; Callback={
                 $self.SetViewMode('overdue')
-            }.GetNewClosure() }
+            }.GetNewClosure() },
             @{ Key='5'; Label='Today'; Callback={
                 $self.SetViewMode('today')
-            }.GetNewClosure() }
+            }.GetNewClosure() },
             @{ Key='6'; Label='Week'; Callback={
                 $self.SetViewMode('week')
             }.GetNewClosure() }
@@ -1713,8 +1713,8 @@ class TaskListScreen : StandardListScreen {
             $global:PmcApp.PushScreen([TaskListScreen]::new('upcoming'))
         }, 25)
 
-        # Overdue tasks
-        $registry.AddMenuItem('Tasks', 'Overdue', 'V', {
+        # Overdue tasks (changed from V to O to avoid conflict with ProjectList V=View)
+        $registry.AddMenuItem('Tasks', 'Overdue', 'O', {
             . "$PSScriptRoot/TaskListScreen.ps1"
             $global:PmcApp.PushScreen([TaskListScreen]::new('overdue'))
         }, 30)

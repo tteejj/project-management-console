@@ -99,8 +99,6 @@ class TextAreaEditor {
         $this._lineStarts.Clear()
         $this._lineStarts.Add(0) | Out-Null  # First line starts at position 0
 
-        $this._lineStarts.Add(0) | Out-Null  # First line starts at position 0
-        
         # Optimized: Use GapBuffer.FindAll to get all newlines at once
         $newlines = $this._gapBuffer.FindAll("`n")
         foreach ($index in $newlines) {

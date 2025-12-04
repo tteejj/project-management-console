@@ -17,6 +17,13 @@ Set-StrictMode -Version Latest
 # Load dependencies
 . "$PSScriptRoot/../base/TabbedScreen.ps1"
 
+# Lazy-load SimpleFilePicker when needed (for folder browsing)
+function EnsureSimpleFilePicker {
+    if ($null -eq ([Type]'SimpleFilePicker' -as [Type])) {
+        . "$PSScriptRoot/../widgets/SimpleFilePicker.ps1"
+    }
+}
+
 <#
 .SYNOPSIS
 Project information screen with tabbed interface
@@ -45,6 +52,11 @@ class ProjectInfoScreenV4 : TabbedScreen {
     [string]$ProjectName = ""
     [hashtable]$ProjectData = @{}
     [object]$Store = $null
+
+    # === File Picker ===
+    [object]$FilePicker = $null
+    [bool]$ShowFilePicker = $false
+    [string]$FilePickerFieldName = ""
 
     # === Constructor ===
     ProjectInfoScreenV4([string]$projectName) : base("ProjectInfo", "Project Information") {
@@ -207,6 +219,30 @@ class ProjectInfoScreenV4 : TabbedScreen {
             @{Name='FXInfo'; Label='FX Info'; Value=$this._GetValue('FXInfo'); Type='text'}
             @{Name='ShipToAddress'; Label='Ship To Address'; Value=$this._GetValue('ShipToAddress'); Type='text'}
         ))
+
+        # Tab 7: Files (Notes, Checklists, Project Files)
+        $this.TabPanel.AddTab('Files', @(
+            @{Name='_action_notes'; Label='> Notes'; Value='View and manage project notes'; Type='readonly'; IsAction=$true}
+            @{Name='_action_assign_note'; Label='> Assign Note'; Value='Assign existing note to project'; Type='readonly'; IsAction=$true}
+            @{Name='_action_checklists'; Label='> Checklists'; Value='View and manage project checklists'; Type='readonly'; IsAction=$true}
+            @{Name='_action_assign_checklist'; Label='> Assign Checklist'; Value='Assign existing checklist to project'; Type='readonly'; IsAction=$true}
+            @{Name='_separator1'; Label='--- Project Files ---'; Value=''; Type='readonly'}
+            @{Name='T2020'; Label='T2020 File'; Value=$this._GetValue('T2020'); Type='text'; Hint='Path to T2020 file (press B to browse)'}
+            @{Name='_action_t2020_browse'; Label='> Browse T2020'; Value='Select file'; Type='readonly'; IsAction=$true}
+            @{Name='_action_t2020_open'; Label='> Open T2020'; Value='Open in Notepad'; Type='readonly'; IsAction=$true}
+            @{Name='_separator2'; Label=''; Value=''; Type='readonly'}
+            @{Name='CAAName'; Label='CAA File'; Value=$this._GetValue('CAAName'); Type='text'; Hint='Path to CAA file (press B to browse)'}
+            @{Name='_action_caa_browse'; Label='> Browse CAA'; Value='Select file'; Type='readonly'; IsAction=$true}
+            @{Name='_action_caa_open'; Label='> Open CAA'; Value='Open in Excel'; Type='readonly'; IsAction=$true}
+            @{Name='_separator3'; Label=''; Value=''; Type='readonly'}
+            @{Name='RequestName'; Label='Request File'; Value=$this._GetValue('RequestName'); Type='text'; Hint='Path to Request file (press B to browse)'}
+            @{Name='_action_request_browse'; Label='> Browse Request'; Value='Select file'; Type='readonly'; IsAction=$true}
+            @{Name='_action_request_open'; Label='> Open Request'; Value='Open in Excel'; Type='readonly'; IsAction=$true}
+            @{Name='_separator4'; Label=''; Value=''; Type='readonly'}
+            @{Name='ProjFolder'; Label='Project Folder'; Value=$this._GetValue('ProjFolder'); Type='text'; Hint='Path to project folder (press B to browse)'}
+            @{Name='_action_folder_browse'; Label='> Browse Folder'; Value='Select folder'; Type='readonly'; IsAction=$true}
+            @{Name='_action_folder_open'; Label='> Open Folder'; Value='Open in File Explorer'; Type='readonly'; IsAction=$true}
+        ))
     }
 
     # === Saving ===
@@ -299,6 +335,12 @@ class ProjectInfoScreenV4 : TabbedScreen {
     }
 
     [void] OnFieldEdited($field, $newValue) {
+        # Check if this is an action field (Files tab actions)
+        if ($field.Name -match '^_action_') {
+            $this._HandleFileAction($field.Name)
+            return
+        }
+
         # Auto-save on each field edit
         if ($global:PmcTuiLogFile) {
             Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ProjectInfoScreenV4.OnFieldEdited: field=$($field.Name) value='$newValue' - auto-saving"
@@ -308,6 +350,330 @@ class ProjectInfoScreenV4 : TabbedScreen {
 
         # Or just log the change
         Write-PmcTuiLog "Field '$($field.Name)' changed to: $newValue" "DEBUG"
+    }
+
+    # === File Actions ===
+
+    hidden [void] _HandleFileAction([string]$action) {
+        Write-PmcTuiLog "ProjectInfoScreenV4._HandleFileAction: action=$action ProjectName='$($this.ProjectName)'" "INFO"
+        switch ($action) {
+            '_action_notes' {
+                # Open NotesMenuScreen for this project
+                Write-PmcTuiLog "ProjectInfoScreenV4._HandleFileAction: Opening NotesMenuScreen for project='$($this.ProjectName)'" "INFO"
+                . "$PSScriptRoot/NotesMenuScreen.ps1"
+                $notesScreen = New-Object NotesMenuScreen -ArgumentList "project", $this.ProjectName, $this.ProjectName
+                $global:PmcApp.PushScreen($notesScreen)
+            }
+            '_action_assign_note' {
+                # Show picker to assign existing note to this project
+                $this._AssignNote()
+            }
+            '_action_checklists' {
+                # Open ChecklistsMenuScreen for this project
+                Write-PmcTuiLog "ProjectInfoScreenV4._HandleFileAction: Opening ChecklistsMenuScreen for project='$($this.ProjectName)'" "INFO"
+                . "$PSScriptRoot/ChecklistsMenuScreen.ps1"
+                $checklistsScreen = New-Object ChecklistsMenuScreen -ArgumentList "project", $this.ProjectName, $this.ProjectName
+                $global:PmcApp.PushScreen($checklistsScreen)
+            }
+            '_action_assign_checklist' {
+                # Show picker to create checklist instance from template for this project
+                $this._AssignChecklist()
+            }
+            '_action_t2020_browse' {
+                $this._BrowseForFile('T2020', $false)
+            }
+            '_action_t2020_open' {
+                $path = $this._GetValue('T2020')
+                $this._OpenFile($path, 'notepad')
+            }
+            '_action_caa_browse' {
+                $this._BrowseForFile('CAAName', $false)
+            }
+            '_action_caa_open' {
+                $path = $this._GetValue('CAAName')
+                $this._OpenFile($path, 'excel')
+            }
+            '_action_request_browse' {
+                $this._BrowseForFile('RequestName', $false)
+            }
+            '_action_request_open' {
+                $path = $this._GetValue('RequestName')
+                $this._OpenFile($path, 'excel')
+            }
+            '_action_folder_browse' {
+                $this._BrowseForFile('ProjFolder', $true)
+            }
+            '_action_folder_open' {
+                $path = $this._GetValue('ProjFolder')
+                $this._OpenFolder($path)
+            }
+        }
+    }
+
+    hidden [void] _BrowseForFile([string]$fieldName, [bool]$directoriesOnly) {
+        # Get current value as starting path
+        $startPath = $this._GetValue($fieldName)
+        if ([string]::IsNullOrWhiteSpace($startPath)) {
+            $startPath = [Environment]::GetFolderPath('UserProfile')
+        }
+
+        # Create and show file picker
+        $this.FilePicker = [PmcFilePicker]::new($startPath, $directoriesOnly)
+        $this.ShowFilePicker = $true
+        $this.FilePickerFieldName = $fieldName
+    }
+
+    hidden [void] _OpenFile([string]$path, [string]$app) {
+        if ([string]::IsNullOrWhiteSpace($path)) {
+            if ($this.StatusBar) {
+                $this.StatusBar.SetRightText("File path not set")
+            }
+            return
+        }
+
+        if (-not (Test-Path $path)) {
+            if ($this.StatusBar) {
+                $this.StatusBar.SetRightText("File not found: $path")
+            }
+            return
+        }
+
+        try {
+            $isWindows = [System.Environment]::OSVersion.Platform -eq 'Win32NT'
+
+            if ($app -eq 'notepad') {
+                if ($isWindows) {
+                    Start-Process notepad.exe -ArgumentList $path
+                } else {
+                    Start-Process xdg-open -ArgumentList $path
+                }
+            } elseif ($app -eq 'excel') {
+                if ($isWindows) {
+                    # Try to find Excel
+                    if (Get-Command excel.exe -ErrorAction SilentlyContinue) {
+                        Start-Process excel.exe -ArgumentList $path
+                    } else {
+                        # Fallback to default handler
+                        Start-Process $path
+                    }
+                } else {
+                    # Try LibreOffice Calc or default handler
+                    if (Get-Command libreoffice -ErrorAction SilentlyContinue) {
+                        Start-Process libreoffice -ArgumentList "--calc", $path
+                    } else {
+                        Start-Process xdg-open -ArgumentList $path
+                    }
+                }
+            } else {
+                # Default handler
+                Start-Process $path
+            }
+
+            if ($this.StatusBar) {
+                $this.StatusBar.SetRightText("Opened: $path")
+            }
+        } catch {
+            if ($this.StatusBar) {
+                $this.StatusBar.SetRightText("Error opening file: $($_.Exception.Message)")
+            }
+        }
+    }
+
+    hidden [void] _OpenFolder([string]$path) {
+        if ([string]::IsNullOrWhiteSpace($path)) {
+            if ($this.StatusBar) {
+                $this.StatusBar.SetRightText("Folder path not set")
+            }
+            return
+        }
+
+        if (-not (Test-Path $path)) {
+            if ($this.StatusBar) {
+                $this.StatusBar.SetRightText("Folder not found: $path")
+            }
+            return
+        }
+
+        try {
+            $isWindows = [System.Environment]::OSVersion.Platform -eq 'Win32NT'
+
+            if ($isWindows) {
+                Start-Process explorer.exe -ArgumentList $path
+            } else {
+                Start-Process xdg-open -ArgumentList $path
+            }
+
+            if ($this.StatusBar) {
+                $this.StatusBar.SetRightText("Opened folder: $path")
+            }
+        } catch {
+            if ($this.StatusBar) {
+                $this.StatusBar.SetRightText("Error opening folder: $($_.Exception.Message)")
+            }
+        }
+    }
+
+    hidden [void] _AssignNote() {
+        # Load NoteService to get all notes
+        . "$PSScriptRoot/../services/NoteService.ps1"
+        $noteService = [NoteService]::GetInstance()
+
+        # Get all notes
+        $allNotes = @($noteService.GetAllNotes())
+
+        if ($allNotes.Count -eq 0) {
+            if ($this.StatusBar) {
+                $this.StatusBar.SetRightText("No notes available to assign")
+            }
+            return
+        }
+
+        # Create a simple picker screen to select a note
+        . "$PSScriptRoot/NotePickerScreen.ps1"
+        $pickerScreen = New-Object NotePickerScreen -ArgumentList $allNotes, $this.ProjectName
+
+        # Set callback for when note is selected
+        $self = $this
+        $pickerScreen.OnNoteSelected = {
+            param($noteId)
+            # Reassign the note to this project
+            $noteService.UpdateNoteMetadata($noteId, @{
+                owner_type = "project"
+                owner_id = $self.ProjectName
+            })
+
+            if ($self.StatusBar) {
+                $self.StatusBar.SetRightText("Note assigned to project: $($self.ProjectName)")
+            }
+        }.GetNewClosure()
+
+        $global:PmcApp.PushScreen($pickerScreen)
+    }
+
+    hidden [void] _AssignChecklist() {
+        # Load ChecklistService to get all templates
+        . "$PSScriptRoot/../services/ChecklistService.ps1"
+        $checklistService = [ChecklistService]::GetInstance()
+
+        # Get all templates
+        $templates = @($checklistService.GetAllTemplates())
+
+        if ($templates.Count -eq 0) {
+            if ($this.StatusBar) {
+                $this.StatusBar.SetRightText("No checklist templates available")
+            }
+            return
+        }
+
+        # Create a simple picker screen to select a template
+        . "$PSScriptRoot/ChecklistTemplatePickerScreen.ps1"
+        $pickerScreen = New-Object ChecklistTemplatePickerScreen -ArgumentList $templates, $this.ProjectName
+
+        # Set callback for when template is selected
+        $self = $this
+        $pickerScreen.OnTemplateSelected = {
+            param($templateId)
+            # Create instance from template for this project
+            $instance = $checklistService.CreateInstanceFromTemplate($templateId, "project", $self.ProjectName)
+
+            if ($self.StatusBar) {
+                $instanceTitle = if ($instance -and $instance.PSObject.Properties['title']) { $instance.title } else { 'Checklist' }
+                $self.StatusBar.SetRightText("Checklist '$instanceTitle' created for project: $($self.ProjectName)")
+            }
+        }.GetNewClosure()
+
+        $global:PmcApp.PushScreen($pickerScreen)
+    }
+
+    # === Rendering Override ===
+    [string] RenderContent() {
+        # Render base tabbed screen
+        $output = ([TabbedScreen]$this).RenderContent()
+
+        # Overlay file picker if showing
+        if ($this.ShowFilePicker -and $null -ne $this.FilePicker) {
+            $output += $this.FilePicker.Render($this.TermWidth, $this.TermHeight)
+        }
+
+        return $output
+    }
+
+    # === Input Override ===
+    [bool] HandleKeyPress([ConsoleKeyInfo]$keyInfo) {
+        # CRITICAL: Handle file picker BEFORE calling parent to prevent Enter key from being intercepted
+        if ($this.ShowFilePicker -and $null -ne $this.FilePicker) {
+            if ($global:PmcTuiLogFile) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ProjectInfoScreenV4: File picker active, routing key=$($keyInfo.Key) to picker"
+            }
+
+            # Route input to file picker
+            $handled = $this.FilePicker.HandleInput($keyInfo)
+
+            if ($global:PmcTuiLogFile) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ProjectInfoScreenV4: After HandleInput - handled=$handled IsComplete=$($this.FilePicker.IsComplete)"
+            }
+
+            # Check if file picker completed
+            if ($this.FilePicker.IsComplete) {
+                if ($global:PmcTuiLogFile) {
+                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ProjectInfoScreenV4: File picker completed - Result=$($this.FilePicker.Result) SelectedPath='$($this.FilePicker.SelectedPath)' FieldName='$($this.FilePickerFieldName)'"
+                }
+
+                if ($this.FilePicker.Result) {
+                    # User selected something
+                    $selectedPath = $this.FilePicker.SelectedPath
+
+                    if ($global:PmcTuiLogFile) {
+                        Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ProjectInfoScreenV4: Updating field '$($this.FilePickerFieldName)' with value '$selectedPath'"
+                    }
+
+                    $this.TabPanel.UpdateFieldValue($this.FilePickerFieldName, $selectedPath)
+
+                    if ($global:PmcTuiLogFile) {
+                        Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ProjectInfoScreenV4: Field updated successfully, saving changes..."
+                    }
+
+                    # Save the changes to disk
+                    try {
+                        $this.SaveChanges()
+                        if ($this.StatusBar) {
+                            $this.StatusBar.SetRightText("Selected and saved: $selectedPath")
+                        }
+                    } catch {
+                        if ($this.StatusBar) {
+                            $this.StatusBar.SetRightText("Selected but save failed: $_")
+                        }
+                        if ($global:PmcTuiLogFile) {
+                            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ProjectInfoScreenV4: SaveChanges failed - $_"
+                        }
+                    }
+                } else {
+                    if ($global:PmcTuiLogFile) {
+                        Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ProjectInfoScreenV4: File picker cancelled"
+                    }
+                    if ($this.StatusBar) {
+                        $this.StatusBar.SetRightText("Cancelled")
+                    }
+                }
+                # Close file picker
+                $this.ShowFilePicker = $false
+                $this.FilePicker = $null
+                $this.FilePickerFieldName = ""
+
+                # Force full screen re-render to clear file picker overlay
+                $this.NeedsClear = $true
+                if ($global:PmcApp) {
+                    $global:PmcApp.IsDirty = $true
+                }
+            }
+
+            # IMPORTANT: Return true to prevent parent from handling the key
+            # This ensures Enter goes to the file picker, not TabbedScreen.EditCurrentField()
+            return $true
+        }
+
+        # Otherwise, call parent handler
+        return ([TabbedScreen]$this).HandleKeyPress($keyInfo)
     }
 }
 

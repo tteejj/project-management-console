@@ -56,6 +56,7 @@ class ProjectListScreen : StandardListScreen {
 
     # LOW FIX PLS-L3: Extract common initialization to helper method
     hidden [void] ConfigureCapabilities() {
+        Write-PmcTuiLog "!!! ProjectListScreen.ConfigureCapabilities CALLED !!!" "INFO"
         # Configure capabilities
         $this.AllowAdd = $true
         $this.AllowEdit = $true
@@ -65,6 +66,16 @@ class ProjectListScreen : StandardListScreen {
         # Configure header
         if ($this.Header) {
             $this.Header.SetBreadcrumb(@("Home", "Projects"))
+        }
+
+        # Configure list actions (Add/Edit/Delete + custom actions like V key)
+        Write-PmcTuiLog "!!! About to call _ConfigureListActions !!!" "INFO"
+        try {
+            $this._ConfigureListActions()
+            Write-PmcTuiLog "!!! _ConfigureListActions completed successfully !!!" "INFO"
+        } catch {
+            Write-PmcTuiLog "!!! ERROR in _ConfigureListActions: $_" "ERROR"
+            Write-PmcTuiLog "!!! Stack: $($_.ScriptStackTrace)" "ERROR"
         }
 
         # Currently uses default columns from UniversalList (works as expected)
@@ -89,12 +100,16 @@ class ProjectListScreen : StandardListScreen {
 
     # Constructor
     ProjectListScreen() : base("ProjectList", "Projects") {
+        Write-PmcTuiLog "!!! ProjectListScreen() constructor (no container) called !!!" "INFO"
         $this.ConfigureCapabilities()
+        Write-PmcTuiLog "!!! ProjectListScreen() constructor complete !!!" "INFO"
     }
 
     # Constructor with container (DI-enabled)
     ProjectListScreen([object]$container) : base("ProjectList", "Projects", $container) {
+        Write-PmcTuiLog "!!! ProjectListScreen(container) constructor called !!!" "INFO"
         $this.ConfigureCapabilities()
+        Write-PmcTuiLog "!!! ProjectListScreen(container) constructor complete !!!" "INFO"
     }
 
     # === Abstract Method Implementations ===
@@ -635,11 +650,15 @@ class ProjectListScreen : StandardListScreen {
                 $self.ToggleProjectArchive($selected)
             }.GetNewClosure() },
             @{ Key='v'; Label='View'; Callback={
+                Write-PmcTuiLog "!!! GetCustomActions V KEY CALLBACK FIRED !!!" "INFO"
                 $selected = $self.List.GetSelectedItem()
+                Write-PmcTuiLog "Selected: $($selected | ConvertTo-Json -Compress)" "INFO"
                 if ($selected) {
                     $projectName = Get-SafeProperty $selected 'name'
+                    Write-PmcTuiLog "Project name: $projectName" "INFO"
                     # Use container to resolve screen (avoids type resolution at parse time)
                     if (-not $global:PmcContainer.IsRegistered('ProjectInfoScreenV4')) {
+                        Write-PmcTuiLog "Registering ProjectInfoScreenV4" "INFO"
                         $screenPath = "$PSScriptRoot/ProjectInfoScreenV4.ps1"
                         $global:PmcContainer.Register('ProjectInfoScreenV4', {
                             param($c)
@@ -647,9 +666,15 @@ class ProjectListScreen : StandardListScreen {
                             return New-Object ProjectInfoScreenV4 -ArgumentList $c
                         }.GetNewClosure(), $false)
                     }
+                    Write-PmcTuiLog "Resolving screen" "INFO"
                     $screen = $global:PmcContainer.Resolve('ProjectInfoScreenV4')
+                    Write-PmcTuiLog "Setting project: $projectName" "INFO"
                     $screen.SetProject($projectName)
+                    Write-PmcTuiLog "Pushing screen" "INFO"
                     $global:PmcApp.PushScreen($screen)
+                    Write-PmcTuiLog "Screen pushed!" "INFO"
+                } else {
+                    Write-PmcTuiLog "NO SELECTED ITEM" "ERROR"
                 }
             }.GetNewClosure() },
             @{ Key='o'; Label='Open Folder'; Callback={
@@ -675,6 +700,7 @@ class ProjectListScreen : StandardListScreen {
     }
 
     [bool] HandleKeyPress([ConsoleKeyInfo]$keyInfo) {
+        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') ProjectListScreen.HandleKeyPress: Key=$($keyInfo.Key) Char='$($keyInfo.KeyChar)' Modifiers=$($keyInfo.Modifiers)"
         # CRITICAL: Call parent FIRST for MenuBar, F10, Alt+keys
         $handled = ([PmcScreen]$this).HandleKeyPress($keyInfo)
         if ($handled) { return $true }
@@ -683,34 +709,47 @@ class ProjectListScreen : StandardListScreen {
 
         # Custom key: V = View project details/stats
         if ($keyInfo.KeyChar -eq 'v' -or $keyInfo.KeyChar -eq 'V') {
-            $selected = $this.List.GetSelectedItem()
-            if ($selected) {
-                try {
-                    # Register ProjectInfoScreenV4 (tabbed interface) in container if not already registered
-                    if (-not $global:PmcContainer.IsRegistered('ProjectInfoScreenV4')) {
-                        $screenPath = "$PSScriptRoot/ProjectInfoScreenV4.ps1"
-                        $global:PmcContainer.Register('ProjectInfoScreenV4', {
-                            param($c)
-                            . $screenPath
-                            return New-Object ProjectInfoScreenV4 -ArgumentList $c
-                        }.GetNewClosure(), $false)
-                    }
+            Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') *** V KEY PRESSED IN ProjectListScreen.HandleKeyPress ***"
 
-                    # Resolve screen and set project
-                    $projectName = Get-SafeProperty $selected 'name'
-                    $screen = $global:PmcContainer.Resolve('ProjectInfoScreenV4')
-                    $screen.SetProject($projectName)
-                    
-                    $global:PmcApp.PushScreen($screen)
-                    $this.SetStatusMessage("Viewing project: $projectName", "success")
-                } catch {
-                    # PS-H2 FIX: Add user-visible error message
-                    Write-PmcTuiLog "Failed to open ProjectInfoScreenV4: $_" "ERROR"
-                    Write-PmcTuiLog "Stack trace: $($_.ScriptStackTrace)" "ERROR"
-                    $this.SetStatusMessage("Failed to load project details: $($_.Exception.Message)", "error")
-                }
-            } else {
-                $this.SetStatusMessage("No project selected", "error")
+            # Defensive check: ensure List exists
+            if ($null -eq $this.List) {
+                Write-PmcTuiLog "ERROR: List is null when V pressed" "ERROR"
+                $this.SetStatusMessage("Internal error: List not initialized", "error")
+                return $true
+            }
+
+            $selected = $this.List.GetSelectedItem()
+            Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Selected item: $($selected -ne $null)"
+
+            if ($null -eq $selected) {
+                Write-PmcTuiLog "No project selected when V pressed" "WARNING"
+                $this.SetStatusMessage("No project selected", "warning")
+                return $true
+            }
+
+            try {
+                $projectName = Get-SafeProperty $selected 'name'
+                Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Opening ProjectInfoScreenV4 for: $projectName"
+
+                # Create instance directly - ProjectInfoScreenV4 should already be loaded by the application
+                $screen = New-Object ProjectInfoScreenV4 -ArgumentList $this.Container
+                Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Screen instance created"
+
+                $screen.SetProject($projectName)
+                Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Project set to: $projectName"
+
+                # Push to app
+                Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Pushing ProjectInfoScreenV4 to app..."
+                $global:PmcApp.PushScreen($screen)
+                Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Screen pushed successfully!"
+
+                $this.SetStatusMessage("Viewing project: $projectName", "success")
+            } catch {
+                $errorMsg = "Failed to open project view: $($_.Exception.Message)"
+                Write-PmcTuiLog "!!! EXCEPTION: $errorMsg" "ERROR"
+                Write-PmcTuiLog "!!! Stack trace: $($_.ScriptStackTrace)" "ERROR"
+                Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') ERROR: $errorMsg"
+                $this.SetStatusMessage($errorMsg, "error")
             }
             return $true
         }

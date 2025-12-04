@@ -249,10 +249,15 @@ try {
 Write-PmcTuiLog "Loading screens..." "INFO"
 
 try {
-    # Only pre-load TaskListScreen (initial screen)
-    # All other screens are lazy-loaded via MenuRegistry on-demand
+    # Pre-load dependencies needed by screens
+    . "$PSScriptRoot/widgets/PmcFilePicker.ps1"
+    Write-PmcTuiLog "PmcFilePicker loaded" "INFO"
+
+    # Pre-load common screens
     . "$PSScriptRoot/screens/TaskListScreen.ps1"
-    Write-PmcTuiLog "TaskListScreen loaded" "INFO"
+    . "$PSScriptRoot/screens/ProjectListScreen.ps1"
+    . "$PSScriptRoot/screens/ProjectInfoScreenV4.ps1"
+    Write-PmcTuiLog "Screens loaded (TaskList, ProjectList, ProjectInfoV4)" "INFO"
 } catch {
     Write-PmcTuiLog "Failed to load screens: $_" "ERROR"
     Write-PmcTuiLog $_.ScriptStackTrace "ERROR"

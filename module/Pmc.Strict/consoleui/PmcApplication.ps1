@@ -522,24 +522,25 @@ class PmcApplication {
                         break
                     }
 
-                    # DEBUG: Log E key presses
-                    if ($key.Key -eq [ConsoleKey]::E) {
-                        if ($global:PmcTuiLogFile) {
-                            Add-Content -Path $global:PmcTuiLogFile -Value "[DEBUG] E KEY RECEIVED IN EVENT LOOP - CurrentScreen type: $($this.CurrentScreen.GetType().Name)"
-                        }
-                        # Force display to console too
-                        [Console]::SetCursorPosition(0, [Console]::WindowHeight - 1)
-                        Write-Host "*** E KEY PRESSED ***" -NoNewline
-                    }
-
                     # Pass to current screen (screen handles its own menu)
-                    if ($this.CurrentScreen -and $this.CurrentScreen.PSObject.Methods['HandleKeyPress']) {
-                        $handled = $this.CurrentScreen.HandleKeyPress($key)
-                        if ($handled) {
-                            $hadInput = $true
+                    if ($this.CurrentScreen) {
+                        if ($this.CurrentScreen.PSObject.Methods['HandleKeyPress']) {
+                            if ($global:PmcTuiLogFile) {
+                                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcApplication: Calling HandleKeyPress on $($this.CurrentScreen.GetType().Name) Key=$($key.Key) Char='$($key.KeyChar)'"
+                            }
+                            Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcApplication: Calling HandleKeyPress on $($this.CurrentScreen.GetType().Name) Key=$($key.Key) Char='$($key.KeyChar)'"
+                            Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcApplication: Methods: $($this.CurrentScreen.PSObject.Methods.Name -join ', ')"
+                            $handled = $this.CurrentScreen.HandleKeyPress($key)
+                            if ($handled) {
+                                $hadInput = $true
+                            }
+                        } else {
+                            if ($global:PmcTuiLogFile) {
+                                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcApplication: HandleKeyPress MISSING on $($this.CurrentScreen.GetType().Name)"
+                            }
                         }
                     }
-                    }
+                }
                 } catch {
                     # Console input is redirected or unavailable - skip input processing
                     # This happens when running in non-interactive mode (e.g., piped input, automated tests)

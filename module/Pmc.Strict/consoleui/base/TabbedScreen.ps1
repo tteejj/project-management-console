@@ -266,10 +266,23 @@ class TabbedScreen : PmcScreen {
         $field = $this.TabPanel.GetCurrentField()
         if ($null -eq $field) { return }
 
+        # Check if this is an action field (readonly with IsAction flag)
+        if ($field.ContainsKey('IsAction') -and $field.IsAction) {
+            # Trigger action callback instead of editing
+            $this.OnFieldEdited($field, $null)
+            return
+        }
+
+        # Check if readonly but not an action - skip editing
+        $fieldType = if ($field.ContainsKey('Type')) { $field.Type } else { 'text' }
+        if ($fieldType -eq 'readonly') {
+            # Skip editing readonly fields that aren't actions
+            return
+        }
+
         $this.CurrentEditField = $field
 
         # Build field definition for InlineEditor
-        $fieldType = if ($field.ContainsKey('Type')) { $field.Type } else { 'text' }
         $fieldDef = @{
             Name = $field.Name
             Label = ''  # No label for inline editing

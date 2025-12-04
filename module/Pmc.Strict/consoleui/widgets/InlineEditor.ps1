@@ -676,8 +676,8 @@ class InlineEditor : PmcWidget {
                         $visibleText = $visibleText.Substring(0, $fieldWidth)
                     }
 
-                    # Pad to field width
-                    $paddedText = $visibleText.PadRight($fieldWidth)
+                    # Pad to field width + 2 to match column padding
+                    $paddedText = $visibleText.PadRight($fieldWidth + 2)
 
                     # Calculate cursor position relative to visible text
                     $relCursorPos = $cursorPos - $scrollOffset
@@ -687,12 +687,13 @@ class InlineEditor : PmcWidget {
                     $focusFg = $this.GetThemedFg('Foreground.FieldFocused')
 
                     # Render with highlighting and blinking cursor
-                    for ($charIdx = 0; $charIdx -lt $fieldWidth; $charIdx++) {
+                    $renderWidth = $fieldWidth + 2
+                    for ($charIdx = 0; $charIdx -lt $renderWidth; $charIdx++) {
                         if ($charIdx -eq $relCursorPos) {
                             # Cursor position - invert colors and blink
                             $sb.Append("`e[7m`e[5m" + $focusBg + $focusFg + $paddedText[$charIdx] + "`e[25m`e[27m")
                             # Restore focus colors after cursor
-                            if ($charIdx -lt ($fieldWidth - 1)) {
+                            if ($charIdx -lt ($renderWidth - 1)) {
                                 $sb.Append($focusBg + $focusFg)
                             }
                         } else {
@@ -704,13 +705,14 @@ class InlineEditor : PmcWidget {
                     $sb.Append($reset)
                 } else {
                     # Widget field (date/project/tags) that isn't TextInput - show preview with focus
-                    $displayValue = $value.PadRight($fieldWidth)
-                    if ($displayValue.Length -gt $fieldWidth) {
-                        $displayValue = $displayValue.Substring(0, $fieldWidth)
+                    $renderWidth = $fieldWidth + 2
+                    $displayValue = $value.PadRight($renderWidth)
+                    if ($displayValue.Length -gt $renderWidth) {
+                        $displayValue = $displayValue.Substring(0, $renderWidth)
                     }
 
                     # Use theme colors for focused widget fields
-                    $focusBg = $this.GetThemedBg('Background.FieldFocused', $fieldWidth, 0)
+                    $focusBg = $this.GetThemedBg('Background.FieldFocused', $renderWidth, 0)
                     $focusFg = $this.GetThemedFg('Foreground.FieldFocused')
                     $sb.Append($focusBg + $focusFg + $displayValue)
                     # Reset after focused field
@@ -727,21 +729,22 @@ class InlineEditor : PmcWidget {
                     }
                 }
 
-                $displayValue = $displayValue.PadRight($fieldWidth)
-                if ($displayValue.Length -gt $fieldWidth) {
-                    $displayValue = $displayValue.Substring(0, $fieldWidth)
+                $renderWidth = $fieldWidth + 2
+                $displayValue = $displayValue.PadRight($renderWidth)
+                if ($displayValue.Length -gt $renderWidth) {
+                    $displayValue = $displayValue.Substring(0, $renderWidth)
                 }
                 # CRITICAL: Non-focused fields ALSO get background highlighting in edit mode
-                $unfocusedBg = $this.GetThemedBg('Background.Field', $fieldWidth, 0)
+                $unfocusedBg = $this.GetThemedBg('Background.Field', $renderWidth, 0)
                 $unfocusedFg = $this.GetThemedFg('Foreground.Field')
                 $sb.Append($unfocusedBg + $unfocusedFg + $displayValue)
                 # Reset after non-focused field
                 $sb.Append($reset)
             }
 
-            # Don't add space - move directly to next field position
-            # This prevents wrapping and ensures fields stay on one line
-            $currentX += $fieldWidth
+            # Add separator spacing to match column spacing
+            $sb.Append("    ")
+            $currentX += $fieldWidth + 6
         }
 
         # CRITICAL FIX: Reset colors THEN clear to EOL (ensures no background bleeds into padding)

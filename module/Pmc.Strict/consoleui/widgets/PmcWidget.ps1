@@ -146,7 +146,7 @@ class PmcWidget : Component {
             # Fallback - widget still functional with defaults
             if (Get-Command Write-PmcTuiLog -ErrorAction SilentlyContinue) {
                 Write-PmcTuiLog "Theme initialization failed: $($_.Exception.Message)" "ERROR"
-                Write-PmcTuiLog "Stack: $($_.ScriptStackTrace)" "DEBUG"
+                Write-PmcTuiLog "Stack: $($_.ScriptStackTrace)"
             }
             $this._themeInitialized = $true
         }
@@ -520,6 +520,9 @@ class PmcWidget : Component {
 
         # Use visible length instead of raw .Length to account for ANSI codes
         $visibleLen = $this.GetVisibleLength($text)
+        if ($text.Length -lt 50) {
+            Write-PmcTuiLog "PadText: text='$text' rawLen=$($text.Length) visibleLen=$visibleLen width=$width align=$align"
+        }
 
         if ($visibleLen -ge $width) {
             # Text is already wide enough - truncate if needed

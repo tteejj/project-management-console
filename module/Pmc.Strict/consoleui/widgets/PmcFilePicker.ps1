@@ -54,7 +54,7 @@ class PmcFilePicker : PmcWidget {
             }
 
             # Get directories
-            $dirs = Get-ChildItem -Path $this.CurrentPath -Directory -ErrorAction SilentlyContinue | Sort-Object Name
+            $dirs = @(Get-ChildItem -Path $this.CurrentPath -Directory -ErrorAction SilentlyContinue | Sort-Object Name)
             if ($global:PmcTuiLogFile) {
                 Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcFilePicker: Found $($dirs.Count) directories"
             }
@@ -68,7 +68,7 @@ class PmcFilePicker : PmcWidget {
 
             # Get files if not directories-only
             if (-not $this.DirectoriesOnly) {
-                $files = Get-ChildItem -Path $this.CurrentPath -File -ErrorAction SilentlyContinue | Sort-Object Name
+                $files = @(Get-ChildItem -Path $this.CurrentPath -File -ErrorAction SilentlyContinue | Sort-Object Name)
                 foreach ($file in $files) {
                     $this.Items += @{
                         Name = $file.Name

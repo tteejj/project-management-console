@@ -65,9 +65,9 @@ class TimeListScreen : StandardListScreen {
 
     # Constructor with container (DI-enabled)
     TimeListScreen([object]$container) : base("TimeList", "Time Tracking", $container) {
-        Write-PmcTuiLog "TimeListScreen: Constructor called, about to ConfigureCapabilities" "DEBUG"
+        Write-PmcTuiLog "TimeListScreen: Constructor called, about to ConfigureCapabilities"
         $this.ConfigureCapabilities()
-        Write-PmcTuiLog "TimeListScreen: Constructor complete" "DEBUG"
+        Write-PmcTuiLog "TimeListScreen: Constructor complete"
     }
 
     # === Abstract Method Implementations ===
@@ -84,27 +84,27 @@ class TimeListScreen : StandardListScreen {
             @{ Name='task'; Label='Task'; Width=25 },
             @{ Name='project'; Label='Project'; Width=16 },
             @{ Name='timecode'; Label='Code'; Width=10 },
-            @{ Name='duration'; Label='Duration'; Width=12 },
+            @{ Name='duration'; Label='Duration'; Width=18 },
             @{ Name='notes'; Label='Notes'; Width=40 }
         )
     }
 
     # Load data and refresh list (required by StandardListScreen)
     [void] LoadData() {
-        Write-PmcTuiLog "TimeListScreen.LoadData: START" "DEBUG"
+        Write-PmcTuiLog "TimeListScreen.LoadData: START"
         $items = $this.LoadItems()
-        Write-PmcTuiLog "TimeListScreen.LoadData: LoadItems completed, checking type" "DEBUG"
-        Write-PmcTuiLog "TimeListScreen.LoadData: items type=$($items.GetType().FullName)" "DEBUG"
+        Write-PmcTuiLog "TimeListScreen.LoadData: LoadItems completed, checking type"
+        Write-PmcTuiLog "TimeListScreen.LoadData: items type=$($items.GetType().FullName)"
         if ($null -eq $items) {
-            Write-PmcTuiLog "TimeListScreen.LoadData: items is null, setting to empty array" "DEBUG"
+            Write-PmcTuiLog "TimeListScreen.LoadData: items is null, setting to empty array"
             $items = @()
         }
-        Write-PmcTuiLog "TimeListScreen.LoadData: About to count items" "DEBUG"
+        Write-PmcTuiLog "TimeListScreen.LoadData: About to count items"
         $itemCount = if ($items -is [array]) { $items.Count } else { 1 }
-        Write-PmcTuiLog "TimeListScreen.LoadData: LoadItems returned $itemCount items" "DEBUG"
-        Write-PmcTuiLog "TimeListScreen.LoadData: Calling SetData" "DEBUG"
+        Write-PmcTuiLog "TimeListScreen.LoadData: LoadItems returned $itemCount items"
+        Write-PmcTuiLog "TimeListScreen.LoadData: Calling SetData"
         $this.List.SetData($items)
-        Write-PmcTuiLog "TimeListScreen.LoadData: COMPLETE" "DEBUG"
+        Write-PmcTuiLog "TimeListScreen.LoadData: COMPLETE"
     }
 
     # Load items from data store
@@ -246,6 +246,11 @@ class TimeListScreen : StandardListScreen {
                 $entry['duration'] = "$($entry.duration) ($($entry.entry_count))"
             }
 
+            # DEBUG: Log the keys in this entry
+            $keysStr = ($entry.Keys | Sort-Object) -join ', '
+            Write-PmcTuiLog "TimeListScreen.LoadItems: Created entry with keys: $keysStr"
+            Write-PmcTuiLog "TimeListScreen.LoadItems: date_display='$($entry.date_display)' date='$($entry.date)'"
+
             $aggregated += $entry
         }
 
@@ -275,15 +280,14 @@ class TimeListScreen : StandardListScreen {
 
     # Define edit fields for InlineEditor
     [array] GetEditFields([object]$item) {
-        # CRITICAL FIX: Use SAME widths as GetListColumns() for column alignment
-        # GetListColumns defines: date_display=12, task=25, project=15, duration=10, notes=35
-        # But we have 6 edit fields vs 5 display columns, so we combine task+timecode
+        # CRITICAL FIX: Use SAME widths as GetColumns() for column alignment
+        # GetColumns defines: date_display=12, task=25, project=16, timecode=10, duration=18, notes=40
         $dateWidth = 12      # Matches date_display column
         $taskWidth = 25      # Matches task column
-        $projectWidth = 15   # Matches project column
-        $timecodeWidth = 8   # Shares space with task
-        $hoursWidth = 10     # Matches duration column
-        $notesWidth = 30     # Matches notes column (reduced to fit)
+        $projectWidth = 16   # Matches project column
+        $timecodeWidth = 10  # Matches timecode column
+        $hoursWidth = 18     # Matches duration column
+        $notesWidth = 40     # Matches notes column
 
         if ($null -eq $item -or ($item -is [hashtable] -and $item.Count -eq 0)) {
             # New time entry - empty fields
