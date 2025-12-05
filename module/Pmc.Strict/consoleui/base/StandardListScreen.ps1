@@ -156,19 +156,19 @@ class StandardListScreen : PmcScreen {
     Initialize screen with render engine and load initial data
     #>
     [void] Initialize([object]$renderEngine) {
-        Write-PmcTuiLog "StandardListScreen.Initialize: Starting" "DEBUG"
-
+        # Write-PmcTuiLog "StandardListScreen.Initialize: Starting" "DEBUG"
+        
         # Call base class initialization
         ([PmcScreen]$this).Initialize($renderEngine)
 
-        Write-PmcTuiLog "StandardListScreen.Initialize: Calling LoadData" "DEBUG"
+        # Write-PmcTuiLog "StandardListScreen.Initialize: Calling LoadData" "DEBUG"
         # Load data into the list
         $this.LoadData()
 
-        Write-PmcTuiLog "StandardListScreen.Initialize: Calling RefreshList" "DEBUG"
+        # Write-PmcTuiLog "StandardListScreen.Initialize: Calling RefreshList" "DEBUG"
         $this.RefreshList()
 
-        Write-PmcTuiLog "StandardListScreen.Initialize: Complete" "DEBUG"
+        # Write-PmcTuiLog "StandardListScreen.Initialize: Complete" "DEBUG"
     }
 
     # === Abstract Methods (MUST override) ===
@@ -394,16 +394,16 @@ class StandardListScreen : PmcScreen {
                 }.GetNewClosure()
             }
             'timelog' {
-                Write-PmcTuiLog "StandardListScreen._InitializeComponents: Setting OnTimeLogsChanged callback" "DEBUG"
+                # Write-PmcTuiLog "StandardListScreen._InitializeComponents: Setting OnTimeLogsChanged callback" "DEBUG"
                 $this.Store.OnTimeLogsChanged = {
                     param($logs)
-                    Write-PmcTuiLog "OnTimeLogsChanged callback invoked, IsActive=$($self.IsActive)" "DEBUG"
+                    # Write-PmcTuiLog "OnTimeLogsChanged callback invoked, IsActive=$($self.IsActive)" "DEBUG"
                     if ($self.IsActive) {
-                        Write-PmcTuiLog "OnTimeLogsChanged: Calling RefreshList" "DEBUG"
+                        # Write-PmcTuiLog "OnTimeLogsChanged: Calling RefreshList" "DEBUG"
                         $self.RefreshList()
                     }
                 }.GetNewClosure()
-                Write-PmcTuiLog "StandardListScreen._InitializeComponents: OnTimeLogsChanged callback set" "DEBUG"
+                # Write-PmcTuiLog "StandardListScreen._InitializeComponents: OnTimeLogsChanged callback set" "DEBUG"
             }
         }
 
@@ -420,10 +420,10 @@ class StandardListScreen : PmcScreen {
             Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] _ConfigureListActions: Screen instance type=$($this.GetType().Name) key=$($this.ScreenKey)"
         }
 
-        Write-PmcTuiLog "_ConfigureListActions: START AllowAdd=$($this.AllowAdd) AllowEdit=$($this.AllowEdit) AllowDelete=$($this.AllowDelete)" "DEBUG"
+        # Write-PmcTuiLog "_ConfigureListActions: START AllowAdd=$($this.AllowAdd) AllowEdit=$($this.AllowEdit) AllowDelete=$($this.AllowDelete)" "DEBUG"
 
         if ($this.AllowAdd) {
-            Write-PmcTuiLog "_ConfigureListActions: Creating Add action" "DEBUG"
+            # Write-PmcTuiLog "_ConfigureListActions: Creating Add action" "DEBUG"
             # Use GetNewClosure() to capture current scope
             $addAction = {
                 # Find the screen that owns this List by walking up
@@ -433,13 +433,13 @@ class StandardListScreen : PmcScreen {
                 }
                 $currentScreen.AddItem()
             }.GetNewClosure()
-            Write-PmcTuiLog "_ConfigureListActions: Add action created, adding to list" "DEBUG"
+            # Write-PmcTuiLog "_ConfigureListActions: Add action created, adding to list" "DEBUG"
             $this.List.AddAction('a', 'Add', $addAction)
-            Write-PmcTuiLog "_ConfigureListActions: Add action added successfully" "DEBUG"
+            # Write-PmcTuiLog "_ConfigureListActions: Add action added successfully" "DEBUG"
         }
 
         if ($this.AllowEdit) {
-            Write-PmcTuiLog "_ConfigureListActions: Creating Edit action" "DEBUG"
+            # Write-PmcTuiLog "_ConfigureListActions: Creating Edit action" "DEBUG"
             $editAction = {
                 $currentScreen = $global:PmcApp.CurrentScreen
                 $selectedItem = $currentScreen.List.GetSelectedItem()
@@ -447,13 +447,13 @@ class StandardListScreen : PmcScreen {
                     $currentScreen.EditItem($selectedItem)
                 }
             }.GetNewClosure()
-            Write-PmcTuiLog "_ConfigureListActions: Edit action created, adding to list" "DEBUG"
+            # Write-PmcTuiLog "_ConfigureListActions: Edit action created, adding to list" "DEBUG"
             $this.List.AddAction('e', 'Edit', $editAction)
-            Write-PmcTuiLog "_ConfigureListActions: Edit action added successfully" "DEBUG"
+            # Write-PmcTuiLog "_ConfigureListActions: Edit action added successfully" "DEBUG"
         }
 
         if ($this.AllowDelete) {
-            Write-PmcTuiLog "_ConfigureListActions: Creating Delete action" "DEBUG"
+            # Write-PmcTuiLog "_ConfigureListActions: Creating Delete action" "DEBUG"
             $deleteAction = {
                 $currentScreen = $global:PmcApp.CurrentScreen
                 $selectedItem = $currentScreen.List.GetSelectedItem()
@@ -461,33 +461,33 @@ class StandardListScreen : PmcScreen {
                     $currentScreen.DeleteItem($selectedItem)
                 }
             }.GetNewClosure()
-            Write-PmcTuiLog "_ConfigureListActions: Delete action created, adding to list" "DEBUG"
+            # Write-PmcTuiLog "_ConfigureListActions: Delete action created, adding to list" "DEBUG"
             $this.List.AddAction('d', 'Delete', $deleteAction)
-            Write-PmcTuiLog "_ConfigureListActions: Delete action added successfully" "DEBUG"
+            # Write-PmcTuiLog "_ConfigureListActions: Delete action added successfully" "DEBUG"
         }
 
         # Add custom actions from subclass
-        Write-PmcTuiLog "_ConfigureListActions: Getting custom actions from subclass" "DEBUG"
+        # Write-PmcTuiLog "_ConfigureListActions: Getting custom actions from subclass" "DEBUG"
         try {
             $customActions = $this.GetCustomActions()
-            Write-PmcTuiLog "_ConfigureListActions: Got custom actions, type=$($customActions.GetType().FullName)" "DEBUG"
+            # Write-PmcTuiLog "_ConfigureListActions: Got custom actions, type=$($customActions.GetType().FullName)" "DEBUG"
             $actionCount = if ($customActions -is [array]) { $customActions.Count } else { 1 }
-            Write-PmcTuiLog "_ConfigureListActions: Custom actions count=$actionCount" "DEBUG"
+            # Write-PmcTuiLog "_ConfigureListActions: Custom actions count=$actionCount" "DEBUG"
             if ($null -ne $customActions) {
                 foreach ($action in $customActions) {
-                    Write-PmcTuiLog "_ConfigureListActions: Processing action type=$($action.GetType().FullName)" "DEBUG"
+                    # Write-PmcTuiLog "_ConfigureListActions: Processing action type=$($action.GetType().FullName)" "DEBUG"
                     if ($null -ne $action -and $action -is [hashtable] -and $action.ContainsKey('Key') -and $action.ContainsKey('Label') -and $action.ContainsKey('Callback')) {
-                        Write-PmcTuiLog "_ConfigureListActions: Adding custom action key=$($action.Key)" "DEBUG"
+                        # Write-PmcTuiLog "_ConfigureListActions: Adding custom action key=$($action.Key)" "DEBUG"
                         $this.List.AddAction($action.Key, $action.Label, $action.Callback)
                     }
                 }
             }
-            Write-PmcTuiLog "_ConfigureListActions: Custom actions added successfully" "DEBUG"
+            # Write-PmcTuiLog "_ConfigureListActions: Custom actions added successfully" "DEBUG"
         } catch {
             Write-PmcTuiLog "_ConfigureListActions: Error adding custom actions: $_" "ERROR"
             Write-PmcTuiLog "_ConfigureListActions: Error stack: $($_.ScriptStackTrace)" "ERROR"
         }
-        Write-PmcTuiLog "_ConfigureListActions: COMPLETE" "DEBUG"
+        # Write-PmcTuiLog "_ConfigureListActions: COMPLETE" "DEBUG"
     }
 
     # === Lifecycle Methods ===
@@ -746,17 +746,17 @@ class StandardListScreen : PmcScreen {
     Field values from InlineEditor
     #>
     hidden [void] _SaveEditedItem($values) {
-        Write-PmcTuiLog "StandardListScreen._SaveEditedItem: Mode=$($this.EditorMode) Values=$($values | ConvertTo-Json -Compress)" "DEBUG"
+        # Write-PmcTuiLog "StandardListScreen._SaveEditedItem: Mode=$($this.EditorMode) Values=$($values | ConvertTo-Json -Compress)" "DEBUG"
 
         try {
             if ($this.EditorMode -eq 'add') {
                 # Call subclass callback for item creation
-                Write-PmcTuiLog "Calling OnItemCreated with values: $($values | ConvertTo-Json -Compress)" "DEBUG"
+                # Write-PmcTuiLog "Calling OnItemCreated with values: $($values | ConvertTo-Json -Compress)" "DEBUG"
                 $this.OnItemCreated($values)
             }
             elseif ($this.EditorMode -eq 'edit') {
                 # Call subclass callback for item update
-                Write-PmcTuiLog "Calling OnItemUpdated with item and values" "DEBUG"
+                # Write-PmcTuiLog "Calling OnItemUpdated with item and values" "DEBUG"
                 $this.OnItemUpdated($this.CurrentEditItem, $values)
             }
             else {
@@ -766,12 +766,12 @@ class StandardListScreen : PmcScreen {
             }
 
             # Only close editor on success
-            Write-PmcTuiLog "_SaveEditedItem: Setting ShowInlineEditor=false" "DEBUG"
+            # Write-PmcTuiLog "_SaveEditedItem: Setting ShowInlineEditor=false" "DEBUG"
             $this.ShowInlineEditor = $false
             $this.EditorMode = ""
             $this.CurrentEditItem = $null
 
-            Write-PmcTuiLog "_SaveEditedItem: After close - ShowInlineEditor=$($this.ShowInlineEditor)" "DEBUG"
+            # Write-PmcTuiLog "_SaveEditedItem: After close - ShowInlineEditor=$($this.ShowInlineEditor)" "DEBUG"
         }
         catch {
             Write-PmcTuiLog "_SaveEditedItem failed: $_" "ERROR"

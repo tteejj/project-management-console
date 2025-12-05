@@ -65,9 +65,9 @@ class TimeListScreen : StandardListScreen {
 
     # Constructor with container (DI-enabled)
     TimeListScreen([object]$container) : base("TimeList", "Time Tracking", $container) {
-        Write-PmcTuiLog "TimeListScreen: Constructor called, about to ConfigureCapabilities"
+        # Write-PmcTuiLog "TimeListScreen: Constructor called, about to ConfigureCapabilities"
         $this.ConfigureCapabilities()
-        Write-PmcTuiLog "TimeListScreen: Constructor complete"
+        # Write-PmcTuiLog "TimeListScreen: Constructor complete"
     }
 
     # === Abstract Method Implementations ===
@@ -91,20 +91,20 @@ class TimeListScreen : StandardListScreen {
 
     # Load data and refresh list (required by StandardListScreen)
     [void] LoadData() {
-        Write-PmcTuiLog "TimeListScreen.LoadData: START"
+        # Write-PmcTuiLog "TimeListScreen.LoadData: START"
         $items = $this.LoadItems()
-        Write-PmcTuiLog "TimeListScreen.LoadData: LoadItems completed, checking type"
-        Write-PmcTuiLog "TimeListScreen.LoadData: items type=$($items.GetType().FullName)"
+        # Write-PmcTuiLog "TimeListScreen.LoadData: LoadItems completed, checking type"
+        # Write-PmcTuiLog "TimeListScreen.LoadData: items type=$($items.GetType().FullName)"
         if ($null -eq $items) {
-            Write-PmcTuiLog "TimeListScreen.LoadData: items is null, setting to empty array"
+            Write-PmcTuiLog "TimeListScreen.LoadData: items is null, setting to empty array" "WARNING"
             $items = @()
         }
-        Write-PmcTuiLog "TimeListScreen.LoadData: About to count items"
+        # Write-PmcTuiLog "TimeListScreen.LoadData: About to count items"
         $itemCount = if ($items -is [array]) { $items.Count } else { 1 }
-        Write-PmcTuiLog "TimeListScreen.LoadData: LoadItems returned $itemCount items"
-        Write-PmcTuiLog "TimeListScreen.LoadData: Calling SetData"
+        # Write-PmcTuiLog "TimeListScreen.LoadData: LoadItems returned $itemCount items"
+        # Write-PmcTuiLog "TimeListScreen.LoadData: Calling SetData"
         $this.List.SetData($items)
-        Write-PmcTuiLog "TimeListScreen.LoadData: COMPLETE"
+        # Write-PmcTuiLog "TimeListScreen.LoadData: COMPLETE"
     }
 
     # Load items from data store
@@ -248,8 +248,8 @@ class TimeListScreen : StandardListScreen {
 
             # DEBUG: Log the keys in this entry
             $keysStr = ($entry.Keys | Sort-Object) -join ', '
-            Write-PmcTuiLog "TimeListScreen.LoadItems: Created entry with keys: $keysStr"
-            Write-PmcTuiLog "TimeListScreen.LoadItems: date_display='$($entry.date_display)' date='$($entry.date)'"
+            # Write-PmcTuiLog "TimeListScreen.LoadItems: Created entry with keys: $keysStr"
+            # Write-PmcTuiLog "TimeListScreen.LoadItems: date_display='$($entry.date_display)' date='$($entry.date)'"
 
             $aggregated += $entry
         }

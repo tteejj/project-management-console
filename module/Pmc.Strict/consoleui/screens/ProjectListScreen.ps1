@@ -56,7 +56,7 @@ class ProjectListScreen : StandardListScreen {
 
     # LOW FIX PLS-L3: Extract common initialization to helper method
     hidden [void] ConfigureCapabilities() {
-        Write-PmcTuiLog "!!! ProjectListScreen.ConfigureCapabilities CALLED !!!" "INFO"
+        # Write-PmcTuiLog "!!! ProjectListScreen.ConfigureCapabilities CALLED !!!" "INFO"
         # Configure capabilities
         $this.AllowAdd = $true
         $this.AllowEdit = $true
@@ -69,10 +69,10 @@ class ProjectListScreen : StandardListScreen {
         }
 
         # Configure list actions (Add/Edit/Delete + custom actions like V key)
-        Write-PmcTuiLog "!!! About to call _ConfigureListActions !!!" "INFO"
+        # Write-PmcTuiLog "!!! About to call _ConfigureListActions !!!" "INFO"
         try {
             $this._ConfigureListActions()
-            Write-PmcTuiLog "!!! _ConfigureListActions completed successfully !!!" "INFO"
+            # Write-PmcTuiLog "!!! _ConfigureListActions completed successfully !!!" "INFO"
         } catch {
             Write-PmcTuiLog "!!! ERROR in _ConfigureListActions: $_" "ERROR"
             Write-PmcTuiLog "!!! Stack: $($_.ScriptStackTrace)" "ERROR"
@@ -100,16 +100,16 @@ class ProjectListScreen : StandardListScreen {
 
     # Constructor
     ProjectListScreen() : base("ProjectList", "Projects") {
-        Write-PmcTuiLog "!!! ProjectListScreen() constructor (no container) called !!!" "INFO"
+        # Write-PmcTuiLog "!!! ProjectListScreen() constructor (no container) called !!!" "INFO"
         $this.ConfigureCapabilities()
-        Write-PmcTuiLog "!!! ProjectListScreen() constructor complete !!!" "INFO"
+        # Write-PmcTuiLog "!!! ProjectListScreen() constructor complete !!!" "INFO"
     }
 
     # Constructor with container (DI-enabled)
     ProjectListScreen([object]$container) : base("ProjectList", "Projects", $container) {
-        Write-PmcTuiLog "!!! ProjectListScreen(container) constructor called !!!" "INFO"
+        # Write-PmcTuiLog "!!! ProjectListScreen(container) constructor called !!!" "INFO"
         $this.ConfigureCapabilities()
-        Write-PmcTuiLog "!!! ProjectListScreen(container) constructor complete !!!" "INFO"
+        # Write-PmcTuiLog "!!! ProjectListScreen(container) constructor complete !!!" "INFO"
     }
 
     # === Abstract Method Implementations ===
@@ -650,15 +650,15 @@ class ProjectListScreen : StandardListScreen {
                 $self.ToggleProjectArchive($selected)
             }.GetNewClosure() },
             @{ Key='v'; Label='View'; Callback={
-                Write-PmcTuiLog "!!! GetCustomActions V KEY CALLBACK FIRED !!!" "INFO"
+                # Write-PmcTuiLog "!!! GetCustomActions V KEY CALLBACK FIRED !!!" "INFO"
                 $selected = $self.List.GetSelectedItem()
-                Write-PmcTuiLog "Selected: $($selected | ConvertTo-Json -Compress)" "INFO"
+                # Write-PmcTuiLog "Selected: $($selected | ConvertTo-Json -Compress)" "INFO"
                 if ($selected) {
                     $projectName = Get-SafeProperty $selected 'name'
-                    Write-PmcTuiLog "Project name: $projectName" "INFO"
+                    # Write-PmcTuiLog "Project name: $projectName" "INFO"
                     # Use container to resolve screen (avoids type resolution at parse time)
                     if (-not $global:PmcContainer.IsRegistered('ProjectInfoScreenV4')) {
-                        Write-PmcTuiLog "Registering ProjectInfoScreenV4" "INFO"
+                        # Write-PmcTuiLog "Registering ProjectInfoScreenV4" "INFO"
                         $screenPath = "$PSScriptRoot/ProjectInfoScreenV4.ps1"
                         $global:PmcContainer.Register('ProjectInfoScreenV4', {
                             param($c)
@@ -666,13 +666,13 @@ class ProjectListScreen : StandardListScreen {
                             return New-Object ProjectInfoScreenV4 -ArgumentList $c
                         }.GetNewClosure(), $false)
                     }
-                    Write-PmcTuiLog "Resolving screen" "INFO"
+                    # Write-PmcTuiLog "Resolving screen" "INFO"
                     $screen = $global:PmcContainer.Resolve('ProjectInfoScreenV4')
-                    Write-PmcTuiLog "Setting project: $projectName" "INFO"
+                    # Write-PmcTuiLog "Setting project: $projectName" "INFO"
                     $screen.SetProject($projectName)
-                    Write-PmcTuiLog "Pushing screen" "INFO"
+                    # Write-PmcTuiLog "Pushing screen" "INFO"
                     $global:PmcApp.PushScreen($screen)
-                    Write-PmcTuiLog "Screen pushed!" "INFO"
+                    # Write-PmcTuiLog "Screen pushed!" "INFO"
                 } else {
                     Write-PmcTuiLog "NO SELECTED ITEM" "ERROR"
                 }
@@ -700,7 +700,7 @@ class ProjectListScreen : StandardListScreen {
     }
 
     [bool] HandleKeyPress([ConsoleKeyInfo]$keyInfo) {
-        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') ProjectListScreen.HandleKeyPress: Key=$($keyInfo.Key) Char='$($keyInfo.KeyChar)' Modifiers=$($keyInfo.Modifiers)"
+        # Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') ProjectListScreen.HandleKeyPress: Key=$($keyInfo.Key) Char='$($keyInfo.KeyChar)' Modifiers=$($keyInfo.Modifiers)"
         # CRITICAL: Call parent FIRST for MenuBar, F10, Alt+keys
         $handled = ([PmcScreen]$this).HandleKeyPress($keyInfo)
         if ($handled) { return $true }
@@ -709,7 +709,7 @@ class ProjectListScreen : StandardListScreen {
 
         # Custom key: V = View project details/stats
         if ($keyInfo.KeyChar -eq 'v' -or $keyInfo.KeyChar -eq 'V') {
-            Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') *** V KEY PRESSED IN ProjectListScreen.HandleKeyPress ***"
+            # Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') *** V KEY PRESSED IN ProjectListScreen.HandleKeyPress ***"
 
             # Defensive check: ensure List exists
             if ($null -eq $this.List) {
@@ -719,7 +719,7 @@ class ProjectListScreen : StandardListScreen {
             }
 
             $selected = $this.List.GetSelectedItem()
-            Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Selected item: $($selected -ne $null)"
+            # Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Selected item: $($selected -ne $null)"
 
             if ($null -eq $selected) {
                 Write-PmcTuiLog "No project selected when V pressed" "WARNING"
@@ -729,26 +729,26 @@ class ProjectListScreen : StandardListScreen {
 
             try {
                 $projectName = Get-SafeProperty $selected 'name'
-                Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Opening ProjectInfoScreenV4 for: $projectName"
+                # Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Opening ProjectInfoScreenV4 for: $projectName"
 
                 # Create instance directly - ProjectInfoScreenV4 should already be loaded by the application
                 $screen = New-Object ProjectInfoScreenV4 -ArgumentList $this.Container
-                Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Screen instance created"
+                # Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Screen instance created"
 
                 $screen.SetProject($projectName)
-                Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Project set to: $projectName"
+                # Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Project set to: $projectName"
 
                 # Push to app
-                Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Pushing ProjectInfoScreenV4 to app..."
+                # Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Pushing ProjectInfoScreenV4 to app..."
                 $global:PmcApp.PushScreen($screen)
-                Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Screen pushed successfully!"
+                # Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Screen pushed successfully!"
 
                 $this.SetStatusMessage("Viewing project: $projectName", "success")
             } catch {
                 $errorMsg = "Failed to open project view: $($_.Exception.Message)"
                 Write-PmcTuiLog "!!! EXCEPTION: $errorMsg" "ERROR"
                 Write-PmcTuiLog "!!! Stack trace: $($_.ScriptStackTrace)" "ERROR"
-                Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') ERROR: $errorMsg"
+                # Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') ERROR: $errorMsg"
                 $this.SetStatusMessage($errorMsg, "error")
             }
             return $true
