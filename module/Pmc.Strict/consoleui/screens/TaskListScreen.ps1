@@ -170,11 +170,11 @@ class TaskListScreen : StandardListScreen {
         }.GetNewClosure()
 
         # CRITICAL: Re-register the Edit action to use OUR EditItem override, not the parent's
-        Write-PmcTuiLog "TaskListScreen._InitializeComponents: AllowEdit=$($this.AllowEdit)" "DEBUG"
+        # Write-PmcTuiLog "TaskListScreen._InitializeComponents: AllowEdit=$($this.AllowEdit)" "DEBUG"
         if ($this.AllowEdit) {
-            if ($global:PmcTuiLogFile) {
-                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [DEBUG] TaskListScreen: Re-registering Edit action"
-            }
+            # if ($global:PmcTuiLogFile) {
+            #     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [DEBUG] TaskListScreen: Re-registering Edit action"
+            # }
             $self = $this
             $editAction = {
                 $selectedItem = $self.List.GetSelectedItem()
@@ -185,9 +185,9 @@ class TaskListScreen : StandardListScreen {
             # Remove old action and add new one
             $this.List.RemoveAction('e')
             $this.List.AddAction('e', 'Edit', $editAction)
-            if ($global:PmcTuiLogFile) {
-                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [DEBUG] TaskListScreen: Edit action registered"
-            }
+            # if ($global:PmcTuiLogFile) {
+            #     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [DEBUG] TaskListScreen: Edit action registered"
+            # }
         }
 
         # CRITICAL: Set GetIsInEditMode callback so UniversalList doesn't render row highlight in edit mode
@@ -196,26 +196,26 @@ class TaskListScreen : StandardListScreen {
             param($item)
             # DEBUG: Log what we're checking
             $itemId = if ($item -and $item.id) { $item.id } else { "NO-ID" }
-            Write-PmcTuiLog "GetIsInEditMode called for item: $itemId" "DEBUG"
+            # Write-PmcTuiLog "GetIsInEditMode called for item: $itemId" "DEBUG"
 
             # In ADD mode, don't match any existing items - editor renders separately
             if ($self.ShowInlineEditor -and $self.EditorMode -eq 'add') {
-                Write-PmcTuiLog "Add mode - editor positioning handled separately" "DEBUG"
+                # Write-PmcTuiLog "Add mode - editor positioning handled separately" "DEBUG"
                 return $false
             }
 
             # Only skip highlighting for the item currently being edited
             if ($self.ShowInlineEditor -and $self.CurrentEditItem) {
                 $editId = if ($self.CurrentEditItem.id) { $self.CurrentEditItem.id } else { "NO-ID" }
-                Write-PmcTuiLog "Comparing: item.id=$itemId vs CurrentEditItem.id=$editId" "DEBUG"
+                # Write-PmcTuiLog "Comparing: item.id=$itemId vs CurrentEditItem.id=$editId" "DEBUG"
 
                 # Check if this is the item being edited
                 if ($item.id -and $self.CurrentEditItem.id -and $item.id -eq $self.CurrentEditItem.id) {
-                    Write-PmcTuiLog "MATCH! Returning TRUE for edit mode" "DEBUG"
+                    # Write-PmcTuiLog "MATCH! Returning TRUE for edit mode" "DEBUG"
                     return $true
                 }
             }
-            Write-PmcTuiLog "No match, returning FALSE" "DEBUG"
+            # Write-PmcTuiLog "No match, returning FALSE" "DEBUG"
             return $false
         }.GetNewClosure()
     }
@@ -238,7 +238,7 @@ class TaskListScreen : StandardListScreen {
                 $global:PmcContainer = [ServiceContainer]::new()
 
                 if ($global:PmcTuiLogFile) {
-                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] TaskListScreen: Created new ServiceContainer"
+                    # Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] TaskListScreen: Created new ServiceContainer"
                 }
             }
 
@@ -283,11 +283,11 @@ class TaskListScreen : StandardListScreen {
 
             if ($global:PmcTuiLogFile) {
                 if ($null -eq $items) {
-                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] _PopulateMenusFromRegistry: Menu '$menuName' has 0 items from registry (null)"
+                    # Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] _PopulateMenusFromRegistry: Menu '$menuName' has 0 items from registry (null)"
                 } elseif ($items -is [array]) {
-                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] _PopulateMenusFromRegistry: Menu '$menuName' has $($items.Count) items from registry (array)"
+                    # Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] _PopulateMenusFromRegistry: Menu '$menuName' has $($items.Count) items from registry (array)"
                 } else {
-                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] _PopulateMenusFromRegistry: Menu '$menuName' has 1 item from registry (type: $($items.GetType().Name))"
+                    # Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] _PopulateMenusFromRegistry: Menu '$menuName' has 1 item from registry (type: $($items.GetType().Name))"
                 }
             }
 
@@ -560,24 +560,24 @@ class TaskListScreen : StandardListScreen {
                 SkipRowHighlight = { param($item)
                     # Skip row highlighting ONLY for the row being edited
                     $itemId = & $getSafe $item 'id'
-                    Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [SkipRowHighlight] CALLED for item $itemId"
+                    # Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [SkipRowHighlight] CALLED for item $itemId"
 
                     if (-not $self.ShowInlineEditor) {
-                        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [SkipRowHighlight]   ShowInlineEditor=false, returning false"
+                        # Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [SkipRowHighlight]   ShowInlineEditor=false, returning false"
                         return $false
                     }
                     if (-not $self.CurrentEditItem) {
-                        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [SkipRowHighlight]   CurrentEditItem=null, returning false"
+                        # Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [SkipRowHighlight]   CurrentEditItem=null, returning false"
                         return $false
                     }
 
                     # Check if this item is the one being edited
                     $editId = & $getSafe $self.CurrentEditItem 'id'
-                    Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [SkipRowHighlight]   Comparing: itemId=$itemId vs editId=$editId"
+                    # Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [SkipRowHighlight]   Comparing: itemId=$itemId vs editId=$editId"
 
                     # Only skip rendering for the exact item being edited
                     $skip = ($itemId -and $editId -and $itemId -eq $editId)
-                    Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [SkipRowHighlight]   Result: $skip"
+                    # Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [SkipRowHighlight]   Result: $skip"
                     return $skip
                 }.GetNewClosure()
                 Format = { param($task, $cellInfo)
@@ -833,10 +833,10 @@ class TaskListScreen : StandardListScreen {
 
     # Override: Handle item update
     [void] OnItemUpdated([object]$item, [hashtable]$values) {
-        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [OnItemUpdated] START item=$($item.id)"
-        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [OnItemUpdated] Values received: $($values | ConvertTo-Json -Compress)"
-        Write-PmcTuiLog "OnItemUpdated CALLED - item=$($item.id) values=$($values.Keys -join ',')" "INFO"
-        Write-PmcTuiLog "OnItemUpdated values: $($values | ConvertTo-Json -Compress)" "INFO"
+        # Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [OnItemUpdated] START item=$($item.id)"
+        # Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [OnItemUpdated] Values received: $($values | ConvertTo-Json -Compress)"
+        # Write-PmcTuiLog "OnItemUpdated CALLED - item=$($item.id) values=$($values.Keys -join ',')" "INFO"
+        # Write-PmcTuiLog "OnItemUpdated values: $($values | ConvertTo-Json -Compress)" "INFO"
         # MEDIUM FIX TLS-M4: Add null checks on parameters
         if ($null -eq $item) {
             Write-PmcTuiLog "OnItemUpdated called with null item" "ERROR"
@@ -849,12 +849,12 @@ class TaskListScreen : StandardListScreen {
             return
         }
         try {
-            Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [OnItemUpdated] Entering try block"
+            # Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [OnItemUpdated] Entering try block"
             # Build changes hashtable
             # FIX: Convert "(No Project)" to empty string
             $projectValue = ''
             if ($values.ContainsKey('project')) {
-                Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [OnItemUpdated] Processing project value: $($values.project)"
+                # Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [OnItemUpdated] Processing project value: $($values.project)"
                 if ($values.project -is [array]) {
                     # If it's an array, take first element
                     if ($values.project.Count -gt 0) {
@@ -864,13 +864,13 @@ class TaskListScreen : StandardListScreen {
                     $projectValue = $values.project
                 }
             }
-            Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [OnItemUpdated] Project value set to: '$projectValue'"
+            # Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [OnItemUpdated] Project value set to: '$projectValue'"
 
             # Validate text field (required)
             $taskText = if ($values.ContainsKey('text')) { $values.text } else { '' }
-            Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [OnItemUpdated] Task text: '$taskText' (length=$($taskText.Length))"
+            # Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [OnItemUpdated] Task text: '$taskText' (length=$($taskText.Length))"
             if ([string]::IsNullOrWhiteSpace($taskText)) {
-                Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [OnItemUpdated] VALIDATION FAILED: text is empty"
+                # Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [OnItemUpdated] VALIDATION FAILED: text is empty"
                 $this.SetStatusMessage("Task description is required", "error")
                 return
             }
@@ -878,11 +878,11 @@ class TaskListScreen : StandardListScreen {
             # Validate text length
             # MEDIUM FIX TLS-M1 & TLS-M2: Correct error message to match actual limit (200, not 500)
             if ($taskText.Length -gt 200) {
-                Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [OnItemUpdated] VALIDATION FAILED: text too long ($($taskText.Length) > 200)"
+                # Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [OnItemUpdated] VALIDATION FAILED: text too long ($($taskText.Length) > 200)"
                 $this.SetStatusMessage("Task description must be 200 characters or less", "error")
                 return
             }
-            Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [OnItemUpdated] Text validation passed"
+            # Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [OnItemUpdated] Text validation passed"
 
             # Ensure all values have correct types for Store validation
             $detailsValue = if ($values.ContainsKey('details')) { $values.details } else { '' }
@@ -964,24 +964,24 @@ class TaskListScreen : StandardListScreen {
             # VALIDATION DISABLED - Save directly without validation
 
             # Update in store
-            Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [OnItemUpdated] Calling Store.UpdateTask with id=$($item.id)"
-            Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [OnItemUpdated] Changes: $($changes | ConvertTo-Json -Compress)"
+            # Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [OnItemUpdated] Calling Store.UpdateTask with id=$($item.id)"
+            # Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [OnItemUpdated] Changes: $($changes | ConvertTo-Json -Compress)"
             $success = $this.Store.UpdateTask($item.id, $changes)
-            Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [OnItemUpdated] Store.UpdateTask returned: $success"
+            # Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [OnItemUpdated] Store.UpdateTask returned: $success"
 
             if ($success) {
-                Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [OnItemUpdated] SUCCESS - calling LoadData()"
+                # Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [OnItemUpdated] SUCCESS - calling LoadData()"
                 $this.SetStatusMessage("Task updated: $($values.text)", "success")
                 try {
                     $this.LoadData()  # Refresh the list to show updated data
-                    Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [OnItemUpdated] LoadData() completed"
+                    # Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [OnItemUpdated] LoadData() completed"
                 } catch {
                     Write-PmcTuiLog "OnItemUpdated: LoadData failed: $_" "WARNING"
-                    Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [OnItemUpdated] LoadData() FAILED: $_"
+                    # Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [OnItemUpdated] LoadData() FAILED: $_"
                     $this.SetStatusMessage("Task updated but display refresh failed", "warning")
                 }
             } else {
-                Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [OnItemUpdated] FAILED: $($this.Store.LastError)"
+                # Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [OnItemUpdated] FAILED: $($this.Store.LastError)"
                 $this.SetStatusMessage("Failed to update task: $($this.Store.LastError)", "error")
                 # BUG-4 FIX: Reload data on failure to restore consistent state
                 try {

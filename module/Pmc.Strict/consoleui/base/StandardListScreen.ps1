@@ -248,13 +248,13 @@ class StandardListScreen : PmcScreen {
     #>
     [void] OnItemActivated($item) {
         # Default: open inline editor
-        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [StandardListScreen.OnItemActivated] CALLED for item: $($item.text ?? $item.id)"
+        # Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [StandardListScreen.OnItemActivated] CALLED for item: $($item.text ?? $item.id)"
         try {
-            Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [StandardListScreen.OnItemActivated] About to call EditItem"
+            # Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [StandardListScreen.OnItemActivated] About to call EditItem"
             $this.EditItem($item)
-            Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [StandardListScreen.OnItemActivated] EditItem completed"
+            # Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [StandardListScreen.OnItemActivated] EditItem completed"
         } catch {
-            Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [StandardListScreen.OnItemActivated] ERROR calling EditItem: $($_.Exception.Message) at line $($_.InvocationInfo.ScriptLineNumber)"
+            # Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [StandardListScreen.OnItemActivated] ERROR calling EditItem: $($_.Exception.Message) at line $($_.InvocationInfo.ScriptLineNumber)"
         }
     }
 
@@ -278,7 +278,7 @@ class StandardListScreen : PmcScreen {
     hidden [void] _InitializeComponents() {
         # DEBUG
         if ($global:PmcTuiLogFile) {
-            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] StandardListScreen._InitializeComponents: Starting (MenuBar=$($null -ne $this.MenuBar))"
+            # Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] StandardListScreen._InitializeComponents: Starting (MenuBar=$($null -ne $this.MenuBar))"
         }
 
         # Get terminal size
@@ -305,7 +305,7 @@ class StandardListScreen : PmcScreen {
         }
 
         if ($global:PmcTuiLogFile) {
-            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] StandardListScreen._InitializeComponents: List created"
+            # Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] StandardListScreen._InitializeComponents: List created"
         }
 
         # Wire up list events using GetNewClosure()
@@ -429,7 +429,7 @@ class StandardListScreen : PmcScreen {
                 # Find the screen that owns this List by walking up
                 $currentScreen = $global:PmcApp.CurrentScreen
                 if ($global:PmcTuiLogFile) {
-                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] Action 'a' callback: currentScreen type=$($currentScreen.GetType().Name) key=$($currentScreen.ScreenKey)"
+                    # Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] Action 'a' callback: currentScreen type=$($currentScreen.GetType().Name) key=$($currentScreen.ScreenKey)"
                 }
                 $currentScreen.AddItem()
             }.GetNewClosure()
@@ -497,35 +497,35 @@ class StandardListScreen : PmcScreen {
     Called when screen enters view
     #>
     [void] OnEnter() {
-        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') ===== StandardListScreen.OnEnter: START for screen=$($this.ScreenKey) ====="
+        # Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') ===== StandardListScreen.OnEnter: START for screen=$($this.ScreenKey) ====="
         $this.IsActive = $true
 
         # Configure list actions (ensures custom actions are registered even for singleton screens)
-        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') StandardListScreen.OnEnter: Calling _ConfigureListActions()"
+        # Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') StandardListScreen.OnEnter: Calling _ConfigureListActions()"
         $this._ConfigureListActions()
-        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') StandardListScreen.OnEnter: _ConfigureListActions complete"
+        # Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') StandardListScreen.OnEnter: _ConfigureListActions complete"
 
         # Set columns
-        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') StandardListScreen.OnEnter: Calling GetColumns()"
+        # Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') StandardListScreen.OnEnter: Calling GetColumns()"
         try {
             $columns = $this.GetColumns()
-            Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') StandardListScreen.OnEnter: Got $($columns.Count) columns"
-            Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') StandardListScreen.OnEnter: Calling List.SetColumns()"
+            # Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') StandardListScreen.OnEnter: Got $($columns.Count) columns"
+            # Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') StandardListScreen.OnEnter: Calling List.SetColumns()"
             $this.List.SetColumns($columns)
-            Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') StandardListScreen.OnEnter: SetColumns complete"
+            # Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') StandardListScreen.OnEnter: SetColumns complete"
         } catch {
-            Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') StandardListScreen.OnEnter: EXCEPTION in GetColumns/SetColumns - $($_.Exception.Message)"
+            # Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') StandardListScreen.OnEnter: EXCEPTION in GetColumns/SetColumns - $($_.Exception.Message)"
             throw
         }
 
         # Load data
-        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') StandardListScreen.OnEnter: Calling LoadData()"
+        # Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') StandardListScreen.OnEnter: Calling LoadData()"
         try {
             $this.LoadData()
-            Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') StandardListScreen.OnEnter: LoadData complete"
+            # Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') StandardListScreen.OnEnter: LoadData complete"
         } catch {
-            Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') StandardListScreen.OnEnter: EXCEPTION in LoadData - $($_.Exception.Message)"
-            Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') StandardListScreen.OnEnter: STACK - $($_.ScriptStackTrace)"
+            # Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') StandardListScreen.OnEnter: EXCEPTION in LoadData - $($_.Exception.Message)"
+            # Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') StandardListScreen.OnEnter: STACK - $($_.ScriptStackTrace)"
             throw
         }
 
@@ -540,7 +540,7 @@ class StandardListScreen : PmcScreen {
             $this.StatusBar.SetLeftText("$itemCount items")
         }
 
-        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') ===== StandardListScreen.OnEnter: COMPLETE ====="
+        # Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') ===== StandardListScreen.OnEnter: COMPLETE ====="
     }
 
     <#
@@ -574,7 +574,7 @@ class StandardListScreen : PmcScreen {
     [void] AddItem() {
         # DEBUG logging
         if ($global:PmcTuiLogFile) {
-            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] StandardListScreen.AddItem() called on type=$($this.GetType().Name) key=$($this.ScreenKey)"
+            # Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] StandardListScreen.AddItem() called on type=$($this.GetType().Name) key=$($this.ScreenKey)"
         }
 
         $this.EditorMode = 'add'
@@ -582,7 +582,7 @@ class StandardListScreen : PmcScreen {
         $fields = $this.GetEditFields($this.CurrentEditItem)
 
         if ($global:PmcTuiLogFile) {
-            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] Got $($fields.Count) edit fields"
+            # Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] Got $($fields.Count) edit fields"
         }
 
         $this.InlineEditor.LayoutMode = "horizontal"
@@ -594,21 +594,21 @@ class StandardListScreen : PmcScreen {
         $this.List._selectedIndex = $itemCount  # Select the "new row" position
 
         if ($global:PmcTuiLogFile) {
-            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] AddItem: Set selectedIndex=$itemCount for add mode"
+            # Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] AddItem: Set selectedIndex=$itemCount for add mode"
         }
 
         if ($global:PmcTuiLogFile) {
-            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] AddItem: About to set ShowInlineEditor=true (currently: $($this.ShowInlineEditor))"
+            # Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] AddItem: About to set ShowInlineEditor=true (currently: $($this.ShowInlineEditor))"
         }
 
         $this.ShowInlineEditor = $true
 
         if ($global:PmcTuiLogFile) {
-            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] AddItem: ShowInlineEditor set to: $($this.ShowInlineEditor)"
+            # Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] AddItem: ShowInlineEditor set to: $($this.ShowInlineEditor)"
         }
 
         if ($global:PmcTuiLogFile) {
-            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] AddItem: Exiting (ShowInlineEditor=$($this.ShowInlineEditor))"
+            # Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] AddItem: Exiting (ShowInlineEditor=$($this.ShowInlineEditor))"
         }
     }
 
@@ -620,31 +620,31 @@ class StandardListScreen : PmcScreen {
     Item to edit
     #>
     [void] EditItem($item) {
-        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [EditItem] START"
+        # Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [EditItem] START"
         if ($null -eq $item) {
-            Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [EditItem] item is null, returning"
+            # Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [EditItem] item is null, returning"
             return
         }
 
         $this.EditorMode = 'edit'
         $this.CurrentEditItem = $item
-        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [EditItem] CurrentEditItem set to: $($item.id)"
+        # Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [EditItem] CurrentEditItem set to: $($item.id)"
 
         $fields = $this.GetEditFields($item)
-        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [EditItem] GetEditFields returned $($fields.Count) fields"
+        # Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [EditItem] GetEditFields returned $($fields.Count) fields"
         foreach ($field in $fields) {
-            Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [EditItem]   Field: Name=$($field.Name) Type=$($field.Type) Width=$($field.Width)"
+            # Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [EditItem]   Field: Name=$($field.Name) Type=$($field.Type) Width=$($field.Width)"
         }
 
         $this.InlineEditor.LayoutMode = "horizontal"
-        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [EditItem] LayoutMode set to horizontal"
+        # Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [EditItem] LayoutMode set to horizontal"
 
         $this.InlineEditor.SetFields($fields)
-        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [EditItem] SetFields called, editor fields count=$($this.InlineEditor._fields.Count)"
+        # Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [EditItem] SetFields called, editor fields count=$($this.InlineEditor._fields.Count)"
 
         $this.InlineEditor.Title = "Edit"
         $this.ShowInlineEditor = $true
-        Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [EditItem] ShowInlineEditor = true"
+        # Add-Content -Path "/tmp/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [EditItem] ShowInlineEditor = true"
     }
 
     <#
