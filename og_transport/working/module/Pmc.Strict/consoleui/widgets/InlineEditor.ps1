@@ -262,14 +262,14 @@ class InlineEditor : PmcWidget {
     #>
     [bool] HandleInput([ConsoleKeyInfo]$keyInfo) {
         # Write-PmcTuiLog "InlineEditor.HandleInput: Key=$($keyInfo.Key) Expanded=$($this._expandedFieldName)" "DEBUG"
-        # Add-Content -Path "/tmp/pmc-widget-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [InlineEditor.HandleInput] START Key=$($keyInfo.Key) Expanded=$($this._expandedFieldName) ShowFieldWidgets=$($this._showFieldWidgets) CurrentFieldIndex=$($this._currentFieldIndex) FieldsCount=$($this._fields.Count) LayoutMode=$($this.LayoutMode)"
+        # Add-Content -Path "$($env:TEMP)\pmc-widget-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [InlineEditor.HandleInput] START Key=$($keyInfo.Key) Expanded=$($this._expandedFieldName) ShowFieldWidgets=$($this._showFieldWidgets) CurrentFieldIndex=$($this._currentFieldIndex) FieldsCount=$($this._fields.Count) LayoutMode=$($this.LayoutMode)"
 
         # If a field widget is expanded, route input to it
         if ($this._showFieldWidgets -and -not [string]::IsNullOrWhiteSpace($this._expandedFieldName)) {
-            # Add-Content -Path "/tmp/pmc-widget-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [InlineEditor.HandleInput] Widget is expanded, routing input to field widget"
+            # Add-Content -Path "$($env:TEMP)\pmc-widget-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [InlineEditor.HandleInput] Widget is expanded, routing input to field widget"
             # Safety: Allow Escape to force-close expanded widget even if widget doesn't handle it
             if ($keyInfo.Key -eq 'Escape') {
-                # Add-Content -Path "/tmp/pmc-widget-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [InlineEditor.HandleInput] ESC pressed on expanded widget, collapsing"
+                # Add-Content -Path "$($env:TEMP)\pmc-widget-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [InlineEditor.HandleInput] ESC pressed on expanded widget, collapsing"
                 $this._showFieldWidgets = $false
                 $this._expandedFieldName = ""
                 $this._datePickerMode = $false
@@ -280,7 +280,7 @@ class InlineEditor : PmcWidget {
             $widget = $null
             $field = $this._fields | Where-Object { $_.Name -eq $this._expandedFieldName } | Select-Object -First 1
 
-            # Add-Content -Path "/tmp/pmc-widget-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [InlineEditor.HandleInput] Field type: $($field.Type) Mode: $($this._datePickerMode)"
+            # Add-Content -Path "$($env:TEMP)\pmc-widget-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [InlineEditor.HandleInput] Field type: $($field.Type) Mode: $($this._datePickerMode)"
             if ($field.Type -eq 'date' -and $this._datePickerMode) {
                 # Use DatePicker when in DatePicker mode
                 $widget = $this._datePickerWidgets[$this._expandedFieldName]
@@ -290,23 +290,23 @@ class InlineEditor : PmcWidget {
             }
 
             # Check for widget-specific completion
-            # Add-Content -Path "/tmp/pmc-widget-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [InlineEditor.HandleInput] Calling widget.HandleInput() for field $($this._expandedFieldName)"
+            # Add-Content -Path "$($env:TEMP)\pmc-widget-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [InlineEditor.HandleInput] Calling widget.HandleInput() for field $($this._expandedFieldName)"
             $handled = $widget.HandleInput($keyInfo)
-            # Add-Content -Path "/tmp/pmc-widget-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [InlineEditor.HandleInput] widget.HandleInput() returned: $handled"
+            # Add-Content -Path "$($env:TEMP)\pmc-widget-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [InlineEditor.HandleInput] widget.HandleInput() returned: $handled"
 
             # Check if widget confirmed or cancelled
             # PmcFilePicker uses IsComplete instead of IsConfirmed/IsCancelled
             $isComplete = $false
             if ($widget.PSObject.Properties['IsComplete']) {
                 $isComplete = $widget.IsComplete
-                # Add-Content -Path "/tmp/pmc-widget-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [InlineEditor.HandleInput] Widget has IsComplete property: $isComplete"
+                # Add-Content -Path "$($env:TEMP)\pmc-widget-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [InlineEditor.HandleInput] Widget has IsComplete property: $isComplete"
             } elseif ($widget.PSObject.Properties['IsConfirmed']) {
                 $isComplete = $widget.IsConfirmed -or $widget.IsCancelled
-                # Add-Content -Path "/tmp/pmc-widget-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [InlineEditor.HandleInput] Widget has IsConfirmed property: IsConfirmed=$($widget.IsConfirmed) IsCancelled=$($widget.IsCancelled) isComplete=$isComplete"
+                # Add-Content -Path "$($env:TEMP)\pmc-widget-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [InlineEditor.HandleInput] Widget has IsConfirmed property: IsConfirmed=$($widget.IsConfirmed) IsCancelled=$($widget.IsCancelled) isComplete=$isComplete"
             }
 
             if ($isComplete) {
-                # Add-Content -Path "/tmp/pmc-widget-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [InlineEditor.HandleInput] Widget marked complete, collapsing"
+                # Add-Content -Path "$($env:TEMP)\pmc-widget-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [InlineEditor.HandleInput] Widget marked complete, collapsing"
                 # For date fields in DatePicker mode, update TextInput with selected date
                 if ($field.Type -eq 'date' -and $this._datePickerMode) {
                     # Get selected date from DatePicker
@@ -324,7 +324,7 @@ class InlineEditor : PmcWidget {
                 # For folder fields, update TextInput with selected path
                 if ($field.Type -eq 'folder' -and $widget.PSObject.Properties['IsComplete'] -and $widget.IsComplete) {
                     # Write-PmcTuiLog "InlineEditor: Folder picker complete - Result=$($widget.Result) SelectedPath='$($widget.SelectedPath)'" "DEBUG"
-                    # Add-Content -Path "/tmp/pmc-widget-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [InlineEditor.HandleInput] Folder picker complete"
+                    # Add-Content -Path "$($env:TEMP)\pmc-widget-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [InlineEditor.HandleInput] Folder picker complete"
 
                     # Get selected path from FilePicker
                     $selectedPath = $(if ($widget.Result) { $widget.SelectedPath } else { '' })
@@ -347,7 +347,7 @@ class InlineEditor : PmcWidget {
                 }
 
                 # Collapse widget
-                # Add-Content -Path "/tmp/pmc-widget-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [InlineEditor.HandleInput] Collapsing widget, setting _showFieldWidgets=false and NeedsClear=true"
+                # Add-Content -Path "$($env:TEMP)\pmc-widget-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [InlineEditor.HandleInput] Collapsing widget, setting _showFieldWidgets=false and NeedsClear=true"
                 $this._showFieldWidgets = $false
                 $this._datePickerMode = $false
                 $this.NeedsClear = $true  # Request full screen clear to remove widget

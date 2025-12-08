@@ -967,9 +967,9 @@ class StandardListScreen : PmcScreen {
 
             # F10 OR ESC activates menu (only if not already active and no editor/filter showing)
             if ($keyInfo.Key -eq [ConsoleKey]::F10 -or $keyInfo.Key -eq [ConsoleKey]::Escape) {
-                Add-Content -Path "/tmp/pmc-esc-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [StandardListScreen] ESC/F10 pressed: MenuBar=$($null -ne $this.MenuBar) IsActive=$($this.MenuBar.IsActive) ShowEditor=$($this.ShowInlineEditor) ShowFilter=$($this.ShowFilterPanel)"
+                Add-Content -Path "$($env:TEMP)\pmc-esc-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [StandardListScreen] ESC/F10 pressed: MenuBar=$($null -ne $this.MenuBar) IsActive=$($this.MenuBar.IsActive) ShowEditor=$($this.ShowInlineEditor) ShowFilter=$($this.ShowFilterPanel)"
                 if ($null -ne $this.MenuBar -and -not $this.MenuBar.IsActive -and -not $this.ShowInlineEditor -and -not $this.ShowFilterPanel) {
-                    Add-Content -Path "/tmp/pmc-esc-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [StandardListScreen] ESC/F10 activating menu"
+                    Add-Content -Path "$($env:TEMP)\pmc-esc-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [StandardListScreen] ESC/F10 activating menu"
                     $this.MenuBar.Activate()
                     return $true
                 }
@@ -1060,9 +1060,9 @@ class StandardListScreen : PmcScreen {
             $listOutput = $this.List.Render()
             Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [RenderContent] List.Render() returned $($listOutput.Length) chars"
         } catch {
-            Add-Content -Path "/tmp/pmc-list-render-error.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') ERROR in List.Render(): $($_.Exception.Message)"
-            Add-Content -Path "/tmp/pmc-list-render-error.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Line: $($_.InvocationInfo.ScriptLineNumber)"
-            Add-Content -Path "/tmp/pmc-list-render-error.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') StackTrace: $($_.ScriptStackTrace)"
+            Add-Content -Path "$($env:TEMP)\pmc-list-render-error.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') ERROR in List.Render(): $($_.Exception.Message)"
+            Add-Content -Path "$($env:TEMP)\pmc-list-render-error.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Line: $($_.InvocationInfo.ScriptLineNumber)"
+            Add-Content -Path "$($env:TEMP)\pmc-list-render-error.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') StackTrace: $($_.ScriptStackTrace)"
             throw
         }
 

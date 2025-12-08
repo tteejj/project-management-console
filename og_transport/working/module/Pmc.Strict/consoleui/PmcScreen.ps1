@@ -818,7 +818,7 @@ class PmcScreen {
 
             # Debug: dump full content for first two position writes
             if ($i -lt 2 -and ($x -eq 9 -or $x -eq 51) -and $y -eq 10) {
-                $debugFile = "/tmp/pmc-layer-parse-debug.log"
+                $debugFile = "$($env:TEMP)\pmc-layer-parse-debug.log"
                 $timestamp = Get-Date -Format 'HH:mm:ss.fff'
                 Add-Content -Path $debugFile -Value "=== $timestamp WriteAt($x,$y) content_length=$($content.Length) ==="
                 Add-Content -Path $debugFile -Value "Raw: $($content -replace "`e", '<ESC>')"

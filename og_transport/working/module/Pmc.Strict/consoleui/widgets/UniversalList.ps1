@@ -849,7 +849,7 @@ class UniversalList : PmcWidget {
     ANSI string ready for display
     #>
     [string] Render() {
-        Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') UniversalList.Render() CALLED"
+        Add-Content -Path "$($env:TEMP)\pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') UniversalList.Render() CALLED"
 
         # If filter panel is shown, render it as overlay
         if ($this.IsInFilterMode) {
@@ -1894,7 +1894,7 @@ class UniversalList : PmcWidget {
         }
 
         # EXTENSIVE DEBUG: Log ALL color values
-        Add-Content -Path "/tmp/pmc-colors-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') highlightBg='$highlightBg' len=$($highlightBg.Length) highlightFg='$highlightFg' len=$($highlightFg.Length)"
+        Add-Content -Path "$($env:TEMP)\pmc-colors-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') highlightBg='$highlightBg' len=$($highlightBg.Length) highlightFg='$highlightFg' len=$($highlightFg.Length)"
 
         $reset = "`e[0m"
 

@@ -329,7 +329,7 @@ class EnhancedThemeManager {
     hidden [List[scriptblock]]$_changeHandlers      # Theme change event handlers
     
     # === Logging ===
-    hidden [Logger]$_logger
+    hidden [object]$_logger
     
     <#
     .SYNOPSIS

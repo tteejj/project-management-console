@@ -10,7 +10,7 @@ class KeyBinding {
     [string]$Action
     [scriptblock]$Handler
     [string]$Description
-    hidden [Logger]$_logger
+    hidden [object]$_logger
     
     KeyBinding([System.ConsoleKey]$key, [System.ConsoleModifiers]$modifiers, [string]$action, [scriptblock]$handler) {
         $this._logger = Get-Logger
@@ -52,7 +52,7 @@ class KeyBinding {
 class FocusManager {
     hidden [List[Component]]$_focusableComponents
     hidden [Component]$_currentFocus
-    hidden [Logger]$_logger
+    hidden [object]$_logger
     
     FocusManager() {
         $this._logger = Get-Logger
@@ -226,7 +226,7 @@ class InputManager {
     hidden [Dictionary[string, Dictionary[string, KeyBinding]]]$_contextBindings
     hidden [string]$_currentContext = "default"
     hidden [FocusManager]$_focusManager
-    hidden [Logger]$_logger
+    hidden [object]$_logger
     hidden [bool]$_running = $false
     hidden [Thread]$_inputThread
     hidden [BlockingCollection[System.ConsoleKeyInfo]]$_keyQueue

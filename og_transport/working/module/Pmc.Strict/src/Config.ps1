@@ -11,10 +11,10 @@ function Set-PmcConfigProvider {
 
 function Get-PmcConfig {
     $providers = Get-PmcConfigProviders
-    Add-Content -Path "/tmp/pmc-config-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [Get-PmcConfig] START"
+    Add-Content -Path "$($env:TEMP)\pmc-config-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [Get-PmcConfig] START"
     try {
         $cfg = & $providers.Get
-        Add-Content -Path "/tmp/pmc-config-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [Get-PmcConfig] Provider returned: $($cfg | ConvertTo-Json -Compress -Depth 3)"
+        Add-Content -Path "$($env:TEMP)\pmc-config-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [Get-PmcConfig] Provider returned: $($cfg | ConvertTo-Json -Compress -Depth 3)"
         # If provider returns empty config, try reading from default file
         if (-not $cfg -or ($cfg.GetType().Name -eq 'Hashtable' -and $cfg.Count -eq 0)) {
             # Default: read from pmc/config.json (three levels up from module dir, same as tasks.json)
@@ -22,26 +22,26 @@ function Get-PmcConfig {
             try {
                 $root = Split-Path (Split-Path (Split-Path $PSScriptRoot -Parent) -Parent) -Parent
                 $path = Join-Path $root 'config.json'
-                Add-Content -Path "/tmp/pmc-config-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [Get-PmcConfig] Loading from file: $path"
+                Add-Content -Path "$($env:TEMP)\pmc-config-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [Get-PmcConfig] Loading from file: $path"
                 if (Test-Path $path) {
                     $json = Get-Content -Path $path -Raw -Encoding UTF8
                     $cfg = $json | ConvertFrom-Json
                     # Convert PSCustomObject to hashtable recursively
                     $cfg = ConvertPSObjectToHashtable $cfg
-                    Add-Content -Path "/tmp/pmc-config-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [Get-PmcConfig] Loaded config: $($cfg | ConvertTo-Json -Compress -Depth 3)"
+                    Add-Content -Path "$($env:TEMP)\pmc-config-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [Get-PmcConfig] Loaded config: $($cfg | ConvertTo-Json -Compress -Depth 3)"
                     return $cfg
                 } else {
-                    Add-Content -Path "/tmp/pmc-config-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [Get-PmcConfig] File does not exist: $path"
+                    Add-Content -Path "$($env:TEMP)\pmc-config-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [Get-PmcConfig] File does not exist: $path"
                 }
             } catch {
-                Add-Content -Path "/tmp/pmc-config-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [Get-PmcConfig] ERROR reading file: $_"
+                Add-Content -Path "$($env:TEMP)\pmc-config-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [Get-PmcConfig] ERROR reading file: $_"
                 # File read failed, return empty
             }
         }
-        Add-Content -Path "/tmp/pmc-config-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [Get-PmcConfig] Returning: $($cfg | ConvertTo-Json -Compress -Depth 3)"
+        Add-Content -Path "$($env:TEMP)\pmc-config-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [Get-PmcConfig] Returning: $($cfg | ConvertTo-Json -Compress -Depth 3)"
         return $cfg
     } catch {
-        Add-Content -Path "/tmp/pmc-config-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [Get-PmcConfig] ERROR: $_"
+        Add-Content -Path "$($env:TEMP)\pmc-config-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [Get-PmcConfig] ERROR: $_"
         return @{}
     }
 }
@@ -65,17 +65,17 @@ function ConvertPSObjectToHashtable {
 
 function Save-PmcConfig {
     param($cfg)
-    Add-Content -Path "/tmp/pmc-config-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [Save-PmcConfig] START with config: $($cfg | ConvertTo-Json -Compress -Depth 3)"
-    Add-Content -Path "/tmp/pmc-config-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [Save-PmcConfig] STACK TRACE: $((Get-PSCallStack | Select-Object -Skip 1 | Select-Object -First 5 | ForEach-Object { "$($_.Command):$($_.ScriptLineNumber)" }) -join ' <- ')"
+    Add-Content -Path "$($env:TEMP)\pmc-config-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [Save-PmcConfig] START with config: $($cfg | ConvertTo-Json -Compress -Depth 3)"
+    Add-Content -Path "$($env:TEMP)\pmc-config-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [Save-PmcConfig] STACK TRACE: $((Get-PSCallStack | Select-Object -Skip 1 | Select-Object -First 5 | ForEach-Object { "$($_.Command):$($_.ScriptLineNumber)" }) -join ' <- ')"
     $providers = Get-PmcConfigProviders
     if ($providers.Set) {
         try {
-            Add-Content -Path "/tmp/pmc-config-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [Save-PmcConfig] Calling provider Set"
+            Add-Content -Path "$($env:TEMP)\pmc-config-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [Save-PmcConfig] Calling provider Set"
             & $providers.Set $cfg
-            Add-Content -Path "/tmp/pmc-config-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [Save-PmcConfig] Provider Set succeeded"
+            Add-Content -Path "$($env:TEMP)\pmc-config-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [Save-PmcConfig] Provider Set succeeded"
             return
         } catch {
-            Add-Content -Path "/tmp/pmc-config-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [Save-PmcConfig] Provider Set failed: $_"
+            Add-Content -Path "$($env:TEMP)\pmc-config-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [Save-PmcConfig] Provider Set failed: $_"
             # Custom config provider failed - fall back to default
         }
     }
@@ -84,11 +84,11 @@ function Save-PmcConfig {
     try {
         $root = Split-Path (Split-Path (Split-Path $PSScriptRoot -Parent) -Parent) -Parent
         $path = Join-Path $root 'config.json'
-        Add-Content -Path "/tmp/pmc-config-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [Save-PmcConfig] Writing to file: $path"
+        Add-Content -Path "$($env:TEMP)\pmc-config-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [Save-PmcConfig] Writing to file: $path"
         $cfg | ConvertTo-Json -Depth 10 | Set-Content -Path $path -Encoding UTF8
-        Add-Content -Path "/tmp/pmc-config-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [Save-PmcConfig] File write succeeded"
+        Add-Content -Path "$($env:TEMP)\pmc-config-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [Save-PmcConfig] File write succeeded"
     } catch {
-        Add-Content -Path "/tmp/pmc-config-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [Save-PmcConfig] File write failed: $_"
+        Add-Content -Path "$($env:TEMP)\pmc-config-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [Save-PmcConfig] File write failed: $_"
         # Default config file save failed - settings not persisted
     }
 }

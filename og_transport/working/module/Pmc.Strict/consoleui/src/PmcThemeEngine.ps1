@@ -48,29 +48,29 @@ class PmcThemeEngine {
 
     # Load theme from config.json structure
     [void] LoadFromConfig([hashtable]$themeConfig) {
-        Add-Content -Path "/tmp/pmc-theme-engine-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') LoadFromConfig: CALLED with themeConfig.Keys=$($themeConfig.Keys -join ', ')"
+        Add-Content -Path "$($env:TEMP)\pmc-theme-engine-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') LoadFromConfig: CALLED with themeConfig.Keys=$($themeConfig.Keys -join ', ')"
 
         if ($themeConfig.ContainsKey('Palette')) {
             $this._palette = $themeConfig.Palette
-            Add-Content -Path "/tmp/pmc-theme-engine-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') LoadFromConfig: Loaded Palette with $($this._palette.Count) colors"
+            Add-Content -Path "$($env:TEMP)\pmc-theme-engine-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') LoadFromConfig: Loaded Palette with $($this._palette.Count) colors"
         } else {
-            Add-Content -Path "/tmp/pmc-theme-engine-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') LoadFromConfig: NO Palette in config"
+            Add-Content -Path "$($env:TEMP)\pmc-theme-engine-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') LoadFromConfig: NO Palette in config"
         }
 
         if ($themeConfig.ContainsKey('Properties')) {
             $this._properties = $themeConfig.Properties
-            Add-Content -Path "/tmp/pmc-theme-engine-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') LoadFromConfig: Loaded Properties with $($this._properties.Count) items"
+            Add-Content -Path "$($env:TEMP)\pmc-theme-engine-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') LoadFromConfig: Loaded Properties with $($this._properties.Count) items"
             $propKeys = ($this._properties.Keys | Sort-Object) -join ', '
-            Add-Content -Path "/tmp/pmc-theme-engine-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') LoadFromConfig: Property keys: [$propKeys]"
+            Add-Content -Path "$($env:TEMP)\pmc-theme-engine-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') LoadFromConfig: Property keys: [$propKeys]"
         } else {
             # Default properties if not defined
-            Add-Content -Path "/tmp/pmc-theme-engine-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') LoadFromConfig: NO Properties in config, initializing defaults"
+            Add-Content -Path "$($env:TEMP)\pmc-theme-engine-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') LoadFromConfig: NO Properties in config, initializing defaults"
             $this._InitializeDefaultProperties()
-            Add-Content -Path "/tmp/pmc-theme-engine-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') LoadFromConfig: After defaults, _properties.Count=$($this._properties.Count)"
+            Add-Content -Path "$($env:TEMP)\pmc-theme-engine-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') LoadFromConfig: After defaults, _properties.Count=$($this._properties.Count)"
         }
 
         $this.InvalidateCache()
-        Add-Content -Path "/tmp/pmc-theme-engine-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') LoadFromConfig: COMPLETE, cache invalidated"
+        Add-Content -Path "$($env:TEMP)\pmc-theme-engine-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') LoadFromConfig: COMPLETE, cache invalidated"
     }
 
     # Get background ANSI - handles solid or gradient
@@ -79,18 +79,18 @@ class PmcThemeEngine {
     [string] GetBackgroundAnsi([string]$propertyName, [int]$width, [int]$charIndex) {
         # CRITICAL DEBUG: Log property lookup
         $debugMsg = "GetBackgroundAnsi: propertyName='$propertyName' _properties.Count=$($this._properties.Count) ContainsKey=$($this._properties.ContainsKey($propertyName))"
-        Add-Content -Path "/tmp/pmc-theme-engine-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') $debugMsg"
+        Add-Content -Path "$($env:TEMP)\pmc-theme-engine-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') $debugMsg"
 
         if ($this._properties.Count -eq 0) {
-            Add-Content -Path "/tmp/pmc-theme-engine-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') ERROR: _properties is EMPTY! Initializing defaults..."
+            Add-Content -Path "$($env:TEMP)\pmc-theme-engine-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') ERROR: _properties is EMPTY! Initializing defaults..."
             $this._InitializeDefaultProperties()
-            Add-Content -Path "/tmp/pmc-theme-engine-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Defaults initialized, _properties.Count=$($this._properties.Count)"
+            Add-Content -Path "$($env:TEMP)\pmc-theme-engine-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Defaults initialized, _properties.Count=$($this._properties.Count)"
         }
 
         if (-not $this._properties.ContainsKey($propertyName)) {
             # Log all available keys for debugging
             $availableKeys = ($this._properties.Keys | Sort-Object) -join ', '
-            Add-Content -Path "/tmp/pmc-theme-engine-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') PROPERTY NOT FOUND: '$propertyName' - Available: [$availableKeys]"
+            Add-Content -Path "$($env:TEMP)\pmc-theme-engine-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') PROPERTY NOT FOUND: '$propertyName' - Available: [$availableKeys]"
             return ''
         }
 
@@ -114,18 +114,18 @@ class PmcThemeEngine {
     [string] GetForegroundAnsi([string]$propertyName) {
         # CRITICAL DEBUG: Log property lookup
         $debugMsg = "GetForegroundAnsi: propertyName='$propertyName' _properties.Count=$($this._properties.Count) ContainsKey=$($this._properties.ContainsKey($propertyName))"
-        Add-Content -Path "/tmp/pmc-theme-engine-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') $debugMsg"
+        Add-Content -Path "$($env:TEMP)\pmc-theme-engine-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') $debugMsg"
 
         if ($this._properties.Count -eq 0) {
-            Add-Content -Path "/tmp/pmc-theme-engine-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') ERROR: _properties is EMPTY! Initializing defaults..."
+            Add-Content -Path "$($env:TEMP)\pmc-theme-engine-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') ERROR: _properties is EMPTY! Initializing defaults..."
             $this._InitializeDefaultProperties()
-            Add-Content -Path "/tmp/pmc-theme-engine-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Defaults initialized, _properties.Count=$($this._properties.Count)"
+            Add-Content -Path "$($env:TEMP)\pmc-theme-engine-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Defaults initialized, _properties.Count=$($this._properties.Count)"
         }
 
         if (-not $this._properties.ContainsKey($propertyName)) {
             # Log all available keys for debugging
             $availableKeys = ($this._properties.Keys | Sort-Object) -join ', '
-            Add-Content -Path "/tmp/pmc-theme-engine-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') PROPERTY NOT FOUND: '$propertyName' - Available: [$availableKeys]"
+            Add-Content -Path "$($env:TEMP)\pmc-theme-engine-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') PROPERTY NOT FOUND: '$propertyName' - Available: [$availableKeys]"
             return ''
         }
 

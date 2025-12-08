@@ -175,7 +175,7 @@ class PmcWidget : Component {
         $engine = [PmcThemeEngine]::GetInstance()
         $result = $engine.GetBackgroundAnsi($propertyName, $width, $charIndex)
         # CRITICAL DEBUG: Log what theme engine returns
-        Add-Content -Path "/tmp/pmc-theme-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') GetThemedBg($propertyName, $width, $charIndex) = '$result' (len=$($result.Length))"
+        Add-Content -Path "$($env:TEMP)\pmc-theme-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') GetThemedBg($propertyName, $width, $charIndex) = '$result' (len=$($result.Length))"
         return $result
     }
 
@@ -197,7 +197,7 @@ class PmcWidget : Component {
         $engine = [PmcThemeEngine]::GetInstance()
         $result = $engine.GetForegroundAnsi($propertyName)
         # CRITICAL DEBUG: Log what theme engine returns
-        Add-Content -Path "/tmp/pmc-theme-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') GetThemedFg($propertyName) = '$result' (len=$($result.Length))"
+        Add-Content -Path "$($env:TEMP)\pmc-theme-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') GetThemedFg($propertyName) = '$result' (len=$($result.Length))"
         return $result
     }
 

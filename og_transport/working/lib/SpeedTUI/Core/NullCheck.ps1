@@ -1,9 +1,9 @@
 ﻿# SpeedTUI Null Check Utilities - Defensive programming helpers
 
 class Guard {
-    static hidden [Logger]$_logger = $null
+    static hidden [object]$_logger = $null
     
-    static [Logger] GetLogger() {
+    static [object] GetLogger() {
         if ($null -eq [Guard]::_logger) {
             [Guard]::_logger = Get-Logger
         }
@@ -321,9 +321,9 @@ class Guard {
 
 # Safe navigation helpers
 class Safe {
-    static hidden [Logger]$_logger = $null
+    static hidden [object]$_logger = $null
     
-    static [Logger] GetLogger() {
+    static [object] GetLogger() {
         if ($null -eq [Safe]::_logger) {
             [Safe]::_logger = Get-Logger
         }
@@ -575,7 +575,7 @@ class Result {
     [bool]$Success
     [object]$Value
     [string]$Error
-    hidden [Logger]$_logger
+    hidden [object]$_logger
     
     hidden Result([bool]$success, [object]$value, [string]$error) {
         $this._logger = Get-Logger

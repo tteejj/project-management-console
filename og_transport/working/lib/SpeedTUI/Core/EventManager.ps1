@@ -88,7 +88,7 @@ class EventManager {
     }
     
     # Logger for debugging
-    hidden [Logger]$_logger
+    hidden [object]$_logger
     
     EventManager() {
         $this._handlers = [ConcurrentDictionary[string, List[hashtable]]]::new()

@@ -92,7 +92,7 @@ try {
     $global:perfMonitor.Enable()
     
     # Create logger
-    $global:logger = [Logger]::GetInstance()
+    $global:logger = [object]::GetInstance()
     $global:perfMonitor.SetLogger($global:logger)
     
     # Configure logging based on debug mode

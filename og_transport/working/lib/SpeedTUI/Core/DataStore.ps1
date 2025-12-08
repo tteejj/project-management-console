@@ -8,7 +8,7 @@ class DataChangeEventArgs : EventArgs {
     [object]$OldValue
     [object]$NewValue
     [string]$Path
-    hidden [Logger]$_logger
+    hidden [object]$_logger
     
     DataChangeEventArgs([string]$propertyName, [object]$oldValue, [object]$newValue, [string]$path) {
         $this._logger = Get-Logger
@@ -39,7 +39,7 @@ class DataChangeEventArgs : EventArgs {
 class ObservableObject {
     hidden [Dictionary[string, object]]$_properties
     hidden [Dictionary[string, List[scriptblock]]]$_propertyWatchers
-    hidden [Logger]$_logger
+    hidden [object]$_logger
     
     # Property changed event (simplified)
     hidden [List[scriptblock]]$_propertyChangedHandlers
@@ -605,7 +605,7 @@ class DataStore : ObservableObject {
 # Global data store manager
 class DataStoreManager {
     static [Dictionary[string, DataStore]]$_stores = [Dictionary[string, DataStore]]::new()
-    static [Logger]$_logger = [Logger]::GetInstance()
+    static [object]$_logger = [object]::GetInstance()
     
     static [DataStore] GetStore([string]$name) {
         [DataStoreManager]::_logger.Trace("DataStoreManager", "GetStore", "Getting data store", @{

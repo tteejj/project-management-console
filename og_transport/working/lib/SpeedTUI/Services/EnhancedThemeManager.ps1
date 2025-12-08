@@ -270,7 +270,7 @@ class EnhancedThemeManager {
     hidden [System.Collections.Generic.Dictionary[string, SimpleTheme]]$_themes
     hidden [SimpleTheme]$_currentTheme
     hidden [string]$_currentThemeName = "default"
-    hidden [Logger]$_logger
+    hidden [object]$_logger
     hidden [System.Collections.Generic.List[scriptblock]]$_changeHandlers
     hidden [hashtable]$_globalCache = @{}  # Performance cache
     

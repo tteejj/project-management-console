@@ -29,7 +29,7 @@ Set-Location $SpeedTUIRoot
 . "$SpeedTUIRoot/Core/EnhancedApplication.ps1"
 
 # Create logger
-$global:logger = [Logger]::GetInstance()
+$global:logger = [object]::GetInstance()
 if ($Debug) {
     $global:logger.GlobalLevel = [LogLevel]::Trace
 }

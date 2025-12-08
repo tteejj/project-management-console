@@ -9,7 +9,7 @@ class Application {
     [InputManager]$InputManager
     [DataStoreManager]$DataStoreManager
     [EnhancedThemeManager]$ThemeManager
-    [Logger]$Logger
+    [object]$Logger
     
     # Application state
     hidden [bool]$_running = $false

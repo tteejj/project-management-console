@@ -50,7 +50,7 @@ class Terminal {
     
     # === Enhanced Features (Private) ===
     hidden [StringBuilder]$_renderBatch        # Batched output for flicker-free rendering
-    hidden [Logger]$_logger                    # Logging for debugging
+    hidden [object]$_logger                    # Logging for debugging
     hidden [string]$_currentTheme = "default"  # Current theme name
     
     # === Performance Tracking ===

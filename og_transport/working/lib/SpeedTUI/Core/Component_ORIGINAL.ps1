@@ -81,7 +81,7 @@ class Component {
     hidden [int]$_maxHeight = 1000               # Maximum height
     
     # Logging and debugging
-    hidden [Logger]$_logger
+    hidden [object]$_logger
     hidden [string]$_logModule
     
     <#

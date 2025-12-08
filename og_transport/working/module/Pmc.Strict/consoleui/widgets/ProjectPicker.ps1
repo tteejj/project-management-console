@@ -177,14 +177,14 @@ class ProjectPicker : PmcWidget {
         # Enter - select current project
         if ($keyInfo.Key -eq 'Enter') {
             $selected = $this.GetSelectedProject()
-            Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') ProjectPicker: Enter pressed, selected='$selected' isEmpty=$([string]::IsNullOrWhiteSpace($selected))"
+            Add-Content -Path "$($env:TEMP)\pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') ProjectPicker: Enter pressed, selected='$selected' isEmpty=$([string]::IsNullOrWhiteSpace($selected))"
             if (-not [string]::IsNullOrWhiteSpace($selected)) {
                 $this.IsConfirmed = $true
-                Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') ProjectPicker: Calling OnProjectSelected callback with '$selected'"
+                Add-Content -Path "$($env:TEMP)\pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') ProjectPicker: Calling OnProjectSelected callback with '$selected'"
                 $this._InvokeCallback($this.OnProjectSelected, $selected)
                 return $true
             }
-            Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') ProjectPicker: Enter pressed but selected is empty, returning without calling callback"
+            Add-Content -Path "$($env:TEMP)\pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') ProjectPicker: Enter pressed but selected is empty, returning without calling callback"
             return $true
         }
 
@@ -203,13 +203,13 @@ class ProjectPicker : PmcWidget {
 
         # Navigation
         if ($keyInfo.Key -eq 'UpArrow') {
-            Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') ProjectPicker: UpArrow pressed, moving selection up"
+            Add-Content -Path "$($env:TEMP)\pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') ProjectPicker: UpArrow pressed, moving selection up"
             $this._MoveSelectionUp()
             return $true
         }
 
         if ($keyInfo.Key -eq 'DownArrow') {
-            Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') ProjectPicker: DownArrow pressed, moving selection down"
+            Add-Content -Path "$($env:TEMP)\pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') ProjectPicker: DownArrow pressed, moving selection down"
             $this._MoveSelectionDown()
             return $true
         }
@@ -428,7 +428,7 @@ class ProjectPicker : PmcWidget {
             }
 
             # DEBUG: Log render state
-            Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') ProjectPicker.Render: _selectedIndex=$($this._selectedIndex) _scrollOffset=$($this._scrollOffset) visibleCount=$($visibleProjects.Count)"
+            Add-Content -Path "$($env:TEMP)\pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') ProjectPicker.Render: _selectedIndex=$($this._selectedIndex) _scrollOffset=$($this._scrollOffset) visibleCount=$($visibleProjects.Count)"
 
             # Render visible project items
             for ($i = 0; $i -lt $maxVisibleItems; $i++) {
@@ -443,7 +443,7 @@ class ProjectPicker : PmcWidget {
 
                     # DEBUG: Log selection state for each row
                     if ($isSelected) {
-                        Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') ProjectPicker.Render: Row $i is SELECTED (project=$projectName)"
+                        Add-Content -Path "$($env:TEMP)\pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') ProjectPicker.Render: Row $i is SELECTED (project=$projectName)"
                     }
 
                     if ($isSelected) {
@@ -635,9 +635,9 @@ class ProjectPicker : PmcWidget {
         if ($this._selectedIndex -gt 0) {
             $this._selectedIndex--
             $this._AdjustScrollOffset()
-            Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') _MoveSelectionUp: Changed from $oldIndex to $($this._selectedIndex)"
+            Add-Content -Path "$($env:TEMP)\pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') _MoveSelectionUp: Changed from $oldIndex to $($this._selectedIndex)"
         } else {
-            Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') _MoveSelectionUp: Already at top (index=$($this._selectedIndex))"
+            Add-Content -Path "$($env:TEMP)\pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') _MoveSelectionUp: Already at top (index=$($this._selectedIndex))"
         }
     }
 
@@ -650,9 +650,9 @@ class ProjectPicker : PmcWidget {
         if ($this._selectedIndex -lt ($this._filteredProjects.Count - 1)) {
             $this._selectedIndex++
             $this._AdjustScrollOffset()
-            Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') _MoveSelectionDown: Changed from $oldIndex to $($this._selectedIndex), total=$($this._filteredProjects.Count)"
+            Add-Content -Path "$($env:TEMP)\pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') _MoveSelectionDown: Changed from $oldIndex to $($this._selectedIndex), total=$($this._filteredProjects.Count)"
         } else {
-            Add-Content -Path "/tmp/pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') _MoveSelectionDown: Already at bottom (index=$($this._selectedIndex), total=$($this._filteredProjects.Count))"
+            Add-Content -Path "$($env:TEMP)\pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') _MoveSelectionDown: Already at bottom (index=$($this._selectedIndex), total=$($this._filteredProjects.Count))"
         }
     }
 

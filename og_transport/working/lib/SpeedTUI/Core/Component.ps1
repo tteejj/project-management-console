@@ -82,10 +82,9 @@ class Component {
     hidden [int]$_maxWidth = 1000                # Maximum width
     hidden [int]$_maxHeight = 1000               # Maximum height
     
-    # Logging and debugging
-    hidden [Logger]$_logger
-    hidden [string]$_logModule
-    
+            # Logging and debugging
+            hidden [object]$_logger = $null
+            hidden [string]$_logModule = ""    
     <#
     .SYNOPSIS
     Initialize a new component instance
@@ -106,7 +105,7 @@ class Component {
         $this._customColors = @{}
         
         # Setup logging for debugging
-        $this._logger = Get-Logger
+        # $this._logger = [object](Get-Logger) 
         $this._logModule = $this.GetType().Name
         $this._regionId = "component_$($this.Id)"
         

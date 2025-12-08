@@ -64,7 +64,7 @@ class PluginManager {
     hidden [Dictionary[string, type]]$_registeredComponents
     hidden [Dictionary[string, object]]$_registeredThemes
     hidden [Dictionary[string, scriptblock]]$_registeredCommands
-    hidden [Logger]$_logger
+    hidden [object]$_logger
     hidden [string[]]$_pluginDirectories
     
     # Event manager for plugin events

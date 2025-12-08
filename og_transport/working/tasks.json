@@ -1,4 +1,21 @@
-﻿{
-  "nextId": 1,
-  "tasks": []
+{
+  "settings": {},
+  "tasks": [
+    {
+      "completed": false,
+      "id": "6d5c794a-db0d-4e8f-ad5f-380e70756004",
+      "details": "",
+      "priority": 3,
+      "tags": [
+        null
+      ],
+      "status": "todo",
+      "modified": "2025-12-08T16:25:50.0668998-07:00",
+      "text": "t1",
+      "created": "2025-12-08T16:25:50.0477285-07:00",
+      "project": ""
+    }
+  ],
+  "timelogs": [],
+  "projects": []
 }

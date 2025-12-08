@@ -60,7 +60,7 @@ class ThemeManager {
     hidden [Dictionary[string, Theme]]$_themes
     hidden [Theme]$_currentTheme
     hidden [string]$_currentThemeName
-    hidden [Logger]$_logger
+    hidden [object]$_logger
     hidden [List[scriptblock]]$_changeHandlers
     
     ThemeManager() {

@@ -9,7 +9,7 @@ class RenderRegion {
     [int]$Height
     [string]$Id
     [int]$ZOrder = 0
-    hidden [Logger]$_logger
+    hidden [object]$_logger
     
     RenderRegion([string]$id, [int]$x, [int]$y, [int]$width, [int]$height) {
         $this._logger = Get-Logger
@@ -118,7 +118,7 @@ class RenderBuffer {
     [int]$Height
     hidden [string[,]]$_buffer
     hidden [string[,]]$_previousBuffer
-    hidden [Logger]$_logger
+    hidden [object]$_logger
     
     RenderBuffer([int]$width, [int]$height) {
         [Guard]::Positive($width, "width")
@@ -354,7 +354,7 @@ class RenderEngine {
     hidden [RenderBuffer]$_buffer
     hidden [Dictionary[string, RenderRegion]]$_regions
     hidden [List[string]]$_dirtyRegions
-    hidden [Logger]$_logger
+    hidden [object]$_logger
     hidden [bool]$_initialized = $false
     
     # Performance tracking

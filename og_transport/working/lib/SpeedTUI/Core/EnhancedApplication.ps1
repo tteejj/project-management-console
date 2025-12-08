@@ -29,7 +29,7 @@ class EnhancedApplication {
     # Core systems (hidden performance layer)
     hidden [OptimizedRenderEngine]$_renderEngine
     hidden [SimplifiedTerminal]$_terminal  
-    hidden [Logger]$_logger
+    hidden [object]$_logger
     hidden [object]$_performanceMonitor
     
     # Application state 

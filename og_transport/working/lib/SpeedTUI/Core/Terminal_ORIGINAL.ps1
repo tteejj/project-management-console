@@ -11,7 +11,7 @@ class Terminal {
     [bool]$CursorVisible = $true
     hidden [string]$_currentBuffer = ""
     hidden [System.Text.StringBuilder]$_renderBatch
-    hidden [Logger]$_logger
+    hidden [object]$_logger
     
     # Performance tracking
     hidden [System.Diagnostics.Stopwatch]$_frameTimer

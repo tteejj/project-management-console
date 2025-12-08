@@ -28,7 +28,7 @@ class SimplifiedRenderEngine {
     hidden [StringBuilder]$_currentFrame      # Current frame being built
     hidden [string]$_lastFrame = ""          # Previous frame for comparison
     hidden [bool]$_initialized = $false      # Initialization state
-    hidden [Logger]$_logger                  # Logger for debugging
+    hidden [object]$_logger                  # Logger for debugging
     
     # Performance tracking
     hidden [int]$_frameCount = 0             # Total frames rendered

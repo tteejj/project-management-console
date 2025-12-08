@@ -32,7 +32,7 @@ class LogEntry {
 
 class Logger {
     # Singleton instance
-    static [Logger]$Instance = $null
+    static [object]$Instance = $null
     
     # Configuration
     [ConcurrentDictionary[string, LogLevel]]$ModuleLevels
@@ -76,7 +76,7 @@ class Logger {
         # No automatic timer - will flush synchronously for now
     }
     
-    static [Logger] GetInstance() {
+    static [object] GetInstance() {
         if ($null -eq [Logger]::Instance) {
             [Logger]::Instance = [Logger]::new()
         }
@@ -292,12 +292,12 @@ class Logger {
 
 # Performance measurement helper
 class PerformanceTimer : System.IDisposable {
-    hidden [Logger]$_logger
+    hidden [object]$_logger
     hidden [string]$_module
     hidden [string]$_operation
     hidden [System.Diagnostics.Stopwatch]$_stopwatch
     
-    PerformanceTimer([Logger]$logger, [string]$module, [string]$operation) {
+    PerformanceTimer([object]$logger, [string]$module, [string]$operation) {
         $this._logger = $logger
         $this._module = $module
         $this._operation = $operation
