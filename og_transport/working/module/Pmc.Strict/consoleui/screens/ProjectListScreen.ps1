@@ -24,9 +24,9 @@ $script:SUPPORTED_DATE_FORMATS = @(
     'd/M/yyyy'
 )
 
-# LOW FIX PLS-L8, L10: Define constants for validation limits
-$script:MAX_PROJECT_NAME_LENGTH = 100
-$script:MAX_DESCRIPTION_LENGTH = 500
+# FIXED PLS-L8, L10: Now using global constants from Constants.ps1
+# MAX_PROJECT_NAME_LENGTH = 100 (from Constants.ps1)
+# MAX_DESCRIPTION_LENGTH = 4000 (from Constants.ps1)
 
 <#
 .SYNOPSIS
@@ -335,8 +335,7 @@ class ProjectListScreen : StandardListScreen {
                 ShipToAddress = $(if ($values.ContainsKey('ShipToAddress')) { $values.ShipToAddress } else { '' })
             }
 
-            # Use ValidationHelper for comprehensive validation
-            . "$PSScriptRoot/../helpers/ValidationHelper.ps1"
+            # Use ValidationHelper for comprehensive validation (already loaded by ClassLoader)
             $validationResult = Test-ProjectValid $projectData -existingProjects $existingProjects
 
             if (-not $validationResult.IsValid) {
