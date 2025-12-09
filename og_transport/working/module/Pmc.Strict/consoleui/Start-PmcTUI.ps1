@@ -132,14 +132,12 @@ try {
     # Priority 5: Theme system (needed by almost everything)
     $loader.AddDirectory("theme", 5, $false)
 
-    # Priority 10: Layout managers
-    $loader.AddDirectory("layout", 10, $false)
-
-    # Priority 15: Core infrastructure (widgets base, constants)
-    # Load ZIndex and PmcScreen manually first as they have specific requirements
+    # Priority 10-15: Core infrastructure (layout, widgets base, constants)
+    # Load PmcLayoutManager, ZIndex and PmcScreen manually first as they have specific requirements
+    . "$PSScriptRoot/layout/PmcLayoutManager.ps1"
     . "$PSScriptRoot/ZIndex.ps1"
     . "$PSScriptRoot/PmcScreen.ps1"
-    Write-PmcTuiLog "Core infrastructure (ZIndex, PmcScreen) loaded" "INFO"
+    Write-PmcTuiLog "Core infrastructure (PmcLayoutManager, ZIndex, PmcScreen) loaded" "INFO"
 
     # Priority 20: All widgets (auto-discovered, excludes Test* files)
     $loader.AddDirectory("widgets", 20, $false)
