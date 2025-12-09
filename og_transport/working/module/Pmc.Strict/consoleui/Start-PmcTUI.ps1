@@ -103,130 +103,82 @@ try {
     throw
 }
 
-Write-PmcTuiLog "Loading helpers..." "INFO"
+# ============================================================================
+# SMART CLASS LOADING - Auto-discovery with dependency resolution
+# ============================================================================
+Write-PmcTuiLog "Loading ClassLoader system..." "INFO"
 
 try {
-    Get-ChildItem -Path "$PSScriptRoot/helpers" -Filter "*.ps1" -ErrorAction SilentlyContinue | ForEach-Object {
-        . $_.FullName
-    }
-    Write-PmcTuiLog "Helpers loaded" "INFO"
+    . "$PSScriptRoot/ClassLoader.ps1"
+    Write-PmcTuiLog "ClassLoader loaded" "INFO"
 } catch {
-    Write-PmcTuiLog "Failed to load helpers: $_" "ERROR"
+    Write-PmcTuiLog "Failed to load ClassLoader: $_" "ERROR"
+    Write-PmcTuiLog $_.ScriptStackTrace "ERROR"
+    throw
+}
+
+Write-PmcTuiLog "Initializing smart class loader..." "INFO"
+
+try {
+    # Create ClassLoader instance
+    $loader = [ClassLoader]::new($PSScriptRoot)
+
+    # Enable verbose logging if PMC log level is high
+    if ($global:PmcTuiLogLevel -ge 3) {
+        $loader.EnableVerbose()
+    }
+
+    # Add directories in dependency order (priority: lower = loaded first)
+    # Priority 5: Theme system (needed by almost everything)
+    $loader.AddDirectory("theme", 5)
+
+    # Priority 10: Layout managers
+    $loader.AddDirectory("layout", 10)
+
+    # Priority 15: Core infrastructure (widgets base, constants)
+    # Load ZIndex and PmcScreen manually first as they have specific requirements
+    . "$PSScriptRoot/ZIndex.ps1"
+    . "$PSScriptRoot/PmcScreen.ps1"
+    Write-PmcTuiLog "Core infrastructure (ZIndex, PmcScreen) loaded" "INFO"
+
+    # Priority 20: All widgets (auto-discovered, excludes Test* files)
+    $loader.AddDirectory("widgets", 20)
+
+    # Priority 30: Base screen classes
+    $loader.AddDirectory("base", 30)
+
+    # Priority 40: Services
+    $loader.AddDirectory("services", 40)
+
+    # Priority 50: Helpers
+    $loader.AddDirectory("helpers", 50)
+
+    # Priority 60: HelpViewScreen (required by base classes)
+    # Note: We load this manually to ensure it's available before other screens
+    . "$PSScriptRoot/screens/HelpViewScreen.ps1"
+    Write-PmcTuiLog "HelpViewScreen loaded (required by base classes)" "INFO"
+
+    # Execute the loader - auto-discovers and loads all files with retry logic
+    $loader.LoadAll()
+
+    # Store stats for diagnostics
+    $global:PmcClassLoaderStats = $loader.LoadStats
+
+    if ($loader.FailedFiles.Count -gt 0) {
+        Write-PmcTuiLog "WARNING: Some files failed to load. Check ClassLoader output above." "WARN"
+    }
+
+    Write-PmcTuiLog "Smart class loading complete: $($loader.LoadStats.Loaded) files loaded, $($loader.LoadStats.Failed) failed, $($loader.LoadStats.Skipped) skipped" "INFO"
+
+} catch {
+    Write-PmcTuiLog "Failed to initialize smart class loader: $_" "ERROR"
     Write-PmcTuiLog $_.ScriptStackTrace "ERROR"
     throw
 }
 
 # NOTE: Theme initialization moved to Theme service factory in ServiceContainer
 # This ensures proper initialization order via dependency injection
-# See line ~252 where Theme service is registered
-
-Write-PmcTuiLog "Loading services..." "INFO"
-
-try {
-    Get-ChildItem -Path "$PSScriptRoot/services" -Filter "*.ps1" -ErrorAction SilentlyContinue | ForEach-Object {
-        . $_.FullName
-    }
-    Write-PmcTuiLog "Services loaded" "INFO"
-} catch {
-    Write-PmcTuiLog "Failed to load services: $_" "ERROR"
-    Write-PmcTuiLog $_.ScriptStackTrace "ERROR"
-    throw
-}
-
-Write-PmcTuiLog "Loading PMC widget layer (extends SpeedTUI)..." "INFO"
-
-try {
-    . "$PSScriptRoot/widgets/PmcWidget.ps1"
-    . "$PSScriptRoot/widgets/PmcPanel.ps1"
-    . "$PSScriptRoot/widgets/PmcMenuBar.ps1"
-    . "$PSScriptRoot/widgets/PmcHeader.ps1"
-    . "$PSScriptRoot/widgets/PmcFooter.ps1"
-    . "$PSScriptRoot/widgets/PmcStatusBar.ps1"
-    . "$PSScriptRoot/layout/PmcLayoutManager.ps1"
-    . "$PSScriptRoot/theme/PmcThemeManager.ps1"
-    Write-PmcTuiLog "Legacy infrastructure loaded" "INFO"
-} catch {
-    Write-PmcTuiLog "Failed to load legacy infrastructure: $_" "ERROR"
-    Write-PmcTuiLog $_.ScriptStackTrace "ERROR"
-    throw
-}
-
-Write-PmcTuiLog "Loading ZIndex constants..." "INFO"
-
-try {
-    . "$PSScriptRoot/ZIndex.ps1"
-    Write-PmcTuiLog "ZIndex loaded" "INFO"
-} catch {
-    Write-PmcTuiLog "Failed to load ZIndex: $_" "ERROR"
-    Write-PmcTuiLog $_.ScriptStackTrace "ERROR"
-    throw
-}
-
-Write-PmcTuiLog "Loading PmcScreen base class..." "INFO"
-
-try {
-    . "$PSScriptRoot/PmcScreen.ps1"
-    Write-PmcTuiLog "PmcScreen loaded" "INFO"
-} catch {
-    Write-PmcTuiLog "Failed to load PmcScreen: $_" "ERROR"
-    Write-PmcTuiLog $_.ScriptStackTrace "ERROR"
-    throw
-}
-
-Write-PmcTuiLog "Loading widgets..." "INFO"
-
-try {
-    $widgetFiles = @(
-        "TextInput.ps1",
-        "DatePicker.ps1",
-        "ProjectPicker.ps1",
-        "TagEditor.ps1",
-        "FilterPanel.ps1",
-        "InlineEditor.ps1",
-        "UniversalList.ps1",
-        "TimeEntryDetailDialog.ps1",
-        "TextAreaEditor.ps1",
-        "PmcFilePicker.ps1",
-        "TabPanel.ps1"
-    )
-
-    foreach ($widgetFile in $widgetFiles) {
-        $widgetPath = Join-Path "$PSScriptRoot/widgets" $widgetFile
-        if (Test-Path $widgetPath) {
-            . $widgetPath
-        }
-    }
-    Write-PmcTuiLog "Widgets loaded" "INFO"
-} catch {
-    Write-PmcTuiLog "Failed to load widgets: $_" "ERROR"
-    Write-PmcTuiLog $_.ScriptStackTrace "ERROR"
-    throw
-}
-
-Write-PmcTuiLog "Loading HelpViewScreen (required by base classes)..." "INFO"
-
-try {
-    . "$PSScriptRoot/screens/HelpViewScreen.ps1"
-    Write-PmcTuiLog "HelpViewScreen loaded" "INFO"
-} catch {
-    Write-PmcTuiLog "Failed to load HelpViewScreen: $_" "ERROR"
-    Write-PmcTuiLog $_.ScriptStackTrace "ERROR"
-    throw
-}
-
-Write-PmcTuiLog "Loading base classes..." "INFO"
-
-try {
-    . "$PSScriptRoot/base/StandardFormScreen.ps1"
-    . "$PSScriptRoot/base/StandardListScreen.ps1"
-    . "$PSScriptRoot/base/StandardDashboard.ps1"
-    . "$PSScriptRoot/base/TabbedScreen.ps1"
-    Write-PmcTuiLog "Base classes loaded" "INFO"
-} catch {
-    Write-PmcTuiLog "Failed to load base classes: $_" "ERROR"
-    Write-PmcTuiLog $_.ScriptStackTrace "ERROR"
-    throw
-}
+# See line ~350 where Theme service is registered
 
 Write-PmcTuiLog "Loading ServiceContainer..." "INFO"
 
@@ -250,20 +202,17 @@ try {
     throw
 }
 
-Write-PmcTuiLog "Loading screens..." "INFO"
+Write-PmcTuiLog "Loading initial screens..." "INFO"
 
 try {
-    # Pre-load dependencies needed by screens
-    . "$PSScriptRoot/widgets/PmcFilePicker.ps1"
-    Write-PmcTuiLog "PmcFilePicker loaded" "INFO"
-
-    # Pre-load common screens
+    # Pre-load common screens that are always needed
+    # Other screens are lazy-loaded via MenuRegistry when first accessed
     . "$PSScriptRoot/screens/TaskListScreen.ps1"
     . "$PSScriptRoot/screens/ProjectListScreen.ps1"
     . "$PSScriptRoot/screens/ProjectInfoScreenV4.ps1"
-    Write-PmcTuiLog "Screens loaded (TaskList, ProjectList, ProjectInfoV4)" "INFO"
+    Write-PmcTuiLog "Initial screens loaded (TaskList, ProjectList, ProjectInfoV4)" "INFO"
 } catch {
-    Write-PmcTuiLog "Failed to load screens: $_" "ERROR"
+    Write-PmcTuiLog "Failed to load initial screens: $_" "ERROR"
     Write-PmcTuiLog $_.ScriptStackTrace "ERROR"
     throw
 }
