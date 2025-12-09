@@ -3,9 +3,10 @@
 ## 📦 Package Information
 
 **File:** `pmc-working-package.ps1`
-**Size:** 1.6 MB (1.2 MB compressed data)
+**Size:** 1.2 MB (857 KB compressed data)
 **Format:** Self-extracting PowerShell script with base64-encoded ZIP
 **Created:** December 9, 2024
+**Cleaned:** Removed backup files, logs, and test directories
 
 ## 🔧 What's Included
 
@@ -185,11 +186,21 @@ This format:
 ### Encoding Details
 
 ```
-Original: 1.2 MB ZIP
-Base64:   1.6 MB (76-char line wrapping)
-Lines:    20,818 lines of base64 data
+Original: 857 KB ZIP (cleaned)
+Base64:   1.2 MB (76-char line wrapping)
+Lines:    15,388 lines of base64 data
 Format:   PowerShell here-string @'...'@
 ```
+
+### Cleanup Details
+
+The following were removed to reduce package size:
+- **27 backup files** (*.backup, *.pre-perf-fix*, *.bak*, *.old, *.undo)
+- **30 PMC log files** (module/.pmc-data/logs/*.log)
+- **28 SpeedTUI log files** (lib/SpeedTUI/Logs/*.log)
+- **SpeedTUI dev directories** (Tests/, Examples/, _ProjectData/)
+
+**Size reduction:** 1.6 MB → 1.2 MB (25% smaller)
 
 ## 🔍 Testing Checklist
 
