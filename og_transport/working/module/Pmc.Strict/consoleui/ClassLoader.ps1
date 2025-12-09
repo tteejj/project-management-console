@@ -97,7 +97,8 @@ class ClassLoader {
             $this.LoadStats.TotalFiles++
         }
 
-        $this.Log("Discovered $($files.Count) files in $relativePath (priority=$priority)", "INFO")
+        $fileCount = @($files).Count
+        $this.Log("Discovered $fileCount files in $relativePath (priority=$priority)", "INFO")
     }
 
     <#
