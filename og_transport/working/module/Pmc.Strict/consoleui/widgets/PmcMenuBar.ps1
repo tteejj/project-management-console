@@ -185,7 +185,6 @@ class PmcMenuBar : PmcWidget {
     [void] ShowDropdown() {
         # PERF: Disabled - if ($global:PmcTuiLogFile) {
         # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ShowDropdown called: SelectedMenuIndex=$($this.SelectedMenuIndex) MenuCount=$($this.Menus.Count)"
-        }
         if ($this.SelectedMenuIndex -ge 0 -and $this.SelectedMenuIndex -lt $this.Menus.Count) {
             $menu = $this.Menus[$this.SelectedMenuIndex]
 
@@ -193,7 +192,6 @@ class PmcMenuBar : PmcWidget {
             if ($null -eq $menu.Items -or $menu.Items.Count -eq 0) {
                 # PERF: Disabled - if ($global:PmcTuiLogFile) {
                 # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ShowDropdown: Menu '$($menu.Title)' has no items (type=$($menu.GetType().Name) Items=$($menu.Items)), not showing dropdown"
-                }
                 return
             }
 
@@ -204,7 +202,7 @@ class PmcMenuBar : PmcWidget {
             $this.Invalidate()
             # PERF: Disabled - if ($global:PmcTuiLogFile) {
             # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ShowDropdown: DropdownVisible=true, Menu='$($menu.Title)' ItemCount=$($menu.Items.Count)"
-            }
+            # }
         }
     }
 
@@ -312,12 +310,12 @@ class PmcMenuBar : PmcWidget {
     [bool] ExecuteSelectedItem() {
         # PERF: Disabled - if ($global:PmcTuiLogFile) {
         # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ExecuteSelectedItem: DropdownVisible=$($this.DropdownVisible) MenuIndex=$($this.SelectedMenuIndex) ItemIndex=$($this.SelectedItemIndex)"
-        }
+        # }
 
         if (-not $this.DropdownVisible -or $this.SelectedMenuIndex -lt 0 -or $this.SelectedItemIndex -lt 0) {
             # PERF: Disabled - if ($global:PmcTuiLogFile) {
             # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ExecuteSelectedItem: Conditions not met, returning false"
-            }
+            # }
             return $false
         }
 
@@ -325,7 +323,7 @@ class PmcMenuBar : PmcWidget {
         if ($this.SelectedItemIndex -ge $menu.Items.Count) {
             # PERF: Disabled - if ($global:PmcTuiLogFile) {
             # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ExecuteSelectedItem: ItemIndex ($($this.SelectedItemIndex)) >= ItemCount ($($menu.Items.Count)), returning false"
-            }
+            # }
             return $false
         }
 
@@ -333,14 +331,14 @@ class PmcMenuBar : PmcWidget {
         if ($item.IsSeparator -or -not $item.Enabled) {
             # PERF: Disabled - if ($global:PmcTuiLogFile) {
             # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ExecuteSelectedItem: Item is separator or disabled, returning false"
-            }
+            # }
             return $false
         }
 
         # PERF: Disabled - if ($global:PmcTuiLogFile) {
 
         # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ExecuteSelectedItem: Executing item='$($item.Label)' from menu='$($menu.Title)'"
-        }
+        # }
 
         # Close dropdown BEFORE executing action
         # This ensures the menu clears before screen changes
@@ -365,7 +363,7 @@ class PmcMenuBar : PmcWidget {
     [string] OnRender() {
         # PERF: Disabled - if ($global:PmcTuiLogFile) {
         # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] MenuBar.OnRender: Called (DropdownVisible=$($this.DropdownVisible) _prevHeight=$($this._prevDropdownHeight) _prevX=$($this._prevDropdownX) _prevY=$($this._prevDropdownY))"
-        }
+        # }
 
         $sb = [System.Text.StringBuilder]::new(1024)
 
@@ -378,7 +376,7 @@ class PmcMenuBar : PmcWidget {
                 $needsClear = $true
                 # PERF: Disabled - if ($global:PmcTuiLogFile) {
                 # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] MenuBar.OnRender: needsClear=TRUE (dropdown closed)"
-                }
+                # }
             } elseif ($this.SelectedMenuIndex -ge 0 -and $this.SelectedMenuIndex -lt $this._menuXPositions.Count) {
                 # Check if dropdown moved to different position
                 $currentDropdownX = $this.X + $this._menuXPositions[$this.SelectedMenuIndex]
@@ -387,19 +385,19 @@ class PmcMenuBar : PmcWidget {
                     $needsClear = $true
                     # PERF: Disabled - if ($global:PmcTuiLogFile) {
                     # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] MenuBar.OnRender: needsClear=TRUE (dropdown moved: $($this._prevDropdownX) -> $currentDropdownX)"
-                    }
+                    # }
                 }
             }
         } else {
             # PERF: Disabled - if ($global:PmcTuiLogFile) {
             # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] MenuBar.OnRender: needsClear=FALSE (_prevDropdownHeight <= 0)"
-            }
+            # }
         }
 
         if ($needsClear) {
             # PERF: Disabled - if ($global:PmcTuiLogFile) {
             # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] MenuBar.OnRender: Calling _ClearPreviousDropdown()..."
-            }
+            # }
             $clearOutput = $this._ClearPreviousDropdown()
             $sb.Append($clearOutput)
         }
@@ -412,13 +410,13 @@ class PmcMenuBar : PmcWidget {
         if ($this.DropdownVisible -and $this.SelectedMenuIndex -ge 0) {
             # PERF: Disabled - if ($global:PmcTuiLogFile) {
             # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] MenuBar.OnRender: Rendering dropdown (visible)"
-            }
+            # }
             $dropdown = $this._RenderDropdown()
             $sb.Append($dropdown)
         } else {
             # PERF: Disabled - if ($global:PmcTuiLogFile) {
             # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] MenuBar.OnRender: No dropdown, resetting _prevDropdownHeight to 0"
-            }
+            # }
             # No dropdown visible - reset tracking
             $this._prevDropdownHeight = 0
         }
@@ -428,7 +426,7 @@ class PmcMenuBar : PmcWidget {
         # PERF: Disabled - if ($global:PmcTuiLogFile) {
 
         # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] MenuBar.OnRender: Returning length=$($result.Length)"
-        }
+        # }
 
         return $result
     }
@@ -623,19 +621,19 @@ class PmcMenuBar : PmcWidget {
     hidden [string] _ClearPreviousDropdown() {
         # PERF: Disabled - if ($global:PmcTuiLogFile) {
         # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] MenuBar._ClearPreviousDropdown: _prevDropdownHeight=$($this._prevDropdownHeight)"
-        }
+        # }
 
         if ($this._prevDropdownHeight -le 0) {
             # PERF: Disabled - if ($global:PmcTuiLogFile) {
             # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] MenuBar._ClearPreviousDropdown: Skipping (height <= 0)"
-            }
+            # }
             return ""
         }
 
         # PERF: Disabled - if ($global:PmcTuiLogFile) {
 
         # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] MenuBar._ClearPreviousDropdown: Writing blanks - X=$($this._prevDropdownX) Y=$($this._prevDropdownY) Width=$($this._prevDropdownWidth) Height=$($this._prevDropdownHeight)"
-        }
+        # }
 
         $sb = [System.Text.StringBuilder]::new(512)
         $spaces = $this.GetSpaces($this._prevDropdownWidth)
@@ -645,7 +643,7 @@ class PmcMenuBar : PmcWidget {
             $y = $this._prevDropdownY + $i
             # PERF: Disabled - if ($global:PmcTuiLogFile) {
             # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] MenuBar._ClearPreviousDropdown: Writing blanks at X=$($this._prevDropdownX) Y=$y"
-            }
+            # }
             $sb.Append($this.BuildMoveTo($this._prevDropdownX, $y))
             $sb.Append($spaces)
         }
@@ -662,25 +660,25 @@ class PmcMenuBar : PmcWidget {
         # PERF: Disabled - if ($global:PmcTuiLogFile) {
 
         # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] MenuBar.HandleKeyPress: Key=$key Char='$char' Alt=$($keyInfo.Modifiers -band [ConsoleModifiers]::Alt) IsActive=$($this.IsActive)"
-        }
+        # }
 
         # Handle Alt+hotkey even when not active (to activate menu)
         if ($keyInfo.Modifiers -band [ConsoleModifiers]::Alt) {
             # PERF: Disabled - if ($global:PmcTuiLogFile) {
             # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] MenuBar: Alt key detected, calling _HandleMenuHotkey('$char')"
-            }
+            # }
             if ($this._HandleMenuHotkey($char)) {
                 # Menu hotkey handler already set SelectedMenuIndex and showed dropdown
                 # Just ensure IsActive is set (don't call Activate() which resets index to 0)
                 $this.IsActive = $true
                 # PERF: Disabled - if ($global:PmcTuiLogFile) {
                 # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] MenuBar: Hotkey matched, menu activated"
-                }
+                # }
                 return $true
             }
             # PERF: Disabled - if ($global:PmcTuiLogFile) {
             # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] MenuBar: Hotkey '$char' not matched"
-            }
+            # }
         }
 
         # Normal menu operations require IsActive
@@ -719,7 +717,7 @@ class PmcMenuBar : PmcWidget {
                 'Escape' {
                     # PERF: Disabled - if ($global:PmcTuiLogFile) {
                     # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] MenuBar: ESC in dropdown mode - deactivating menu entirely"
-                    }
+                    # }
                     # PERF: Disabled - Add-Content -Path "$($env:TEMP)\pmc-esc-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [MenuBar] ESC in dropdown mode - deactivating menu entirely"
                     $this.HideDropdown()
                     $this.Deactivate()
@@ -754,7 +752,7 @@ class PmcMenuBar : PmcWidget {
                 'Escape' {
                     # PERF: Disabled - if ($global:PmcTuiLogFile) {
                     # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] MenuBar: ESC in menu bar mode - deactivating"
-                    }
+                    # }
                     # PERF: Disabled - Add-Content -Path "$($env:TEMP)\pmc-esc-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [MenuBar] ESC in menu bar mode - deactivating"
                     $this.Deactivate()
                     return $true

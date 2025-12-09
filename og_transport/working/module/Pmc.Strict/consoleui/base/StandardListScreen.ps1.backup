@@ -279,7 +279,7 @@ class StandardListScreen : PmcScreen {
         # DEBUG
         # PERF: Disabled - if ($global:PmcTuiLogFile) {
             # Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] StandardListScreen._InitializeComponents: Starting (MenuBar=$($null -ne $this.MenuBar))"
-        # }
+        }
 
         # Get terminal size
         $termSize = $this._GetTerminalSize()
@@ -306,7 +306,7 @@ class StandardListScreen : PmcScreen {
 
         # PERF: Disabled - if ($global:PmcTuiLogFile) {
             # Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] StandardListScreen._InitializeComponents: List created"
-        # }
+        }
 
         # Wire up list events using GetNewClosure()
         $self = $this
@@ -418,7 +418,7 @@ class StandardListScreen : PmcScreen {
     hidden [void] _ConfigureListActions() {
         # PERF: Disabled - if ($global:PmcTuiLogFile) {
         # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] _ConfigureListActions: Screen instance type=$($this.GetType().Name) key=$($this.ScreenKey)"
-        # }
+        }
 
         # Write-PmcTuiLog "_ConfigureListActions: START AllowAdd=$($this.AllowAdd) AllowEdit=$($this.AllowEdit) AllowDelete=$($this.AllowDelete)" "DEBUG"
 
@@ -430,7 +430,7 @@ class StandardListScreen : PmcScreen {
                 $currentScreen = $global:PmcApp.CurrentScreen
                 # PERF: Disabled - if ($global:PmcTuiLogFile) {
                     # Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] Action 'a' callback: currentScreen type=$($currentScreen.GetType().Name) key=$($currentScreen.ScreenKey)"
-                # }
+                }
                 $currentScreen.AddItem()
             }.GetNewClosure()
             # Write-PmcTuiLog "_ConfigureListActions: Add action created, adding to list" "DEBUG"
@@ -575,7 +575,7 @@ class StandardListScreen : PmcScreen {
         # DEBUG logging
         # PERF: Disabled - if ($global:PmcTuiLogFile) {
             # Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] StandardListScreen.AddItem() called on type=$($this.GetType().Name) key=$($this.ScreenKey)"
-        # }
+        }
 
         $this.EditorMode = 'add'
         $this.CurrentEditItem = @{}
@@ -583,7 +583,7 @@ class StandardListScreen : PmcScreen {
 
         # PERF: Disabled - if ($global:PmcTuiLogFile) {
             # Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] Got $($fields.Count) edit fields"
-        # }
+        }
 
         $this.InlineEditor.LayoutMode = "horizontal"
         $this.InlineEditor.SetFields($fields)
@@ -595,21 +595,21 @@ class StandardListScreen : PmcScreen {
 
         # PERF: Disabled - if ($global:PmcTuiLogFile) {
             # Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] AddItem: Set selectedIndex=$itemCount for add mode"
-        # }
+        }
 
         # PERF: Disabled - if ($global:PmcTuiLogFile) {
             # Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] AddItem: About to set ShowInlineEditor=true (currently: $($this.ShowInlineEditor))"
-        # }
+        }
 
         $this.ShowInlineEditor = $true
 
         # PERF: Disabled - if ($global:PmcTuiLogFile) {
             # Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] AddItem: ShowInlineEditor set to: $($this.ShowInlineEditor)"
-        # }
+        }
 
         # PERF: Disabled - if ($global:PmcTuiLogFile) {
             # Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] AddItem: Exiting (ShowInlineEditor=$($this.ShowInlineEditor))"
-        # }
+        }
     }
 
     <#
@@ -818,7 +818,7 @@ class StandardListScreen : PmcScreen {
         # Log the message
         # PERF: Disabled - if ($global:PmcTuiLogFile) {
         # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [$level] $message"
-        # }
+        }
 
         # If we have a status bar, update it
         if ($this.StatusBar) {
@@ -1033,14 +1033,14 @@ class StandardListScreen : PmcScreen {
         # PERF: Disabled - if ($global:PmcTuiLogFile) {
 
         # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] RenderContent: ENTRY - type=$($this.GetType().Name) key=$($this.ScreenKey) ShowInlineEditor=$($this.ShowInlineEditor) EditorMode=$($this.EditorMode)"
-        # }
+        }
 
         # HIGH FIX #8: Throw error instead of silent failure to make debugging easier
         if ($null -eq $this.List) {
             $errorMsg = "CRITICAL ERROR: StandardListScreen.List is null - screen was not properly initialized"
             # PERF: Disabled - if ($global:PmcTuiLogFile) {
             # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] RenderContent: $errorMsg"
-            # }
+            }
             throw $errorMsg
         }
 
@@ -1070,7 +1070,7 @@ class StandardListScreen : PmcScreen {
         if ($this.ShowFilterPanel) {
             # PERF: Disabled - if ($global:PmcTuiLogFile) {
             # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] RenderContent: Rendering FilterPanel"
-            # }
+            }
             # Render list with filter panel as overlay
             $filterContent = $this.FilterPanel.Render()
             return $listOutput + "`n" + $filterContent
@@ -1079,7 +1079,7 @@ class StandardListScreen : PmcScreen {
         # PERF: Disabled - if ($global:PmcTuiLogFile) {
 
         # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] RenderContent: List.Render() returned length=$($listOutput.Length)"
-        # }
+        }
         return $listOutput
     }
 

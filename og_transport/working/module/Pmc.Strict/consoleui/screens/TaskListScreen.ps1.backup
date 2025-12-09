@@ -239,7 +239,7 @@ class TaskListScreen : StandardListScreen {
 
                 # PERF: Disabled - if ($global:PmcTuiLogFile) {
                     # Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] TaskListScreen: Created new ServiceContainer"
-                # }
+                }
             }
 
             # Load manifest with container
@@ -281,13 +281,13 @@ class TaskListScreen : StandardListScreen {
             $menu = $this.MenuBar.Menus[$menuIndex]
             $items = $registry.GetMenuItems($menuName)
 
-            if ($global:PmcTuiLogFile) {
+            # PERF: Disabled - if ($global:PmcTuiLogFile) {
                 if ($null -eq $items) {
-                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] _PopulateMenusFromRegistry: Menu '$menuName' has 0 items from registry (null)"
+                    # Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] _PopulateMenusFromRegistry: Menu '$menuName' has 0 items from registry (null)"
                 } elseif ($items -is [array]) {
-                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] _PopulateMenusFromRegistry: Menu '$menuName' has $($items.Count) items from registry (array)"
+                    # Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] _PopulateMenusFromRegistry: Menu '$menuName' has $($items.Count) items from registry (array)"
                 } else {
-                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] _PopulateMenusFromRegistry: Menu '$menuName' has 1 item from registry (type: $($items.GetType().Name))"
+                    # Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] _PopulateMenusFromRegistry: Menu '$menuName' has 1 item from registry (type: $($items.GetType().Name))"
                 }
             }
 

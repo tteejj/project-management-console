@@ -826,14 +826,14 @@ class UniversalList : PmcWidget {
         $debugMsg = "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] UniversalList HandleInput: char='$keyChar' Key=$($keyInfo.Key) Actions=$($this._actions.Keys -join ',')"
         # PERF: Disabled - if ($global:PmcTuiLogFile) {
             # PERF FIX: Disabled - Add-Content -Path $global:PmcTuiLogFile -Value $debugMsg
-        # }
+        }
 
         if ($this._actions.ContainsKey($keyChar)) {
             $action = $this._actions[$keyChar]
             $actionMsg = "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] UniversalList: Triggering action '$keyChar' - $($action.Label)"
             # PERF: Disabled - if ($global:PmcTuiLogFile) {
                 # PERF FIX: Disabled - Add-Content -Path $global:PmcTuiLogFile -Value $actionMsg
-            # }
+            }
             $this._InvokeCallback($action.Callback, $this)
             return $true
         }
@@ -1519,7 +1519,7 @@ class UniversalList : PmcWidget {
 
         # PERF: Disabled - if ($global:PmcTuiLogFile) {
             # PERF FIX: Disabled - Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] UniversalList._RenderList: actionsStr='$actionsStr' (Keys=$($this._actions.Keys.Count))"
-        # }
+        }
 
         if ($actionsStr.Length -eq 0) {
             $actionsStr = "↑/↓: Nav | Space: Select | /: Search | F: Filter | Enter: Open"

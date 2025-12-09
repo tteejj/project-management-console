@@ -583,7 +583,7 @@ class PmcScreen {
                 if ($contentOutput.Length -gt 400) {
                     # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   Content chars 400-600 - $($contentOutput.Substring(400, [Math]::Min(200, $contentOutput.Length - 400)).Replace("`e", '<ESC>'))"
                 }
-                if ($global:PmcTuiLogFile) {
+                # PERF: Disabled - if ($global:PmcTuiLogFile) {
                     $outputLen = $(if ($contentOutput) { $contentOutput.Length } else { "NULL" })
                     Add-Content -Path $global:PmcTuiLogFile -Value "[$ts] PmcScreen.RenderToEngine: RenderContent returned length=$outputLen"
                 }
@@ -729,8 +729,8 @@ class PmcScreen {
         $stackTrace = $error.ScriptStackTrace
 
         # Log error details
-        if ($global:PmcTuiLogFile) {
-            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [ERROR] Widget render error: $errorMsg"
+        # PERF: Disabled - if ($global:PmcTuiLogFile) {
+        # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [ERROR] Widget render error: $errorMsg"
             Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [ERROR] Stack: $stackTrace"
             Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [ERROR] TargetObject: $($error.TargetObject)"
             Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [ERROR] InvocationInfo: $($error.InvocationInfo.Line)"
@@ -760,7 +760,7 @@ class PmcScreen {
         # PERF: Disabled - if ($global:PmcTuiLogFile) {
 
         # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] _ParseAnsiAndWrite: Input length=$($ansiOutput.Length)"
-        # }
+        }
 
         $pattern = "`e\[(\d+);(\d+)H"
         $matches = [regex]::Matches($ansiOutput, $pattern)
@@ -768,7 +768,7 @@ class PmcScreen {
         # PERF: Disabled - if ($global:PmcTuiLogFile) {
 
         # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] _ParseAnsiAndWrite: Found $($matches.Count) position markers"
-        # }
+        }
 
         if ($matches.Count -eq 0) {
             # No positioning - write at 0,0
