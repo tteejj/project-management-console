@@ -642,26 +642,26 @@ class UniversalList : PmcWidget {
 
         # Global shortcuts
         if ($keyInfo.Key -eq 'Enter') {
-            Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [UniversalList.HandleInput] ENTER pressed, _showInlineEditor=$($this._showInlineEditor)"
+            # PERF FIX: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [UniversalList.HandleInput] ENTER pressed, _showInlineEditor=$($this._showInlineEditor)"
             # Don't activate item if inline editor is showing
             if ($this._showInlineEditor) {
-                Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [UniversalList.HandleInput] Editor showing, returning false to let parent handle"
+                # PERF FIX: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [UniversalList.HandleInput] Editor showing, returning false to let parent handle"
                 return $false  # Let parent handle it
             }
             # Activate selected item
-            Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [UniversalList.HandleInput] About to call GetSelectedItem, _selectedIndex=$($this._selectedIndex) _filteredData.Count=$($this._filteredData.Count)"
+            # PERF FIX: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [UniversalList.HandleInput] About to call GetSelectedItem, _selectedIndex=$($this._selectedIndex) _filteredData.Count=$($this._filteredData.Count)"
             try {
                 $selectedItem = $this.GetSelectedItem()
-                Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [UniversalList.HandleInput] GetSelectedItem returned: $($selectedItem -ne $null) id=$($selectedItem.id)"
+                # PERF FIX: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [UniversalList.HandleInput] GetSelectedItem returned: $($selectedItem -ne $null) id=$($selectedItem.id)"
                 if ($null -ne $selectedItem) {
-                    Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [UniversalList.HandleInput] Calling OnItemActivated callback"
+                    # PERF FIX: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [UniversalList.HandleInput] Calling OnItemActivated callback"
                     $this._InvokeCallback($this.OnItemActivated, $selectedItem)
-                    Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [UniversalList.HandleInput] OnItemActivated callback completed"
+                    # PERF FIX: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [UniversalList.HandleInput] OnItemActivated callback completed"
                 } else {
-                    Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [UniversalList.HandleInput] selectedItem is NULL - no item selected!"
+                    # PERF FIX: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [UniversalList.HandleInput] selectedItem is NULL - no item selected!"
                 }
             } catch {
-                Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [UniversalList.HandleInput] ERROR in GetSelectedItem or callback: $($_.Exception.Message)"
+                # PERF FIX: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [UniversalList.HandleInput] ERROR in GetSelectedItem or callback: $($_.Exception.Message)"
             }
             return $true
         }
@@ -824,15 +824,15 @@ class UniversalList : PmcWidget {
 
         # DEBUG: Write directly to log file for troubleshooting
         $debugMsg = "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] UniversalList HandleInput: char='$keyChar' Key=$($keyInfo.Key) Actions=$($this._actions.Keys -join ',')"
-        if ($global:PmcTuiLogFile) {
-            Add-Content -Path $global:PmcTuiLogFile -Value $debugMsg
+        # PERF: Disabled - if ($global:PmcTuiLogFile) {
+            # PERF FIX: Disabled - Add-Content -Path $global:PmcTuiLogFile -Value $debugMsg
         }
 
         if ($this._actions.ContainsKey($keyChar)) {
             $action = $this._actions[$keyChar]
             $actionMsg = "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] UniversalList: Triggering action '$keyChar' - $($action.Label)"
-            if ($global:PmcTuiLogFile) {
-                Add-Content -Path $global:PmcTuiLogFile -Value $actionMsg
+            # PERF: Disabled - if ($global:PmcTuiLogFile) {
+                # PERF FIX: Disabled - Add-Content -Path $global:PmcTuiLogFile -Value $actionMsg
             }
             $this._InvokeCallback($action.Callback, $this)
             return $true
@@ -849,7 +849,7 @@ class UniversalList : PmcWidget {
     ANSI string ready for display
     #>
     [string] Render() {
-        Add-Content -Path "$($env:TEMP)\pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') UniversalList.Render() CALLED"
+        # PERF FIX: Disabled - Add-Content -Path "$($env:TEMP)\pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') UniversalList.Render() CALLED"
 
         # If filter panel is shown, render it as overlay
         if ($this.IsInFilterMode) {
@@ -1003,7 +1003,7 @@ class UniversalList : PmcWidget {
         # if ($global:PmcTuiLogFile) {
         #     $dataCount = $(if ($null -eq $this._data) { "NULL" } elseif ($this._data -is [array]) { $this._data.Count } else { "NOT_ARRAY:$($this._data.GetType().Name)" })
         #     $filteredCount = $(if ($null -eq $this._filteredData) { "NULL" } elseif ($this._filteredData -is [array]) { $this._filteredData.Count } else { "NOT_ARRAY:$($this._filteredData.GetType().Name)" })
-        #     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] UniversalList._RenderList: _data=$dataCount _filteredData=$filteredCount maxVisible=$maxVisibleRows visibleStart=$visibleStartIndex visibleEnd=$visibleEndIndex"
+        #     # PERF FIX: Disabled - Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] UniversalList._RenderList: _data=$dataCount _filteredData=$filteredCount maxVisible=$maxVisibleRows visibleStart=$visibleStartIndex visibleEnd=$visibleEndIndex"
         # }
 
         for ($i = $visibleStartIndex; $i -lt $visibleEndIndex; $i++) {
@@ -1351,9 +1351,18 @@ class UniversalList : PmcWidget {
             } else {
                 # CRITICAL FIX: Clear the line BEFORE rendering inline editor to prevent highlight bleeding
                 # Even though we skip the row content, we need to clear any previous highlighting
+                # BUG FIX: Don't use `e[K` as it erases borders! Clear content area with spaces instead
                 $sb.Append($this.BuildMoveTo($this.X, $rowY))
                 $sb.Append($reset)
-                $sb.Append("`e[K")  # Clear to end of line
+                # Render left border
+                $sb.Append($borderColor + $this.GetBoxChar('single_vertical'))
+                # Clear content area only (not borders)
+                $sb.Append($reset)
+                $sb.Append(" " * ($this.Width - 2))
+                # Render right border
+                $sb.Append($this.BuildMoveTo($this.X + $this.Width - 1, $rowY))
+                $sb.Append($borderColor + $this.GetBoxChar('single_vertical'))
+                $sb.Append($reset)
 
                 # Inline editor is active for this row - render the editor
                 if ($this._showInlineEditor -and $this._inlineEditor) {
@@ -1508,8 +1517,8 @@ class UniversalList : PmcWidget {
             $actionsStr += "$($key.ToUpper())=$($action.Label)"
         }
 
-        if ($global:PmcTuiLogFile) {
-            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] UniversalList._RenderList: actionsStr='$actionsStr' (Keys=$($this._actions.Keys.Count))"
+        # PERF: Disabled - if ($global:PmcTuiLogFile) {
+            # PERF FIX: Disabled - Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] UniversalList._RenderList: actionsStr='$actionsStr' (Keys=$($this._actions.Keys.Count))"
         }
 
         if ($actionsStr.Length -eq 0) {
@@ -1894,7 +1903,7 @@ class UniversalList : PmcWidget {
         }
 
         # EXTENSIVE DEBUG: Log ALL color values
-        Add-Content -Path "$($env:TEMP)\pmc-colors-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') highlightBg='$highlightBg' len=$($highlightBg.Length) highlightFg='$highlightFg' len=$($highlightFg.Length)"
+        # PERF FIX: Disabled - Add-Content -Path "$($env:TEMP)\pmc-colors-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') highlightBg='$highlightBg' len=$($highlightBg.Length) highlightFg='$highlightFg' len=$($highlightFg.Length)"
 
         $reset = "`e[0m"
 

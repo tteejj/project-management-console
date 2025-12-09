@@ -823,10 +823,10 @@ class PmcScreen {
             if ($i -lt 2 -and ($x -eq 9 -or $x -eq 51) -and $y -eq 10) {
                 $debugFile = "$($env:TEMP)\pmc-layer-parse-debug.log"
                 $timestamp = Get-Date -Format 'HH:mm:ss.fff'
-                # PERF: Disabled - Add-Content -Path $debugFile -Value "=== $timestamp WriteAt($x,$y) content_length=$($content.Length) ==="
-                # PERF: Disabled - Add-Content -Path $debugFile -Value "Raw: $($content -replace "`e", '<ESC>')"
-                # PERF: Disabled - Add-Content -Path $debugFile -Value "Bytes: $([System.Text.Encoding]::UTF8.GetBytes($content) | ForEach-Object { $_.ToString('X2') } | Join-String -Separator ' ')"
-                # PERF: Disabled - Add-Content -Path $debugFile -Value "==="
+                Add-Content -Path $debugFile -Value "=== $timestamp WriteAt($x,$y) content_length=$($content.Length) ==="
+                Add-Content -Path $debugFile -Value "Raw: $($content -replace "`e", '<ESC>')"
+                Add-Content -Path $debugFile -Value "Bytes: $([System.Text.Encoding]::UTF8.GetBytes($content) | ForEach-Object { $_.ToString('X2') } | Join-String -Separator ' ')"
+                Add-Content -Path $debugFile -Value "==="
             }
 
             if ($content) {

@@ -157,9 +157,16 @@ class Logger {
         
         # Queue for async write
         $this._logQueue.Enqueue($entry)
-        
-        # Flush immediately for now (no timer)
-        $this.FlushQueue()
+
+        # PERFORMANCE FIX: Only flush immediately for ERROR/FATAL, batch everything else
+        # This prevents 6000+ disk writes/sec in render loops
+        if ($level -ge [LogLevel]::Error) {
+            $this.FlushQueue()
+        }
+        # Flush periodically when queue gets large (100 entries)
+        elseif ($this._logQueue.Count -ge 100) {
+            $this.FlushQueue()
+        }
         
         # Update statistics
         $statKey = "$module.$component.$level"

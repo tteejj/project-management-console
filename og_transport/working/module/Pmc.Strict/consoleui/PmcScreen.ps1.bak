@@ -82,8 +82,8 @@ class PmcScreen {
 
     # === Constructor (backward compatible - no container) ===
     PmcScreen([string]$key, [string]$title) {
-        # PERF: Disabled - if ($global:PmcTuiLogFile) {
-        # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcScreen: Legacy constructor called (key=$key, title=$title)"
+        if ($global:PmcTuiLogFile) {
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcScreen: Legacy constructor called (key=$key, title=$title)"
         }
 
         $this.ScreenKey = $key
@@ -96,8 +96,8 @@ class PmcScreen {
 
     # === Constructor (with ServiceContainer) ===
     PmcScreen([string]$key, [string]$title, [object]$container) {
-        # PERF: Disabled - if ($global:PmcTuiLogFile) {
-        # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcScreen: Constructor called with ServiceContainer (key=$key, title=$title, container=$($null -ne $container))"
+        if ($global:PmcTuiLogFile) {
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcScreen: Constructor called with ServiceContainer (key=$key, title=$title, container=$($null -ne $container))"
         }
 
         $this.ScreenKey = $key
@@ -105,9 +105,8 @@ class PmcScreen {
         $this.Container = $container
         $this.ContentWidgets = New-Object 'System.Collections.Generic.List[object]'
 
-        # PERF: Disabled - if ($global:PmcTuiLogFile) {
-
-        # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcScreen: ServiceContainer stored (available=$($null -ne $this.Container))"
+        if ($global:PmcTuiLogFile) {
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcScreen: ServiceContainer stored (available=$($null -ne $this.Container))"
         }
 
         # Create default widgets
@@ -153,8 +152,8 @@ class PmcScreen {
     Override to perform initialization when screen is displayed
     #>
     [void] OnEnter() {
-        # PERF: Disabled - if ($global:PmcTuiLogFile) {
-        # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [LIFECYCLE] PmcScreen.OnEnter() - Screen='$($this.ScreenKey)' entering"
+        if ($global:PmcTuiLogFile) {
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [LIFECYCLE] PmcScreen.OnEnter() - Screen='$($this.ScreenKey)' entering"
         }
         $this.IsActive = $true
         $this.LoadData()
@@ -162,8 +161,8 @@ class PmcScreen {
         if ($this.OnEnterHandler) {
             & $this.OnEnterHandler $this
         }
-        # PERF: Disabled - if ($global:PmcTuiLogFile) {
-        # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [LIFECYCLE] PmcScreen.OnEnter() - Screen='$($this.ScreenKey)' entered successfully"
+        if ($global:PmcTuiLogFile) {
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [LIFECYCLE] PmcScreen.OnEnter() - Screen='$($this.ScreenKey)' entered successfully"
         }
     }
 
@@ -175,16 +174,16 @@ class PmcScreen {
     Override to perform cleanup when leaving screen
     #>
     [void] OnDoExit() {
-        # PERF: Disabled - if ($global:PmcTuiLogFile) {
-        # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [LIFECYCLE] PmcScreen.OnDoExit() - Screen='$($this.ScreenKey)' exiting"
+        if ($global:PmcTuiLogFile) {
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [LIFECYCLE] PmcScreen.OnDoExit() - Screen='$($this.ScreenKey)' exiting"
         }
         $this.IsActive = $false
 
         if ($this.OnExitHandler) {
             & $this.OnExitHandler $this
         }
-        # PERF: Disabled - if ($global:PmcTuiLogFile) {
-        # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [LIFECYCLE] PmcScreen.OnDoExit() - Screen='$($this.ScreenKey)' exited successfully"
+        if ($global:PmcTuiLogFile) {
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [LIFECYCLE] PmcScreen.OnDoExit() - Screen='$($this.ScreenKey)' exited successfully"
         }
     }
 
@@ -196,8 +195,8 @@ class PmcScreen {
     Override to load screen-specific data
     #>
     [void] LoadData() {
-        # PERF: Disabled - if ($global:PmcTuiLogFile) {
-        # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [LIFECYCLE] PmcScreen.LoadData() - Screen='$($this.ScreenKey)' (base class - no-op)"
+        if ($global:PmcTuiLogFile) {
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [LIFECYCLE] PmcScreen.LoadData() - Screen='$($this.ScreenKey)' (base class - no-op)"
         }
         # Override in subclass
     }
@@ -299,8 +298,8 @@ class PmcScreen {
         # Store container if provided
         if ($container) {
             $this.Container = $container
-            # PERF: Disabled - if ($global:PmcTuiLogFile) {
-            # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcScreen.Initialize: Container set for screen '$($this.ScreenKey)'"
+            if ($global:PmcTuiLogFile) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcScreen.Initialize: Container set for screen '$($this.ScreenKey)'"
             }
         }
 
@@ -333,21 +332,21 @@ class PmcScreen {
     #>
     [string] Render() {
         $ts = Get-Date -Format 'HH:mm:ss.fff'
-        # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts >>>>>>> PmcScreen.Render START for screen=$($this.GetType().Name)"
+        Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts >>>>>>> PmcScreen.Render START for screen=$($this.GetType().Name)"
         $sb = [System.Text.StringBuilder]::new(4096)
-        # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   StringBuilder created, initial capacity=4096"
+        Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   StringBuilder created, initial capacity=4096"
 
         # DEBUG
-        # PERF: Disabled - if ($global:PmcTuiLogFile) {
-        # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$ts] PmcScreen.Render: Starting (MenuBar=$($null -ne $this.MenuBar), Header=$($null -ne $this.Header))"
+        if ($global:PmcTuiLogFile) {
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$ts] PmcScreen.Render: Starting (MenuBar=$($null -ne $this.MenuBar), Header=$($null -ne $this.Header))"
         }
 
         # Render MenuBar (if present)
         if ($this.MenuBar) {
             $ts = Get-Date -Format 'HH:mm:ss.fff'
-            # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   Rendering MenuBar..."
-            # PERF: Disabled - if ($global:PmcTuiLogFile) {
-            # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$ts] PmcScreen.Render: Rendering MenuBar"
+            Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   Rendering MenuBar..."
+            if ($global:PmcTuiLogFile) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$ts] PmcScreen.Render: Rendering MenuBar"
             }
             $output = $this.MenuBar.Render()
             if ($output) {
@@ -355,78 +354,78 @@ class PmcScreen {
                 $sb.Append($output)
                 $afterLen = $sb.Length
                 $ts = Get-Date -Format 'HH:mm:ss.fff'
-                # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   MenuBar appended $($output.Length) chars, sb.Length $beforeLen -> $afterLen"
-                # PERF: Disabled - if ($global:PmcTuiLogFile) {
-                # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$ts] PmcScreen.Render: MenuBar output length=$($output.Length)"
+                Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   MenuBar appended $($output.Length) chars, sb.Length $beforeLen -> $afterLen"
+                if ($global:PmcTuiLogFile) {
+                    Add-Content -Path $global:PmcTuiLogFile -Value "[$ts] PmcScreen.Render: MenuBar output length=$($output.Length)"
                 }
             } else {
                 $ts = Get-Date -Format 'HH:mm:ss.fff'
-                # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   MenuBar returned null/empty"
-                # PERF: Disabled - if ($global:PmcTuiLogFile) {
-                # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$ts] PmcScreen.Render: MenuBar returned null/empty"
+                Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   MenuBar returned null/empty"
+                if ($global:PmcTuiLogFile) {
+                    Add-Content -Path $global:PmcTuiLogFile -Value "[$ts] PmcScreen.Render: MenuBar returned null/empty"
                 }
             }
         } else {
             $ts = Get-Date -Format 'HH:mm:ss.fff'
-            # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   No MenuBar to render"
+            Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   No MenuBar to render"
         }
 
         # Render Header
         if ($this.Header) {
             $ts = Get-Date -Format 'HH:mm:ss.fff'
-            # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   Rendering Header..."
+            Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   Rendering Header..."
             $output = $this.Header.Render()
             if ($output) {
                 $beforeLen = $sb.Length
                 $sb.Append($output)
                 $afterLen = $sb.Length
                 $ts = Get-Date -Format 'HH:mm:ss.fff'
-                # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   Header appended $($output.Length) chars, sb.Length $beforeLen -> $afterLen"
+                Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   Header appended $($output.Length) chars, sb.Length $beforeLen -> $afterLen"
             } else {
                 $ts = Get-Date -Format 'HH:mm:ss.fff'
-                # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   Header returned null/empty"
+                Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   Header returned null/empty"
             }
         } else {
             $ts = Get-Date -Format 'HH:mm:ss.fff'
-            # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   No Header to render"
+            Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   No Header to render"
         }
 
         # Render content (override in subclass) - wrap in try-catch to prevent rendering crashes
         $ts = Get-Date -Format 'HH:mm:ss.fff'
-        # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   Calling RenderContent() on $($this.GetType().Name)..."
-        # PERF: Disabled - if ($global:PmcTuiLogFile) {
-        # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$ts] PmcScreen.Render: Calling RenderContent()"
+        Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   Calling RenderContent() on $($this.GetType().Name)..."
+        if ($global:PmcTuiLogFile) {
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$ts] PmcScreen.Render: Calling RenderContent()"
         }
         try {
             $beforeLen = $sb.Length
             $contentOutput = $this.RenderContent()
             $ts = Get-Date -Format 'HH:mm:ss.fff'
-            # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   RenderContent() returned, output length=$($contentOutput.Length)"
+            Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   RenderContent() returned, output length=$($contentOutput.Length)"
             if ($contentOutput) {
                 $sb.Append($contentOutput)
                 $afterLen = $sb.Length
                 $ts = Get-Date -Format 'HH:mm:ss.fff'
-                # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   Content appended $($contentOutput.Length) chars, sb.Length $beforeLen -> $afterLen"
-                # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   Content first 200 chars - $($contentOutput.Substring(0, [Math]::Min(200, $contentOutput.Length)).Replace("`e", '<ESC>'))"
+                Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   Content appended $($contentOutput.Length) chars, sb.Length $beforeLen -> $afterLen"
+                Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   Content first 200 chars - $($contentOutput.Substring(0, [Math]::Min(200, $contentOutput.Length)).Replace("`e", '<ESC>'))"
                 if ($contentOutput.Length -gt 400) {
-                    # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   Content chars 400-600 - $($contentOutput.Substring(400, [Math]::Min(200, $contentOutput.Length - 400)).Replace("`e", '<ESC>'))"
+                    Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   Content chars 400-600 - $($contentOutput.Substring(400, [Math]::Min(200, $contentOutput.Length - 400)).Replace("`e", '<ESC>'))"
                 }
-                # PERF: Disabled - if ($global:PmcTuiLogFile) {
-                # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$ts] PmcScreen.Render: Content output length=$($contentOutput.Length)"
+                if ($global:PmcTuiLogFile) {
+                    Add-Content -Path $global:PmcTuiLogFile -Value "[$ts] PmcScreen.Render: Content output length=$($contentOutput.Length)"
                 }
             } else {
                 $ts = Get-Date -Format 'HH:mm:ss.fff'
-                # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   RenderContent() returned null/empty"
-                # PERF: Disabled - if ($global:PmcTuiLogFile) {
-                # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$ts] PmcScreen.Render: RenderContent() returned null/empty"
+                Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   RenderContent() returned null/empty"
+                if ($global:PmcTuiLogFile) {
+                    Add-Content -Path $global:PmcTuiLogFile -Value "[$ts] PmcScreen.Render: RenderContent() returned null/empty"
                 }
             }
         } catch {
             $errorMsg = "RenderContent() crashed: $($_.Exception.Message)"
             $ts = Get-Date -Format 'HH:mm:ss.fff'
-            # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   ERROR - $errorMsg"
-            # PERF: Disabled - if ($global:PmcTuiLogFile) {
-            # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$ts] PmcScreen.Render: $errorMsg"
+            Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   ERROR - $errorMsg"
+            if ($global:PmcTuiLogFile) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$ts] PmcScreen.Render: $errorMsg"
             }
             # Append error message to output so user sees something instead of blank screen
             $sb.Append("`e[1;31mERROR: $errorMsg`e[0m`n")
@@ -435,22 +434,22 @@ class PmcScreen {
         # Render content widgets
         $widgetCount = $this.ContentWidgets.Count
         $ts = Get-Date -Format 'HH:mm:ss.fff'
-        # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   Rendering $widgetCount ContentWidgets..."
+        Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   Rendering $widgetCount ContentWidgets..."
         $widgetIndex = 0
         foreach ($widget in $this.ContentWidgets) {
             $ts = Get-Date -Format 'HH:mm:ss.fff'
-            # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   Rendering ContentWidget[$widgetIndex] type=$($widget.GetType().Name)..."
+            Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   Rendering ContentWidget[$widgetIndex] type=$($widget.GetType().Name)..."
             $output = $widget.Render()
             if ($output) {
                 $beforeLen = $sb.Length
                 $sb.Append($output)
                 $afterLen = $sb.Length
                 $ts = Get-Date -Format 'HH:mm:ss.fff'
-                # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   ContentWidget[$widgetIndex] appended $($output.Length) chars, sb.Length $beforeLen -> $afterLen"
-                # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   ContentWidget[$widgetIndex] first 100 chars - $($output.Substring(0, [Math]::Min(100, $output.Length)).Replace("`e", '<ESC>'))"
+                Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   ContentWidget[$widgetIndex] appended $($output.Length) chars, sb.Length $beforeLen -> $afterLen"
+                Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   ContentWidget[$widgetIndex] first 100 chars - $($output.Substring(0, [Math]::Min(100, $output.Length)).Replace("`e", '<ESC>'))"
             } else {
                 $ts = Get-Date -Format 'HH:mm:ss.fff'
-                # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   ContentWidget[$widgetIndex] returned null/empty"
+                Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   ContentWidget[$widgetIndex] returned null/empty"
             }
             $widgetIndex++
         }
@@ -466,31 +465,31 @@ class PmcScreen {
         # Render StatusBar
         if ($this.StatusBar) {
             $ts = Get-Date -Format 'HH:mm:ss.fff'
-            # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   Rendering StatusBar..."
+            Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   Rendering StatusBar..."
             $output = $this.StatusBar.Render()
             if ($output) {
                 $beforeLen = $sb.Length
                 $sb.Append($output)
                 $afterLen = $sb.Length
                 $ts = Get-Date -Format 'HH:mm:ss.fff'
-                # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   StatusBar appended $($output.Length) chars, sb.Length $beforeLen -> $afterLen"
+                Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   StatusBar appended $($output.Length) chars, sb.Length $beforeLen -> $afterLen"
             } else {
                 $ts = Get-Date -Format 'HH:mm:ss.fff'
-                # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   StatusBar returned null/empty"
+                Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   StatusBar returned null/empty"
             }
         } else {
             $ts = Get-Date -Format 'HH:mm:ss.fff'
-            # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   No StatusBar to render"
+            Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   No StatusBar to render"
         }
 
         $result = $sb.ToString()
         $ts = Get-Date -Format 'HH:mm:ss.fff'
-        # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   Final result length=$($result.Length)"
-        # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   Final first 200 chars - $($result.Substring(0, [Math]::Min(200, $result.Length)).Replace("`e", '<ESC>'))"
+        Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   Final result length=$($result.Length)"
+        Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   Final first 200 chars - $($result.Substring(0, [Math]::Min(200, $result.Length)).Replace("`e", '<ESC>'))"
         if ($result.Length -gt 400) {
-            # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   Final chars 400-600 - $($result.Substring(400, [Math]::Min(200, $result.Length - 400)).Replace("`e", '<ESC>'))"
+            Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   Final chars 400-600 - $($result.Substring(400, [Math]::Min(200, $result.Length - 400)).Replace("`e", '<ESC>'))"
         }
-        # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts <<<<<<< PmcScreen.Render END, returning $($result.Length) chars"
+        Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts <<<<<<< PmcScreen.Render END, returning $($result.Length) chars"
         return $result
     }
 
@@ -523,37 +522,37 @@ class PmcScreen {
     #>
     [void] RenderToEngine([object]$engine) {
         $ts = Get-Date -Format 'HH:mm:ss.fff'
-        # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts ======== RenderToEngine START for screen=$($this.GetType().Name) ========"
+        Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts ======== RenderToEngine START for screen=$($this.GetType().Name) ========"
         # Z-INDEX LAYER RENDERING
         # All rendering now uses explicit layers for proper z-ordering.
         # Higher z-index values render on top of lower values.
 
         # Layer 50: Header
         $ts = Get-Date -Format 'HH:mm:ss.fff'
-        # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   BeginLayer(Header)..."
+        Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   BeginLayer(Header)..."
         $engine.BeginLayer([ZIndex]::Header)
         if ($this.Header) {
             $ts = Get-Date -Format 'HH:mm:ss.fff'
-            # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   Rendering Header to engine..."
+            Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   Rendering Header to engine..."
             try {
                 $output = $this.Header.Render()
                 if ($output) {
                     $ts = Get-Date -Format 'HH:mm:ss.fff'
-                    # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   Header rendered $($output.Length) chars, calling _ParseAnsiAndWrite..."
+                    Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   Header rendered $($output.Length) chars, calling _ParseAnsiAndWrite..."
                     $this._ParseAnsiAndWrite($engine, $output)
                     $ts = Get-Date -Format 'HH:mm:ss.fff'
-                    # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   Header _ParseAnsiAndWrite complete"
+                    Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   Header _ParseAnsiAndWrite complete"
                 }
             } catch {
                 $ts = Get-Date -Format 'HH:mm:ss.fff'
-                # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   ERROR rendering Header - $_"
+                Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   ERROR rendering Header - $_"
                 $this._HandleWidgetRenderError("Header", $_, $engine, 1)
             }
         }
 
         # Layer 10: Content (main screen content)
         $ts = Get-Date -Format 'HH:mm:ss.fff'
-        # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   BeginLayer(Content) layer=10..."
+        Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   BeginLayer(Content) layer=10..."
         $engine.BeginLayer([ZIndex]::Content)
         # Render content - wrap in try-catch to prevent rendering crashes
         try {
@@ -562,51 +561,51 @@ class PmcScreen {
                 $this.GetType().GetMethod('RenderContentToEngine').DeclaringType.Name -ne 'PmcScreen') {
                 # Subclass overrides RenderContentToEngine - use direct path (no ANSI parsing)
                 $ts = Get-Date -Format 'HH:mm:ss.fff'
-                # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   Using RenderContentToEngine path (direct engine)"
-                # PERF: Disabled - if ($global:PmcTuiLogFile) {
-                # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$ts] PmcScreen.RenderToEngine: Using RenderContentToEngine path"
+                Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   Using RenderContentToEngine path (direct engine)"
+                if ($global:PmcTuiLogFile) {
+                    Add-Content -Path $global:PmcTuiLogFile -Value "[$ts] PmcScreen.RenderToEngine: Using RenderContentToEngine path"
                 }
                 $this.RenderContentToEngine($engine)
                 $ts = Get-Date -Format 'HH:mm:ss.fff'
-                # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   RenderContentToEngine complete"
+                Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   RenderContentToEngine complete"
             } else {
                 # Fallback: Use ANSI string rendering (legacy path)
                 $ts = Get-Date -Format 'HH:mm:ss.fff'
-                # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   Using RenderContent path (ANSI string fallback)"
-                # PERF: Disabled - if ($global:PmcTuiLogFile) {
-                # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$ts] PmcScreen.RenderToEngine: Using RenderContent path (fallback)"
+                Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   Using RenderContent path (ANSI string fallback)"
+                if ($global:PmcTuiLogFile) {
+                    Add-Content -Path $global:PmcTuiLogFile -Value "[$ts] PmcScreen.RenderToEngine: Using RenderContent path (fallback)"
                 }
                 $contentOutput = $this.RenderContent()
                 $ts = Get-Date -Format 'HH:mm:ss.fff'
-                # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   RenderContent() returned $($contentOutput.Length) chars"
-                # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   Content first 200 chars - $($contentOutput.Substring(0, [Math]::Min(200, $contentOutput.Length)).Replace("`e", '<ESC>'))"
+                Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   RenderContent() returned $($contentOutput.Length) chars"
+                Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   Content first 200 chars - $($contentOutput.Substring(0, [Math]::Min(200, $contentOutput.Length)).Replace("`e", '<ESC>'))"
                 if ($contentOutput.Length -gt 400) {
-                    # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   Content chars 400-600 - $($contentOutput.Substring(400, [Math]::Min(200, $contentOutput.Length - 400)).Replace("`e", '<ESC>'))"
+                    Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   Content chars 400-600 - $($contentOutput.Substring(400, [Math]::Min(200, $contentOutput.Length - 400)).Replace("`e", '<ESC>'))"
                 }
-                # PERF: Disabled - if ($global:PmcTuiLogFile) {
+                if ($global:PmcTuiLogFile) {
                     $outputLen = $(if ($contentOutput) { $contentOutput.Length } else { "NULL" })
                     Add-Content -Path $global:PmcTuiLogFile -Value "[$ts] PmcScreen.RenderToEngine: RenderContent returned length=$outputLen"
                 }
                 if ($contentOutput) {
                     $ts = Get-Date -Format 'HH:mm:ss.fff'
-                    # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   Calling _ParseAnsiAndWrite with $($contentOutput.Length) chars..."
+                    Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   Calling _ParseAnsiAndWrite with $($contentOutput.Length) chars..."
                     $this._ParseAnsiAndWrite($engine, $contentOutput)
                     $ts = Get-Date -Format 'HH:mm:ss.fff'
-                    # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   _ParseAnsiAndWrite complete"
+                    Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   _ParseAnsiAndWrite complete"
                 }
             }
         } catch {
             $ts = Get-Date -Format 'HH:mm:ss.fff'
-            # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   ERROR rendering content - $_"
-            # PERF: Disabled - if ($global:PmcTuiLogFile) {
-            # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$ts] [ERROR] PmcScreen.RenderToEngine: Exception in content rendering: $_"
+            Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   ERROR rendering content - $_"
+            if ($global:PmcTuiLogFile) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$ts] [ERROR] PmcScreen.RenderToEngine: Exception in content rendering: $_"
             }
             $this._HandleWidgetRenderError("RenderContent", $_, $engine, 5)
         }
 
         # Layer 20: Panel (content widgets like FilterPanel, DatePicker, etc.)
         $ts = Get-Date -Format 'HH:mm:ss.fff'
-        # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   BeginLayer(Panel) layer=20, ContentWidgets.Count=$($this.ContentWidgets.Count)..."
+        Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   BeginLayer(Panel) layer=20, ContentWidgets.Count=$($this.ContentWidgets.Count)..."
         $engine.BeginLayer([ZIndex]::Panel)
         # Render content widgets - each with error boundary
         $widgetRow = 10  # Start position for widget error messages
@@ -615,26 +614,26 @@ class PmcScreen {
             # Define widgetName outside try block for catch scope
             $widgetName = $(if ($widget.Name) { $widget.Name } else { $widget.GetType().Name })
             $ts = Get-Date -Format 'HH:mm:ss.fff'
-            # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   Rendering ContentWidget[$widgetIndex] name=$widgetName type=$($widget.GetType().Name)..."
+            Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   Rendering ContentWidget[$widgetIndex] name=$widgetName type=$($widget.GetType().Name)..."
             try {
                 $output = $widget.Render()
                 # PERFORMANCE: If widget returns empty string, it used direct engine rendering
                 # No need to parse ANSI - widget already called WriteAt() directly
                 if ($output -and $output.Length -gt 0) {
                     $ts = Get-Date -Format 'HH:mm:ss.fff'
-                    # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   ContentWidget[$widgetIndex] rendered $($output.Length) chars, calling _ParseAnsiAndWrite..."
-                    # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   ContentWidget[$widgetIndex] first 100 chars - $($output.Substring(0, [Math]::Min(100, $output.Length)).Replace("`e", '<ESC>'))"
+                    Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   ContentWidget[$widgetIndex] rendered $($output.Length) chars, calling _ParseAnsiAndWrite..."
+                    Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   ContentWidget[$widgetIndex] first 100 chars - $($output.Substring(0, [Math]::Min(100, $output.Length)).Replace("`e", '<ESC>'))"
                     $this._ParseAnsiAndWrite($engine, $output)
                     $ts = Get-Date -Format 'HH:mm:ss.fff'
-                    # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   ContentWidget[$widgetIndex] _ParseAnsiAndWrite complete"
+                    Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   ContentWidget[$widgetIndex] _ParseAnsiAndWrite complete"
                 } else {
                     $ts = Get-Date -Format 'HH:mm:ss.fff'
-                    # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   ContentWidget[$widgetIndex] returned null/empty (fast path)"
+                    Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   ContentWidget[$widgetIndex] returned null/empty (fast path)"
                 }
                 # else: widget used fast path (OnRenderToEngine), already rendered
             } catch {
                 $ts = Get-Date -Format 'HH:mm:ss.fff'
-                # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   ERROR rendering ContentWidget[$widgetIndex] - $_"
+                Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   ERROR rendering ContentWidget[$widgetIndex] - $_"
                 $this._HandleWidgetRenderError($widgetName, $_, $engine, $widgetRow)
                 $widgetRow += 2  # Space out error messages
             }
@@ -643,21 +642,21 @@ class PmcScreen {
 
         # Layer 55: Footer
         $ts = Get-Date -Format 'HH:mm:ss.fff'
-        # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   BeginLayer(Footer) layer=55..."
+        Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   BeginLayer(Footer) layer=55..."
         $engine.BeginLayer([ZIndex]::Footer)
         if ($this.Footer) {
             $ts = Get-Date -Format 'HH:mm:ss.fff'
-            # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   Rendering Footer..."
+            Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   Rendering Footer..."
             try {
                 $output = $this.Footer.Render()
                 if ($output) {
                     $ts = Get-Date -Format 'HH:mm:ss.fff'
-                    # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   Footer rendered $($output.Length) chars"
+                    Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   Footer rendered $($output.Length) chars"
                     $this._ParseAnsiAndWrite($engine, $output)
                 }
             } catch {
                 $ts = Get-Date -Format 'HH:mm:ss.fff'
-                # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   ERROR rendering Footer - $_"
+                Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   ERROR rendering Footer - $_"
                 # Footer errors shown at bottom of screen
                 $footerRow = [Math]::Max(20, $this.TermHeight - 4)
                 $this._HandleWidgetRenderError("Footer", $_, $engine, $footerRow)
@@ -666,21 +665,21 @@ class PmcScreen {
 
         # Layer 65: StatusBar
         $ts = Get-Date -Format 'HH:mm:ss.fff'
-        # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   BeginLayer(StatusBar) layer=65..."
+        Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   BeginLayer(StatusBar) layer=65..."
         $engine.BeginLayer([ZIndex]::StatusBar)
         if ($this.StatusBar) {
             $ts = Get-Date -Format 'HH:mm:ss.fff'
-            # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   Rendering StatusBar..."
+            Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   Rendering StatusBar..."
             try {
                 $output = $this.StatusBar.Render()
                 if ($output) {
                     $ts = Get-Date -Format 'HH:mm:ss.fff'
-                    # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   StatusBar rendered $($output.Length) chars"
+                    Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   StatusBar rendered $($output.Length) chars"
                     $this._ParseAnsiAndWrite($engine, $output)
                 }
             } catch {
                 $ts = Get-Date -Format 'HH:mm:ss.fff'
-                # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   ERROR rendering StatusBar - $_"
+                Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   ERROR rendering StatusBar - $_"
                 # StatusBar errors shown at very bottom
                 $statusRow = [Math]::Max(22, $this.TermHeight - 2)
                 $this._HandleWidgetRenderError("StatusBar", $_, $engine, $statusRow)
@@ -691,23 +690,23 @@ class PmcScreen {
         # CRITICAL: Render MenuBar LAST with highest z-index for proper z-ordering
         # Dropdowns must render on top of all other content
         $ts = Get-Date -Format 'HH:mm:ss.fff'
-        # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   BeginLayer(Dropdown) layer=100 (MenuBar LAST for z-order)..."
+        Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   BeginLayer(Dropdown) layer=100 (MenuBar LAST for z-order)..."
         $engine.BeginLayer([ZIndex]::Dropdown)
         if ($this.MenuBar) {
             $ts = Get-Date -Format 'HH:mm:ss.fff'
-            # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   Rendering MenuBar (dropdown layer)..."
+            Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   Rendering MenuBar (dropdown layer)..."
             try {
-                # PERF: Disabled - if ($global:PmcTuiLogFile) {
-                # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$ts] PmcScreen.RenderToEngine: Calling MenuBar.Render() (LAST for z-order)"
+                if ($global:PmcTuiLogFile) {
+                    Add-Content -Path $global:PmcTuiLogFile -Value "[$ts] PmcScreen.RenderToEngine: Calling MenuBar.Render() (LAST for z-order)"
                 }
                 $output = $this.MenuBar.Render()
-                # PERF: Disabled - if ($global:PmcTuiLogFile) {
-                # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcScreen.RenderToEngine: MenuBar.Render() returned length=$($output.Length)"
+                if ($global:PmcTuiLogFile) {
+                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcScreen.RenderToEngine: MenuBar.Render() returned length=$($output.Length)"
                 }
                 if ($output) {
                     $this._ParseAnsiAndWrite($engine, $output)
-                    # PERF: Disabled - if ($global:PmcTuiLogFile) {
-                    # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcScreen.RenderToEngine: MenuBar ANSI parsed and written to engine"
+                    if ($global:PmcTuiLogFile) {
+                        Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcScreen.RenderToEngine: MenuBar ANSI parsed and written to engine"
                     }
                 }
             } catch {
@@ -729,8 +728,8 @@ class PmcScreen {
         $stackTrace = $error.ScriptStackTrace
 
         # Log error details
-        # PERF: Disabled - if ($global:PmcTuiLogFile) {
-        # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [ERROR] Widget render error: $errorMsg"
+        if ($global:PmcTuiLogFile) {
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [ERROR] Widget render error: $errorMsg"
             Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [ERROR] Stack: $stackTrace"
             Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [ERROR] TargetObject: $($error.TargetObject)"
             Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [ERROR] InvocationInfo: $($error.InvocationInfo.Line)"
@@ -746,8 +745,8 @@ class PmcScreen {
             }
         } catch {
             # If we can't even write the error, just log it
-            # PERF: Disabled - if ($global:PmcTuiLogFile) {
-            # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [FATAL] Could not write error to screen: $_"
+            if ($global:PmcTuiLogFile) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [FATAL] Could not write error to screen: $_"
             }
         }
     }
@@ -757,23 +756,21 @@ class PmcScreen {
         # ANSI format: ESC[row;colH (1-based)
         # WriteAt format: WriteAt(x, y) where x=col-1, y=row-1 (0-based)
 
-        # PERF: Disabled - if ($global:PmcTuiLogFile) {
-
-        # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] _ParseAnsiAndWrite: Input length=$($ansiOutput.Length)"
+        if ($global:PmcTuiLogFile) {
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] _ParseAnsiAndWrite: Input length=$($ansiOutput.Length)"
         }
 
         $pattern = "`e\[(\d+);(\d+)H"
         $matches = [regex]::Matches($ansiOutput, $pattern)
 
-        # PERF: Disabled - if ($global:PmcTuiLogFile) {
-
-        # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] _ParseAnsiAndWrite: Found $($matches.Count) position markers"
+        if ($global:PmcTuiLogFile) {
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] _ParseAnsiAndWrite: Found $($matches.Count) position markers"
         }
 
         if ($matches.Count -eq 0) {
             # No positioning - write at 0,0
-            # PERF: Disabled - if ($global:PmcTuiLogFile) {
-            # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] _ParseAnsiAndWrite: No position markers, writing entire output at (0,0)"
+            if ($global:PmcTuiLogFile) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] _ParseAnsiAndWrite: No position markers, writing entire output at (0,0)"
             }
             if ($ansiOutput) {
                 $engine.WriteAt(0, 0, $ansiOutput)
@@ -804,18 +801,18 @@ class PmcScreen {
             $content = $ansiOutput.Substring($startIndex, $endIndex - $startIndex)
 
             $ts = Get-Date -Format 'HH:mm:ss.fff'
-            # PERF: Disabled - if ($global:PmcTuiLogFile) {
-            # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$ts] _ParseAnsiAndWrite: Match $i - pos($x,$y) content_length=$($content.Length)"
+            if ($global:PmcTuiLogFile) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$ts] _ParseAnsiAndWrite: Match $i - pos($x,$y) content_length=$($content.Length)"
             }
 
             # Debug CAA Name position (x=7, y=12 which is 0-based so position marker is 13;8)
             if ($y -eq 12 -and $x -ge 6 -and $x -le 8) {
-                # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   _ParseAnsiAndWrite Match $i - WriteAt($x,$y) content_length=$($content.Length)"
-                # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   Content: $($content.Replace("`e", '<ESC>'))"
+                Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   _ParseAnsiAndWrite Match $i - WriteAt($x,$y) content_length=$($content.Length)"
+                Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   Content: $($content.Replace("`e", '<ESC>'))"
                 if ($content.Contains("`e[30;47m")) {
-                    # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   *** HIGHLIGHT CODE FOUND in content! ***"
+                    Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   *** HIGHLIGHT CODE FOUND in content! ***"
                 } else {
-                    # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   *** NO HIGHLIGHT CODE in content ***"
+                    Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   *** NO HIGHLIGHT CODE in content ***"
                 }
             }
 
@@ -823,16 +820,16 @@ class PmcScreen {
             if ($i -lt 2 -and ($x -eq 9 -or $x -eq 51) -and $y -eq 10) {
                 $debugFile = "$($env:TEMP)\pmc-layer-parse-debug.log"
                 $timestamp = Get-Date -Format 'HH:mm:ss.fff'
-                # PERF: Disabled - Add-Content -Path $debugFile -Value "=== $timestamp WriteAt($x,$y) content_length=$($content.Length) ==="
-                # PERF: Disabled - Add-Content -Path $debugFile -Value "Raw: $($content -replace "`e", '<ESC>')"
-                # PERF: Disabled - Add-Content -Path $debugFile -Value "Bytes: $([System.Text.Encoding]::UTF8.GetBytes($content) | ForEach-Object { $_.ToString('X2') } | Join-String -Separator ' ')"
-                # PERF: Disabled - Add-Content -Path $debugFile -Value "==="
+                Add-Content -Path $debugFile -Value "=== $timestamp WriteAt($x,$y) content_length=$($content.Length) ==="
+                Add-Content -Path $debugFile -Value "Raw: $($content -replace "`e", '<ESC>')"
+                Add-Content -Path $debugFile -Value "Bytes: $([System.Text.Encoding]::UTF8.GetBytes($content) | ForEach-Object { $_.ToString('X2') } | Join-String -Separator ' ')"
+                Add-Content -Path $debugFile -Value "==="
             }
 
             if ($content) {
-                # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   Calling engine.WriteAt($x, $y, [content $($content.Length) chars])..."
+                Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   Calling engine.WriteAt($x, $y, [content $($content.Length) chars])..."
                 $engine.WriteAt($x, $y, $content)
-                # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   engine.WriteAt complete"
+                Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$ts   engine.WriteAt complete"
             }
         }
     }
@@ -966,21 +963,21 @@ class PmcScreen {
     #>
     [object] GetService([string]$serviceName) {
         if ($null -eq $this.Container) {
-            # PERF: Disabled - if ($global:PmcTuiLogFile) {
-            # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcScreen.GetService: Container not available (service=$serviceName)"
+            if ($global:PmcTuiLogFile) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcScreen.GetService: Container not available (service=$serviceName)"
             }
             return $null
         }
 
         try {
             $service = $this.Container.Get($serviceName)
-            # PERF: Disabled - if ($global:PmcTuiLogFile) {
-            # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcScreen.GetService: Retrieved service (name=$serviceName, found=$($null -ne $service))"
+            if ($global:PmcTuiLogFile) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcScreen.GetService: Retrieved service (name=$serviceName, found=$($null -ne $service))"
             }
             return $service
         } catch {
-            # PERF: Disabled - if ($global:PmcTuiLogFile) {
-            # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcScreen.GetService: Error retrieving service (name=$serviceName, error=$($_.Exception.Message))"
+            if ($global:PmcTuiLogFile) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcScreen.GetService: Error retrieving service (name=$serviceName, error=$($_.Exception.Message))"
             }
             return $null
         }
@@ -1007,8 +1004,8 @@ class PmcScreen {
         try {
             return $this.Container.Has($serviceName)
         } catch {
-            # PERF: Disabled - if ($global:PmcTuiLogFile) {
-            # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcScreen.HasService: Error checking service (name=$serviceName, error=$($_.Exception.Message))"
+            if ($global:PmcTuiLogFile) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcScreen.HasService: Error checking service (name=$serviceName, error=$($_.Exception.Message))"
             }
             return $false
         }

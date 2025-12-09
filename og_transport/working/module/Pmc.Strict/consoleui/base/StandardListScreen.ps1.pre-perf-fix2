@@ -1061,9 +1061,9 @@ class StandardListScreen : PmcScreen {
             $listOutput = $this.List.Render()
             # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [RenderContent] List.Render() returned $($listOutput.Length) chars"
         } catch {
-            # PERF: Disabled - Add-Content -Path "$($env:TEMP)\pmc-list-render-error.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') ERROR in List.Render(): $($_.Exception.Message)"
-            # PERF: Disabled - Add-Content -Path "$($env:TEMP)\pmc-list-render-error.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Line: $($_.InvocationInfo.ScriptLineNumber)"
-            # PERF: Disabled - Add-Content -Path "$($env:TEMP)\pmc-list-render-error.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') StackTrace: $($_.ScriptStackTrace)"
+            Add-Content -Path "$($env:TEMP)\pmc-list-render-error.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') ERROR in List.Render(): $($_.Exception.Message)"
+            Add-Content -Path "$($env:TEMP)\pmc-list-render-error.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Line: $($_.InvocationInfo.ScriptLineNumber)"
+            Add-Content -Path "$($env:TEMP)\pmc-list-render-error.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') StackTrace: $($_.ScriptStackTrace)"
             throw
         }
 

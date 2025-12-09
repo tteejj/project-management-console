@@ -49,7 +49,14 @@ function Get-PmcTaskFilePath {
     }
     if (-not $path -or [string]::IsNullOrWhiteSpace($path)) {
         # Default to pmc/tasks.json (three levels up from module dir)
-        $root = Split-Path (Split-Path (Split-Path $PSScriptRoot -Parent) -Parent) -Parent
+        # FIX: Use module path instead of $PSScriptRoot (which can be wrong in scriptblock context)
+        $moduleBase = (Get-Module -Name 'Pmc.Strict').ModuleBase
+        if ($moduleBase) {
+            $root = Split-Path (Split-Path $moduleBase -Parent) -Parent
+        } else {
+            # Fallback to $PSScriptRoot
+            $root = Split-Path (Split-Path (Split-Path $PSScriptRoot -Parent) -Parent) -Parent
+        }
         $path = Join-Path $root 'tasks.json'
     }
     return $path

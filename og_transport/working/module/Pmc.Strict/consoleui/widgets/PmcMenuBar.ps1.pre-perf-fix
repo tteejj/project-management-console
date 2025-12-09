@@ -720,7 +720,7 @@ class PmcMenuBar : PmcWidget {
                     # PERF: Disabled - if ($global:PmcTuiLogFile) {
                     # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] MenuBar: ESC in dropdown mode - deactivating menu entirely"
                     }
-                    # PERF: Disabled - Add-Content -Path "$($env:TEMP)\pmc-esc-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [MenuBar] ESC in dropdown mode - deactivating menu entirely"
+                    Add-Content -Path "$($env:TEMP)\pmc-esc-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [MenuBar] ESC in dropdown mode - deactivating menu entirely"
                     $this.HideDropdown()
                     $this.Deactivate()
                     return $true
@@ -755,7 +755,7 @@ class PmcMenuBar : PmcWidget {
                     # PERF: Disabled - if ($global:PmcTuiLogFile) {
                     # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] MenuBar: ESC in menu bar mode - deactivating"
                     }
-                    # PERF: Disabled - Add-Content -Path "$($env:TEMP)\pmc-esc-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [MenuBar] ESC in menu bar mode - deactivating"
+                    Add-Content -Path "$($env:TEMP)\pmc-esc-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [MenuBar] ESC in menu bar mode - deactivating"
                     $this.Deactivate()
                     return $true
                 }

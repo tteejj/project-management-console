@@ -30,6 +30,10 @@ if ($DebugLog -or $LogLevel -gt 0) {
     $global:PmcTuiLogLevel = 0
 }
 
+# PERFORMANCE FIX: Global flag to disable ALL debug logging
+# Set to $false to disable pmc-flow-debug.log writes (huge performance gain)
+$global:PmcEnableFlowDebug = $false
+
 function Write-PmcTuiLog {
     param([string]$Message, [string]$Level = "INFO")
 

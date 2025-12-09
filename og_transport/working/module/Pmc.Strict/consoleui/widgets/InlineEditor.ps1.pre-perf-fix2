@@ -1042,7 +1042,7 @@ class InlineEditor : PmcWidget {
         $fieldName = $fieldDef.Name
         $fieldType = $fieldDef.Type
         $value = $(if ($fieldDef.ContainsKey('Value')) { $fieldDef.Value } else { $null })
-        # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [_CreateFieldWidget] Creating widget for field=$fieldName type=$fieldType LayoutMode=$($this.LayoutMode) value=$(if ($null -ne $value) { $value } else { '(null)' })"
+        Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [_CreateFieldWidget] Creating widget for field=$fieldName type=$fieldType LayoutMode=$($this.LayoutMode) value=$(if ($null -ne $value) { $value } else { '(null)' })"
 
         $widget = $null
 
