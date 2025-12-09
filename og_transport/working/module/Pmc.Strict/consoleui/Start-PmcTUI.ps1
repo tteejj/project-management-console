@@ -130,10 +130,10 @@ try {
 
     # Add directories in dependency order (priority: lower = loaded first)
     # Priority 5: Theme system (needed by almost everything)
-    $loader.AddDirectory("theme", 5)
+    $loader.AddDirectory("theme", 5, $false)
 
     # Priority 10: Layout managers
-    $loader.AddDirectory("layout", 10)
+    $loader.AddDirectory("layout", 10, $false)
 
     # Priority 15: Core infrastructure (widgets base, constants)
     # Load ZIndex and PmcScreen manually first as they have specific requirements
@@ -142,16 +142,16 @@ try {
     Write-PmcTuiLog "Core infrastructure (ZIndex, PmcScreen) loaded" "INFO"
 
     # Priority 20: All widgets (auto-discovered, excludes Test* files)
-    $loader.AddDirectory("widgets", 20)
+    $loader.AddDirectory("widgets", 20, $false)
 
     # Priority 30: Base screen classes
-    $loader.AddDirectory("base", 30)
+    $loader.AddDirectory("base", 30, $false)
 
     # Priority 40: Services
-    $loader.AddDirectory("services", 40)
+    $loader.AddDirectory("services", 40, $false)
 
     # Priority 50: Helpers
-    $loader.AddDirectory("helpers", 50)
+    $loader.AddDirectory("helpers", 50, $false)
 
     # Priority 60: HelpViewScreen (required by base classes)
     # Note: We load this manually to ensure it's available before other screens
