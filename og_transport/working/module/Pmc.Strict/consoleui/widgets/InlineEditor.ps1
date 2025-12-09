@@ -520,6 +520,13 @@ class InlineEditor : PmcWidget {
                 if ($widget.GetType().Name -eq 'TextInput') {
                     $handled = $widget.HandleInput($keyInfo)
 
+                    # Fix for ESC key - if widget was cancelled, propagate to editor
+                    if ($widget.IsCancelled) {
+                        $this.IsCancelled = $true
+                        $this._InvokeCallback($this.OnCancelled, $null)
+                        return $true
+                    }
+
                     # H-UI-3: Real-time validation - validate after each keystroke
                     if ($handled -and $keyInfo.Key -ne 'Enter' -and $keyInfo.Key -ne 'Escape') {
                         $this._ValidateFieldRealtime($currentField)

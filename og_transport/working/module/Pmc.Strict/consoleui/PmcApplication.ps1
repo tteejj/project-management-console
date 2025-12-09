@@ -593,6 +593,12 @@ class PmcApplication {
                     # }
                     $this._RenderCurrentScreen()
                     $iteration = 0  # Reset counter after render
+                } elseif ($iteration % 20 -eq 0) {
+                    # Update status bar clock every ~1 second (20 iterations * 50ms)
+                    if ($this.CurrentScreen -and $this.CurrentScreen.StatusBar) {
+                        $this.CurrentScreen.StatusBar.SetRightText("$(Get-Date -Format 'HH:mm:ss')")
+                        # This invalidates just the status bar, which sets IsDirty=true for next loop
+                    }
                 }
 
                 # Sleep longer when idle (no render) vs active
