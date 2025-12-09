@@ -47,7 +47,10 @@ class PmcDialog {
         # Draw shadow (offset by 1)
         for ($row = 0; $row -lt $this.Height; $row++) {
             $sb.Append("`e[$($y + $row + 1);$($x + 2)H")
-            $sb.Append("`e[48;2;0;0;0m")
+            # Use semi-transparent dark gray if supported, otherwise black block
+            # Actually, standard ANSI doesn't support alpha blending easily without compositing.
+            # We'll use a dark gray background to simulate shadow on dark terminals.
+            $sb.Append("`e[48;2;20;20;20m")
             $sb.Append(" " * $this.Width)
         }
 

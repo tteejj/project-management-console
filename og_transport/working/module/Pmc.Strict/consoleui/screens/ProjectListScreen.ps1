@@ -683,6 +683,10 @@ class ProjectListScreen : StandardListScreen {
             }.GetNewClosure() },
             @{ Key='i'; Label='Import Excel'; Callback={
                 $self.ImportFromExcel()
+            }.GetNewClosure() },
+            @{ Key='?'; Label='Help'; Callback={
+                $helpScreen = New-Object HelpViewScreen
+                $global:PmcApp.PushScreen($helpScreen)
             }.GetNewClosure() }
         )
     }
@@ -771,6 +775,15 @@ class ProjectListScreen : StandardListScreen {
         # Custom key: I = Import from Excel
         if ($keyInfo.KeyChar -eq 'i' -or $keyInfo.KeyChar -eq 'I') {
             $this.ImportFromExcel()
+            return $true
+        }
+
+        # Custom key: Delete = Delete Item
+        if ($keyInfo.Key -eq 'Delete') {
+            $selected = $this.List.GetSelectedItem()
+            if ($null -ne $selected) {
+                $this.DeleteItem($selected)
+            }
             return $true
         }
 
