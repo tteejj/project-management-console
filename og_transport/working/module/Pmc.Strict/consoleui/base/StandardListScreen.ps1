@@ -996,6 +996,24 @@ class StandardListScreen : PmcScreen {
                 return $true
             }
 
+            # Undo (Ctrl+Z)
+            if ($keyInfo.Modifiers -eq [ConsoleModifiers]::Control -and $keyInfo.Key -eq 'Z') {
+                try {
+                    # Call global undo function (assuming it's loaded)
+                    if (Get-Command Invoke-PmcUndo -ErrorAction SilentlyContinue) {
+                        Invoke-PmcUndo
+                        $this.SetStatusMessage("Undo performed", "success")
+                        # Force refresh
+                        $this.RefreshList()
+                    } else {
+                        $this.SetStatusMessage("Undo not available", "warning")
+                    }
+                } catch {
+                    $this.SetStatusMessage("Undo failed: $_", "error")
+                }
+                return $true
+            }
+
             # Route to list ONLY if editor and filter are NOT showing
             # CRITICAL FIX: When editor is open, don't let list actions (a/e/d) trigger
             # This prevents accidentally opening a new editor or deleting items while editing

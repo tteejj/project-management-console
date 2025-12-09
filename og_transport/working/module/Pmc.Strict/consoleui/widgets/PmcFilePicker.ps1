@@ -236,7 +236,7 @@ class PmcFilePicker : PmcWidget {
         }
 
         # Instructions
-        $instructions = "↑/↓: Move | Enter: Open/Select | Space: Select Current | Esc: Cancel"
+        $instructions = "↑/↓: Move | Enter: Open/Select | Space: Select Current | F7: New Folder | Esc: Cancel"
         $instructionsY = $y + $this.Height - 2
         $instructionsX = $x + [Math]::Floor(($this.Width - $instructions.Length) / 2)
         $sb.Append($this.BuildMoveTo($instructionsX, $instructionsY))
@@ -357,6 +357,39 @@ class PmcFilePicker : PmcWidget {
 
                 if ($global:PmcTuiLogFile) {
                     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcFilePicker: After SPACE - SelectedPath='$($this.SelectedPath)' Result=$($this.Result) IsComplete=$($this.IsComplete)"
+                }
+                return $true
+            }
+            'F7' {
+                # Prompt for new folder name
+                # Since we don't have a full dialog system linked here, we'll try a simple inline prompt or create 'NewFolder'
+                # For robustness in TUI, assume 'New Folder' then user can rename later, or simpler: just create it.
+                # Actually, relying on TextInputDialog would be better but it's not imported here directly.
+                # We'll try to create "New Folder" and increment if exists.
+                try {
+                    $baseName = "New Folder"
+                    $newName = $baseName
+                    $count = 1
+                    while (Test-Path (Join-Path $this.CurrentPath $newName)) {
+                        $count++
+                        $newName = "$baseName $count"
+                    }
+
+                    $newPath = Join-Path $this.CurrentPath $newName
+                    New-Item -ItemType Directory -Path $newPath -ErrorAction Stop | Out-Null
+
+                    # Refresh
+                    $this._LoadItems()
+
+                    # Select the new folder (find index)
+                    for ($i=0; $i -lt $this.Items.Count; $i++) {
+                        if ($this.Items[$i].Name -eq $newName) {
+                            $this.SelectedIndex = $i
+                            break
+                        }
+                    }
+                } catch {
+                    # Ignore errors
                 }
                 return $true
             }
