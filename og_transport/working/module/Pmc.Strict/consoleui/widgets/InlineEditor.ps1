@@ -1872,7 +1872,13 @@ class InlineEditor : PmcWidget {
     Invoke callback safely
     #>
     hidden [void] _InvokeCallback([scriptblock]$callback, $arg) {
-        if ($null -ne $callback -and $callback -ne {}) {
+        if ($null -ne $callback) {
+            # Check if callback has actual code (not just empty braces)
+            $callbackText = $callback.ToString().Trim()
+            if ([string]::IsNullOrWhiteSpace($callbackText) -or $callbackText -eq '{}') {
+                return
+            }
+
             try {
                 if ($null -ne $arg) {
                     # Use Invoke-Command with -ArgumentList to pass single arg without array wrapping
