@@ -411,9 +411,12 @@ class TabbedScreen : PmcScreen {
             if ($handled) {
                 return $true
             }
+            # FIX: If editor didn't handle key, still consume it to prevent fall-through
+            # This prevents Enter from triggering EditCurrentField while editor is open
+            return $true
         }
 
-        # Enter key - edit current field
+        # Enter key - edit current field (ONLY when editor is NOT showing)
         if ($keyInfo.Key -eq 'Enter') {
             $this.EditCurrentField()
             return $true

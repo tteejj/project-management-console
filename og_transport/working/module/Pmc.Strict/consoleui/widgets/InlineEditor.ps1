@@ -503,11 +503,12 @@ class InlineEditor : PmcWidget {
         if ($this._currentFieldIndex -ge 0 -and $this._currentFieldIndex -lt $this._fields.Count) {
             $currentField = $this._fields[$this._currentFieldIndex]
 
-            # Text, Textarea, Date, Tags, and Project fields - pass input to widget (except Tab/Up/Down/Enter for navigation)
+            # Text, Textarea, Date, Tags, and Project fields - pass input to widget (except Tab/Up/Down for navigation)
             if ($currentField.Type -eq 'text' -or $currentField.Type -eq 'textarea' -or $currentField.Type -eq 'date' -or $currentField.Type -eq 'tags' -or $currentField.Type -eq 'project') {
-                # Don't pass navigation keys OR Enter to widget - let InlineEditor handle them
-                if ($keyInfo.Key -eq 'Tab' -or $keyInfo.Key -eq 'UpArrow' -or $keyInfo.Key -eq 'DownArrow' -or $keyInfo.Key -eq 'Enter') {
-                    return $false  # Let InlineEditor handle navigation and submission
+                # Don't pass navigation keys to widget - let InlineEditor handle them
+                # NOTE: Enter is NOT in this list - it's already handled above at line 383
+                if ($keyInfo.Key -eq 'Tab' -or $keyInfo.Key -eq 'UpArrow' -or $keyInfo.Key -eq 'DownArrow') {
+                    return $false  # Let InlineEditor handle navigation
                 }
 
                 # Clear validation errors when user starts editing a field

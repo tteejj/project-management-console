@@ -945,7 +945,12 @@ class StandardListScreen : PmcScreen {
                 if ($handled) {
                     return $true
                 }
-                # Otherwise, fall through to global shortcuts
+                # FIX: If editor is showing but didn't handle key, consume it anyway
+                # This prevents keys from falling through to List.HandleInput when editor is active
+                # Only allow global shortcuts (F10, Esc, ?) to pass through
+                if ($keyInfo.Key -ne [ConsoleKey]::F10 -and $keyInfo.Key -ne [ConsoleKey]::Escape -and $keyInfo.KeyChar -ne '?') {
+                    return $true
+                }
             }
 
             # Route to filter panel if shown

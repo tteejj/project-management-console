@@ -28,8 +28,8 @@ try {
     # 3. Terminal and rendering
     . "$SpeedTUIRoot/Core/SimplifiedTerminal.ps1"
     . "$SpeedTUIRoot/Core/CellBuffer.ps1"
-    . "$SpeedTUIRoot/Core/EnhancedRenderEngine.ps1"
     . "$SpeedTUIRoot/Core/OptimizedRenderEngine.ps1"
+    # NOTE: EnhancedRenderEngine removed - OptimizedRenderEngine has z-index support
 
     # 4. Base Component class (THIS IS WHAT PmcWidget EXTENDS)
     . "$SpeedTUIRoot/Core/Component.ps1"
@@ -45,10 +45,8 @@ try {
     $global:perfMonitor.SetLogger($global:logger)
     # Don't enable perf monitor by default in PMC
 
-    # 7. Load PMC theme engine (required by PmcWidget)
-    . "$PSScriptRoot/src/PmcThemeEngine.ps1"
-
     # SpeedTUI framework loaded successfully
+    # NOTE: PmcThemeEngine is loaded by Start-PmcTUI.ps1 in proper dependency order
 
 } catch {
     Write-Host "Failed to load SpeedTUI: $_" -ForegroundColor Red
