@@ -60,9 +60,9 @@ class Component {
     
     # === Enhanced Features (Private) ===
     hidden [string]$_regionId                    # Render region identifier
-    hidden [OptimizedRenderEngine]$_renderEngine          # Rendering engine reference
+    hidden [object]$_renderEngine                         # Rendering engine reference (supports both Optimized and Enhanced)
     hidden [bool]$_needsRedraw = $true          # Redraw flag
-    
+
     # Performance and caching
     hidden [bool]$_renderCacheEnabled = $false   # Enable render caching
     hidden [string]$_cachedRenderResult = ""     # Cached output
@@ -70,6 +70,10 @@ class Component {
     hidden [int]$_cacheHitCount = 0              # Cache hits
     hidden [bool]$_cacheInvalid = $true          # Cache invalidation flag (Praxis style)
     hidden [string]$_cachedPosition = ""         # Pre-computed position ANSI
+
+    # Batch invalidation support (reduces cascades)
+    hidden static [bool]$_batchMode = $false
+    hidden static [object]$_batchInvalidated = $null
     
     # Theming system
     hidden [string]$_themeName = "default"       # Current theme
@@ -437,7 +441,7 @@ class Component {
     # === Existing Methods (Enhanced with Performance) ===
     
     # Initialize with render engine
-    [void] Initialize([OptimizedRenderEngine]$renderEngine) {
+    [void] Initialize([object]$renderEngine) {
         # Initializing component
         
         try {
@@ -581,14 +585,51 @@ class Component {
     
     # Component invalidation
     [void] Invalidate() {
+        # If in batch mode, queue invalidation instead of cascading immediately
+        if ([Component]::_batchMode) {
+            if ($null -eq [Component]::_batchInvalidated) {
+                [Component]::_batchInvalidated = [System.Collections.Generic.HashSet[Component]]::new()
+            }
+            [Component]::_batchInvalidated.Add($this)
+            return
+        }
+
+        # Normal immediate invalidation with cascade
+        $this._DoInvalidate()
+    }
+
+    # Internal method that performs actual invalidation with cascade
+    hidden [void] _DoInvalidate() {
         $this._needsRedraw = $true
         $this.InvalidateRenderCache()
-        
+
         # No dirty marking needed for simplified engine
-        
+
         # Propagate to parent
         if ($null -ne $this.Parent) {
             $this.Parent.Invalidate()
+        }
+    }
+
+    # Start batch invalidation mode (reduces cascade overhead)
+    static [void] BeginBatch() {
+        [Component]::_batchMode = $true
+        [Component]::_batchInvalidated = [System.Collections.Generic.HashSet[Component]]::new()
+    }
+
+    # End batch mode and flush all queued invalidations
+    static [void] EndBatch() {
+        if (-not [Component]::_batchMode) { return }
+
+        $components = [Component]::_batchInvalidated
+        [Component]::_batchMode = $false
+        [Component]::_batchInvalidated = $null
+
+        # Process all queued invalidations
+        if ($null -ne $components) {
+            foreach ($component in $components) {
+                $component._DoInvalidate()
+            }
         }
     }
     

@@ -104,6 +104,11 @@ class InlineEditor : PmcWidget {
     hidden [string]$_expandedFieldName = ""                          # Name of currently expanded field
     hidden [bool]$_datePickerMode = $false                           # True when DatePicker is active (not TextInput)
 
+    # Validation debouncing
+    hidden [DateTime]$_lastKeystroke = [DateTime]::MinValue
+    hidden [int]$_validationDelayMs = 300                            # Wait 300ms after last keystroke before validating
+    hidden [string]$_pendingValidationField = ""                     # Field pending validation
+
     # === Constructor ===
     InlineEditor() : base("InlineEditor") {
         $this.Width = 70
@@ -487,8 +492,9 @@ class InlineEditor : PmcWidget {
             }
         }
 
-        # Space or F2 - expand current field widget (DatePicker, ProjectPicker, etc.)
-        if ($keyInfo.Key -eq 'Spacebar' -or $keyInfo.Key -eq 'F2') {
+        # F2 - expand current field widget (DatePicker, ProjectPicker, etc.)
+        # Note: Spacebar is handled below for non-text fields to allow typing spaces
+        if ($keyInfo.Key -eq 'F2') {
             $this._ExpandCurrentField()
             return $true
         }
@@ -520,9 +526,12 @@ class InlineEditor : PmcWidget {
                 if ($widget.GetType().Name -eq 'TextInput') {
                     $handled = $widget.HandleInput($keyInfo)
 
-                    # H-UI-3: Real-time validation - validate after each keystroke
+                    # H-UI-3: Real-time validation with debouncing
+                    # Instead of validating immediately, queue validation for later
                     if ($handled -and $keyInfo.Key -ne 'Enter' -and $keyInfo.Key -ne 'Escape') {
-                        $this._ValidateFieldRealtime($currentField)
+                        $this._lastKeystroke = [DateTime]::Now
+                        $this._pendingValidationField = $currentField.Name
+                        # Validation will happen in Update() method after delay
                     }
 
                     return $handled
@@ -530,8 +539,11 @@ class InlineEditor : PmcWidget {
                 return $false
             }
 
-            # Project/Tags fields - press Enter/Space/F2 to expand widget
-            # Tab/Up/Down to navigate through without expanding
+            # For non-text fields (Folder, File, etc.) allow Spacebar to expand
+            if ($keyInfo.Key -eq 'Spacebar') {
+                $this._ExpandCurrentField()
+                return $true
+            }
         }
 
         return $false
@@ -545,6 +557,9 @@ class InlineEditor : PmcWidget {
     ANSI string ready for display
     #>
     [string] Render() {
+        # Process debounced validation
+        $this._ProcessDebouncedValidation()
+
         # Dispatch based on layout mode
         # Write-PmcTuiLog "InlineEditor.Render: LayoutMode='$($this.LayoutMode)'" "DEBUG"
         if ($this.LayoutMode -eq 'horizontal') {
@@ -552,6 +567,32 @@ class InlineEditor : PmcWidget {
         } else {
             # Write-PmcTuiLog "InlineEditor.Render: Calling _RenderVertical because LayoutMode is not 'horizontal'" "ERROR"
             return $this._RenderVertical()
+        }
+    }
+
+    <#
+    .SYNOPSIS
+    Process debounced validation - called every frame
+    #>
+    hidden [void] _ProcessDebouncedValidation() {
+        # Check if validation is pending and enough time has passed
+        if (-not [string]::IsNullOrEmpty($this._pendingValidationField) -and
+            $this._lastKeystroke -ne [DateTime]::MinValue) {
+
+            $elapsed = ([DateTime]::Now - $this._lastKeystroke).TotalMilliseconds
+
+            if ($elapsed -ge $this._validationDelayMs) {
+                # Time to validate
+                $field = $this._fields | Where-Object { $_.Name -eq $this._pendingValidationField } | Select-Object -First 1
+
+                if ($null -ne $field) {
+                    $this._ValidateFieldRealtime($field)
+                }
+
+                # Clear pending state
+                $this._pendingValidationField = ""
+                $this._lastKeystroke = [DateTime]::MinValue
+            }
         }
     }
 
