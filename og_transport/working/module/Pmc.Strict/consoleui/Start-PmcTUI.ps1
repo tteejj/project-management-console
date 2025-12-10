@@ -82,7 +82,7 @@ try {
 }
 
 # ============================================================================
-# SINGLE LOADING MECHANISM - ClassLoader handles everything with clean priorities
+# MANUAL LOADING - Direct loads in correct dependency order
 # ============================================================================
 
 Write-PmcTuiLog "Loading SpeedTUI framework..." "INFO"
@@ -103,81 +103,99 @@ try {
     throw
 }
 
-Write-PmcTuiLog "Loading root-level core classes..." "INFO"
+Write-PmcTuiLog "Loading core classes..." "INFO"
 try {
-    # Load root-level dependencies before ClassLoader
+    # Core dependencies
     . "$PSScriptRoot/ZIndex.ps1"
+    . "$PSScriptRoot/src/PmcThemeEngine.ps1"
+    . "$PSScriptRoot/theme/PmcThemeManager.ps1"
+    . "$PSScriptRoot/layout/PmcLayoutManager.ps1"
+
+    # Widget base classes
+    . "$PSScriptRoot/widgets/PmcWidget.ps1"
+    . "$PSScriptRoot/widgets/PmcDialog.ps1"
+
+    # Screen base
     . "$PSScriptRoot/PmcScreen.ps1"
-    Write-PmcTuiLog "Root core classes loaded (ZIndex, PmcScreen)" "INFO"
+
+    Write-PmcTuiLog "Core classes loaded" "INFO"
 } catch {
-    Write-PmcTuiLog "Failed to load root core classes: $_" "ERROR"
+    Write-PmcTuiLog "Failed to load core classes: $_" "ERROR"
     throw
 }
 
-Write-PmcTuiLog "Loading ClassLoader..." "INFO"
+Write-PmcTuiLog "Loading helpers..." "INFO"
 try {
-    . "$PSScriptRoot/ClassLoader.ps1"
-    Write-PmcTuiLog "ClassLoader loaded" "INFO"
+    . "$PSScriptRoot/helpers/ConfigCache.ps1"
+    . "$PSScriptRoot/helpers/Constants.ps1"
+    . "$PSScriptRoot/helpers/DataBindingHelper.ps1"
+    . "$PSScriptRoot/helpers/GapBuffer.ps1"
+    . "$PSScriptRoot/helpers/LinuxKeyHelper.ps1"
+    . "$PSScriptRoot/helpers/ShortcutRegistry.ps1"
+    . "$PSScriptRoot/helpers/ThemeHelper.ps1"
+    . "$PSScriptRoot/helpers/TypeNormalization.ps1"
+    . "$PSScriptRoot/helpers/ValidationHelper.ps1"
+    Write-PmcTuiLog "Helpers loaded" "INFO"
 } catch {
-    Write-PmcTuiLog "Failed to load ClassLoader: $_" "ERROR"
+    Write-PmcTuiLog "Failed to load helpers: $_" "ERROR"
     throw
 }
 
-Write-PmcTuiLog "Initializing ClassLoader with priority-based loading..." "INFO"
+Write-PmcTuiLog "Loading services..." "INFO"
 try {
-    # Create ClassLoader instance
-    $loader = [ClassLoader]::new($PSScriptRoot)
-
-    if ($global:PmcTuiLogLevel -ge 3) {
-        $loader.EnableVerbose()
-    }
-
-    # Add directories in dependency order (lower priority = loaded first)
-    # Priority 1: Core PMC classes (PmcThemeEngine in src/)
-    $loader.AddDirectory("src", 1, $false)
-
-    # Priority 5: Theme system
-    $loader.AddDirectory("theme", 5, $false)
-
-    # Priority 10: Layout managers
-    $loader.AddDirectory("layout", 10, $false)
-
-    # Priority 20: Widgets (auto-excludes Test* files)
-    $loader.AddDirectory("widgets", 20, $false)
-
-    # Priority 30: Base screen classes
-    $loader.AddDirectory("base", 30, $false)
-
-    # Priority 40: Services
-    $loader.AddDirectory("services", 40, $false)
-
-    # Priority 50: Helpers
-    $loader.AddDirectory("helpers", 50, $false)
-
-    # Load everything with dependency resolution
-    $loader.LoadAll()
-
-    # Store stats
-    $global:PmcClassLoaderStats = $loader.LoadStats
-
-    if ($loader.FailedFiles.Count -gt 0) {
-        Write-PmcTuiLog "WARNING: $($loader.FailedFiles.Count) files failed to load" "ERROR"
-        foreach ($f in $loader.FailedFiles) {
-            Write-PmcTuiLog "  FAILED: $($f.Name) - $($f.LastError)" "ERROR"
-        }
-        throw "ClassLoader failed to load some files"
-    }
-
-    Write-PmcTuiLog "ClassLoader complete: $($loader.LoadStats.Loaded) loaded, $($loader.LoadStats.Failed) failed, $($loader.LoadStats.Skipped) skipped" "INFO"
-
+    . "$PSScriptRoot/services/ChecklistService.ps1"
+    . "$PSScriptRoot/services/CommandService.ps1"
+    . "$PSScriptRoot/services/ExcelComReader.ps1"
+    . "$PSScriptRoot/services/ExcelMappingService.ps1"
+    . "$PSScriptRoot/services/MenuRegistry.ps1"
+    . "$PSScriptRoot/services/NoteService.ps1"
+    . "$PSScriptRoot/services/PreferencesService.ps1"
+    . "$PSScriptRoot/services/TaskStore.ps1"
+    Write-PmcTuiLog "Services loaded" "INFO"
 } catch {
-    Write-PmcTuiLog "Failed to initialize ClassLoader: $_" "ERROR"
+    Write-PmcTuiLog "Failed to load services: $_" "ERROR"
+    throw
+}
+
+Write-PmcTuiLog "Loading widgets..." "INFO"
+try {
+    . "$PSScriptRoot/widgets/DatePicker.ps1"
+    . "$PSScriptRoot/widgets/FilterPanel.ps1"
+    . "$PSScriptRoot/widgets/InlineEditor.ps1"
+    . "$PSScriptRoot/widgets/PmcFilePicker.ps1"
+    . "$PSScriptRoot/widgets/PmcFooter.ps1"
+    . "$PSScriptRoot/widgets/PmcHeader.ps1"
+    . "$PSScriptRoot/widgets/PmcMenuBar.ps1"
+    . "$PSScriptRoot/widgets/PmcPanel.ps1"
+    . "$PSScriptRoot/widgets/PmcStatusBar.ps1"
+    . "$PSScriptRoot/widgets/ProjectPicker.ps1"
+    . "$PSScriptRoot/widgets/SimpleFilePicker.ps1"
+    . "$PSScriptRoot/widgets/TabPanel.ps1"
+    . "$PSScriptRoot/widgets/TagEditor.ps1"
+    . "$PSScriptRoot/widgets/TextAreaEditor.ps1"
+    . "$PSScriptRoot/widgets/TextInput.ps1"
+    . "$PSScriptRoot/widgets/TimeEntryDetailDialog.ps1"
+    . "$PSScriptRoot/widgets/UniversalList.ps1"
+    Write-PmcTuiLog "Widgets loaded" "INFO"
+} catch {
+    Write-PmcTuiLog "Failed to load widgets: $_" "ERROR"
+    throw
+}
+
+Write-PmcTuiLog "Loading base classes..." "INFO"
+try {
+    . "$PSScriptRoot/base/StandardDashboard.ps1"
+    . "$PSScriptRoot/base/StandardFormScreen.ps1"
+    . "$PSScriptRoot/base/StandardListScreen.ps1"
+    . "$PSScriptRoot/base/TabbedScreen.ps1"
+    Write-PmcTuiLog "Base classes loaded" "INFO"
+} catch {
+    Write-PmcTuiLog "Failed to load base classes: $_" "ERROR"
     throw
 }
 
 Write-PmcTuiLog "Loading application components..." "INFO"
 try {
-    # Load application infrastructure
     . "$PSScriptRoot/ServiceContainer.ps1"
     . "$PSScriptRoot/PmcApplication.ps1"
     Write-PmcTuiLog "Application components loaded" "INFO"
@@ -192,7 +210,7 @@ try {
     . "$PSScriptRoot/screens/TaskListScreen.ps1"
     . "$PSScriptRoot/screens/ProjectListScreen.ps1"
     . "$PSScriptRoot/screens/ProjectInfoScreenV4.ps1"
-    Write-PmcTuiLog "Initial screens loaded (others lazy-loaded via MenuRegistry)" "INFO"
+    Write-PmcTuiLog "Initial screens loaded" "INFO"
 } catch {
     Write-PmcTuiLog "Failed to load screens: $_" "ERROR"
     throw
