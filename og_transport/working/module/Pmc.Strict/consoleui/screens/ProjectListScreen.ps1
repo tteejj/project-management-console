@@ -704,10 +704,10 @@ class ProjectListScreen : StandardListScreen {
         $handled = ([PmcScreen]$this).HandleKeyPress($keyInfo)
         if ($handled) { return $true }
 
-        # Handle custom project keys after menu bar
-
-        # Custom key: V = View project details/stats
-        if ($keyInfo.KeyChar -eq 'v' -or $keyInfo.KeyChar -eq 'V') {
+        # Handle custom project keys after menu bar (ONLY when editor/filter NOT showing!)
+        if (-not $this.ShowInlineEditor -and -not $this.ShowFilterPanel) {
+            # Custom key: V = View project details/stats
+            if ($keyInfo.KeyChar -eq 'v' -or $keyInfo.KeyChar -eq 'V') {
             # Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') *** V KEY PRESSED IN ProjectListScreen.HandleKeyPress ***"
 
             # Defensive check: ensure List exists
@@ -767,11 +767,12 @@ class ProjectListScreen : StandardListScreen {
             return $true
         }
 
-        # Custom key: I = Import from Excel
-        if ($keyInfo.KeyChar -eq 'i' -or $keyInfo.KeyChar -eq 'I') {
-            $this.ImportFromExcel()
-            return $true
-        }
+            # Custom key: I = Import from Excel
+            if ($keyInfo.KeyChar -eq 'i' -or $keyInfo.KeyChar -eq 'I') {
+                $this.ImportFromExcel()
+                return $true
+            }
+        }  # End of editor/filter check
 
         # If file picker is showing, route input to it
         if ($this.ShowFilePicker -and $null -ne $this.FilePicker) {

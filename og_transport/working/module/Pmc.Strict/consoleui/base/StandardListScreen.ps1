@@ -975,25 +975,26 @@ class StandardListScreen : PmcScreen {
                 }
             }
 
-            # Global shortcuts
+            # Global shortcuts (ONLY when editor/filter NOT showing - otherwise they block typing!)
+            if (-not $this.ShowInlineEditor -and -not $this.ShowFilterPanel) {
+                # ? = Help
+                if ($keyInfo.KeyChar -eq '?') {
+                    . "$PSScriptRoot/../screens/HelpViewScreen.ps1"
+                    $screen = [HelpViewScreen]::new()
+                    $this.App.PushScreen($screen)
+                    return $true
+                }
 
-            # ? = Help
-            if ($keyInfo.KeyChar -eq '?') {
-                . "$PSScriptRoot/../screens/HelpViewScreen.ps1"
-                $screen = [HelpViewScreen]::new()
-                $this.App.PushScreen($screen)
-                return $true
-            }
+                if (($keyInfo.KeyChar -eq 'f' -or $keyInfo.KeyChar -eq 'F') -and $this.AllowFilter) {
+                    $this.ToggleFilterPanel()
+                    return $true
+                }
 
-            if (($keyInfo.KeyChar -eq 'f' -or $keyInfo.KeyChar -eq 'F') -and $this.AllowFilter) {
-                $this.ToggleFilterPanel()
-                return $true
-            }
-
-            if ($keyInfo.KeyChar -eq 'r' -or $keyInfo.KeyChar -eq 'R') {
-                # Refresh
-                $this.RefreshList()
-                return $true
+                if ($keyInfo.KeyChar -eq 'r' -or $keyInfo.KeyChar -eq 'R') {
+                    # Refresh
+                    $this.RefreshList()
+                    return $true
+                }
             }
 
             # Route to list ONLY if editor and filter are NOT showing

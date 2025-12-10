@@ -128,51 +128,86 @@ try {
         $loader.EnableVerbose()
     }
 
-    # Add directories in dependency order (priority: lower = loaded first)
-    # Priority 5: Theme system (needed by almost everything)
-    $loader.AddDirectory("theme", 5, $false)
+    # LOAD EVERYTHING MANUALLY - ClassLoader is useless
 
-    # Priority 10-15: Core infrastructure (layout, widgets base, constants, theme engine)
-    # Load PmcThemeEngine, PmcLayoutManager, ZIndex and PmcScreen manually first as they have specific requirements
+    # Priority 10: Theme files (loaded first since everything depends on theme)
+    . "$PSScriptRoot/theme/PmcThemeManager.ps1"
+    Write-PmcTuiLog "Theme files loaded manually" "INFO"
+
+    # Priority 20: Core infrastructure (layout, theme engine, constants)
     . "$PSScriptRoot/src/PmcThemeEngine.ps1"
     . "$PSScriptRoot/layout/PmcLayoutManager.ps1"
     . "$PSScriptRoot/ZIndex.ps1"
-    . "$PSScriptRoot/PmcScreen.ps1"
-    Write-PmcTuiLog "Core infrastructure (PmcThemeEngine, PmcLayoutManager, ZIndex, PmcScreen) loaded" "INFO"
+    Write-PmcTuiLog "Core infrastructure (PmcThemeEngine, PmcLayoutManager, ZIndex) loaded" "INFO"
 
-    # Priority 18: Widget base classes (must load before specific widgets)
+    # Priority 25: Widget base classes (must load before PmcScreen since PmcScreen depends on PmcWidget)
     . "$PSScriptRoot/widgets/PmcWidget.ps1"
     . "$PSScriptRoot/widgets/PmcDialog.ps1"
     Write-PmcTuiLog "Widget base classes (PmcWidget, PmcDialog) loaded" "INFO"
 
-    # Priority 20: All widgets (auto-discovered, excludes Test* files)
-    $loader.AddDirectory("widgets", 20, $false)
+    # Priority 30: PmcScreen (depends on PmcWidget)
+    . "$PSScriptRoot/PmcScreen.ps1"
+    Write-PmcTuiLog "PmcScreen loaded" "INFO"
 
-    # Priority 30: Base screen classes
-    $loader.AddDirectory("base", 30, $false)
+    # Priority 32: Load ALL services and helpers MANUALLY before widgets
+    # FUCK THE CLASSLOADER - just load everything manually in the right order!
+    . "$PSScriptRoot/helpers/ConfigCache.ps1"
+    . "$PSScriptRoot/helpers/Constants.ps1"
+    . "$PSScriptRoot/helpers/DataBindingHelper.ps1"
+    . "$PSScriptRoot/helpers/GapBuffer.ps1"
+    . "$PSScriptRoot/helpers/LinuxKeyHelper.ps1"
+    . "$PSScriptRoot/helpers/ShortcutRegistry.ps1"
+    . "$PSScriptRoot/helpers/ThemeHelper.ps1"
+    . "$PSScriptRoot/helpers/TypeNormalization.ps1"
+    . "$PSScriptRoot/helpers/ValidationHelper.ps1"
+    . "$PSScriptRoot/services/TaskStore.ps1"
+    . "$PSScriptRoot/services/MenuRegistry.ps1"
+    . "$PSScriptRoot/services/ChecklistService.ps1"
+    . "$PSScriptRoot/services/CommandService.ps1"
+    . "$PSScriptRoot/services/ExcelComReader.ps1"
+    . "$PSScriptRoot/services/ExcelMappingService.ps1"
+    . "$PSScriptRoot/services/NoteService.ps1"
+    . "$PSScriptRoot/services/PreferencesService.ps1"
+    Write-PmcTuiLog "ALL services and helpers loaded manually (18 files)" "INFO"
 
-    # Priority 40: Services
-    $loader.AddDirectory("services", 40, $false)
+    # Priority 35: Load EVERY SINGLE WIDGET manually (fuck the ClassLoader)
+    # PmcWidget and PmcDialog already loaded earlier
+    . "$PSScriptRoot/widgets/DatePicker.ps1"
+    . "$PSScriptRoot/widgets/FilterPanel.ps1"
+    . "$PSScriptRoot/widgets/PmcFilePicker.ps1"
+    . "$PSScriptRoot/widgets/PmcFooter.ps1"
+    . "$PSScriptRoot/widgets/PmcHeader.ps1"
+    . "$PSScriptRoot/widgets/PmcMenuBar.ps1"
+    . "$PSScriptRoot/widgets/PmcPanel.ps1"
+    . "$PSScriptRoot/widgets/PmcStatusBar.ps1"
+    . "$PSScriptRoot/widgets/ProjectPicker.ps1"
+    . "$PSScriptRoot/widgets/SimpleFilePicker.ps1"
+    . "$PSScriptRoot/widgets/TabPanel.ps1"
+    . "$PSScriptRoot/widgets/TagEditor.ps1"
+    . "$PSScriptRoot/widgets/TextAreaEditor.ps1"
+    . "$PSScriptRoot/widgets/TextInput.ps1"
+    . "$PSScriptRoot/widgets/TimeEntryDetailDialog.ps1"
+    . "$PSScriptRoot/widgets/InlineEditor.ps1"    # Load after TextInput, DatePicker, ProjectPicker
+    . "$PSScriptRoot/widgets/UniversalList.ps1"   # Load after FilterPanel, InlineEditor
+    Write-PmcTuiLog "ALL widgets loaded manually (17 widgets)" "INFO"
 
-    # Priority 50: Helpers
-    $loader.AddDirectory("helpers", 50, $false)
-
-    # Priority 60: HelpViewScreen (required by base classes)
-    # Note: We load this manually to ensure it's available before other screens
+    # Priority 38: HelpViewScreen (needed by StandardListScreen)
     . "$PSScriptRoot/screens/HelpViewScreen.ps1"
-    Write-PmcTuiLog "HelpViewScreen loaded (required by base classes)" "INFO"
+    Write-PmcTuiLog "HelpViewScreen loaded (needed by base classes)" "INFO"
 
-    # Execute the loader - auto-discovers and loads all files with retry logic
-    $loader.LoadAll()
+    # Priority 40: Base screen classes (manually load since they depend on manually-loaded widgets)
+    . "$PSScriptRoot/base/StandardListScreen.ps1"  # Depends on UniversalList, FilterPanel, InlineEditor, TaskStore, HelpViewScreen
+    . "$PSScriptRoot/base/StandardFormScreen.ps1"  # Depends on InlineEditor, TaskStore
+    . "$PSScriptRoot/base/StandardDashboard.ps1"   # Depends on TaskStore, PmcPanel
+    . "$PSScriptRoot/base/TabbedScreen.ps1"        # Depends on TabPanel, InlineEditor
+    Write-PmcTuiLog "Base screen classes loaded (StandardList, StandardForm, StandardDashboard, Tabbed)" "INFO"
 
-    # Store stats for diagnostics
-    $global:PmcClassLoaderStats = $loader.LoadStats
+    # ClassLoader DISABLED - everything loaded manually above
+    # $loader.AddDirectory("widgets", 50, $false)
+    # $loader.AddDirectory("base", 55, $false)
+    # $loader.LoadAll()
 
-    if ($loader.FailedFiles.Count -gt 0) {
-        Write-PmcTuiLog "WARNING: Some files failed to load. Check ClassLoader output above." "WARN"
-    }
-
-    Write-PmcTuiLog "Smart class loading complete: $($loader.LoadStats.Loaded) files loaded, $($loader.LoadStats.Failed) failed, $($loader.LoadStats.Skipped) skipped" "INFO"
+    Write-PmcTuiLog "Manual loading complete - ClassLoader bypassed" "INFO"
 
 } catch {
     Write-PmcTuiLog "Failed to initialize smart class loader: $_" "ERROR"
