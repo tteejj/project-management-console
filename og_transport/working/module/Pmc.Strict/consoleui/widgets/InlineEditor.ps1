@@ -527,6 +527,21 @@ class InlineEditor : PmcWidget {
                 if ($widget.GetType().Name -eq 'TextInput') {
                     $handled = $widget.HandleInput($keyInfo)
 
+                    # CRITICAL FIX: If TextInput confirmed (Enter pressed), validate and confirm ENTIRE form
+                    if ($widget.PSObject.Properties['IsConfirmed'] -and $widget.IsConfirmed) {
+                        if ($this._ValidateAllFields()) {
+                            $this.IsConfirmed = $true
+                            $values = $this.GetValues()
+                            $this._InvokeCallback($this.OnConfirmed, $values)
+                            return $true
+                        } else {
+                            # Validation failed - show errors, reset TextInput confirmation, stay open
+                            $widget.IsConfirmed = $false
+                            $this._InvokeCallback($this.OnValidationFailed, $this._validationErrors)
+                            return $true
+                        }
+                    }
+
                     # H-UI-3: Real-time validation with debouncing
                     # Instead of validating immediately, queue validation for later
                     if ($handled -and $keyInfo.Key -ne 'Enter' -and $keyInfo.Key -ne 'Escape') {
