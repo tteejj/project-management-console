@@ -1875,7 +1875,8 @@ class InlineEditor : PmcWidget {
         if ($null -ne $callback) {
             # Check if callback has actual code (not just empty braces)
             $callbackText = $callback.ToString().Trim()
-            if ([string]::IsNullOrWhiteSpace($callbackText) -or $callbackText -eq '{}') {
+            # Match {} or { } or {  } etc (braces with only whitespace inside)
+            if ([string]::IsNullOrWhiteSpace($callbackText) -or $callbackText -match '^\{\s*\}$') {
                 return
             }
 
