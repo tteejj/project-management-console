@@ -82,8 +82,8 @@ class TextInput : PmcWidget {
     hidden [int]$_scrollOffset = 0          # Horizontal scroll offset for long text
     hidden [string]$_validationError = ""   # Last validation error message
     hidden [bool]$_showCursor = $true       # Cursor blink state
-    hidden [DateTime]$_lastBlinkTime = [DateTime]::Now
-    hidden [int]$_blinkIntervalMs = 500     # Cursor blink rate
+    hidden [int]$_blinkFrameCount = 0       # Frame counter for blink (more efficient than DateTime)
+    hidden [int]$_blinkFrameInterval = 30   # Blink every 30 frames (at 60fps = 500ms)
 
     # === Constructor ===
     TextInput() : base("TextInput") {
@@ -314,11 +314,11 @@ class TextInput : PmcWidget {
     [string] Render() {
         $sb = [StringBuilder]::new(1024)
 
-        # Update cursor blink
-        $elapsed = ([DateTime]::Now - $this._lastBlinkTime).TotalMilliseconds
-        if ($elapsed -ge $this._blinkIntervalMs) {
+        # Update cursor blink using frame counter (more efficient than DateTime)
+        $this._blinkFrameCount++
+        if ($this._blinkFrameCount -ge $this._blinkFrameInterval) {
             $this._showCursor = -not $this._showCursor
-            $this._lastBlinkTime = [DateTime]::Now
+            $this._blinkFrameCount = 0
         }
 
         # Colors from new theme system

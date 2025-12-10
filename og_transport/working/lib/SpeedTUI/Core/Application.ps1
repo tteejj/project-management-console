@@ -25,9 +25,9 @@ class Application {
     Application() {
         $this.Logger = Get-Logger
         $this.Logger.Info("Application", "Constructor", "Application created")
-        
+
         # Initialize core services
-        $this.RenderEngine = [RenderEngine]::new()
+        $this.RenderEngine = [EnhancedRenderEngine]::new()
         $this.InputManager = [InputManager]::new()
         $this.ThemeManager = Get-ThemeManager
         $this._frameTimer = [System.Diagnostics.Stopwatch]::new()
@@ -39,9 +39,9 @@ class Application {
         $this.Logger.Info("Application", "Constructor", "Application created with title", @{
             Title = $title
         })
-        
+
         # Initialize core services
-        $this.RenderEngine = [RenderEngine]::new()
+        $this.RenderEngine = [EnhancedRenderEngine]::new()
         $this.InputManager = [InputManager]::new()
         $this.ThemeManager = Get-ThemeManager
         $this._frameTimer = [System.Diagnostics.Stopwatch]::new()
@@ -164,24 +164,23 @@ class Application {
     hidden [void] ProcessInput() {
         # Check for window resize
         $this.CheckWindowResize()
-        
+
         # Process input - check for exit keys first
         try {
             if ([Console]::KeyAvailable) {
                 $key = [Console]::ReadKey($true)
-                
-                # Ctrl+Q to quit
-                if ($key.Key -eq [System.ConsoleKey]::Q -and 
+
+                # Ctrl+Q to quit (check before InputManager)
+                if ($key.Key -eq [System.ConsoleKey]::Q -and
                     $key.Modifiers -eq [System.ConsoleModifiers]::Control) {
                     $this.Stop()
                     return
                 }
-                
-                # Put the key back by creating a synthetic KeyInfo and processing it
-                # For now, let's handle it directly
-                if ($this.RootComponent.HandleKeyPress($key)) {
-                    # Key was handled
-                }
+
+                # Route input to component tree first
+                # Component tree includes screens, widgets, and editors
+                # If they don't handle it, fall through to global shortcuts
+                $this.RootComponent.HandleKeyPress($key)
             }
         } catch {
             # KeyAvailable might not work in all environments - that's okay
