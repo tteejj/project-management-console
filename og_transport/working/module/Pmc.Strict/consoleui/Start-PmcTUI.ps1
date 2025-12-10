@@ -103,24 +103,66 @@ try {
     throw
 }
 
-Write-PmcTuiLog "Loading core classes..." "INFO"
+Write-PmcTuiLog "Loading core dependencies..." "INFO"
 try {
-    # Core dependencies
+    # Core infrastructure (no dependencies)
     . "$PSScriptRoot/ZIndex.ps1"
     . "$PSScriptRoot/src/PmcThemeEngine.ps1"
     . "$PSScriptRoot/theme/PmcThemeManager.ps1"
     . "$PSScriptRoot/layout/PmcLayoutManager.ps1"
 
-    # Widget base classes
+    Write-PmcTuiLog "Core dependencies loaded" "INFO"
+} catch {
+    Write-PmcTuiLog "Failed to load core dependencies: $_" "ERROR"
+    throw
+}
+
+Write-PmcTuiLog "Loading widget base classes..." "INFO"
+try {
+    # Base widget classes (PmcWidget needs SpeedTUI Component + PmcThemeEngine)
     . "$PSScriptRoot/widgets/PmcWidget.ps1"
     . "$PSScriptRoot/widgets/PmcDialog.ps1"
 
-    # Screen base
+    Write-PmcTuiLog "Widget base classes loaded" "INFO"
+} catch {
+    Write-PmcTuiLog "Failed to load widget base classes: $_" "ERROR"
+    throw
+}
+
+Write-PmcTuiLog "Loading widgets..." "INFO"
+try {
+    # All widgets (inherit from PmcWidget) - MUST load before PmcScreen
+    . "$PSScriptRoot/widgets/DatePicker.ps1"
+    . "$PSScriptRoot/widgets/FilterPanel.ps1"
+    . "$PSScriptRoot/widgets/InlineEditor.ps1"
+    . "$PSScriptRoot/widgets/PmcFilePicker.ps1"
+    . "$PSScriptRoot/widgets/PmcFooter.ps1"
+    . "$PSScriptRoot/widgets/PmcHeader.ps1"
+    . "$PSScriptRoot/widgets/PmcMenuBar.ps1"
+    . "$PSScriptRoot/widgets/PmcPanel.ps1"
+    . "$PSScriptRoot/widgets/PmcStatusBar.ps1"
+    . "$PSScriptRoot/widgets/ProjectPicker.ps1"
+    . "$PSScriptRoot/widgets/SimpleFilePicker.ps1"
+    . "$PSScriptRoot/widgets/TabPanel.ps1"
+    . "$PSScriptRoot/widgets/TagEditor.ps1"
+    . "$PSScriptRoot/widgets/TextAreaEditor.ps1"
+    . "$PSScriptRoot/widgets/TextInput.ps1"
+    . "$PSScriptRoot/widgets/TimeEntryDetailDialog.ps1"
+    . "$PSScriptRoot/widgets/UniversalList.ps1"
+    Write-PmcTuiLog "Widgets loaded" "INFO"
+} catch {
+    Write-PmcTuiLog "Failed to load widgets: $_" "ERROR"
+    throw
+}
+
+Write-PmcTuiLog "Loading screen base class..." "INFO"
+try {
+    # PmcScreen base (uses PmcHeader, PmcFooter, PmcMenuBar - MUST be after widgets)
     . "$PSScriptRoot/PmcScreen.ps1"
 
-    Write-PmcTuiLog "Core classes loaded" "INFO"
+    Write-PmcTuiLog "Screen base class loaded" "INFO"
 } catch {
-    Write-PmcTuiLog "Failed to load core classes: $_" "ERROR"
+    Write-PmcTuiLog "Failed to load screen base: $_" "ERROR"
     throw
 }
 
@@ -154,31 +196,6 @@ try {
     Write-PmcTuiLog "Services loaded" "INFO"
 } catch {
     Write-PmcTuiLog "Failed to load services: $_" "ERROR"
-    throw
-}
-
-Write-PmcTuiLog "Loading widgets..." "INFO"
-try {
-    . "$PSScriptRoot/widgets/DatePicker.ps1"
-    . "$PSScriptRoot/widgets/FilterPanel.ps1"
-    . "$PSScriptRoot/widgets/InlineEditor.ps1"
-    . "$PSScriptRoot/widgets/PmcFilePicker.ps1"
-    . "$PSScriptRoot/widgets/PmcFooter.ps1"
-    . "$PSScriptRoot/widgets/PmcHeader.ps1"
-    . "$PSScriptRoot/widgets/PmcMenuBar.ps1"
-    . "$PSScriptRoot/widgets/PmcPanel.ps1"
-    . "$PSScriptRoot/widgets/PmcStatusBar.ps1"
-    . "$PSScriptRoot/widgets/ProjectPicker.ps1"
-    . "$PSScriptRoot/widgets/SimpleFilePicker.ps1"
-    . "$PSScriptRoot/widgets/TabPanel.ps1"
-    . "$PSScriptRoot/widgets/TagEditor.ps1"
-    . "$PSScriptRoot/widgets/TextAreaEditor.ps1"
-    . "$PSScriptRoot/widgets/TextInput.ps1"
-    . "$PSScriptRoot/widgets/TimeEntryDetailDialog.ps1"
-    . "$PSScriptRoot/widgets/UniversalList.ps1"
-    Write-PmcTuiLog "Widgets loaded" "INFO"
-} catch {
-    Write-PmcTuiLog "Failed to load widgets: $_" "ERROR"
     throw
 }
 
