@@ -61,11 +61,11 @@ class PmcApplication {
     PmcApplication([object]$container) {
         # Store container for passing to screens
         $this.Container = $container
-        # Initialize render engine (EnhancedRenderEngine with cell buffering)
+        # Initialize render engine (OptimizedRenderEngine with z-index support)
         try {
-            $this.RenderEngine = New-Object EnhancedRenderEngine
+            $this.RenderEngine = New-Object OptimizedRenderEngine
             if ($null -eq $this.RenderEngine) {
-                throw "Failed to create EnhancedRenderEngine instance"
+                throw "Failed to create OptimizedRenderEngine instance"
             }
             $this.RenderEngine.Initialize()
         } catch {

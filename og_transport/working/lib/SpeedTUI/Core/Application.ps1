@@ -27,12 +27,12 @@ class Application {
         $this.Logger.Info("Application", "Constructor", "Application created")
 
         # Initialize core services
-        $this.RenderEngine = [EnhancedRenderEngine]::new()
+        $this.RenderEngine = [OptimizedRenderEngine]::new()
         $this.InputManager = [InputManager]::new()
         $this.ThemeManager = Get-ThemeManager
         $this._frameTimer = [System.Diagnostics.Stopwatch]::new()
     }
-    
+
     Application([string]$title) {
         $this.Title = $title
         $this.Logger = Get-Logger
@@ -41,7 +41,7 @@ class Application {
         })
 
         # Initialize core services
-        $this.RenderEngine = [EnhancedRenderEngine]::new()
+        $this.RenderEngine = [OptimizedRenderEngine]::new()
         $this.InputManager = [InputManager]::new()
         $this.ThemeManager = Get-ThemeManager
         $this._frameTimer = [System.Diagnostics.Stopwatch]::new()
