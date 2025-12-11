@@ -4155,3 +4155,363 @@
 [2025-12-10 22:25:06.769] [COMPOSITE] Position 54,2 - WRITING at (54,2) zIndex=0:  
 [2025-12-10 22:25:06.782] [COMPOSITE] Position 55,2 - 1 layers, maxZ=0, content length=1
 [2025-12-10 22:25:06.797] [COMPOSITE] Position 55,2 - NEW, will write
+[2025-12-10 22:25:06.811] [COMPOSITE] Position 55,2 - WRITING at (55,2) zIndex=0:  
+[2025-12-10 22:25:06.825] [COMPOSITE] Position 56,2 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:06.842] [COMPOSITE] Position 56,2 - NEW, will write
+[2025-12-10 22:25:06.857] [COMPOSITE] Position 56,2 - WRITING at (56,2) zIndex=0:  
+[2025-12-10 22:25:06.873] [COMPOSITE] Position 57,2 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:06.886] [COMPOSITE] Position 57,2 - NEW, will write
+[2025-12-10 22:25:06.901] [COMPOSITE] Position 57,2 - WRITING at (57,2) zIndex=0:  
+[2025-12-10 22:25:06.913] [COMPOSITE] Position 58,2 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:06.929] [COMPOSITE] Position 58,2 - NEW, will write
+[2025-12-10 22:25:06.944] [COMPOSITE] Position 58,2 - WRITING at (58,2) zIndex=0:  
+[2025-12-10 22:25:06.959] [COMPOSITE] Position 59,2 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:06.974] [COMPOSITE] Position 59,2 - NEW, will write
+[2025-12-10 22:25:06.988] [COMPOSITE] Position 59,2 - WRITING at (59,2) zIndex=0:  
+[2025-12-10 22:25:07.002] [COMPOSITE] Position 60,2 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:07.017] [COMPOSITE] Position 60,2 - NEW, will write
+[2025-12-10 22:25:07.033] [COMPOSITE] Position 60,2 - WRITING at (60,2) zIndex=0:  
+[2025-12-10 22:25:07.049] [COMPOSITE] Position 61,2 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:07.072] [COMPOSITE] Position 61,2 - NEW, will write
+[2025-12-10 22:25:07.089] [COMPOSITE] Position 61,2 - WRITING at (61,2) zIndex=0:  
+[2025-12-10 22:25:07.105] [COMPOSITE] Position 62,2 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:07.123] [COMPOSITE] Position 62,2 - NEW, will write
+[2025-12-10 22:25:07.143] [COMPOSITE] Position 62,2 - WRITING at (62,2) zIndex=0:  
+[2025-12-10 22:25:07.158] [COMPOSITE] Position 63,2 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:07.174] [COMPOSITE] Position 63,2 - NEW, will write
+[2025-12-10 22:25:07.191] [COMPOSITE] Position 63,2 - WRITING at (63,2) zIndex=0:  
+[2025-12-10 22:25:07.210] [COMPOSITE] Position 64,2 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:07.226] [COMPOSITE] Position 64,2 - NEW, will write
+[2025-12-10 22:25:07.244] [COMPOSITE] Position 64,2 - WRITING at (64,2) zIndex=0:  
+[2025-12-10 22:25:07.261] [COMPOSITE] Position 65,2 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:07.277] [COMPOSITE] Position 65,2 - NEW, will write
+[2025-12-10 22:25:07.312] [COMPOSITE] Position 65,2 - WRITING at (65,2) zIndex=0:  
+[2025-12-10 22:25:07.328] [COMPOSITE] Position 66,2 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:07.344] [COMPOSITE] Position 66,2 - NEW, will write
+[2025-12-10 22:25:07.359] [COMPOSITE] Position 66,2 - WRITING at (66,2) zIndex=0:  
+[2025-12-10 22:25:07.373] [COMPOSITE] Position 67,2 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:07.389] [COMPOSITE] Position 67,2 - NEW, will write
+[2025-12-10 22:25:07.406] [COMPOSITE] Position 67,2 - WRITING at (67,2) zIndex=0:  
+[2025-12-10 22:25:07.420] [COMPOSITE] Position 68,2 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:07.433] [COMPOSITE] Position 68,2 - NEW, will write
+[2025-12-10 22:25:07.445] [COMPOSITE] Position 68,2 - WRITING at (68,2) zIndex=0:  
+[2025-12-10 22:25:07.460] [COMPOSITE] Position 69,2 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:07.475] [COMPOSITE] Position 69,2 - NEW, will write
+[2025-12-10 22:25:07.490] [COMPOSITE] Position 69,2 - WRITING at (69,2) zIndex=0:  
+[2025-12-10 22:25:07.504] [COMPOSITE] Position 70,2 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:07.521] [COMPOSITE] Position 70,2 - NEW, will write
+[2025-12-10 22:25:07.537] [COMPOSITE] Position 70,2 - WRITING at (70,2) zIndex=0:  
+[2025-12-10 22:25:07.552] [COMPOSITE] Position 71,2 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:07.568] [COMPOSITE] Position 71,2 - NEW, will write
+[2025-12-10 22:25:07.583] [COMPOSITE] Position 71,2 - WRITING at (71,2) zIndex=0:  
+[2025-12-10 22:25:07.598] [COMPOSITE] Position 72,2 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:07.613] [COMPOSITE] Position 72,2 - NEW, will write
+[2025-12-10 22:25:07.628] [COMPOSITE] Position 72,2 - WRITING at (72,2) zIndex=0:  
+[2025-12-10 22:25:07.644] [COMPOSITE] Position 73,2 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:07.658] [COMPOSITE] Position 73,2 - NEW, will write
+[2025-12-10 22:25:07.673] [COMPOSITE] Position 73,2 - WRITING at (73,2) zIndex=0:  
+[2025-12-10 22:25:07.687] [COMPOSITE] Position 74,2 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:07.702] [COMPOSITE] Position 74,2 - NEW, will write
+[2025-12-10 22:25:07.720] [COMPOSITE] Position 74,2 - WRITING at (74,2) zIndex=0:  
+[2025-12-10 22:25:07.736] [COMPOSITE] Position 75,2 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:07.752] [COMPOSITE] Position 75,2 - NEW, will write
+[2025-12-10 22:25:07.766] [COMPOSITE] Position 75,2 - WRITING at (75,2) zIndex=0:  
+[2025-12-10 22:25:07.780] [COMPOSITE] Position 76,2 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:07.794] [COMPOSITE] Position 76,2 - NEW, will write
+[2025-12-10 22:25:07.809] [COMPOSITE] Position 76,2 - WRITING at (76,2) zIndex=0:  
+[2025-12-10 22:25:07.826] [COMPOSITE] Position 77,2 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:07.842] [COMPOSITE] Position 77,2 - NEW, will write
+[2025-12-10 22:25:07.858] [COMPOSITE] Position 77,2 - WRITING at (77,2) zIndex=0:  
+[2025-12-10 22:25:07.873] [COMPOSITE] Position 78,2 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:07.888] [COMPOSITE] Position 78,2 - NEW, will write
+[2025-12-10 22:25:07.902] [COMPOSITE] Position 78,2 - WRITING at (78,2) zIndex=0:  
+[2025-12-10 22:25:07.915] [COMPOSITE] Position 79,2 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:07.932] [COMPOSITE] Position 79,2 - NEW, will write
+[2025-12-10 22:25:07.948] [COMPOSITE] Position 79,2 - WRITING at (79,2) zIndex=0:  
+[2025-12-10 22:25:07.962] [COMPOSITE] Position 0,3 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:07.976] [COMPOSITE] Position 0,3 - NEW, will write
+[2025-12-10 22:25:07.992] [COMPOSITE] Position 0,3 - WRITING at (0,3) zIndex=0:  
+[2025-12-10 22:25:08.008] [COMPOSITE] Position 2,3 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:08.027] [COMPOSITE] Position 2,3 - NEW, will write
+[2025-12-10 22:25:08.046] [COMPOSITE] Position 2,3 - WRITING at (2,3) zIndex=0:  
+[2025-12-10 22:25:08.064] [COMPOSITE] Position 3,3 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:08.081] [COMPOSITE] Position 3,3 - NEW, will write
+[2025-12-10 22:25:08.098] [COMPOSITE] Position 3,3 - WRITING at (3,3) zIndex=0:  
+[2025-12-10 22:25:08.121] [COMPOSITE] Position 4,3 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:08.138] [COMPOSITE] Position 4,3 - NEW, will write
+[2025-12-10 22:25:08.168] [COMPOSITE] Position 4,3 - WRITING at (4,3) zIndex=0:  
+[2025-12-10 22:25:08.186] [COMPOSITE] Position 5,3 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:08.205] [COMPOSITE] Position 5,3 - NEW, will write
+[2025-12-10 22:25:08.222] [COMPOSITE] Position 5,3 - WRITING at (5,3) zIndex=0:  
+[2025-12-10 22:25:08.237] [COMPOSITE] Position 6,3 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:08.252] [COMPOSITE] Position 6,3 - NEW, will write
+[2025-12-10 22:25:08.266] [COMPOSITE] Position 6,3 - WRITING at (6,3) zIndex=0:  
+[2025-12-10 22:25:08.281] [COMPOSITE] Position 7,3 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:08.295] [COMPOSITE] Position 7,3 - NEW, will write
+[2025-12-10 22:25:08.318] [COMPOSITE] Position 7,3 - WRITING at (7,3) zIndex=0:  
+[2025-12-10 22:25:08.335] [COMPOSITE] Position 8,3 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:08.350] [COMPOSITE] Position 8,3 - NEW, will write
+[2025-12-10 22:25:08.365] [COMPOSITE] Position 8,3 - WRITING at (8,3) zIndex=0:  
+[2025-12-10 22:25:08.380] [COMPOSITE] Position 9,3 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:08.395] [COMPOSITE] Position 9,3 - NEW, will write
+[2025-12-10 22:25:08.410] [COMPOSITE] Position 9,3 - WRITING at (9,3) zIndex=0:  
+[2025-12-10 22:25:08.424] [COMPOSITE] Position 10,3 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:08.440] [COMPOSITE] Position 10,3 - NEW, will write
+[2025-12-10 22:25:08.454] [COMPOSITE] Position 10,3 - WRITING at (10,3) zIndex=0:  
+[2025-12-10 22:25:08.471] [COMPOSITE] Position 11,3 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:08.485] [COMPOSITE] Position 11,3 - NEW, will write
+[2025-12-10 22:25:08.498] [COMPOSITE] Position 11,3 - WRITING at (11,3) zIndex=0:  
+[2025-12-10 22:25:08.511] [COMPOSITE] Position 12,3 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:08.525] [COMPOSITE] Position 12,3 - NEW, will write
+[2025-12-10 22:25:08.539] [COMPOSITE] Position 12,3 - WRITING at (12,3) zIndex=0:  
+[2025-12-10 22:25:08.554] [COMPOSITE] Position 13,3 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:08.570] [COMPOSITE] Position 13,3 - NEW, will write
+[2025-12-10 22:25:08.585] [COMPOSITE] Position 13,3 - WRITING at (13,3) zIndex=0:  
+[2025-12-10 22:25:08.597] [COMPOSITE] Position 14,3 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:08.611] [COMPOSITE] Position 14,3 - NEW, will write
+[2025-12-10 22:25:08.623] [COMPOSITE] Position 14,3 - WRITING at (14,3) zIndex=0:  
+[2025-12-10 22:25:08.636] [COMPOSITE] Position 15,3 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:08.649] [COMPOSITE] Position 15,3 - NEW, will write
+[2025-12-10 22:25:08.663] [COMPOSITE] Position 15,3 - WRITING at (15,3) zIndex=0:  
+[2025-12-10 22:25:08.675] [COMPOSITE] Position 16,3 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:08.689] [COMPOSITE] Position 16,3 - NEW, will write
+[2025-12-10 22:25:08.701] [COMPOSITE] Position 16,3 - WRITING at (16,3) zIndex=0:  
+[2025-12-10 22:25:08.714] [COMPOSITE] Position 17,3 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:08.726] [COMPOSITE] Position 17,3 - NEW, will write
+[2025-12-10 22:25:08.738] [COMPOSITE] Position 17,3 - WRITING at (17,3) zIndex=0:  
+[2025-12-10 22:25:08.750] [COMPOSITE] Position 18,3 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:08.762] [COMPOSITE] Position 18,3 - NEW, will write
+[2025-12-10 22:25:08.775] [COMPOSITE] Position 18,3 - WRITING at (18,3) zIndex=0:  
+[2025-12-10 22:25:08.789] [COMPOSITE] Position 19,3 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:08.801] [COMPOSITE] Position 19,3 - NEW, will write
+[2025-12-10 22:25:08.814] [COMPOSITE] Position 19,3 - WRITING at (19,3) zIndex=0:  
+[2025-12-10 22:25:08.828] [COMPOSITE] Position 20,3 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:08.842] [COMPOSITE] Position 20,3 - NEW, will write
+[2025-12-10 22:25:08.856] [COMPOSITE] Position 20,3 - WRITING at (20,3) zIndex=0:  
+[2025-12-10 22:25:08.871] [COMPOSITE] Position 21,3 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:08.884] [COMPOSITE] Position 21,3 - NEW, will write
+[2025-12-10 22:25:08.897] [COMPOSITE] Position 21,3 - WRITING at (21,3) zIndex=0:  
+[2025-12-10 22:25:08.911] [COMPOSITE] Position 22,3 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:08.925] [COMPOSITE] Position 22,3 - NEW, will write
+[2025-12-10 22:25:08.941] [COMPOSITE] Position 22,3 - WRITING at (22,3) zIndex=0:  
+[2025-12-10 22:25:08.955] [COMPOSITE] Position 23,3 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:08.969] [COMPOSITE] Position 23,3 - NEW, will write
+[2025-12-10 22:25:08.983] [COMPOSITE] Position 23,3 - WRITING at (23,3) zIndex=0:  
+[2025-12-10 22:25:08.997] [COMPOSITE] Position 24,3 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:09.011] [COMPOSITE] Position 24,3 - NEW, will write
+[2025-12-10 22:25:09.025] [COMPOSITE] Position 24,3 - WRITING at (24,3) zIndex=0:  
+[2025-12-10 22:25:09.039] [COMPOSITE] Position 25,3 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:09.053] [COMPOSITE] Position 25,3 - NEW, will write
+[2025-12-10 22:25:09.068] [COMPOSITE] Position 25,3 - WRITING at (25,3) zIndex=0:  
+[2025-12-10 22:25:09.083] [COMPOSITE] Position 26,3 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:09.096] [COMPOSITE] Position 26,3 - NEW, will write
+[2025-12-10 22:25:09.111] [COMPOSITE] Position 26,3 - WRITING at (26,3) zIndex=0:  
+[2025-12-10 22:25:09.125] [COMPOSITE] Position 27,3 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:09.139] [COMPOSITE] Position 27,3 - NEW, will write
+[2025-12-10 22:25:09.155] [COMPOSITE] Position 27,3 - WRITING at (27,3) zIndex=0:  
+[2025-12-10 22:25:09.169] [COMPOSITE] Position 28,3 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:09.185] [COMPOSITE] Position 28,3 - NEW, will write
+[2025-12-10 22:25:09.202] [COMPOSITE] Position 28,3 - WRITING at (28,3) zIndex=0:  
+[2025-12-10 22:25:09.215] [COMPOSITE] Position 29,3 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:09.230] [COMPOSITE] Position 29,3 - NEW, will write
+[2025-12-10 22:25:09.244] [COMPOSITE] Position 29,3 - WRITING at (29,3) zIndex=0:  
+[2025-12-10 22:25:09.259] [COMPOSITE] Position 30,3 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:09.274] [COMPOSITE] Position 30,3 - NEW, will write
+[2025-12-10 22:25:09.288] [COMPOSITE] Position 30,3 - WRITING at (30,3) zIndex=0:  
+[2025-12-10 22:25:09.301] [COMPOSITE] Position 31,3 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:09.314] [COMPOSITE] Position 31,3 - NEW, will write
+[2025-12-10 22:25:09.328] [COMPOSITE] Position 31,3 - WRITING at (31,3) zIndex=0:  
+[2025-12-10 22:25:09.341] [COMPOSITE] Position 32,3 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:09.353] [COMPOSITE] Position 32,3 - NEW, will write
+[2025-12-10 22:25:09.366] [COMPOSITE] Position 32,3 - WRITING at (32,3) zIndex=0:  
+[2025-12-10 22:25:09.380] [COMPOSITE] Position 33,3 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:09.394] [COMPOSITE] Position 33,3 - NEW, will write
+[2025-12-10 22:25:09.408] [COMPOSITE] Position 33,3 - WRITING at (33,3) zIndex=0:  
+[2025-12-10 22:25:09.421] [COMPOSITE] Position 34,3 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:09.434] [COMPOSITE] Position 34,3 - NEW, will write
+[2025-12-10 22:25:09.448] [COMPOSITE] Position 34,3 - WRITING at (34,3) zIndex=0:  
+[2025-12-10 22:25:09.462] [COMPOSITE] Position 35,3 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:09.475] [COMPOSITE] Position 35,3 - NEW, will write
+[2025-12-10 22:25:09.488] [COMPOSITE] Position 35,3 - WRITING at (35,3) zIndex=0:  
+[2025-12-10 22:25:09.502] [COMPOSITE] Position 36,3 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:09.517] [COMPOSITE] Position 36,3 - NEW, will write
+[2025-12-10 22:25:09.530] [COMPOSITE] Position 36,3 - WRITING at (36,3) zIndex=0:  
+[2025-12-10 22:25:09.543] [COMPOSITE] Position 37,3 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:09.557] [COMPOSITE] Position 37,3 - NEW, will write
+[2025-12-10 22:25:09.570] [COMPOSITE] Position 37,3 - WRITING at (37,3) zIndex=0:  
+[2025-12-10 22:25:09.584] [COMPOSITE] Position 38,3 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:09.597] [COMPOSITE] Position 38,3 - NEW, will write
+[2025-12-10 22:25:09.611] [COMPOSITE] Position 38,3 - WRITING at (38,3) zIndex=0:  
+[2025-12-10 22:25:09.624] [COMPOSITE] Position 39,3 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:09.639] [COMPOSITE] Position 39,3 - NEW, will write
+[2025-12-10 22:25:09.651] [COMPOSITE] Position 39,3 - WRITING at (39,3) zIndex=0:  
+[2025-12-10 22:25:09.665] [COMPOSITE] Position 40,3 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:09.678] [COMPOSITE] Position 40,3 - NEW, will write
+[2025-12-10 22:25:09.692] [COMPOSITE] Position 40,3 - WRITING at (40,3) zIndex=0:  
+[2025-12-10 22:25:09.704] [COMPOSITE] Position 41,3 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:09.718] [COMPOSITE] Position 41,3 - NEW, will write
+[2025-12-10 22:25:09.731] [COMPOSITE] Position 41,3 - WRITING at (41,3) zIndex=0:  
+[2025-12-10 22:25:09.745] [COMPOSITE] Position 42,3 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:09.757] [COMPOSITE] Position 42,3 - NEW, will write
+[2025-12-10 22:25:09.770] [COMPOSITE] Position 42,3 - WRITING at (42,3) zIndex=0:  
+[2025-12-10 22:25:09.782] [COMPOSITE] Position 43,3 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:09.795] [COMPOSITE] Position 43,3 - NEW, will write
+[2025-12-10 22:25:09.808] [COMPOSITE] Position 43,3 - WRITING at (43,3) zIndex=0:  
+[2025-12-10 22:25:09.822] [COMPOSITE] Position 44,3 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:09.834] [COMPOSITE] Position 44,3 - NEW, will write
+[2025-12-10 22:25:09.848] [COMPOSITE] Position 44,3 - WRITING at (44,3) zIndex=0:  
+[2025-12-10 22:25:09.861] [COMPOSITE] Position 45,3 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:09.873] [COMPOSITE] Position 45,3 - NEW, will write
+[2025-12-10 22:25:09.886] [COMPOSITE] Position 45,3 - WRITING at (45,3) zIndex=0:  
+[2025-12-10 22:25:09.899] [COMPOSITE] Position 46,3 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:09.912] [COMPOSITE] Position 46,3 - NEW, will write
+[2025-12-10 22:25:09.924] [COMPOSITE] Position 46,3 - WRITING at (46,3) zIndex=0:  
+[2025-12-10 22:25:09.937] [COMPOSITE] Position 47,3 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:09.950] [COMPOSITE] Position 47,3 - NEW, will write
+[2025-12-10 22:25:09.963] [COMPOSITE] Position 47,3 - WRITING at (47,3) zIndex=0:  
+[2025-12-10 22:25:09.976] [COMPOSITE] Position 48,3 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:09.989] [COMPOSITE] Position 48,3 - NEW, will write
+[2025-12-10 22:25:10.002] [COMPOSITE] Position 48,3 - WRITING at (48,3) zIndex=0:  
+[2025-12-10 22:25:10.014] [COMPOSITE] Position 49,3 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:10.026] [COMPOSITE] Position 49,3 - NEW, will write
+[2025-12-10 22:25:10.039] [COMPOSITE] Position 49,3 - WRITING at (49,3) zIndex=0:  
+[2025-12-10 22:25:10.052] [COMPOSITE] Position 50,3 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:10.066] [COMPOSITE] Position 50,3 - NEW, will write
+[2025-12-10 22:25:10.080] [COMPOSITE] Position 50,3 - WRITING at (50,3) zIndex=0:  
+[2025-12-10 22:25:10.092] [COMPOSITE] Position 51,3 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:10.105] [COMPOSITE] Position 51,3 - NEW, will write
+[2025-12-10 22:25:10.118] [COMPOSITE] Position 51,3 - WRITING at (51,3) zIndex=0:  
+[2025-12-10 22:25:10.130] [COMPOSITE] Position 52,3 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:10.143] [COMPOSITE] Position 52,3 - NEW, will write
+[2025-12-10 22:25:10.156] [COMPOSITE] Position 52,3 - WRITING at (52,3) zIndex=0:  
+[2025-12-10 22:25:10.170] [COMPOSITE] Position 53,3 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:10.184] [COMPOSITE] Position 53,3 - NEW, will write
+[2025-12-10 22:25:10.198] [COMPOSITE] Position 53,3 - WRITING at (53,3) zIndex=0:  
+[2025-12-10 22:25:10.212] [COMPOSITE] Position 54,3 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:10.225] [COMPOSITE] Position 54,3 - NEW, will write
+[2025-12-10 22:25:10.238] [COMPOSITE] Position 54,3 - WRITING at (54,3) zIndex=0:  
+[2025-12-10 22:25:10.251] [COMPOSITE] Position 55,3 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:10.264] [COMPOSITE] Position 55,3 - NEW, will write
+[2025-12-10 22:25:10.276] [COMPOSITE] Position 55,3 - WRITING at (55,3) zIndex=0:  
+[2025-12-10 22:25:10.288] [COMPOSITE] Position 56,3 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:10.301] [COMPOSITE] Position 56,3 - NEW, will write
+[2025-12-10 22:25:10.314] [COMPOSITE] Position 56,3 - WRITING at (56,3) zIndex=0:  
+[2025-12-10 22:25:10.327] [COMPOSITE] Position 57,3 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:10.341] [COMPOSITE] Position 57,3 - NEW, will write
+[2025-12-10 22:25:10.353] [COMPOSITE] Position 57,3 - WRITING at (57,3) zIndex=0:  
+[2025-12-10 22:25:10.365] [COMPOSITE] Position 58,3 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:10.378] [COMPOSITE] Position 58,3 - NEW, will write
+[2025-12-10 22:25:10.390] [COMPOSITE] Position 58,3 - WRITING at (58,3) zIndex=0:  
+[2025-12-10 22:25:10.403] [COMPOSITE] Position 59,3 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:10.414] [COMPOSITE] Position 59,3 - NEW, will write
+[2025-12-10 22:25:10.427] [COMPOSITE] Position 59,3 - WRITING at (59,3) zIndex=0:  
+[2025-12-10 22:25:10.441] [COMPOSITE] Position 60,3 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:10.454] [COMPOSITE] Position 60,3 - NEW, will write
+[2025-12-10 22:25:10.466] [COMPOSITE] Position 60,3 - WRITING at (60,3) zIndex=0:  
+[2025-12-10 22:25:10.479] [COMPOSITE] Position 61,3 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:10.491] [COMPOSITE] Position 61,3 - NEW, will write
+[2025-12-10 22:25:10.504] [COMPOSITE] Position 61,3 - WRITING at (61,3) zIndex=0:  
+[2025-12-10 22:25:10.517] [COMPOSITE] Position 62,3 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:10.530] [COMPOSITE] Position 62,3 - NEW, will write
+[2025-12-10 22:25:10.542] [COMPOSITE] Position 62,3 - WRITING at (62,3) zIndex=0:  
+[2025-12-10 22:25:10.555] [COMPOSITE] Position 63,3 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:10.567] [COMPOSITE] Position 63,3 - NEW, will write
+[2025-12-10 22:25:10.580] [COMPOSITE] Position 63,3 - WRITING at (63,3) zIndex=0:  
+[2025-12-10 22:25:10.593] [COMPOSITE] Position 64,3 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:10.606] [COMPOSITE] Position 64,3 - NEW, will write
+[2025-12-10 22:25:10.620] [COMPOSITE] Position 64,3 - WRITING at (64,3) zIndex=0:  
+[2025-12-10 22:25:10.631] [COMPOSITE] Position 65,3 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:10.644] [COMPOSITE] Position 65,3 - NEW, will write
+[2025-12-10 22:25:10.657] [COMPOSITE] Position 65,3 - WRITING at (65,3) zIndex=0:  
+[2025-12-10 22:25:10.670] [COMPOSITE] Position 66,3 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:10.683] [COMPOSITE] Position 66,3 - NEW, will write
+[2025-12-10 22:25:10.695] [COMPOSITE] Position 66,3 - WRITING at (66,3) zIndex=0:  
+[2025-12-10 22:25:10.707] [COMPOSITE] Position 67,3 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:10.720] [COMPOSITE] Position 67,3 - NEW, will write
+[2025-12-10 22:25:10.732] [COMPOSITE] Position 67,3 - WRITING at (67,3) zIndex=0:  
+[2025-12-10 22:25:10.745] [COMPOSITE] Position 68,3 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:10.758] [COMPOSITE] Position 68,3 - NEW, will write
+[2025-12-10 22:25:10.771] [COMPOSITE] Position 68,3 - WRITING at (68,3) zIndex=0:  
+[2025-12-10 22:25:10.783] [COMPOSITE] Position 69,3 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:10.796] [COMPOSITE] Position 69,3 - NEW, will write
+[2025-12-10 22:25:10.808] [COMPOSITE] Position 69,3 - WRITING at (69,3) zIndex=0:  
+[2025-12-10 22:25:10.821] [COMPOSITE] Position 70,3 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:10.834] [COMPOSITE] Position 70,3 - NEW, will write
+[2025-12-10 22:25:10.848] [COMPOSITE] Position 70,3 - WRITING at (70,3) zIndex=0:  
+[2025-12-10 22:25:10.860] [COMPOSITE] Position 71,3 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:10.873] [COMPOSITE] Position 71,3 - NEW, will write
+[2025-12-10 22:25:10.885] [COMPOSITE] Position 71,3 - WRITING at (71,3) zIndex=0:  
+[2025-12-10 22:25:10.898] [COMPOSITE] Position 72,3 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:10.910] [COMPOSITE] Position 72,3 - NEW, will write
+[2025-12-10 22:25:10.922] [COMPOSITE] Position 72,3 - WRITING at (72,3) zIndex=0:  
+[2025-12-10 22:25:10.934] [COMPOSITE] Position 73,3 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:10.947] [COMPOSITE] Position 73,3 - NEW, will write
+[2025-12-10 22:25:10.959] [COMPOSITE] Position 73,3 - WRITING at (73,3) zIndex=0:  
+[2025-12-10 22:25:10.972] [COMPOSITE] Position 74,3 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:10.986] [COMPOSITE] Position 74,3 - NEW, will write
+[2025-12-10 22:25:10.998] [COMPOSITE] Position 74,3 - WRITING at (74,3) zIndex=0:  
+[2025-12-10 22:25:11.010] [COMPOSITE] Position 75,3 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:11.022] [COMPOSITE] Position 75,3 - NEW, will write
+[2025-12-10 22:25:11.034] [COMPOSITE] Position 75,3 - WRITING at (75,3) zIndex=0:  
+[2025-12-10 22:25:11.047] [COMPOSITE] Position 76,3 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:11.060] [COMPOSITE] Position 76,3 - NEW, will write
+[2025-12-10 22:25:11.074] [COMPOSITE] Position 76,3 - WRITING at (76,3) zIndex=0:  
+[2025-12-10 22:25:11.088] [COMPOSITE] Position 77,3 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:11.100] [COMPOSITE] Position 77,3 - NEW, will write
+[2025-12-10 22:25:11.112] [COMPOSITE] Position 77,3 - WRITING at (77,3) zIndex=0:  
+[2025-12-10 22:25:11.125] [COMPOSITE] Position 78,3 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:11.138] [COMPOSITE] Position 78,3 - NEW, will write
+[2025-12-10 22:25:11.150] [COMPOSITE] Position 78,3 - WRITING at (78,3) zIndex=0:  
+[2025-12-10 22:25:11.163] [COMPOSITE] Position 79,3 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:11.177] [COMPOSITE] Position 79,3 - NEW, will write
+[2025-12-10 22:25:11.191] [COMPOSITE] Position 79,3 - WRITING at (79,3) zIndex=0:  
+[2025-12-10 22:25:11.204] [COMPOSITE] Position 0,4 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:11.218] [COMPOSITE] Position 0,4 - NEW, will write
+[2025-12-10 22:25:11.231] [COMPOSITE] Position 0,4 - WRITING at (0,4) zIndex=0:  
+[2025-12-10 22:25:11.244] [COMPOSITE] Position 1,4 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:11.257] [COMPOSITE] Position 1,4 - NEW, will write
+[2025-12-10 22:25:11.269] [COMPOSITE] Position 1,4 - WRITING at (1,4) zIndex=0:  
+[2025-12-10 22:25:11.282] [COMPOSITE] Position 2,4 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:11.294] [COMPOSITE] Position 2,4 - NEW, will write
+[2025-12-10 22:25:11.306] [COMPOSITE] Position 2,4 - WRITING at (2,4) zIndex=0:  
+[2025-12-10 22:25:11.318] [COMPOSITE] Position 3,4 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:11.332] [COMPOSITE] Position 3,4 - NEW, will write
+[2025-12-10 22:25:11.345] [COMPOSITE] Position 3,4 - WRITING at (3,4) zIndex=0:  
+[2025-12-10 22:25:11.358] [COMPOSITE] Position 4,4 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:11.370] [COMPOSITE] Position 4,4 - NEW, will write
+[2025-12-10 22:25:11.383] [COMPOSITE] Position 4,4 - WRITING at (4,4) zIndex=0:  
+[2025-12-10 22:25:11.395] [COMPOSITE] Position 5,4 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:11.408] [COMPOSITE] Position 5,4 - NEW, will write
+[2025-12-10 22:25:11.421] [COMPOSITE] Position 5,4 - WRITING at (5,4) zIndex=0:  
+[2025-12-10 22:25:11.435] [COMPOSITE] Position 6,4 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:11.447] [COMPOSITE] Position 6,4 - NEW, will write
+[2025-12-10 22:25:11.461] [COMPOSITE] Position 6,4 - WRITING at (6,4) zIndex=0:  
+[2025-12-10 22:25:11.474] [COMPOSITE] Position 7,4 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:11.486] [COMPOSITE] Position 7,4 - NEW, will write
+[2025-12-10 22:25:11.499] [COMPOSITE] Position 7,4 - WRITING at (7,4) zIndex=0:  
+[2025-12-10 22:25:11.512] [COMPOSITE] Position 8,4 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:11.524] [COMPOSITE] Position 8,4 - NEW, will write
+[2025-12-10 22:25:11.537] [COMPOSITE] Position 8,4 - WRITING at (8,4) zIndex=0:  
+[2025-12-10 22:25:11.550] [COMPOSITE] Position 9,4 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:11.562] [COMPOSITE] Position 9,4 - NEW, will write
+[2025-12-10 22:25:11.574] [COMPOSITE] Position 9,4 - WRITING at (9,4) zIndex=0:  
+[2025-12-10 22:25:11.587] [COMPOSITE] Position 10,4 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:11.600] [COMPOSITE] Position 10,4 - NEW, will write
+[2025-12-10 22:25:11.613] [COMPOSITE] Position 10,4 - WRITING at (10,4) zIndex=0:  
+[2025-12-10 22:25:11.625] [COMPOSITE] Position 11,4 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:11.638] [COMPOSITE] Position 11,4 - NEW, will write
+[2025-12-10 22:25:11.651] [COMPOSITE] Position 11,4 - WRITING at (11,4) zIndex=0:  
+[2025-12-10 22:25:11.664] [COMPOSITE] Position 12,4 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:11.677] [COMPOSITE] Position 12,4 - NEW, will write
+[2025-12-10 22:25:11.689] [COMPOSITE] Position 12,4 - WRITING at (12,4) zIndex=0:  
+[2025-12-10 22:25:11.701] [COMPOSITE] Position 13,4 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:11.714] [COMPOSITE] Position 13,4 - NEW, will write
+[2025-12-10 22:25:11.731] [COMPOSITE] Position 13,4 - WRITING at (13,4) zIndex=0:  
+[2025-12-10 22:25:11.748] [COMPOSITE] Position 14,4 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:11.762] [COMPOSITE] Position 14,4 - NEW, will write
+[2025-12-10 22:25:11.776] [COMPOSITE] Position 14,4 - WRITING at (14,4) zIndex=0:  
+[2025-12-10 22:25:11.792] [COMPOSITE] Position 15,4 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:11.807] [COMPOSITE] Position 15,4 - NEW, will write
+[2025-12-10 22:25:11.821] [COMPOSITE] Position 15,4 - WRITING at (15,4) zIndex=0:  
+[2025-12-10 22:25:11.835] [COMPOSITE] Position 16,4 - 1 layers, maxZ=0, content length=1
+[2025-12-10 22:25:11.849] [COMPOSITE] Position 16,4 - NEW, will write
