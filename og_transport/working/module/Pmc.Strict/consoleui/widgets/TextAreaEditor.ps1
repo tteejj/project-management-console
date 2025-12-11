@@ -165,26 +165,29 @@ class TextAreaEditor {
     [void] RenderToEngine([object]$engine) {
         $lineCount = $this.GetLineCount()
 
-        if ($global:PmcTuiLogFile) {
-            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] TextAreaEditor.RenderToEngine: Start - X=$($this.X) Y=$($this.Y) W=$($this.Width) H=$($this.Height) Lines=$lineCount ScrollY=$($this.ScrollOffsetY)"
-        }
+        # PERF: Disabled excessive logging
+        # if ($global:PmcTuiLogFile) {
+        #     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] TextAreaEditor.RenderToEngine: Start - X=$($this.X) Y=$($this.Y) W=$($this.Width) H=$($this.Height) Lines=$lineCount ScrollY=$($this.ScrollOffsetY)"
+        # }
 
         # Render each visible line
         for ($i = 0; $i -lt $this.Height; $i++) {
             $lineIndex = $this.ScrollOffsetY + $i
             $screenY = $this.Y + $i
 
-            if ($global:PmcTuiLogFile -and $i -lt 3) {
-                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] TextAreaEditor.RenderToEngine: Line $i - lineIndex=$lineIndex screenY=$screenY"
-            }
+            # PERF: Disabled excessive logging
+            # if ($global:PmcTuiLogFile -and $i -lt 3) {
+            #     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] TextAreaEditor.RenderToEngine: Line $i - lineIndex=$lineIndex screenY=$screenY"
+            # }
 
             if ($lineIndex -lt $lineCount) {
                 $line = $this.GetLine($lineIndex)
 
-                if ($global:PmcTuiLogFile -and $i -lt 3) {
-                    $linePreview = $(if ($line.Length -gt 20) { $line.Substring(0, 20) + "..." } else { $line })
-                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] TextAreaEditor.RenderToEngine: Line content: '$linePreview' (len=$($line.Length))"
-                }
+                # PERF: Disabled excessive logging
+                # if ($global:PmcTuiLogFile -and $i -lt 3) {
+                #     $linePreview = $(if ($line.Length -gt 20) { $line.Substring(0, 20) + "..." } else { $line })
+                #     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] TextAreaEditor.RenderToEngine: Line content: '$linePreview' (len=$($line.Length))"
+                # }
 
                 # Handle horizontal scrolling
                 $startCol = $this.ScrollOffsetX
