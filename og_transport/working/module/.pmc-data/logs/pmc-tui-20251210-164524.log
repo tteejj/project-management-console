@@ -1,0 +1,1840 @@
+[2025-12-10 16:45:24.987] [INFO] Loading PMC module...
+[2025-12-10 16:45:26.049] [INFO] PMC module loaded
+[2025-12-10 16:45:26.051] [INFO] Loading dependencies (FieldSchemas, etc.)...
+[2025-12-10 16:45:26.158] [INFO] Dependencies loaded
+[2025-12-10 16:45:26.159] [INFO] Loading SpeedTUI framework...
+[2025-12-10 16:45:26.438] [INFO] SpeedTUI framework loaded
+[2025-12-10 16:45:26.451] [INFO] Loading PraxisVT...
+[2025-12-10 16:45:26.470] [INFO] PraxisVT loaded
+[2025-12-10 16:45:26.480] [INFO] Loading core dependencies...
+[2025-12-10 16:45:26.544] [INFO] Core dependencies loaded
+[2025-12-10 16:45:26.556] [INFO] Loading widget base classes...
+[2025-12-10 16:45:26.608] [INFO] Widget base classes loaded
+[2025-12-10 16:45:26.619] [INFO] Loading services...
+[2025-12-10 16:45:26.756] [INFO] Services loaded
+[2025-12-10 16:45:26.767] [INFO] Loading helpers...
+[2025-12-10 16:45:27.168] [INFO] Helpers loaded
+[2025-12-10 16:45:27.179] [INFO] Loading widgets...
+[2025-12-10 16:45:27.586] [INFO] Widgets loaded
+[2025-12-10 16:45:27.601] [INFO] Loading screen base class...
+[2025-12-10 16:45:27.633] [INFO] Screen base class loaded
+[2025-12-10 16:45:27.645] [INFO] Loading HelpViewScreen (needed by base classes)...
+[2025-12-10 16:45:27.680] [INFO] HelpViewScreen loaded
+[2025-12-10 16:45:27.692] [INFO] Loading base classes...
+[2025-12-10 16:45:27.766] [INFO] Base classes loaded
+[2025-12-10 16:45:27.800] [INFO] Loading ServiceContainer (needed by screens)...
+[2025-12-10 16:45:27.823] [INFO] ServiceContainer loaded
+[2025-12-10 16:45:27.835] [INFO] Loading remaining screens...
+[2025-12-10 16:45:27.974] [INFO] Remaining screens loaded
+[2025-12-10 16:45:27.985] [INFO] Loading PmcApplication...
+[2025-12-10 16:45:28.017] [INFO] PmcApplication loaded
+[2025-12-10 16:45:28.029] [INFO] All components loaded successfully
+[2025-12-10 16:45:28.053] [INFO] Starting PMC TUI with screen: TaskList
+[2025-12-10 16:45:28.072] [INFO] Cleared stale PmcSharedMenuBar and MenuRegistry singleton
+[2025-12-10 16:45:28.083] [INFO] Creating ServiceContainer...
+[2025-12-10 16:45:28.100] [INFO] ServiceContainer created
+[2025-12-10 16:45:28.112] [INFO] Registering Theme service...
+[2025-12-10 16:45:28.137] ServiceContainer: Registered 'Theme' (singleton=True)
+[2025-12-10 16:45:28.150] [INFO] Registering ThemeManager...
+[2025-12-10 16:45:28.162] ServiceContainer: Registered 'ThemeManager' (singleton=True)
+[2025-12-10 16:45:28.174] [INFO] Registering Config service...
+[2025-12-10 16:45:28.187] ServiceContainer: Registered 'Config' (singleton=True)
+[2025-12-10 16:45:28.199] [INFO] Registering TaskStore service...
+[2025-12-10 16:45:28.212] ServiceContainer: Registered 'TaskStore' (singleton=True)
+[2025-12-10 16:45:28.224] [INFO] Registering MenuRegistry service...
+[2025-12-10 16:45:28.237] ServiceContainer: Registered 'MenuRegistry' (singleton=True)
+[2025-12-10 16:45:28.249] [INFO] Registering Application service...
+[2025-12-10 16:45:28.260] ServiceContainer: Registered 'Application' (singleton=True)
+[2025-12-10 16:45:28.272] [INFO] Registering CommandService...
+[2025-12-10 16:45:28.285] ServiceContainer: Registered 'CommandService' (singleton=True)
+[2025-12-10 16:45:28.297] [INFO] Registering ChecklistService...
+[2025-12-10 16:45:28.310] ServiceContainer: Registered 'ChecklistService' (singleton=True)
+[2025-12-10 16:45:28.322] [INFO] Registering NoteService...
+[2025-12-10 16:45:28.333] ServiceContainer: Registered 'NoteService' (singleton=True)
+[2025-12-10 16:45:28.347] [INFO] Registering ExcelMappingService...
+[2025-12-10 16:45:28.359] ServiceContainer: Registered 'ExcelMappingService' (singleton=True)
+[2025-12-10 16:45:28.370] [INFO] Registering PreferencesService...
+[2025-12-10 16:45:28.387] ServiceContainer: Registered 'PreferencesService' (singleton=True)
+[2025-12-10 16:45:28.399] [INFO] Registering screen factories...
+[2025-12-10 16:45:28.410] ServiceContainer: Registered 'TaskListScreen' (singleton=False)
+[2025-12-10 16:45:28.424] [INFO] Resolving Application from container...
+[2025-12-10 16:45:28.446] ServiceContainer: Resolving 'Application'...
+[2025-12-10 16:45:28.459] [INFO] Resolving Application...
+[2025-12-10 16:45:28.471] ServiceContainer: Resolving 'Theme'...
+[2025-12-10 16:45:28.489] [INFO] Resolving Theme: Calling Initialize-PmcThemeSystem...
+[2025-12-10 16:45:28.507] [INFO] Theme resolved: #33aaff
+[2025-12-10 16:45:28.519] [INFO] Loading PmcThemeEngine...
+[2025-12-10 16:45:28.634] [INFO] PmcThemeEngine initialized with PMC palette (14 colors)
+[2025-12-10 16:45:28.648] ServiceContainer: Resolved 'Theme' successfully
+[2025-12-10 16:45:28.687] ServiceContainer: Resolving 'ThemeManager'...
+[2025-12-10 16:45:28.699] [INFO] Resolving ThemeManager...
+[2025-12-10 16:45:28.785] ServiceContainer: Resolved 'ThemeManager' successfully
+[2025-12-10 16:45:28.803] ServiceContainer: Resolved 'Application' successfully
+[2025-12-10 16:45:28.816] [INFO] Application resolved and assigned to $global:PmcApp
+[2025-12-10 16:45:28.827] [INFO] Loading menus from manifest...
+[2025-12-10 16:45:28.839] ServiceContainer: Resolving 'MenuRegistry'...
+[2025-12-10 16:45:28.853] [INFO] Resolving MenuRegistry...
+[2025-12-10 16:45:28.868] ServiceContainer: Resolved 'MenuRegistry' successfully
+[2025-12-10 16:45:28.893] MenuRegistry: Loaded manifest with 24 entries
+[2025-12-10 16:45:28.918] ServiceContainer: Registered 'SettingsScreen' (singleton=False)
+[2025-12-10 16:45:28.931] MenuRegistry: Registered screen factory 'SettingsScreen' in container (viewMode=)
+[2025-12-10 16:45:28.952] MenuRegistry: Registered 'Settings' in 'Options' menu (hotkey=S order=20)
+[2025-12-10 16:45:28.964] ServiceContainer: Registered 'ThemeEditorScreen' (singleton=False)
+[2025-12-10 16:45:28.975] MenuRegistry: Registered screen factory 'ThemeEditorScreen' in container (viewMode=)
+[2025-12-10 16:45:28.988] MenuRegistry: Registered 'Theme Editor' in 'Options' menu (hotkey=T order=10)
+[2025-12-10 16:45:29.002] ServiceContainer: Registered 'TaskListScreen_NoDate' (singleton=False)
+[2025-12-10 16:45:29.014] MenuRegistry: Registered screen factory 'TaskListScreen_NoDate' in container (viewMode=noduedate)
+[2025-12-10 16:45:29.026] MenuRegistry: Registered 'No Due Date' in 'Tasks' menu (hotkey=D order=40)
+[2025-12-10 16:45:29.039] ServiceContainer: Registered 'TaskListScreen_Overdue' (singleton=False)
+[2025-12-10 16:45:29.051] MenuRegistry: Registered screen factory 'TaskListScreen_Overdue' in container (viewMode=overdue)
+[2025-12-10 16:45:29.063] MenuRegistry: Registered 'Overdue' in 'Tasks' menu (hotkey=O order=30)
+[2025-12-10 16:45:29.075] ServiceContainer: Registered 'ExcelImportScreen' (singleton=False)
+[2025-12-10 16:45:29.087] MenuRegistry: Registered screen factory 'ExcelImportScreen' in container (viewMode=)
+[2025-12-10 16:45:29.099] MenuRegistry: Registered 'Import from Excel' in 'Projects' menu (hotkey=I order=40)
+[2025-12-10 16:45:29.110] ServiceContainer: Registered 'ExcelProfileManagerScreen' (singleton=False)
+[2025-12-10 16:45:29.122] MenuRegistry: Registered screen factory 'ExcelProfileManagerScreen' in container (viewMode=)
+[2025-12-10 16:45:29.135] MenuRegistry: Registered 'Excel Profiles' in 'Projects' menu (hotkey=M order=50)
+[2025-12-10 16:45:29.148] ServiceContainer: Registered 'TimeReportScreen' (singleton=False)
+[2025-12-10 16:45:29.159] MenuRegistry: Registered screen factory 'TimeReportScreen' in container (viewMode=)
+[2025-12-10 16:45:29.193] MenuRegistry: Registered 'Time Report' in 'Time' menu (hotkey=R order=20)
+[2025-12-10 16:45:29.207] ServiceContainer: Registered 'TaskListScreen_Today' (singleton=False)
+[2025-12-10 16:45:29.219] MenuRegistry: Registered screen factory 'TaskListScreen_Today' in container (viewMode=today)
+[2025-12-10 16:45:29.231] MenuRegistry: Registered 'Today' in 'Tasks' menu (hotkey=Y order=10)
+[2025-12-10 16:45:29.244] ServiceContainer: Registered 'TaskListScreen_Tomorrow' (singleton=False)
+[2025-12-10 16:45:29.255] MenuRegistry: Registered screen factory 'TaskListScreen_Tomorrow' in container (viewMode=tomorrow)
+[2025-12-10 16:45:29.268] MenuRegistry: Registered 'Tomorrow' in 'Tasks' menu (hotkey=T order=15)
+[2025-12-10 16:45:29.281] ServiceContainer: Registered 'ChecklistTemplatesFolderScreen' (singleton=False)
+[2025-12-10 16:45:29.293] MenuRegistry: Registered screen factory 'ChecklistTemplatesFolderScreen' in container (viewMode=)
+[2025-12-10 16:45:29.305] MenuRegistry: Registered 'Checklist Templates' in 'Tools' menu (hotkey=H order=30)
+[2025-12-10 16:45:29.317] ServiceContainer: Registered 'TaskListScreen_Upcoming' (singleton=False)
+[2025-12-10 16:45:29.329] MenuRegistry: Registered screen factory 'TaskListScreen_Upcoming' in container (viewMode=upcoming)
+[2025-12-10 16:45:29.341] MenuRegistry: Registered 'Upcoming' in 'Tasks' menu (hotkey=U order=25)
+[2025-12-10 16:45:29.352] ServiceContainer: Registered 'KanbanScreenV2' (singleton=False)
+[2025-12-10 16:45:29.364] MenuRegistry: Registered screen factory 'KanbanScreenV2' in container (viewMode=)
+[2025-12-10 16:45:29.375] MenuRegistry: Registered 'Kanban Board' in 'Tasks' menu (hotkey=K order=55)
+[2025-12-10 16:45:29.391] ServiceContainer: Registered 'WeeklyTimeReportScreen' (singleton=False)
+[2025-12-10 16:45:29.403] MenuRegistry: Registered screen factory 'WeeklyTimeReportScreen' in container (viewMode=)
+[2025-12-10 16:45:29.416] MenuRegistry: Registered 'Weekly Report' in 'Time' menu (hotkey=W order=10)
+[2025-12-10 16:45:29.429] ServiceContainer: Registered 'HelpViewScreen' (singleton=False)
+[2025-12-10 16:45:29.442] MenuRegistry: Registered screen factory 'HelpViewScreen' in container (viewMode=)
+[2025-12-10 16:45:29.456] MenuRegistry: Registered 'Help' in 'Help' menu (hotkey=H order=10)
+[2025-12-10 16:45:29.469] ServiceContainer: Registered 'ChecklistsLauncherScreen' (singleton=False)
+[2025-12-10 16:45:29.482] MenuRegistry: Registered screen factory 'ChecklistsLauncherScreen' in container (viewMode=)
+[2025-12-10 16:45:29.494] MenuRegistry: Registered 'Checklists' in 'Tools' menu (hotkey=C order=25)
+[2025-12-10 16:45:29.508] ServiceContainer: Registered 'CommandLibraryScreen' (singleton=False)
+[2025-12-10 16:45:29.521] MenuRegistry: Registered screen factory 'CommandLibraryScreen' in container (viewMode=)
+[2025-12-10 16:45:29.535] MenuRegistry: Registered 'Command Library' in 'Tools' menu (hotkey=L order=10)
+[2025-12-10 16:45:29.548] ServiceContainer: Registered 'TaskListScreen_Week' (singleton=False)
+[2025-12-10 16:45:29.561] MenuRegistry: Registered screen factory 'TaskListScreen_Week' in container (viewMode=week)
+[2025-12-10 16:45:29.574] MenuRegistry: Registered 'Week View' in 'Tasks' menu (hotkey=W order=20)
+[2025-12-10 16:45:29.586] ServiceContainer: Registered 'TaskListScreen_NextActions' (singleton=False)
+[2025-12-10 16:45:29.598] MenuRegistry: Registered screen factory 'TaskListScreen_NextActions' in container (viewMode=nextactions)
+[2025-12-10 16:45:29.611] MenuRegistry: Registered 'Next Actions' in 'Tasks' menu (hotkey=N order=35)
+[2025-12-10 16:45:29.624] ServiceContainer: Registered 'TaskListScreen_Agenda' (singleton=False)
+[2025-12-10 16:45:29.638] MenuRegistry: Registered screen factory 'TaskListScreen_Agenda' in container (viewMode=agenda)
+[2025-12-10 16:45:29.650] MenuRegistry: Registered 'Agenda View' in 'Tasks' menu (hotkey=A order=50)
+[2025-12-10 16:45:29.663] ServiceContainer: Registered 'TaskListScreen_Default' (singleton=False)
+[2025-12-10 16:45:29.675] MenuRegistry: Registered screen factory 'TaskListScreen_Default' in container (viewMode=)
+[2025-12-10 16:45:29.687] MenuRegistry: Registered 'Task List' in 'Tasks' menu (hotkey=L order=5)
+[2025-12-10 16:45:29.699] ServiceContainer: Registered 'TimeListScreen' (singleton=False)
+[2025-12-10 16:45:29.714] MenuRegistry: Registered screen factory 'TimeListScreen' in container (viewMode=)
+[2025-12-10 16:45:29.727] MenuRegistry: Registered 'Time Tracking' in 'Time' menu (hotkey=T order=5)
+[2025-12-10 16:45:29.740] ServiceContainer: Registered 'TaskListScreen_Month' (singleton=False)
+[2025-12-10 16:45:29.751] MenuRegistry: Registered screen factory 'TaskListScreen_Month' in container (viewMode=month)
+[2025-12-10 16:45:29.764] MenuRegistry: Registered 'Month View' in 'Tasks' menu (hotkey=M order=45)
+[2025-12-10 16:45:29.776] ServiceContainer: Registered 'ProjectListScreen' (singleton=False)
+[2025-12-10 16:45:29.789] MenuRegistry: Registered screen factory 'ProjectListScreen' in container (viewMode=)
+[2025-12-10 16:45:29.801] MenuRegistry: Registered 'Project List' in 'Projects' menu (hotkey=L order=10)
+[2025-12-10 16:45:29.816] ServiceContainer: Registered 'NotesMenuScreen' (singleton=False)
+[2025-12-10 16:45:29.829] MenuRegistry: Registered screen factory 'NotesMenuScreen' in container (viewMode=)
+[2025-12-10 16:45:29.842] MenuRegistry: Registered 'Notes' in 'Tools' menu (hotkey=N order=20)
+[2025-12-10 16:45:29.855] [INFO] Menus loaded from C:\Users\jhnhe\OneDrive\Documents\GitHub\project-management-console\og_transport\working\module\Pmc.Strict\consoleui\screens\MenuItems.psd1
+[2025-12-10 16:45:29.868] [INFO] Launching screen: TaskList
+[2025-12-10 16:45:29.884] [INFO] Resolving TaskListScreen from container...
+[2025-12-10 16:45:29.896] ServiceContainer: Resolving 'TaskListScreen'...
+[2025-12-10 16:45:29.910] [INFO] Resolving TaskListScreen...
+[2025-12-10 16:45:29.923] ServiceContainer: Resolving 'TaskStore'...
+[2025-12-10 16:45:29.937] [INFO] Resolving TaskStore...
+[2025-12-10 16:45:29.973] [DEBUG] TaskStore.LoadData: Starting
+[2025-12-10 16:45:29.985] [DEBUG] TaskStore.LoadData: Calling Get-PmcData
+[2025-12-10 16:45:30.190] [DEBUG] TaskStore.LoadData: Get-PmcData returned - tasks=2 projects=0 timelogs=0
+[2025-12-10 16:45:30.211] [DEBUG] TaskStore.LoadData: Loaded 2 tasks
+[2025-12-10 16:45:30.224] [DEBUG] TaskStore.LoadData: No projects in data, initialized empty list
+[2025-12-10 16:45:30.242] ServiceContainer: Resolved 'TaskStore' successfully
+[2025-12-10 16:45:30.668] MenuRegistry: Loaded manifest with 24 entries
+[2025-12-10 16:45:30.683] MenuRegistry: Registered 'Settings' in 'Options' menu (hotkey=S order=20)
+[2025-12-10 16:45:30.697] MenuRegistry: Registered 'Theme Editor' in 'Options' menu (hotkey=T order=10)
+[2025-12-10 16:45:30.710] MenuRegistry: Registered 'No Due Date' in 'Tasks' menu (hotkey=D order=40)
+[2025-12-10 16:45:30.724] MenuRegistry: Registered 'Overdue' in 'Tasks' menu (hotkey=O order=30)
+[2025-12-10 16:45:30.738] MenuRegistry: Registered 'Import from Excel' in 'Projects' menu (hotkey=I order=40)
+[2025-12-10 16:45:30.751] MenuRegistry: Registered 'Excel Profiles' in 'Projects' menu (hotkey=M order=50)
+[2025-12-10 16:45:30.765] MenuRegistry: Registered 'Time Report' in 'Time' menu (hotkey=R order=20)
+[2025-12-10 16:45:30.779] MenuRegistry: Registered 'Today' in 'Tasks' menu (hotkey=Y order=10)
+[2025-12-10 16:45:30.793] MenuRegistry: Registered 'Tomorrow' in 'Tasks' menu (hotkey=T order=15)
+[2025-12-10 16:45:30.808] MenuRegistry: Registered 'Checklist Templates' in 'Tools' menu (hotkey=H order=30)
+[2025-12-10 16:45:30.822] MenuRegistry: Registered 'Upcoming' in 'Tasks' menu (hotkey=U order=25)
+[2025-12-10 16:45:30.835] MenuRegistry: Registered 'Kanban Board' in 'Tasks' menu (hotkey=K order=55)
+[2025-12-10 16:45:30.848] MenuRegistry: Registered 'Weekly Report' in 'Time' menu (hotkey=W order=10)
+[2025-12-10 16:45:30.863] MenuRegistry: Registered 'Help' in 'Help' menu (hotkey=H order=10)
+[2025-12-10 16:45:30.877] MenuRegistry: Registered 'Checklists' in 'Tools' menu (hotkey=C order=25)
+[2025-12-10 16:45:30.895] MenuRegistry: Registered 'Command Library' in 'Tools' menu (hotkey=L order=10)
+[2025-12-10 16:45:30.909] MenuRegistry: Registered 'Week View' in 'Tasks' menu (hotkey=W order=20)
+[2025-12-10 16:45:30.944] MenuRegistry: Registered 'Next Actions' in 'Tasks' menu (hotkey=N order=35)
+[2025-12-10 16:45:30.957] MenuRegistry: Registered 'Agenda View' in 'Tasks' menu (hotkey=A order=50)
+[2025-12-10 16:45:30.972] MenuRegistry: Registered 'Task List' in 'Tasks' menu (hotkey=L order=5)
+[2025-12-10 16:45:30.985] MenuRegistry: Registered 'Time Tracking' in 'Time' menu (hotkey=T order=5)
+[2025-12-10 16:45:30.998] MenuRegistry: Registered 'Month View' in 'Tasks' menu (hotkey=M order=45)
+[2025-12-10 16:45:31.010] MenuRegistry: Registered 'Project List' in 'Projects' menu (hotkey=L order=10)
+[2025-12-10 16:45:31.022] MenuRegistry: Registered 'Notes' in 'Tools' menu (hotkey=N order=20)
+[2025-12-10 16:45:31.050] _PopulateMenusFromRegistry: Menu 'Tasks' has 11 items from registry (array)
+[2025-12-10 16:45:31.074] _PopulateMenusFromRegistry: Menu 'Options' has 2 items from registry (array)
+[2025-12-10 16:45:31.087] _PopulateMenusFromRegistry: Menu 'Time' has 3 items from registry (array)
+[2025-12-10 16:45:31.105] _PopulateMenusFromRegistry: Menu 'Projects' has 3 items from registry (array)
+[2025-12-10 16:45:31.122] _PopulateMenusFromRegistry: Menu 'Tools' has 4 items from registry (array)
+[2025-12-10 16:45:31.143] _PopulateMenusFromRegistry: Menu 'Help' has 1 items from registry (array)
+[2025-12-10 16:45:31.162] ServiceContainer: Resolved 'TaskListScreen' successfully
+[2025-12-10 16:45:31.176] [INFO] Pushing screen to app...
+[2025-12-10 16:45:31.206] [RENDER] RequestClear: Terminal cleared + caches invalidated
+[2025-12-10 16:45:31.367] [DEBUG] LoadData: Got 2 tasks from Store
+[2025-12-10 16:45:31.451] [DEBUG] TaskListScreen.LoadData: Setting 2 tasks
+[2025-12-10 16:45:31.472] [INFO] UniversalList.SetData: START, data param type=System.Object[]
+[2025-12-10 16:45:31.485] [INFO] UniversalList.SetData: About to assign _data
+[2025-12-10 16:45:31.507] [INFO] UniversalList.SetData: _data assigned successfully
+[2025-12-10 16:45:31.520] [INFO] UniversalList.SetData: About to check _data type
+[2025-12-10 16:45:31.534] [INFO] UniversalList.SetData: _data type=System.Object[]
+[2025-12-10 16:45:31.548] [INFO] UniversalList.SetData: About to access _data.Count
+[2025-12-10 16:45:31.560] [INFO] UniversalList.SetData: _data.Count=2
+[2025-12-10 16:45:31.573] [INFO] UniversalList.SetData: _filteredData assigned
+[2025-12-10 16:45:31.586] [INFO] UniversalList.SetData: About to clear _selectedIndices
+[2025-12-10 16:45:31.600] [INFO] UniversalList.SetData: _selectedIndices cleared
+[2025-12-10 16:45:31.612] [INFO] UniversalList.SetData: Received 2 items
+[2025-12-10 16:45:31.627] [INFO] UniversalList.SetData: First item type=Hashtable isHashtable=True
+[2025-12-10 16:45:31.644] [INFO] UniversalList.SetData: First item keys: text, created, status, details, due, tags, completed, priority, id, project, modified
+[2025-12-10 16:45:31.656] [INFO] UniversalList.SetData: Incrementing cache generation
+[2025-12-10 16:45:31.669] [INFO] UniversalList.SetData: Clearing row cache
+[2025-12-10 16:45:31.684] [INFO] UniversalList.SetData: Clearing cache access order
+[2025-12-10 16:45:31.698] [INFO] UniversalList.SetData: Applying filters
+[2025-12-10 16:45:31.729] [INFO] UniversalList.SetData: Applying search
+[2025-12-10 16:45:31.742] [INFO] UniversalList.SetData: Invoking OnDataChanged callback
+[2025-12-10 16:45:31.762] [INFO] UniversalList.SetData: COMPLETE
+[2025-12-10 16:45:31.779] [RENDER] RequestClear: Terminal cleared + caches invalidated
+[2025-12-10 16:45:31.797] [INFO] Screen pushed successfully
+[2025-12-10 16:45:31.809] [INFO] Starting event loop...
+[2025-12-10 16:45:31.840] [RENDER] BeginFrame #1 - BEFORE clear: composited=0, layered=0
+[2025-12-10 16:45:31.870] [RENDER] BeginFrame: Layer data cleared, composited cache still has 0 entries
+[2025-12-10 16:45:31.907] [LAYER] BeginLayer(zIndex=50) - Total switches: 1
+[2025-12-10 16:45:32.004] [LAYER] WriteAt(1,3,zIndex=50) - stored content (len=32): [38;2;153;102;255mTask List[0m
+[2025-12-10 16:45:32.017] [LAYER] WriteAt(1,5,zIndex=50) - stored content (len=39): [38;2;136;136;136mHome → Task List[0m
+[2025-12-10 16:45:32.030] [LAYER] BeginLayer(zIndex=10) - Total switches: 2
+[2025-12-10 16:45:32.152] [INFO] PadText: text='Task' rawLen=4 visibleLen=4 width=28 align=left
+[2025-12-10 16:45:32.167] [INFO] PadText: text='Details' rawLen=7 visibleLen=7 width=20 align=left
+[2025-12-10 16:45:32.180] [INFO] PadText: text='Due' rawLen=3 visibleLen=3 width=14 align=left
+[2025-12-10 16:45:32.194] [INFO] PadText: text='Project' rawLen=7 visibleLen=7 width=14 align=left
+[2025-12-10 16:45:32.207] [INFO] PadText: text='Tags' rawLen=4 visibleLen=4 width=16 align=left
+[2025-12-10 16:45:32.260] [INFO] PadText: text='t2' rawLen=2 visibleLen=2 width=28 align=left
+[2025-12-10 16:45:32.278] [INFO] PadText: text='d2' rawLen=2 visibleLen=2 width=20 align=left
+[2025-12-10 16:45:32.302] [INFO] PadText: text='Dec 16' rawLen=6 visibleLen=6 width=14 align=left
+[2025-12-10 16:45:32.326] [INFO] PadText: text='t1' rawLen=2 visibleLen=2 width=28 align=left
+[16:45:32.356] PmcScreen.RenderToEngine: RenderContent returned length=5150
+[2025-12-10 16:45:32.378] [LAYER] WriteAt(0,3,zIndex=10) - stored content (len=105): [38;2;107;71;178m┌───────────────────────────────...
+[2025-12-10 16:45:32.390] [LAYER] WriteAt(2,3,zIndex=10) - stored content (len=30): [38;2;153;102;255m Task List 
+[2025-12-10 16:45:32.405] [LAYER] WriteAt(76,3,zIndex=10) - stored content (len=28): [38;2;136;136;136m(2 items)
+[2025-12-10 16:45:32.418] [LAYER] WriteAt(0,4,zIndex=10) - stored content (len=19): [38;2;107;71;178m│
+[2025-12-10 16:45:32.431] [LAYER] WriteAt(2,4,zIndex=10) - stored content (len=131): [38;2;153;102;255mTask                           ...
+[2025-12-10 16:45:32.444] [LAYER] WriteAt(86,4,zIndex=10) - stored content (len=19): [38;2;107;71;178m│
+[2025-12-10 16:45:32.458] [LAYER] WriteAt(0,5,zIndex=10) - stored content (len=105): [38;2;107;71;178m│───────────────────────────────...
+[2025-12-10 16:45:32.472] [LAYER] WriteAt(0,6,zIndex=10) - stored content (len=7): [0m[K
+[2025-12-10 16:45:32.485] [LAYER] WriteAt(0,6,zIndex=10) - stored content (len=19): [38;2;107;71;178m│
+[2025-12-10 16:45:32.497] [LAYER] WriteAt(2,6,zIndex=10) - stored content (len=322): [48;2;153;102;255m[38;2;255;255;255mt2          ...
+[2025-12-10 16:45:32.510] [LAYER] WriteAt(86,6,zIndex=10) - stored content (len=26): [38;2;107;71;178m│[0m[K
+[2025-12-10 16:45:32.523] [LAYER] WriteAt(0,7,zIndex=10) - stored content (len=7): [0m[K
+[2025-12-10 16:45:32.536] [LAYER] WriteAt(0,7,zIndex=10) - stored content (len=19): [38;2;107;71;178m│
+[2025-12-10 16:45:32.550] [LAYER] WriteAt(2,7,zIndex=10) - stored content (len=227): [38;2;241;221;255mt1                             ...
+[2025-12-10 16:45:32.563] [LAYER] WriteAt(86,7,zIndex=10) - stored content (len=26): [38;2;107;71;178m│[0m[K
+[2025-12-10 16:45:32.575] [LAYER] WriteAt(0,8,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:32.588] [LAYER] WriteAt(0,9,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:32.600] [LAYER] WriteAt(0,10,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:32.612] [LAYER] WriteAt(0,11,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:32.625] [LAYER] WriteAt(0,12,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:32.637] [LAYER] WriteAt(0,13,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:32.653] [LAYER] WriteAt(0,14,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:32.666] [LAYER] WriteAt(0,15,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:32.680] [LAYER] WriteAt(0,16,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:32.692] [LAYER] WriteAt(0,17,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:32.705] [LAYER] WriteAt(0,18,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:32.717] [LAYER] WriteAt(0,19,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:32.730] [LAYER] WriteAt(0,20,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:32.742] [LAYER] WriteAt(0,21,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:32.753] [LAYER] WriteAt(0,22,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:32.766] [LAYER] WriteAt(0,23,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:32.779] [LAYER] WriteAt(0,24,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:32.791] [LAYER] WriteAt(0,25,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:32.803] [LAYER] WriteAt(0,26,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:32.815] [LAYER] WriteAt(0,27,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:32.827] [LAYER] WriteAt(0,28,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:32.840] [LAYER] WriteAt(0,29,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:32.852] [LAYER] WriteAt(0,30,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:32.864] [LAYER] WriteAt(0,31,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:32.876] [LAYER] WriteAt(0,32,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:32.888] [LAYER] WriteAt(0,33,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:32.901] [LAYER] WriteAt(0,34,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:32.916] [LAYER] WriteAt(0,35,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:32.928] [LAYER] WriteAt(0,36,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:32.942] [LAYER] WriteAt(0,37,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:32.955] [LAYER] WriteAt(0,38,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:32.968] [LAYER] WriteAt(0,39,zIndex=10) - stored content (len=19): [38;2;107;71;178m│
+[2025-12-10 16:45:32.980] [LAYER] WriteAt(2,39,zIndex=10) - stored content (len=31): [38;2;136;136;136mSelected: t2
+[2025-12-10 16:45:32.991] [LAYER] WriteAt(86,39,zIndex=10) - stored content (len=19): [38;2;107;71;178m│
+[2025-12-10 16:45:33.006] [LAYER] WriteAt(0,39,zIndex=10) - stored content (len=19): [38;2;107;71;178m│
+[2025-12-10 16:45:33.020] [LAYER] WriteAt(2,39,zIndex=10) - stored content (len=100): [38;2;136;136;136mA=Add | X=Clone | 3=Done | 4=Ov...
+[2025-12-10 16:45:33.033] [LAYER] WriteAt(86,39,zIndex=10) - stored content (len=19): [38;2;107;71;178m│
+[2025-12-10 16:45:33.047] [LAYER] WriteAt(0,40,zIndex=10) - stored content (len=19): [38;2;107;71;178m│
+[2025-12-10 16:45:33.060] [LAYER] WriteAt(2,40,zIndex=10) - stored content (len=68): [38;2;136;136;136mH=Hide Done | 1=All | 2=Active ...
+[2025-12-10 16:45:33.072] [LAYER] WriteAt(86,40,zIndex=10) - stored content (len=19): [38;2;107;71;178m│
+[2025-12-10 16:45:33.084] [LAYER] WriteAt(0,41,zIndex=10) - stored content (len=109): [38;2;107;71;178m└───────────────────────────────...
+[2025-12-10 16:45:33.095] [LAYER] BeginLayer(zIndex=20) - Total switches: 3
+[2025-12-10 16:45:33.107] [LAYER] BeginLayer(zIndex=55) - Total switches: 4
+[2025-12-10 16:45:33.137] [LAYER] WriteAt(1,43,zIndex=55) - stored content (len=142): [K[38;2;153;102;255mEsc[0m[38;2;136;136;136m: ...
+[2025-12-10 16:45:33.149] [LAYER] BeginLayer(zIndex=65) - Total switches: 5
+[2025-12-10 16:45:33.163] [LAYER] BeginLayer(zIndex=100) - Total switches: 6
+[2025-12-10 16:45:33.200] [LAYER] WriteAt(0,0,zIndex=100) - stored content (len=109): [48;2;107;71;178m                                ...
+[2025-12-10 16:45:33.213] [LAYER] WriteAt(0,0,zIndex=100) - stored content (len=199): [48;2;107;71;178m[38;2;241;221;255m Tasks(T) [3...
+[2025-12-10 16:45:33.228] [RENDER] EndFrame: Starting - positions=55 layerSwitches=6
+[2025-12-10 16:45:33.247] [COMPOSITE] Starting layer composition for 55 positions
+[2025-12-10 16:45:33.263] [COMPOSITE] Position 1,3 - 1 layers, maxZ=50, content length=32
+[2025-12-10 16:45:33.278] [COMPOSITE] Position 1,3 - NEW, will write
+[2025-12-10 16:45:33.295] [COMPOSITE] Position 1,3 - WRITING at (1,3) zIndex=50: [38;2;153;102;255mTask List[0m
+[2025-12-10 16:45:33.307] [COMPOSITE] Position 1,5 - 1 layers, maxZ=50, content length=39
+[2025-12-10 16:45:33.319] [COMPOSITE] Position 1,5 - NEW, will write
+[2025-12-10 16:45:33.331] [COMPOSITE] Position 1,5 - WRITING at (1,5) zIndex=50: [38;2;136;136;136mHome → Task List[0m
+[2025-12-10 16:45:33.342] [COMPOSITE] Position 0,3 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:33.354] [COMPOSITE] Position 0,3 - NEW, will write
+[2025-12-10 16:45:33.382] [COMPOSITE] Position 0,3 - WRITING at (0,3) zIndex=10: [38;2;107;71;178m┌───────────────────────────────...
+[2025-12-10 16:45:33.395] [COMPOSITE] Position 2,3 - 1 layers, maxZ=10, content length=30
+[2025-12-10 16:45:33.409] [COMPOSITE] Position 2,3 - NEW, will write
+[2025-12-10 16:45:33.421] [COMPOSITE] Position 2,3 - WRITING at (2,3) zIndex=10: [38;2;153;102;255m Task List 
+[2025-12-10 16:45:33.435] [COMPOSITE] Position 76,3 - 1 layers, maxZ=10, content length=28
+[2025-12-10 16:45:33.448] [COMPOSITE] Position 76,3 - NEW, will write
+[2025-12-10 16:45:33.460] [COMPOSITE] Position 76,3 - WRITING at (76,3) zIndex=10: [38;2;136;136;136m(2 items)
+[2025-12-10 16:45:33.474] [COMPOSITE] Position 0,4 - 1 layers, maxZ=10, content length=19
+[2025-12-10 16:45:33.486] [COMPOSITE] Position 0,4 - NEW, will write
+[2025-12-10 16:45:33.498] [COMPOSITE] Position 0,4 - WRITING at (0,4) zIndex=10: [38;2;107;71;178m│
+[2025-12-10 16:45:33.511] [COMPOSITE] Position 2,4 - 1 layers, maxZ=10, content length=131
+[2025-12-10 16:45:33.524] [COMPOSITE] Position 2,4 - NEW, will write
+[2025-12-10 16:45:33.537] [COMPOSITE] Position 2,4 - WRITING at (2,4) zIndex=10: [38;2;153;102;255mTask                           ...
+[2025-12-10 16:45:33.548] [COMPOSITE] Position 86,4 - 1 layers, maxZ=10, content length=19
+[2025-12-10 16:45:33.561] [COMPOSITE] Position 86,4 - NEW, will write
+[2025-12-10 16:45:33.573] [COMPOSITE] Position 86,4 - WRITING at (86,4) zIndex=10: [38;2;107;71;178m│
+[2025-12-10 16:45:33.585] [COMPOSITE] Position 0,5 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:33.598] [COMPOSITE] Position 0,5 - NEW, will write
+[2025-12-10 16:45:33.611] [COMPOSITE] Position 0,5 - WRITING at (0,5) zIndex=10: [38;2;107;71;178m│───────────────────────────────...
+[2025-12-10 16:45:33.623] [COMPOSITE] Position 0,6 - 1 layers, maxZ=10, content length=19
+[2025-12-10 16:45:33.635] [COMPOSITE] Position 0,6 - NEW, will write
+[2025-12-10 16:45:33.647] [COMPOSITE] Position 0,6 - WRITING at (0,6) zIndex=10: [38;2;107;71;178m│
+[2025-12-10 16:45:33.660] [COMPOSITE] Position 2,6 - 1 layers, maxZ=10, content length=322
+[2025-12-10 16:45:33.672] [COMPOSITE] Position 2,6 - NEW, will write
+[2025-12-10 16:45:33.684] [COMPOSITE] Position 2,6 - WRITING at (2,6) zIndex=10: [48;2;153;102;255m[38;2;255;255;255mt2          ...
+[2025-12-10 16:45:33.696] [COMPOSITE] Position 86,6 - 1 layers, maxZ=10, content length=26
+[2025-12-10 16:45:33.708] [COMPOSITE] Position 86,6 - NEW, will write
+[2025-12-10 16:45:33.720] [COMPOSITE] Position 86,6 - WRITING at (86,6) zIndex=10: [38;2;107;71;178m│[0m[K
+[2025-12-10 16:45:33.732] [COMPOSITE] Position 0,7 - 1 layers, maxZ=10, content length=19
+[2025-12-10 16:45:33.744] [COMPOSITE] Position 0,7 - NEW, will write
+[2025-12-10 16:45:33.757] [COMPOSITE] Position 0,7 - WRITING at (0,7) zIndex=10: [38;2;107;71;178m│
+[2025-12-10 16:45:33.769] [COMPOSITE] Position 2,7 - 1 layers, maxZ=10, content length=227
+[2025-12-10 16:45:33.781] [COMPOSITE] Position 2,7 - NEW, will write
+[2025-12-10 16:45:33.794] [WRITE] Position 2,7 - Writing 227 chars (112 visible): [38;2;241;221;255mt1                              [0m[38;2;241;221;255m                        [...
+[2025-12-10 16:45:33.806] [COMPOSITE] Position 2,7 - WRITING at (2,7) zIndex=10: [38;2;241;221;255mt1                             ...
+[2025-12-10 16:45:33.818] [COMPOSITE] Position 86,7 - 1 layers, maxZ=10, content length=26
+[2025-12-10 16:45:33.831] [COMPOSITE] Position 86,7 - NEW, will write
+[2025-12-10 16:45:33.842] [COMPOSITE] Position 86,7 - WRITING at (86,7) zIndex=10: [38;2;107;71;178m│[0m[K
+[2025-12-10 16:45:33.854] [COMPOSITE] Position 0,8 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:33.866] [COMPOSITE] Position 0,8 - NEW, will write
+[2025-12-10 16:45:33.878] [COMPOSITE] Position 0,8 - WRITING at (0,8) zIndex=10: [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:33.889] [COMPOSITE] Position 0,9 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:33.902] [COMPOSITE] Position 0,9 - NEW, will write
+[2025-12-10 16:45:33.915] [COMPOSITE] Position 0,9 - WRITING at (0,9) zIndex=10: [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:33.930] [COMPOSITE] Position 0,10 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:33.947] [COMPOSITE] Position 0,10 - NEW, will write
+[2025-12-10 16:45:33.960] [COMPOSITE] Position 0,10 - WRITING at (0,10) zIndex=10: [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:33.973] [COMPOSITE] Position 0,11 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:33.986] [COMPOSITE] Position 0,11 - NEW, will write
+[2025-12-10 16:45:33.998] [COMPOSITE] Position 0,11 - WRITING at (0,11) zIndex=10: [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:34.010] [COMPOSITE] Position 0,12 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:34.024] [COMPOSITE] Position 0,12 - NEW, will write
+[2025-12-10 16:45:34.036] [COMPOSITE] Position 0,12 - WRITING at (0,12) zIndex=10: [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:34.048] [COMPOSITE] Position 0,13 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:34.060] [COMPOSITE] Position 0,13 - NEW, will write
+[2025-12-10 16:45:34.073] [COMPOSITE] Position 0,13 - WRITING at (0,13) zIndex=10: [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:34.084] [COMPOSITE] Position 0,14 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:34.097] [COMPOSITE] Position 0,14 - NEW, will write
+[2025-12-10 16:45:34.109] [COMPOSITE] Position 0,14 - WRITING at (0,14) zIndex=10: [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:34.119] [COMPOSITE] Position 0,15 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:34.131] [COMPOSITE] Position 0,15 - NEW, will write
+[2025-12-10 16:45:34.142] [COMPOSITE] Position 0,15 - WRITING at (0,15) zIndex=10: [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:34.154] [COMPOSITE] Position 0,16 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:34.168] [COMPOSITE] Position 0,16 - NEW, will write
+[2025-12-10 16:45:34.182] [COMPOSITE] Position 0,16 - WRITING at (0,16) zIndex=10: [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:34.197] [COMPOSITE] Position 0,17 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:34.209] [COMPOSITE] Position 0,17 - NEW, will write
+[2025-12-10 16:45:34.221] [COMPOSITE] Position 0,17 - WRITING at (0,17) zIndex=10: [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:34.232] [COMPOSITE] Position 0,18 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:34.244] [COMPOSITE] Position 0,18 - NEW, will write
+[2025-12-10 16:45:34.256] [COMPOSITE] Position 0,18 - WRITING at (0,18) zIndex=10: [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:34.268] [COMPOSITE] Position 0,19 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:34.280] [COMPOSITE] Position 0,19 - NEW, will write
+[2025-12-10 16:45:34.292] [COMPOSITE] Position 0,19 - WRITING at (0,19) zIndex=10: [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:34.304] [COMPOSITE] Position 0,20 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:34.316] [COMPOSITE] Position 0,20 - NEW, will write
+[2025-12-10 16:45:34.328] [COMPOSITE] Position 0,20 - WRITING at (0,20) zIndex=10: [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:34.339] [COMPOSITE] Position 0,21 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:34.350] [COMPOSITE] Position 0,21 - NEW, will write
+[2025-12-10 16:45:34.362] [COMPOSITE] Position 0,21 - WRITING at (0,21) zIndex=10: [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:34.374] [COMPOSITE] Position 0,22 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:34.385] [COMPOSITE] Position 0,22 - NEW, will write
+[2025-12-10 16:45:34.397] [COMPOSITE] Position 0,22 - WRITING at (0,22) zIndex=10: [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:34.410] [COMPOSITE] Position 0,23 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:34.423] [COMPOSITE] Position 0,23 - NEW, will write
+[2025-12-10 16:45:34.437] [COMPOSITE] Position 0,23 - WRITING at (0,23) zIndex=10: [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:34.452] [COMPOSITE] Position 0,24 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:34.466] [COMPOSITE] Position 0,24 - NEW, will write
+[2025-12-10 16:45:34.478] [COMPOSITE] Position 0,24 - WRITING at (0,24) zIndex=10: [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:34.491] [COMPOSITE] Position 0,25 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:34.503] [COMPOSITE] Position 0,25 - NEW, will write
+[2025-12-10 16:45:34.515] [COMPOSITE] Position 0,25 - WRITING at (0,25) zIndex=10: [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:34.527] [COMPOSITE] Position 0,26 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:34.538] [COMPOSITE] Position 0,26 - NEW, will write
+[2025-12-10 16:45:34.554] [COMPOSITE] Position 0,26 - WRITING at (0,26) zIndex=10: [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:34.566] [COMPOSITE] Position 0,27 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:34.578] [COMPOSITE] Position 0,27 - NEW, will write
+[2025-12-10 16:45:34.590] [COMPOSITE] Position 0,27 - WRITING at (0,27) zIndex=10: [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:34.602] [COMPOSITE] Position 0,28 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:34.613] [COMPOSITE] Position 0,28 - NEW, will write
+[2025-12-10 16:45:34.626] [COMPOSITE] Position 0,28 - WRITING at (0,28) zIndex=10: [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:34.637] [COMPOSITE] Position 0,29 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:34.649] [COMPOSITE] Position 0,29 - NEW, will write
+[2025-12-10 16:45:34.661] [COMPOSITE] Position 0,29 - WRITING at (0,29) zIndex=10: [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:34.674] [COMPOSITE] Position 0,30 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:34.685] [COMPOSITE] Position 0,30 - NEW, will write
+[2025-12-10 16:45:34.697] [COMPOSITE] Position 0,30 - WRITING at (0,30) zIndex=10: [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:34.711] [COMPOSITE] Position 0,31 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:34.725] [COMPOSITE] Position 0,31 - NEW, will write
+[2025-12-10 16:45:34.737] [COMPOSITE] Position 0,31 - WRITING at (0,31) zIndex=10: [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:34.750] [COMPOSITE] Position 0,32 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:34.762] [COMPOSITE] Position 0,32 - NEW, will write
+[2025-12-10 16:45:34.773] [COMPOSITE] Position 0,32 - WRITING at (0,32) zIndex=10: [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:34.785] [COMPOSITE] Position 0,33 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:34.797] [COMPOSITE] Position 0,33 - NEW, will write
+[2025-12-10 16:45:34.808] [COMPOSITE] Position 0,33 - WRITING at (0,33) zIndex=10: [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:34.820] [COMPOSITE] Position 0,34 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:34.831] [COMPOSITE] Position 0,34 - NEW, will write
+[2025-12-10 16:45:34.843] [COMPOSITE] Position 0,34 - WRITING at (0,34) zIndex=10: [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:34.855] [COMPOSITE] Position 0,35 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:34.866] [COMPOSITE] Position 0,35 - NEW, will write
+[2025-12-10 16:45:34.879] [COMPOSITE] Position 0,35 - WRITING at (0,35) zIndex=10: [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:34.891] [COMPOSITE] Position 0,36 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:34.903] [COMPOSITE] Position 0,36 - NEW, will write
+[2025-12-10 16:45:34.916] [COMPOSITE] Position 0,36 - WRITING at (0,36) zIndex=10: [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:34.928] [COMPOSITE] Position 0,37 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:34.940] [COMPOSITE] Position 0,37 - NEW, will write
+[2025-12-10 16:45:34.952] [COMPOSITE] Position 0,37 - WRITING at (0,37) zIndex=10: [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:34.964] [COMPOSITE] Position 0,38 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:34.979] [COMPOSITE] Position 0,38 - NEW, will write
+[2025-12-10 16:45:34.991] [COMPOSITE] Position 0,38 - WRITING at (0,38) zIndex=10: [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:35.004] [COMPOSITE] Position 0,39 - 1 layers, maxZ=10, content length=19
+[2025-12-10 16:45:35.015] [COMPOSITE] Position 0,39 - NEW, will write
+[2025-12-10 16:45:35.028] [COMPOSITE] Position 0,39 - WRITING at (0,39) zIndex=10: [38;2;107;71;178m│
+[2025-12-10 16:45:35.040] [COMPOSITE] Position 2,39 - 1 layers, maxZ=10, content length=100
+[2025-12-10 16:45:35.052] [COMPOSITE] Position 2,39 - NEW, will write
+[2025-12-10 16:45:35.065] [COMPOSITE] Position 2,39 - WRITING at (2,39) zIndex=10: [38;2;136;136;136mA=Add | X=Clone | 3=Done | 4=Ov...
+[2025-12-10 16:45:35.078] [COMPOSITE] Position 86,39 - 1 layers, maxZ=10, content length=19
+[2025-12-10 16:45:35.089] [COMPOSITE] Position 86,39 - NEW, will write
+[2025-12-10 16:45:35.102] [COMPOSITE] Position 86,39 - WRITING at (86,39) zIndex=10: [38;2;107;71;178m│
+[2025-12-10 16:45:35.114] [COMPOSITE] Position 0,40 - 1 layers, maxZ=10, content length=19
+[2025-12-10 16:45:35.127] [COMPOSITE] Position 0,40 - NEW, will write
+[2025-12-10 16:45:35.139] [COMPOSITE] Position 0,40 - WRITING at (0,40) zIndex=10: [38;2;107;71;178m│
+[2025-12-10 16:45:35.152] [COMPOSITE] Position 2,40 - 1 layers, maxZ=10, content length=68
+[2025-12-10 16:45:35.165] [COMPOSITE] Position 2,40 - NEW, will write
+[2025-12-10 16:45:35.177] [COMPOSITE] Position 2,40 - WRITING at (2,40) zIndex=10: [38;2;136;136;136mH=Hide Done | 1=All | 2=Active ...
+[2025-12-10 16:45:35.189] [COMPOSITE] Position 86,40 - 1 layers, maxZ=10, content length=19
+[2025-12-10 16:45:35.202] [COMPOSITE] Position 86,40 - NEW, will write
+[2025-12-10 16:45:35.215] [COMPOSITE] Position 86,40 - WRITING at (86,40) zIndex=10: [38;2;107;71;178m│
+[2025-12-10 16:45:35.229] [COMPOSITE] Position 0,41 - 1 layers, maxZ=10, content length=109
+[2025-12-10 16:45:35.242] [COMPOSITE] Position 0,41 - NEW, will write
+[2025-12-10 16:45:35.254] [COMPOSITE] Position 0,41 - WRITING at (0,41) zIndex=10: [38;2;107;71;178m└───────────────────────────────...
+[2025-12-10 16:45:35.266] [COMPOSITE] Position 1,43 - 1 layers, maxZ=55, content length=142
+[2025-12-10 16:45:35.277] [COMPOSITE] Position 1,43 - NEW, will write
+[2025-12-10 16:45:35.289] [COMPOSITE] Position 1,43 - WRITING at (1,43) zIndex=55: [K[38;2;153;102;255mEsc[0m[38;2;136;136;136m: ...
+[2025-12-10 16:45:35.300] [COMPOSITE] Position 0,0 - 1 layers, maxZ=100, content length=199
+[2025-12-10 16:45:35.313] [COMPOSITE] Position 0,0 - NEW, will write
+[2025-12-10 16:45:35.325] [COMPOSITE] Position 0,0 - WRITING at (0,0) zIndex=100: [48;2;107;71;178m[38;2;241;221;255m Tasks(T) [3...
+[2025-12-10 16:45:35.337] [COMPOSITE] Finished - positions=55 layers=55 updates=55
+[2025-12-10 16:45:35.353] [RENDER] EndFrame: Writing 55 updated cells, frame length=5470
+[2025-12-10 16:45:36.307] [RENDER] BeginFrame #2 - BEFORE clear: composited=55, layered=55
+[2025-12-10 16:45:36.310] [RENDER] BeginFrame: Layer data cleared, composited cache still has 55 entries
+[2025-12-10 16:45:36.322] [LAYER] BeginLayer(zIndex=50) - Total switches: 1
+[2025-12-10 16:45:36.336] [LAYER] WriteAt(1,3,zIndex=50) - stored content (len=32): [38;2;153;102;255mTask List[0m
+[2025-12-10 16:45:36.347] [LAYER] WriteAt(1,5,zIndex=50) - stored content (len=39): [38;2;136;136;136mHome → Task List[0m
+[2025-12-10 16:45:36.359] [LAYER] BeginLayer(zIndex=10) - Total switches: 2
+[2025-12-10 16:45:36.375] [INFO] PadText: text='Task' rawLen=4 visibleLen=4 width=28 align=left
+[2025-12-10 16:45:36.387] [INFO] PadText: text='Details' rawLen=7 visibleLen=7 width=20 align=left
+[2025-12-10 16:45:36.400] [INFO] PadText: text='Due' rawLen=3 visibleLen=3 width=14 align=left
+[2025-12-10 16:45:36.412] [INFO] PadText: text='Project' rawLen=7 visibleLen=7 width=14 align=left
+[2025-12-10 16:45:36.425] [INFO] PadText: text='Tags' rawLen=4 visibleLen=4 width=16 align=left
+[16:45:36.450] PmcScreen.RenderToEngine: RenderContent returned length=5150
+[2025-12-10 16:45:36.464] [LAYER] WriteAt(0,3,zIndex=10) - stored content (len=105): [38;2;107;71;178m┌───────────────────────────────...
+[2025-12-10 16:45:36.479] [LAYER] WriteAt(2,3,zIndex=10) - stored content (len=30): [38;2;153;102;255m Task List 
+[2025-12-10 16:45:36.492] [LAYER] WriteAt(76,3,zIndex=10) - stored content (len=28): [38;2;136;136;136m(2 items)
+[2025-12-10 16:45:36.505] [LAYER] WriteAt(0,4,zIndex=10) - stored content (len=19): [38;2;107;71;178m│
+[2025-12-10 16:45:36.518] [LAYER] WriteAt(2,4,zIndex=10) - stored content (len=131): [38;2;153;102;255mTask                           ...
+[2025-12-10 16:45:36.530] [LAYER] WriteAt(86,4,zIndex=10) - stored content (len=19): [38;2;107;71;178m│
+[2025-12-10 16:45:36.542] [LAYER] WriteAt(0,5,zIndex=10) - stored content (len=105): [38;2;107;71;178m│───────────────────────────────...
+[2025-12-10 16:45:36.556] [LAYER] WriteAt(0,6,zIndex=10) - stored content (len=7): [0m[K
+[2025-12-10 16:45:36.568] [LAYER] WriteAt(0,6,zIndex=10) - stored content (len=19): [38;2;107;71;178m│
+[2025-12-10 16:45:36.580] [LAYER] WriteAt(2,6,zIndex=10) - stored content (len=322): [48;2;153;102;255m[38;2;255;255;255mt2          ...
+[2025-12-10 16:45:36.592] [LAYER] WriteAt(86,6,zIndex=10) - stored content (len=26): [38;2;107;71;178m│[0m[K
+[2025-12-10 16:45:36.606] [LAYER] WriteAt(0,7,zIndex=10) - stored content (len=7): [0m[K
+[2025-12-10 16:45:36.619] [LAYER] WriteAt(0,7,zIndex=10) - stored content (len=19): [38;2;107;71;178m│
+[2025-12-10 16:45:36.632] [LAYER] WriteAt(2,7,zIndex=10) - stored content (len=227): [38;2;241;221;255mt1                             ...
+[2025-12-10 16:45:36.644] [LAYER] WriteAt(86,7,zIndex=10) - stored content (len=26): [38;2;107;71;178m│[0m[K
+[2025-12-10 16:45:36.657] [LAYER] WriteAt(0,8,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:36.670] [LAYER] WriteAt(0,9,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:36.683] [LAYER] WriteAt(0,10,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:36.697] [LAYER] WriteAt(0,11,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:36.710] [LAYER] WriteAt(0,12,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:36.723] [LAYER] WriteAt(0,13,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:36.737] [LAYER] WriteAt(0,14,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:36.749] [LAYER] WriteAt(0,15,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:36.760] [LAYER] WriteAt(0,16,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:36.773] [LAYER] WriteAt(0,17,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:36.785] [LAYER] WriteAt(0,18,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:36.797] [LAYER] WriteAt(0,19,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:36.809] [LAYER] WriteAt(0,20,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:36.827] [LAYER] WriteAt(0,21,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:36.842] [LAYER] WriteAt(0,22,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:36.855] [LAYER] WriteAt(0,23,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:36.869] [LAYER] WriteAt(0,24,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:36.882] [LAYER] WriteAt(0,25,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:36.894] [LAYER] WriteAt(0,26,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:36.906] [LAYER] WriteAt(0,27,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:36.918] [LAYER] WriteAt(0,28,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:36.931] [LAYER] WriteAt(0,29,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:36.945] [LAYER] WriteAt(0,30,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:36.958] [LAYER] WriteAt(0,31,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:36.971] [LAYER] WriteAt(0,32,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:36.984] [LAYER] WriteAt(0,33,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:36.996] [LAYER] WriteAt(0,34,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:37.009] [LAYER] WriteAt(0,35,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:37.022] [LAYER] WriteAt(0,36,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:37.035] [LAYER] WriteAt(0,37,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:37.047] [LAYER] WriteAt(0,38,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:37.059] [LAYER] WriteAt(0,39,zIndex=10) - stored content (len=19): [38;2;107;71;178m│
+[2025-12-10 16:45:37.072] [LAYER] WriteAt(2,39,zIndex=10) - stored content (len=31): [38;2;136;136;136mSelected: t2
+[2025-12-10 16:45:37.087] [LAYER] WriteAt(86,39,zIndex=10) - stored content (len=19): [38;2;107;71;178m│
+[2025-12-10 16:45:37.099] [LAYER] WriteAt(0,39,zIndex=10) - stored content (len=19): [38;2;107;71;178m│
+[2025-12-10 16:45:37.112] [LAYER] WriteAt(2,39,zIndex=10) - stored content (len=100): [38;2;136;136;136mA=Add | X=Clone | 3=Done | 4=Ov...
+[2025-12-10 16:45:37.123] [LAYER] WriteAt(86,39,zIndex=10) - stored content (len=19): [38;2;107;71;178m│
+[2025-12-10 16:45:37.137] [LAYER] WriteAt(0,40,zIndex=10) - stored content (len=19): [38;2;107;71;178m│
+[2025-12-10 16:45:37.149] [LAYER] WriteAt(2,40,zIndex=10) - stored content (len=68): [38;2;136;136;136mH=Hide Done | 1=All | 2=Active ...
+[2025-12-10 16:45:37.163] [LAYER] WriteAt(86,40,zIndex=10) - stored content (len=19): [38;2;107;71;178m│
+[2025-12-10 16:45:37.176] [LAYER] WriteAt(0,41,zIndex=10) - stored content (len=109): [38;2;107;71;178m└───────────────────────────────...
+[2025-12-10 16:45:37.188] [LAYER] BeginLayer(zIndex=20) - Total switches: 3
+[2025-12-10 16:45:37.200] [LAYER] BeginLayer(zIndex=55) - Total switches: 4
+[2025-12-10 16:45:37.215] [LAYER] WriteAt(1,43,zIndex=55) - stored content (len=142): [K[38;2;153;102;255mEsc[0m[38;2;136;136;136m: ...
+[2025-12-10 16:45:37.231] [LAYER] BeginLayer(zIndex=65) - Total switches: 5
+[2025-12-10 16:45:37.244] [LAYER] BeginLayer(zIndex=100) - Total switches: 6
+[2025-12-10 16:45:37.271] [INFO] PadText: text=' Project List (L)' rawLen=17 visibleLen=17 width=22 align=left
+[2025-12-10 16:45:37.283] [INFO] PadText: text=' Import from Excel (I)' rawLen=22 visibleLen=22 width=22 align=left
+[2025-12-10 16:45:37.296] [INFO] PadText: text=' Excel Profiles (M)' rawLen=19 visibleLen=19 width=22 align=left
+[2025-12-10 16:45:37.312] [LAYER] WriteAt(0,0,zIndex=100) - stored content (len=109): [48;2;107;71;178m                                ...
+[2025-12-10 16:45:37.324] [LAYER] WriteAt(0,0,zIndex=100) - stored content (len=236): [48;2;107;71;178m[38;2;241;221;255m Tasks(T) [4...
+[2025-12-10 16:45:37.336] [LAYER] WriteAt(11,1,zIndex=100) - stored content (len=46): [38;2;107;71;178m┌──────────────────────┐[0m
+[2025-12-10 16:45:37.349] [LAYER] WriteAt(11,2,zIndex=100) - stored content (len=110): [38;2;107;71;178m│[0m[48;2;153;102;255m[38;2;2...
+[2025-12-10 16:45:37.361] [LAYER] WriteAt(11,3,zIndex=100) - stored content (len=109): [38;2;107;71;178m│[0m[48;2;107;71;178m[38;2;24...
+[2025-12-10 16:45:37.373] [LAYER] WriteAt(11,4,zIndex=100) - stored content (len=109): [38;2;107;71;178m│[0m[48;2;107;71;178m[38;2;24...
+[2025-12-10 16:45:37.385] [LAYER] WriteAt(11,5,zIndex=100) - stored content (len=46): [38;2;107;71;178m└──────────────────────┘[0m
+[2025-12-10 16:45:37.397] [RENDER] EndFrame: Starting - positions=60 layerSwitches=6
+[2025-12-10 16:45:37.409] [COMPOSITE] Starting layer composition for 60 positions
+[2025-12-10 16:45:37.422] [COMPOSITE] Position 1,3 - 1 layers, maxZ=50, content length=32
+[2025-12-10 16:45:37.436] [COMPOSITE] Position 1,3 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:37.448] [COMPOSITE] Position 1,5 - 1 layers, maxZ=50, content length=39
+[2025-12-10 16:45:37.460] [COMPOSITE] Position 1,5 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:37.477] [COMPOSITE] Position 0,3 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:37.489] [COMPOSITE] Position 0,3 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:37.501] [COMPOSITE] Position 2,3 - 1 layers, maxZ=10, content length=30
+[2025-12-10 16:45:37.513] [COMPOSITE] Position 2,3 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:37.526] [COMPOSITE] Position 76,3 - 1 layers, maxZ=10, content length=28
+[2025-12-10 16:45:37.539] [COMPOSITE] Position 76,3 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:37.551] [COMPOSITE] Position 0,4 - 1 layers, maxZ=10, content length=19
+[2025-12-10 16:45:37.564] [COMPOSITE] Position 0,4 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:37.577] [COMPOSITE] Position 2,4 - 1 layers, maxZ=10, content length=131
+[2025-12-10 16:45:37.589] [COMPOSITE] Position 2,4 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:37.602] [COMPOSITE] Position 86,4 - 1 layers, maxZ=10, content length=19
+[2025-12-10 16:45:37.615] [COMPOSITE] Position 86,4 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:37.628] [COMPOSITE] Position 0,5 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:37.639] [COMPOSITE] Position 0,5 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:37.653] [COMPOSITE] Position 0,6 - 1 layers, maxZ=10, content length=19
+[2025-12-10 16:45:37.666] [COMPOSITE] Position 0,6 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:37.679] [COMPOSITE] Position 2,6 - 1 layers, maxZ=10, content length=322
+[2025-12-10 16:45:37.691] [COMPOSITE] Position 2,6 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:37.704] [COMPOSITE] Position 86,6 - 1 layers, maxZ=10, content length=26
+[2025-12-10 16:45:37.716] [COMPOSITE] Position 86,6 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:37.728] [COMPOSITE] Position 0,7 - 1 layers, maxZ=10, content length=19
+[2025-12-10 16:45:37.742] [COMPOSITE] Position 0,7 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:37.755] [COMPOSITE] Position 2,7 - 1 layers, maxZ=10, content length=227
+[2025-12-10 16:45:37.768] [COMPOSITE] Position 2,7 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:37.779] [COMPOSITE] Position 86,7 - 1 layers, maxZ=10, content length=26
+[2025-12-10 16:45:37.791] [COMPOSITE] Position 86,7 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:37.803] [COMPOSITE] Position 0,8 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:37.815] [COMPOSITE] Position 0,8 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:37.827] [COMPOSITE] Position 0,9 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:37.838] [COMPOSITE] Position 0,9 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:37.851] [COMPOSITE] Position 0,10 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:37.863] [COMPOSITE] Position 0,10 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:37.878] [COMPOSITE] Position 0,11 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:37.890] [COMPOSITE] Position 0,11 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:37.902] [COMPOSITE] Position 0,12 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:37.914] [COMPOSITE] Position 0,12 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:37.926] [COMPOSITE] Position 0,13 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:37.937] [COMPOSITE] Position 0,13 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:37.949] [COMPOSITE] Position 0,14 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:37.960] [COMPOSITE] Position 0,14 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:37.972] [COMPOSITE] Position 0,15 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:37.984] [COMPOSITE] Position 0,15 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:37.996] [COMPOSITE] Position 0,16 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:38.008] [COMPOSITE] Position 0,16 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:38.021] [COMPOSITE] Position 0,17 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:38.034] [COMPOSITE] Position 0,17 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:38.048] [COMPOSITE] Position 0,18 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:38.060] [COMPOSITE] Position 0,18 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:38.072] [COMPOSITE] Position 0,19 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:38.085] [COMPOSITE] Position 0,19 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:38.098] [COMPOSITE] Position 0,20 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:38.111] [COMPOSITE] Position 0,20 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:38.123] [COMPOSITE] Position 0,21 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:38.136] [COMPOSITE] Position 0,21 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:38.150] [COMPOSITE] Position 0,22 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:38.162] [COMPOSITE] Position 0,22 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:38.175] [COMPOSITE] Position 0,23 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:38.188] [COMPOSITE] Position 0,23 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:38.201] [COMPOSITE] Position 0,24 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:38.213] [COMPOSITE] Position 0,24 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:38.225] [COMPOSITE] Position 0,25 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:38.237] [COMPOSITE] Position 0,25 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:38.249] [COMPOSITE] Position 0,26 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:38.260] [COMPOSITE] Position 0,26 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:38.274] [COMPOSITE] Position 0,27 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:38.286] [COMPOSITE] Position 0,27 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:38.298] [COMPOSITE] Position 0,28 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:38.310] [COMPOSITE] Position 0,28 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:38.322] [COMPOSITE] Position 0,29 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:38.336] [COMPOSITE] Position 0,29 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:38.349] [COMPOSITE] Position 0,30 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:38.361] [COMPOSITE] Position 0,30 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:38.374] [COMPOSITE] Position 0,31 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:38.386] [COMPOSITE] Position 0,31 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:38.398] [COMPOSITE] Position 0,32 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:38.411] [COMPOSITE] Position 0,32 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:38.424] [COMPOSITE] Position 0,33 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:38.436] [COMPOSITE] Position 0,33 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:38.449] [COMPOSITE] Position 0,34 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:38.462] [COMPOSITE] Position 0,34 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:38.475] [COMPOSITE] Position 0,35 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:38.490] [COMPOSITE] Position 0,35 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:38.502] [COMPOSITE] Position 0,36 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:38.513] [COMPOSITE] Position 0,36 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:38.526] [COMPOSITE] Position 0,37 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:38.537] [COMPOSITE] Position 0,37 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:38.550] [COMPOSITE] Position 0,38 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:38.562] [COMPOSITE] Position 0,38 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:38.574] [COMPOSITE] Position 0,39 - 1 layers, maxZ=10, content length=19
+[2025-12-10 16:45:38.585] [COMPOSITE] Position 0,39 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:38.597] [COMPOSITE] Position 2,39 - 1 layers, maxZ=10, content length=100
+[2025-12-10 16:45:38.610] [COMPOSITE] Position 2,39 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:38.623] [COMPOSITE] Position 86,39 - 1 layers, maxZ=10, content length=19
+[2025-12-10 16:45:38.637] [COMPOSITE] Position 86,39 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:38.651] [COMPOSITE] Position 0,40 - 1 layers, maxZ=10, content length=19
+[2025-12-10 16:45:38.663] [COMPOSITE] Position 0,40 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:38.677] [COMPOSITE] Position 2,40 - 1 layers, maxZ=10, content length=68
+[2025-12-10 16:45:38.690] [COMPOSITE] Position 2,40 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:38.703] [COMPOSITE] Position 86,40 - 1 layers, maxZ=10, content length=19
+[2025-12-10 16:45:38.715] [COMPOSITE] Position 86,40 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:38.727] [COMPOSITE] Position 0,41 - 1 layers, maxZ=10, content length=109
+[2025-12-10 16:45:38.743] [COMPOSITE] Position 0,41 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:38.756] [COMPOSITE] Position 1,43 - 1 layers, maxZ=55, content length=142
+[2025-12-10 16:45:38.768] [COMPOSITE] Position 1,43 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:38.781] [COMPOSITE] Position 0,0 - 1 layers, maxZ=100, content length=236
+[2025-12-10 16:45:38.792] [COMPOSITE] Position 0,0 - CHANGED, will write
+[2025-12-10 16:45:38.804] [COMPOSITE] Position 0,0 - WRITING at (0,0) zIndex=100: [48;2;107;71;178m[38;2;241;221;255m Tasks(T) [4...
+[2025-12-10 16:45:38.816] [COMPOSITE] Position 11,1 - 1 layers, maxZ=100, content length=46
+[2025-12-10 16:45:38.827] [COMPOSITE] Position 11,1 - NEW, will write
+[2025-12-10 16:45:38.838] [COMPOSITE] Position 11,1 - WRITING at (11,1) zIndex=100: [38;2;107;71;178m┌──────────────────────┐[0m
+[2025-12-10 16:45:38.850] [COMPOSITE] Position 11,2 - 1 layers, maxZ=100, content length=110
+[2025-12-10 16:45:38.862] [COMPOSITE] Position 11,2 - NEW, will write
+[2025-12-10 16:45:38.875] [COMPOSITE] Position 11,2 - WRITING at (11,2) zIndex=100: [38;2;107;71;178m│[0m[48;2;153;102;255m[38;2;2...
+[2025-12-10 16:45:38.888] [COMPOSITE] Position 11,3 - 1 layers, maxZ=100, content length=109
+[2025-12-10 16:45:38.900] [COMPOSITE] Position 11,3 - NEW, will write
+[2025-12-10 16:45:38.912] [COMPOSITE] Position 11,3 - WRITING at (11,3) zIndex=100: [38;2;107;71;178m│[0m[48;2;107;71;178m[38;2;24...
+[2025-12-10 16:45:38.924] [COMPOSITE] Position 11,4 - 1 layers, maxZ=100, content length=109
+[2025-12-10 16:45:38.938] [COMPOSITE] Position 11,4 - NEW, will write
+[2025-12-10 16:45:38.950] [COMPOSITE] Position 11,4 - WRITING at (11,4) zIndex=100: [38;2;107;71;178m│[0m[48;2;107;71;178m[38;2;24...
+[2025-12-10 16:45:38.963] [COMPOSITE] Position 11,5 - 1 layers, maxZ=100, content length=46
+[2025-12-10 16:45:38.976] [COMPOSITE] Position 11,5 - NEW, will write
+[2025-12-10 16:45:38.989] [COMPOSITE] Position 11,5 - WRITING at (11,5) zIndex=100: [38;2;107;71;178m└──────────────────────┘[0m
+[2025-12-10 16:45:39.002] [COMPOSITE] Finished - positions=60 layers=60 updates=6
+[2025-12-10 16:45:39.015] [RENDER] EndFrame: Writing 6 updated cells, frame length=697
+[2025-12-10 16:45:39.425] ServiceContainer: Resolving 'ProjectListScreen'...
+[2025-12-10 16:45:39.496] ServiceContainer: Resolved 'ProjectListScreen' successfully
+[2025-12-10 16:45:39.513] [RENDER] RequestClear: Terminal cleared + caches invalidated
+[2025-12-10 16:45:39.544] [INFO] UniversalList.SetData: START, data param type=System.Object[]
+[2025-12-10 16:45:39.556] [INFO] UniversalList.SetData: About to assign _data
+[2025-12-10 16:45:39.569] [INFO] UniversalList.SetData: _data assigned successfully
+[2025-12-10 16:45:39.581] [INFO] UniversalList.SetData: About to check _data type
+[2025-12-10 16:45:39.594] [INFO] UniversalList.SetData: _data type=System.Object[]
+[2025-12-10 16:45:39.606] [INFO] UniversalList.SetData: About to access _data.Count
+[2025-12-10 16:45:39.617] [INFO] UniversalList.SetData: _data.Count=0
+[2025-12-10 16:45:39.629] [INFO] UniversalList.SetData: _filteredData assigned
+[2025-12-10 16:45:39.640] [INFO] UniversalList.SetData: About to clear _selectedIndices
+[2025-12-10 16:45:39.651] [INFO] UniversalList.SetData: _selectedIndices cleared
+[2025-12-10 16:45:39.663] [INFO] UniversalList.SetData: Received 0 items
+[2025-12-10 16:45:39.676] [INFO] UniversalList.SetData: Incrementing cache generation
+[2025-12-10 16:45:39.688] [INFO] UniversalList.SetData: Clearing row cache
+[2025-12-10 16:45:39.700] [INFO] UniversalList.SetData: Clearing cache access order
+[2025-12-10 16:45:39.713] [INFO] UniversalList.SetData: Applying filters
+[2025-12-10 16:45:39.727] [INFO] UniversalList.SetData: Applying search
+[2025-12-10 16:45:39.741] [INFO] UniversalList.SetData: Invoking OnDataChanged callback
+[2025-12-10 16:45:39.755] [INFO] UniversalList.SetData: COMPLETE
+[2025-12-10 16:45:39.769] [RENDER] BeginFrame #3 - BEFORE clear: composited=0, layered=0
+[2025-12-10 16:45:39.781] [RENDER] BeginFrame: Layer data cleared, composited cache still has 0 entries
+[2025-12-10 16:45:39.795] [LAYER] BeginLayer(zIndex=50) - Total switches: 1
+[2025-12-10 16:45:39.810] [LAYER] WriteAt(1,3,zIndex=50) - stored content (len=31): [38;2;153;102;255mProjects[0m
+[2025-12-10 16:45:39.822] [LAYER] WriteAt(1,5,zIndex=50) - stored content (len=38): [38;2;136;136;136mHome → Projects[0m
+[2025-12-10 16:45:39.835] [LAYER] BeginLayer(zIndex=10) - Total switches: 2
+[2025-12-10 16:45:39.851] [INFO] PadText: text='Project' rawLen=7 visibleLen=7 width=43 align=left
+[2025-12-10 16:45:39.863] [INFO] PadText: text='Status' rawLen=6 visibleLen=6 width=21 align=left
+[2025-12-10 16:45:39.876] [INFO] PadText: text='Tasks' rawLen=5 visibleLen=5 width=12 align=center
+[2025-12-10 16:45:39.892] [INFO] PadText: text='Description' rawLen=11 visibleLen=11 width=64 align=left
+[16:45:39.912] PmcScreen.RenderToEngine: RenderContent returned length=4578
+[2025-12-10 16:45:39.925] [LAYER] WriteAt(0,3,zIndex=10) - stored content (len=105): [38;2;107;71;178m┌───────────────────────────────...
+[2025-12-10 16:45:39.937] [LAYER] WriteAt(2,3,zIndex=10) - stored content (len=29): [38;2;153;102;255m Projects 
+[2025-12-10 16:45:39.948] [LAYER] WriteAt(76,3,zIndex=10) - stored content (len=28): [38;2;136;136;136m(0 items)
+[2025-12-10 16:45:39.960] [LAYER] WriteAt(0,4,zIndex=10) - stored content (len=19): [38;2;107;71;178m│
+[2025-12-10 16:45:39.973] [LAYER] WriteAt(2,4,zIndex=10) - stored content (len=175): [38;2;153;102;255mProject                        ...
+[2025-12-10 16:45:39.986] [LAYER] WriteAt(86,4,zIndex=10) - stored content (len=19): [38;2;107;71;178m│
+[2025-12-10 16:45:39.999] [LAYER] WriteAt(0,5,zIndex=10) - stored content (len=105): [38;2;107;71;178m│───────────────────────────────...
+[2025-12-10 16:45:40.013] [LAYER] WriteAt(0,6,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:40.026] [LAYER] WriteAt(0,7,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:40.040] [LAYER] WriteAt(0,8,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:40.053] [LAYER] WriteAt(0,9,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:40.067] [LAYER] WriteAt(0,10,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:40.079] [LAYER] WriteAt(0,11,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:40.091] [LAYER] WriteAt(0,12,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:40.103] [LAYER] WriteAt(0,13,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:40.116] [LAYER] WriteAt(0,14,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:40.128] [LAYER] WriteAt(0,15,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:40.141] [LAYER] WriteAt(0,16,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:40.155] [LAYER] WriteAt(0,17,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:40.168] [LAYER] WriteAt(0,18,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:40.180] [LAYER] WriteAt(0,19,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:40.193] [LAYER] WriteAt(0,20,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:40.206] [LAYER] WriteAt(0,21,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:40.219] [LAYER] WriteAt(0,22,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:40.233] [LAYER] WriteAt(0,23,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:40.245] [LAYER] WriteAt(0,24,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:40.257] [LAYER] WriteAt(0,25,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:40.270] [LAYER] WriteAt(0,26,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:40.283] [LAYER] WriteAt(0,27,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:40.295] [LAYER] WriteAt(0,28,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:40.307] [LAYER] WriteAt(0,29,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:40.319] [LAYER] WriteAt(0,30,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:40.331] [LAYER] WriteAt(0,31,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:40.343] [LAYER] WriteAt(0,32,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:40.355] [LAYER] WriteAt(0,33,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:40.367] [LAYER] WriteAt(0,34,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:40.378] [LAYER] WriteAt(0,35,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:40.390] [LAYER] WriteAt(0,36,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:40.401] [LAYER] WriteAt(0,37,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:40.412] [LAYER] WriteAt(0,38,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:40.429] [LAYER] WriteAt(0,39,zIndex=10) - stored content (len=19): [38;2;107;71;178m│
+[2025-12-10 16:45:40.442] [LAYER] WriteAt(2,39,zIndex=10) - stored content (len=27): [38;2;136;136;136mNo items
+[2025-12-10 16:45:40.454] [LAYER] WriteAt(86,39,zIndex=10) - stored content (len=19): [38;2;107;71;178m│
+[2025-12-10 16:45:40.467] [LAYER] WriteAt(0,40,zIndex=10) - stored content (len=19): [38;2;107;71;178m│
+[2025-12-10 16:45:40.479] [LAYER] WriteAt(2,40,zIndex=10) - stored content (len=98): [38;2;136;136;136mA=Add | R=Archive | E=Edit | D=...
+[2025-12-10 16:45:40.492] [LAYER] WriteAt(86,40,zIndex=10) - stored content (len=19): [38;2;107;71;178m│
+[2025-12-10 16:45:40.505] [LAYER] WriteAt(0,41,zIndex=10) - stored content (len=109): [38;2;107;71;178m└───────────────────────────────...
+[2025-12-10 16:45:40.516] [LAYER] BeginLayer(zIndex=20) - Total switches: 3
+[2025-12-10 16:45:40.527] [LAYER] BeginLayer(zIndex=55) - Total switches: 4
+[2025-12-10 16:45:40.539] [LAYER] WriteAt(1,43,zIndex=55) - stored content (len=142): [K[38;2;153;102;255mEsc[0m[38;2;136;136;136m: ...
+[2025-12-10 16:45:40.551] [LAYER] BeginLayer(zIndex=65) - Total switches: 5
+[2025-12-10 16:45:40.563] [LAYER] BeginLayer(zIndex=100) - Total switches: 6
+[2025-12-10 16:45:40.576] [LAYER] WriteAt(0,0,zIndex=100) - stored content (len=109): [48;2;107;71;178m                                ...
+[2025-12-10 16:45:40.588] [LAYER] WriteAt(0,0,zIndex=100) - stored content (len=199): [48;2;107;71;178m[38;2;241;221;255m Tasks(T) [3...
+[2025-12-10 16:45:40.600] [RENDER] EndFrame: Starting - positions=51 layerSwitches=6
+[2025-12-10 16:45:40.613] [COMPOSITE] Starting layer composition for 51 positions
+[2025-12-10 16:45:40.625] [COMPOSITE] Position 1,3 - 1 layers, maxZ=50, content length=31
+[2025-12-10 16:45:40.637] [COMPOSITE] Position 1,3 - NEW, will write
+[2025-12-10 16:45:40.648] [COMPOSITE] Position 1,3 - WRITING at (1,3) zIndex=50: [38;2;153;102;255mProjects[0m
+[2025-12-10 16:45:40.661] [COMPOSITE] Position 1,5 - 1 layers, maxZ=50, content length=38
+[2025-12-10 16:45:40.673] [COMPOSITE] Position 1,5 - NEW, will write
+[2025-12-10 16:45:40.684] [COMPOSITE] Position 1,5 - WRITING at (1,5) zIndex=50: [38;2;136;136;136mHome → Projects[0m
+[2025-12-10 16:45:40.696] [COMPOSITE] Position 0,3 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:40.708] [COMPOSITE] Position 0,3 - NEW, will write
+[2025-12-10 16:45:40.720] [COMPOSITE] Position 0,3 - WRITING at (0,3) zIndex=10: [38;2;107;71;178m┌───────────────────────────────...
+[2025-12-10 16:45:40.732] [COMPOSITE] Position 2,3 - 1 layers, maxZ=10, content length=29
+[2025-12-10 16:45:40.744] [COMPOSITE] Position 2,3 - NEW, will write
+[2025-12-10 16:45:40.757] [COMPOSITE] Position 2,3 - WRITING at (2,3) zIndex=10: [38;2;153;102;255m Projects 
+[2025-12-10 16:45:40.769] [COMPOSITE] Position 76,3 - 1 layers, maxZ=10, content length=28
+[2025-12-10 16:45:40.781] [COMPOSITE] Position 76,3 - NEW, will write
+[2025-12-10 16:45:40.792] [COMPOSITE] Position 76,3 - WRITING at (76,3) zIndex=10: [38;2;136;136;136m(0 items)
+[2025-12-10 16:45:40.804] [COMPOSITE] Position 0,4 - 1 layers, maxZ=10, content length=19
+[2025-12-10 16:45:40.815] [COMPOSITE] Position 0,4 - NEW, will write
+[2025-12-10 16:45:40.827] [COMPOSITE] Position 0,4 - WRITING at (0,4) zIndex=10: [38;2;107;71;178m│
+[2025-12-10 16:45:40.839] [COMPOSITE] Position 2,4 - 1 layers, maxZ=10, content length=175
+[2025-12-10 16:45:40.850] [COMPOSITE] Position 2,4 - NEW, will write
+[2025-12-10 16:45:40.863] [COMPOSITE] Position 2,4 - WRITING at (2,4) zIndex=10: [38;2;153;102;255mProject                        ...
+[2025-12-10 16:45:40.875] [COMPOSITE] Position 86,4 - 1 layers, maxZ=10, content length=19
+[2025-12-10 16:45:40.886] [COMPOSITE] Position 86,4 - NEW, will write
+[2025-12-10 16:45:40.898] [COMPOSITE] Position 86,4 - WRITING at (86,4) zIndex=10: [38;2;107;71;178m│
+[2025-12-10 16:45:40.911] [COMPOSITE] Position 0,5 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:40.923] [COMPOSITE] Position 0,5 - NEW, will write
+[2025-12-10 16:45:40.935] [COMPOSITE] Position 0,5 - WRITING at (0,5) zIndex=10: [38;2;107;71;178m│───────────────────────────────...
+[2025-12-10 16:45:40.950] [COMPOSITE] Position 0,6 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:40.962] [COMPOSITE] Position 0,6 - NEW, will write
+[2025-12-10 16:45:40.974] [COMPOSITE] Position 0,6 - WRITING at (0,6) zIndex=10: [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:40.987] [COMPOSITE] Position 0,7 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:41.001] [COMPOSITE] Position 0,7 - NEW, will write
+[2025-12-10 16:45:41.013] [COMPOSITE] Position 0,7 - WRITING at (0,7) zIndex=10: [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:41.025] [COMPOSITE] Position 0,8 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:41.036] [COMPOSITE] Position 0,8 - NEW, will write
+[2025-12-10 16:45:41.048] [COMPOSITE] Position 0,8 - WRITING at (0,8) zIndex=10: [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:41.059] [COMPOSITE] Position 0,9 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:41.070] [COMPOSITE] Position 0,9 - NEW, will write
+[2025-12-10 16:45:41.082] [COMPOSITE] Position 0,9 - WRITING at (0,9) zIndex=10: [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:41.094] [COMPOSITE] Position 0,10 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:41.106] [COMPOSITE] Position 0,10 - NEW, will write
+[2025-12-10 16:45:41.118] [COMPOSITE] Position 0,10 - WRITING at (0,10) zIndex=10: [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:41.130] [COMPOSITE] Position 0,11 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:41.142] [COMPOSITE] Position 0,11 - NEW, will write
+[2025-12-10 16:45:41.154] [COMPOSITE] Position 0,11 - WRITING at (0,11) zIndex=10: [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:41.165] [COMPOSITE] Position 0,12 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:41.177] [COMPOSITE] Position 0,12 - NEW, will write
+[2025-12-10 16:45:41.189] [COMPOSITE] Position 0,12 - WRITING at (0,12) zIndex=10: [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:41.200] [COMPOSITE] Position 0,13 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:41.211] [COMPOSITE] Position 0,13 - NEW, will write
+[2025-12-10 16:45:41.223] [COMPOSITE] Position 0,13 - WRITING at (0,13) zIndex=10: [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:41.235] [COMPOSITE] Position 0,14 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:41.248] [COMPOSITE] Position 0,14 - NEW, will write
+[2025-12-10 16:45:41.260] [COMPOSITE] Position 0,14 - WRITING at (0,14) zIndex=10: [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:41.274] [COMPOSITE] Position 0,15 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:41.285] [COMPOSITE] Position 0,15 - NEW, will write
+[2025-12-10 16:45:41.297] [COMPOSITE] Position 0,15 - WRITING at (0,15) zIndex=10: [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:41.308] [COMPOSITE] Position 0,16 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:41.319] [COMPOSITE] Position 0,16 - NEW, will write
+[2025-12-10 16:45:41.331] [COMPOSITE] Position 0,16 - WRITING at (0,16) zIndex=10: [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:41.345] [COMPOSITE] Position 0,17 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:41.357] [COMPOSITE] Position 0,17 - NEW, will write
+[2025-12-10 16:45:41.369] [COMPOSITE] Position 0,17 - WRITING at (0,17) zIndex=10: [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:41.380] [COMPOSITE] Position 0,18 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:41.392] [COMPOSITE] Position 0,18 - NEW, will write
+[2025-12-10 16:45:41.404] [COMPOSITE] Position 0,18 - WRITING at (0,18) zIndex=10: [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:41.415] [COMPOSITE] Position 0,19 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:41.429] [COMPOSITE] Position 0,19 - NEW, will write
+[2025-12-10 16:45:41.442] [COMPOSITE] Position 0,19 - WRITING at (0,19) zIndex=10: [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:41.454] [COMPOSITE] Position 0,20 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:41.466] [COMPOSITE] Position 0,20 - NEW, will write
+[2025-12-10 16:45:41.478] [COMPOSITE] Position 0,20 - WRITING at (0,20) zIndex=10: [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:41.489] [COMPOSITE] Position 0,21 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:41.501] [COMPOSITE] Position 0,21 - NEW, will write
+[2025-12-10 16:45:41.512] [COMPOSITE] Position 0,21 - WRITING at (0,21) zIndex=10: [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:41.523] [COMPOSITE] Position 0,22 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:41.537] [COMPOSITE] Position 0,22 - NEW, will write
+[2025-12-10 16:45:41.549] [COMPOSITE] Position 0,22 - WRITING at (0,22) zIndex=10: [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:41.560] [COMPOSITE] Position 0,23 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:41.572] [COMPOSITE] Position 0,23 - NEW, will write
+[2025-12-10 16:45:41.587] [COMPOSITE] Position 0,23 - WRITING at (0,23) zIndex=10: [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:41.599] [COMPOSITE] Position 0,24 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:41.611] [COMPOSITE] Position 0,24 - NEW, will write
+[2025-12-10 16:45:41.623] [COMPOSITE] Position 0,24 - WRITING at (0,24) zIndex=10: [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:41.634] [COMPOSITE] Position 0,25 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:41.645] [COMPOSITE] Position 0,25 - NEW, will write
+[2025-12-10 16:45:41.659] [COMPOSITE] Position 0,25 - WRITING at (0,25) zIndex=10: [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:41.670] [COMPOSITE] Position 0,26 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:41.682] [COMPOSITE] Position 0,26 - NEW, will write
+[2025-12-10 16:45:41.694] [COMPOSITE] Position 0,26 - WRITING at (0,26) zIndex=10: [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:41.707] [COMPOSITE] Position 0,27 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:41.719] [COMPOSITE] Position 0,27 - NEW, will write
+[2025-12-10 16:45:41.731] [COMPOSITE] Position 0,27 - WRITING at (0,27) zIndex=10: [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:41.743] [COMPOSITE] Position 0,28 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:41.754] [COMPOSITE] Position 0,28 - NEW, will write
+[2025-12-10 16:45:41.766] [COMPOSITE] Position 0,28 - WRITING at (0,28) zIndex=10: [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:41.778] [COMPOSITE] Position 0,29 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:41.791] [COMPOSITE] Position 0,29 - NEW, will write
+[2025-12-10 16:45:41.802] [COMPOSITE] Position 0,29 - WRITING at (0,29) zIndex=10: [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:41.814] [COMPOSITE] Position 0,30 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:41.826] [COMPOSITE] Position 0,30 - NEW, will write
+[2025-12-10 16:45:41.838] [COMPOSITE] Position 0,30 - WRITING at (0,30) zIndex=10: [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:41.850] [COMPOSITE] Position 0,31 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:41.862] [COMPOSITE] Position 0,31 - NEW, will write
+[2025-12-10 16:45:41.873] [COMPOSITE] Position 0,31 - WRITING at (0,31) zIndex=10: [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:41.885] [COMPOSITE] Position 0,32 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:41.896] [COMPOSITE] Position 0,32 - NEW, will write
+[2025-12-10 16:45:41.908] [COMPOSITE] Position 0,32 - WRITING at (0,32) zIndex=10: [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:41.919] [COMPOSITE] Position 0,33 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:41.932] [COMPOSITE] Position 0,33 - NEW, will write
+[2025-12-10 16:45:41.944] [COMPOSITE] Position 0,33 - WRITING at (0,33) zIndex=10: [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:41.955] [COMPOSITE] Position 0,34 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:41.968] [COMPOSITE] Position 0,34 - NEW, will write
+[2025-12-10 16:45:41.980] [COMPOSITE] Position 0,34 - WRITING at (0,34) zIndex=10: [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:41.992] [COMPOSITE] Position 0,35 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:42.003] [COMPOSITE] Position 0,35 - NEW, will write
+[2025-12-10 16:45:42.015] [COMPOSITE] Position 0,35 - WRITING at (0,35) zIndex=10: [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:42.028] [COMPOSITE] Position 0,36 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:42.040] [COMPOSITE] Position 0,36 - NEW, will write
+[2025-12-10 16:45:42.051] [COMPOSITE] Position 0,36 - WRITING at (0,36) zIndex=10: [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:42.065] [COMPOSITE] Position 0,37 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:42.077] [COMPOSITE] Position 0,37 - NEW, will write
+[2025-12-10 16:45:42.089] [COMPOSITE] Position 0,37 - WRITING at (0,37) zIndex=10: [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:42.100] [COMPOSITE] Position 0,38 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:42.112] [COMPOSITE] Position 0,38 - NEW, will write
+[2025-12-10 16:45:42.124] [COMPOSITE] Position 0,38 - WRITING at (0,38) zIndex=10: [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:42.135] [COMPOSITE] Position 0,39 - 1 layers, maxZ=10, content length=19
+[2025-12-10 16:45:42.148] [COMPOSITE] Position 0,39 - NEW, will write
+[2025-12-10 16:45:42.159] [COMPOSITE] Position 0,39 - WRITING at (0,39) zIndex=10: [38;2;107;71;178m│
+[2025-12-10 16:45:42.171] [COMPOSITE] Position 2,39 - 1 layers, maxZ=10, content length=27
+[2025-12-10 16:45:42.184] [COMPOSITE] Position 2,39 - NEW, will write
+[2025-12-10 16:45:42.195] [COMPOSITE] Position 2,39 - WRITING at (2,39) zIndex=10: [38;2;136;136;136mNo items
+[2025-12-10 16:45:42.208] [COMPOSITE] Position 86,39 - 1 layers, maxZ=10, content length=19
+[2025-12-10 16:45:42.219] [COMPOSITE] Position 86,39 - NEW, will write
+[2025-12-10 16:45:42.231] [COMPOSITE] Position 86,39 - WRITING at (86,39) zIndex=10: [38;2;107;71;178m│
+[2025-12-10 16:45:42.242] [COMPOSITE] Position 0,40 - 1 layers, maxZ=10, content length=19
+[2025-12-10 16:45:42.253] [COMPOSITE] Position 0,40 - NEW, will write
+[2025-12-10 16:45:42.265] [COMPOSITE] Position 0,40 - WRITING at (0,40) zIndex=10: [38;2;107;71;178m│
+[2025-12-10 16:45:42.276] [COMPOSITE] Position 2,40 - 1 layers, maxZ=10, content length=98
+[2025-12-10 16:45:42.287] [COMPOSITE] Position 2,40 - NEW, will write
+[2025-12-10 16:45:42.299] [COMPOSITE] Position 2,40 - WRITING at (2,40) zIndex=10: [38;2;136;136;136mA=Add | R=Archive | E=Edit | D=...
+[2025-12-10 16:45:42.310] [COMPOSITE] Position 86,40 - 1 layers, maxZ=10, content length=19
+[2025-12-10 16:45:42.323] [COMPOSITE] Position 86,40 - NEW, will write
+[2025-12-10 16:45:42.334] [COMPOSITE] Position 86,40 - WRITING at (86,40) zIndex=10: [38;2;107;71;178m│
+[2025-12-10 16:45:42.345] [COMPOSITE] Position 0,41 - 1 layers, maxZ=10, content length=109
+[2025-12-10 16:45:42.358] [COMPOSITE] Position 0,41 - NEW, will write
+[2025-12-10 16:45:42.369] [COMPOSITE] Position 0,41 - WRITING at (0,41) zIndex=10: [38;2;107;71;178m└───────────────────────────────...
+[2025-12-10 16:45:42.381] [COMPOSITE] Position 1,43 - 1 layers, maxZ=55, content length=142
+[2025-12-10 16:45:42.393] [COMPOSITE] Position 1,43 - NEW, will write
+[2025-12-10 16:45:42.406] [COMPOSITE] Position 1,43 - WRITING at (1,43) zIndex=55: [K[38;2;153;102;255mEsc[0m[38;2;136;136;136m: ...
+[2025-12-10 16:45:42.418] [COMPOSITE] Position 0,0 - 1 layers, maxZ=100, content length=199
+[2025-12-10 16:45:42.432] [COMPOSITE] Position 0,0 - NEW, will write
+[2025-12-10 16:45:42.445] [COMPOSITE] Position 0,0 - WRITING at (0,0) zIndex=100: [48;2;107;71;178m[38;2;241;221;255m Tasks(T) [3...
+[2025-12-10 16:45:42.457] [COMPOSITE] Finished - positions=51 layers=51 updates=51
+[2025-12-10 16:45:42.469] [RENDER] EndFrame: Writing 51 updated cells, frame length=5013
+[2025-12-10 16:45:45.531] [RENDER] BeginFrame #4 - BEFORE clear: composited=51, layered=51
+[2025-12-10 16:45:45.533] [RENDER] BeginFrame: Layer data cleared, composited cache still has 51 entries
+[2025-12-10 16:45:45.546] [LAYER] BeginLayer(zIndex=50) - Total switches: 1
+[2025-12-10 16:45:45.559] [LAYER] WriteAt(1,3,zIndex=50) - stored content (len=31): [38;2;153;102;255mProjects[0m
+[2025-12-10 16:45:45.571] [LAYER] WriteAt(1,5,zIndex=50) - stored content (len=38): [38;2;136;136;136mHome → Projects[0m
+[2025-12-10 16:45:45.583] [LAYER] BeginLayer(zIndex=10) - Total switches: 2
+[2025-12-10 16:45:45.598] [INFO] PadText: text='Project' rawLen=7 visibleLen=7 width=43 align=left
+[2025-12-10 16:45:45.611] [INFO] PadText: text='Status' rawLen=6 visibleLen=6 width=21 align=left
+[2025-12-10 16:45:45.623] [INFO] PadText: text='Tasks' rawLen=5 visibleLen=5 width=12 align=center
+[2025-12-10 16:45:45.636] [INFO] PadText: text='Description' rawLen=11 visibleLen=11 width=64 align=left
+[16:45:45.684] PmcScreen.RenderToEngine: RenderContent returned length=6547
+[2025-12-10 16:45:45.697] [LAYER] WriteAt(0,3,zIndex=10) - stored content (len=105): [38;2;107;71;178m┌───────────────────────────────...
+[2025-12-10 16:45:45.708] [LAYER] WriteAt(2,3,zIndex=10) - stored content (len=29): [38;2;153;102;255m Projects 
+[2025-12-10 16:45:45.727] [LAYER] WriteAt(76,3,zIndex=10) - stored content (len=28): [38;2;136;136;136m(0 items)
+[2025-12-10 16:45:45.740] [LAYER] WriteAt(0,4,zIndex=10) - stored content (len=19): [38;2;107;71;178m│
+[2025-12-10 16:45:45.755] [LAYER] WriteAt(2,4,zIndex=10) - stored content (len=175): [38;2;153;102;255mProject                        ...
+[2025-12-10 16:45:45.766] [LAYER] WriteAt(86,4,zIndex=10) - stored content (len=19): [38;2;107;71;178m│
+[2025-12-10 16:45:45.778] [LAYER] WriteAt(0,5,zIndex=10) - stored content (len=105): [38;2;107;71;178m│───────────────────────────────...
+[2025-12-10 16:45:45.790] [LAYER] WriteAt(2,6,zIndex=10) - stored content (len=1819): [7m[5m[48;2;153;102;255m[38;2;255;255;255m [2...
+[2025-12-10 16:45:45.802] [LAYER] WriteAt(51,6,zIndex=10) - stored content (len=63): [48;2;0;0;0m[38;2;241;221;255mactive            ...
+[2025-12-10 16:45:45.813] [LAYER] WriteAt(78,6,zIndex=10) - stored content (len=54): [48;2;0;0;0m[38;2;241;221;255m(empty)       [0m...
+[2025-12-10 16:45:45.825] [LAYER] WriteAt(96,6,zIndex=10) - stored content (len=111): [48;2;0;0;0m[38;2;241;221;255m(empty)           ...
+[2025-12-10 16:45:45.838] [LAYER] WriteAt(0,7,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:45.849] [LAYER] WriteAt(0,8,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:45.862] [LAYER] WriteAt(0,9,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:45.875] [LAYER] WriteAt(0,10,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:45.888] [LAYER] WriteAt(0,11,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:45.902] [LAYER] WriteAt(0,12,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:45.917] [LAYER] WriteAt(0,13,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:45.929] [LAYER] WriteAt(0,14,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:45.942] [LAYER] WriteAt(0,15,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:45.954] [LAYER] WriteAt(0,16,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:45.967] [LAYER] WriteAt(0,17,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:45.980] [LAYER] WriteAt(0,18,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:45.992] [LAYER] WriteAt(0,19,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:46.006] [LAYER] WriteAt(0,20,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:46.020] [LAYER] WriteAt(0,21,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:46.033] [LAYER] WriteAt(0,22,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:46.045] [LAYER] WriteAt(0,23,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:46.058] [LAYER] WriteAt(0,24,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:46.069] [LAYER] WriteAt(0,25,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:46.081] [LAYER] WriteAt(0,26,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:46.093] [LAYER] WriteAt(0,27,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:46.106] [LAYER] WriteAt(0,28,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:46.118] [LAYER] WriteAt(0,29,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:46.131] [LAYER] WriteAt(0,30,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:46.147] [LAYER] WriteAt(0,31,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:46.159] [LAYER] WriteAt(0,32,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:46.171] [LAYER] WriteAt(0,33,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:46.183] [LAYER] WriteAt(0,34,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:46.196] [LAYER] WriteAt(0,35,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:46.209] [LAYER] WriteAt(0,36,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:46.220] [LAYER] WriteAt(0,37,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:46.232] [LAYER] WriteAt(0,38,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:46.243] [LAYER] WriteAt(0,39,zIndex=10) - stored content (len=19): [38;2;107;71;178m│
+[2025-12-10 16:45:46.254] [LAYER] WriteAt(2,39,zIndex=10) - stored content (len=27): [38;2;136;136;136mNo items
+[2025-12-10 16:45:46.265] [LAYER] WriteAt(86,39,zIndex=10) - stored content (len=19): [38;2;107;71;178m│
+[2025-12-10 16:45:46.281] [LAYER] WriteAt(0,40,zIndex=10) - stored content (len=19): [38;2;107;71;178m│
+[2025-12-10 16:45:46.293] [LAYER] WriteAt(2,40,zIndex=10) - stored content (len=98): [38;2;136;136;136mA=Add | R=Archive | E=Edit | D=...
+[2025-12-10 16:45:46.305] [LAYER] WriteAt(86,40,zIndex=10) - stored content (len=19): [38;2;107;71;178m│
+[2025-12-10 16:45:46.316] [LAYER] WriteAt(0,41,zIndex=10) - stored content (len=109): [38;2;107;71;178m└───────────────────────────────...
+[2025-12-10 16:45:46.329] [LAYER] BeginLayer(zIndex=20) - Total switches: 3
+[2025-12-10 16:45:46.341] [LAYER] BeginLayer(zIndex=55) - Total switches: 4
+[2025-12-10 16:45:46.354] [LAYER] WriteAt(1,43,zIndex=55) - stored content (len=142): [K[38;2;153;102;255mEsc[0m[38;2;136;136;136m: ...
+[2025-12-10 16:45:46.367] [LAYER] BeginLayer(zIndex=65) - Total switches: 5
+[2025-12-10 16:45:46.379] [LAYER] BeginLayer(zIndex=100) - Total switches: 6
+[2025-12-10 16:45:46.391] [LAYER] WriteAt(0,0,zIndex=100) - stored content (len=109): [48;2;107;71;178m                                ...
+[2025-12-10 16:45:46.403] [LAYER] WriteAt(0,0,zIndex=100) - stored content (len=199): [48;2;107;71;178m[38;2;241;221;255m Tasks(T) [3...
+[2025-12-10 16:45:46.414] [RENDER] EndFrame: Starting - positions=54 layerSwitches=6
+[2025-12-10 16:45:46.427] [COMPOSITE] Starting layer composition for 54 positions
+[2025-12-10 16:45:46.439] [COMPOSITE] Position 1,3 - 1 layers, maxZ=50, content length=31
+[2025-12-10 16:45:46.452] [COMPOSITE] Position 1,3 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:46.464] [COMPOSITE] Position 1,5 - 1 layers, maxZ=50, content length=38
+[2025-12-10 16:45:46.476] [COMPOSITE] Position 1,5 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:46.488] [COMPOSITE] Position 0,3 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:46.499] [COMPOSITE] Position 0,3 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:46.511] [COMPOSITE] Position 2,3 - 1 layers, maxZ=10, content length=29
+[2025-12-10 16:45:46.523] [COMPOSITE] Position 2,3 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:46.536] [COMPOSITE] Position 76,3 - 1 layers, maxZ=10, content length=28
+[2025-12-10 16:45:46.549] [COMPOSITE] Position 76,3 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:46.560] [COMPOSITE] Position 0,4 - 1 layers, maxZ=10, content length=19
+[2025-12-10 16:45:46.574] [COMPOSITE] Position 0,4 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:46.585] [COMPOSITE] Position 2,4 - 1 layers, maxZ=10, content length=175
+[2025-12-10 16:45:46.597] [COMPOSITE] Position 2,4 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:46.609] [COMPOSITE] Position 86,4 - 1 layers, maxZ=10, content length=19
+[2025-12-10 16:45:46.621] [COMPOSITE] Position 86,4 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:46.633] [COMPOSITE] Position 0,5 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:46.645] [COMPOSITE] Position 0,5 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:46.656] [COMPOSITE] Position 2,6 - 1 layers, maxZ=10, content length=1819
+[2025-12-10 16:45:46.668] [COMPOSITE] Position 2,6 - NEW, will write
+[2025-12-10 16:45:46.680] [COMPOSITE] Position 2,6 - WRITING at (2,6) zIndex=10: [7m[5m[48;2;153;102;255m[38;2;255;255;255m [2...
+[2025-12-10 16:45:46.692] [COMPOSITE] Position 51,6 - 1 layers, maxZ=10, content length=63
+[2025-12-10 16:45:46.703] [COMPOSITE] Position 51,6 - NEW, will write
+[2025-12-10 16:45:46.715] [COMPOSITE] Position 51,6 - WRITING at (51,6) zIndex=10: [48;2;0;0;0m[38;2;241;221;255mactive            ...
+[2025-12-10 16:45:46.727] [COMPOSITE] Position 78,6 - 1 layers, maxZ=10, content length=54
+[2025-12-10 16:45:46.739] [COMPOSITE] Position 78,6 - NEW, will write
+[2025-12-10 16:45:46.750] [COMPOSITE] Position 78,6 - WRITING at (78,6) zIndex=10: [48;2;0;0;0m[38;2;241;221;255m(empty)       [0m...
+[2025-12-10 16:45:46.762] [COMPOSITE] Position 96,6 - 1 layers, maxZ=10, content length=111
+[2025-12-10 16:45:46.773] [COMPOSITE] Position 96,6 - NEW, will write
+[2025-12-10 16:45:46.785] [COMPOSITE] Position 96,6 - WRITING at (96,6) zIndex=10: [48;2;0;0;0m[38;2;241;221;255m(empty)           ...
+[2025-12-10 16:45:46.796] [COMPOSITE] Position 0,7 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:46.809] [COMPOSITE] Position 0,7 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:46.821] [COMPOSITE] Position 0,8 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:46.832] [COMPOSITE] Position 0,8 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:46.842] [COMPOSITE] Position 0,9 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:46.862] [COMPOSITE] Position 0,9 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:46.874] [COMPOSITE] Position 0,10 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:46.885] [COMPOSITE] Position 0,10 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:46.897] [COMPOSITE] Position 0,11 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:46.908] [COMPOSITE] Position 0,11 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:46.919] [COMPOSITE] Position 0,12 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:46.932] [COMPOSITE] Position 0,12 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:46.943] [COMPOSITE] Position 0,13 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:46.955] [COMPOSITE] Position 0,13 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:46.967] [COMPOSITE] Position 0,14 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:46.979] [COMPOSITE] Position 0,14 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:46.991] [COMPOSITE] Position 0,15 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:47.002] [COMPOSITE] Position 0,15 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:47.013] [COMPOSITE] Position 0,16 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:47.024] [COMPOSITE] Position 0,16 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:47.036] [COMPOSITE] Position 0,17 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:47.049] [COMPOSITE] Position 0,17 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:47.060] [COMPOSITE] Position 0,18 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:47.075] [COMPOSITE] Position 0,18 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:47.088] [COMPOSITE] Position 0,19 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:47.100] [COMPOSITE] Position 0,19 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:47.112] [COMPOSITE] Position 0,20 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:47.123] [COMPOSITE] Position 0,20 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:47.135] [COMPOSITE] Position 0,21 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:47.147] [COMPOSITE] Position 0,21 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:47.159] [COMPOSITE] Position 0,22 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:47.170] [COMPOSITE] Position 0,22 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:47.182] [COMPOSITE] Position 0,23 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:47.192] [COMPOSITE] Position 0,23 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:47.204] [COMPOSITE] Position 0,24 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:47.216] [COMPOSITE] Position 0,24 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:47.228] [COMPOSITE] Position 0,25 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:47.239] [COMPOSITE] Position 0,25 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:47.251] [COMPOSITE] Position 0,26 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:47.263] [COMPOSITE] Position 0,26 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:47.274] [COMPOSITE] Position 0,27 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:47.285] [COMPOSITE] Position 0,27 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:47.296] [COMPOSITE] Position 0,28 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:47.307] [COMPOSITE] Position 0,28 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:47.319] [COMPOSITE] Position 0,29 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:47.332] [COMPOSITE] Position 0,29 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:47.344] [COMPOSITE] Position 0,30 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:47.355] [COMPOSITE] Position 0,30 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:47.367] [COMPOSITE] Position 0,31 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:47.378] [COMPOSITE] Position 0,31 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:47.389] [COMPOSITE] Position 0,32 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:47.401] [COMPOSITE] Position 0,32 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:47.412] [COMPOSITE] Position 0,33 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:47.424] [COMPOSITE] Position 0,33 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:47.437] [COMPOSITE] Position 0,34 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:47.450] [COMPOSITE] Position 0,34 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:47.462] [COMPOSITE] Position 0,35 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:47.475] [COMPOSITE] Position 0,35 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:47.488] [COMPOSITE] Position 0,36 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:47.501] [COMPOSITE] Position 0,36 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:47.512] [COMPOSITE] Position 0,37 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:47.524] [COMPOSITE] Position 0,37 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:47.536] [COMPOSITE] Position 0,38 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:47.548] [COMPOSITE] Position 0,38 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:47.559] [COMPOSITE] Position 0,39 - 1 layers, maxZ=10, content length=19
+[2025-12-10 16:45:47.572] [COMPOSITE] Position 0,39 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:47.584] [COMPOSITE] Position 2,39 - 1 layers, maxZ=10, content length=27
+[2025-12-10 16:45:47.597] [COMPOSITE] Position 2,39 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:47.609] [COMPOSITE] Position 86,39 - 1 layers, maxZ=10, content length=19
+[2025-12-10 16:45:47.621] [COMPOSITE] Position 86,39 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:47.632] [COMPOSITE] Position 0,40 - 1 layers, maxZ=10, content length=19
+[2025-12-10 16:45:47.643] [COMPOSITE] Position 0,40 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:47.655] [COMPOSITE] Position 2,40 - 1 layers, maxZ=10, content length=98
+[2025-12-10 16:45:47.667] [COMPOSITE] Position 2,40 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:47.679] [COMPOSITE] Position 86,40 - 1 layers, maxZ=10, content length=19
+[2025-12-10 16:45:47.690] [COMPOSITE] Position 86,40 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:47.701] [COMPOSITE] Position 0,41 - 1 layers, maxZ=10, content length=109
+[2025-12-10 16:45:47.713] [COMPOSITE] Position 0,41 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:47.725] [COMPOSITE] Position 1,43 - 1 layers, maxZ=55, content length=142
+[2025-12-10 16:45:47.736] [COMPOSITE] Position 1,43 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:47.748] [COMPOSITE] Position 0,0 - 1 layers, maxZ=100, content length=199
+[2025-12-10 16:45:47.760] [COMPOSITE] Position 0,0 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:47.771] [COMPOSITE] Finished - positions=54 layers=54 updates=4
+[2025-12-10 16:45:47.782] [RENDER] EndFrame: Writing 4 updated cells, frame length=2074
+[2025-12-10 16:45:48.308] [DEBUG] StandardListScreen: Routing to InlineEditor (Key=P)
+[2025-12-10 16:45:48.338] [DEBUG] StandardListScreen: After HandleInput - IsConfirmed=False IsCancelled=False ShowInlineEditor=True
+[2025-12-10 16:45:48.350] [DEBUG] StandardListScreen: After close check - ShowInlineEditor=True
+[2025-12-10 16:45:48.363] [RENDER] BeginFrame #5 - BEFORE clear: composited=55, layered=54
+[2025-12-10 16:45:48.376] [RENDER] BeginFrame: Layer data cleared, composited cache still has 55 entries
+[2025-12-10 16:45:48.389] [LAYER] BeginLayer(zIndex=50) - Total switches: 1
+[2025-12-10 16:45:48.402] [LAYER] WriteAt(1,3,zIndex=50) - stored content (len=31): [38;2;153;102;255mProjects[0m
+[2025-12-10 16:45:48.418] [LAYER] WriteAt(1,5,zIndex=50) - stored content (len=38): [38;2;136;136;136mHome → Projects[0m
+[2025-12-10 16:45:48.433] [LAYER] BeginLayer(zIndex=10) - Total switches: 2
+[2025-12-10 16:45:48.445] [INFO] PadText: text='Project' rawLen=7 visibleLen=7 width=43 align=left
+[2025-12-10 16:45:48.458] [INFO] PadText: text='Status' rawLen=6 visibleLen=6 width=21 align=left
+[2025-12-10 16:45:48.472] [INFO] PadText: text='Tasks' rawLen=5 visibleLen=5 width=12 align=center
+[2025-12-10 16:45:48.485] [INFO] PadText: text='Description' rawLen=11 visibleLen=11 width=64 align=left
+[16:45:48.506] PmcScreen.RenderToEngine: RenderContent returned length=6547
+[2025-12-10 16:45:48.519] [LAYER] WriteAt(0,3,zIndex=10) - stored content (len=105): [38;2;107;71;178m┌───────────────────────────────...
+[2025-12-10 16:45:48.532] [LAYER] WriteAt(2,3,zIndex=10) - stored content (len=29): [38;2;153;102;255m Projects 
+[2025-12-10 16:45:48.544] [LAYER] WriteAt(76,3,zIndex=10) - stored content (len=28): [38;2;136;136;136m(0 items)
+[2025-12-10 16:45:48.556] [LAYER] WriteAt(0,4,zIndex=10) - stored content (len=19): [38;2;107;71;178m│
+[2025-12-10 16:45:48.568] [LAYER] WriteAt(2,4,zIndex=10) - stored content (len=175): [38;2;153;102;255mProject                        ...
+[2025-12-10 16:45:48.580] [LAYER] WriteAt(86,4,zIndex=10) - stored content (len=19): [38;2;107;71;178m│
+[2025-12-10 16:45:48.593] [LAYER] WriteAt(0,5,zIndex=10) - stored content (len=105): [38;2;107;71;178m│───────────────────────────────...
+[2025-12-10 16:45:48.604] [LAYER] WriteAt(2,6,zIndex=10) - stored content (len=1819): [48;2;153;102;255m[38;2;255;255;255mp[7m[5m[4...
+[2025-12-10 16:45:48.616] [LAYER] WriteAt(51,6,zIndex=10) - stored content (len=63): [48;2;0;0;0m[38;2;241;221;255mactive            ...
+[2025-12-10 16:45:48.628] [LAYER] WriteAt(78,6,zIndex=10) - stored content (len=54): [48;2;0;0;0m[38;2;241;221;255m(empty)       [0m...
+[2025-12-10 16:45:48.642] [LAYER] WriteAt(96,6,zIndex=10) - stored content (len=111): [48;2;0;0;0m[38;2;241;221;255m(empty)           ...
+[2025-12-10 16:45:48.654] [LAYER] WriteAt(0,7,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:48.668] [LAYER] WriteAt(0,8,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:48.681] [LAYER] WriteAt(0,9,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:48.694] [LAYER] WriteAt(0,10,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:48.706] [LAYER] WriteAt(0,11,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:48.718] [LAYER] WriteAt(0,12,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:48.730] [LAYER] WriteAt(0,13,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:48.743] [LAYER] WriteAt(0,14,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:48.755] [LAYER] WriteAt(0,15,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:48.767] [LAYER] WriteAt(0,16,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:48.778] [LAYER] WriteAt(0,17,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:48.790] [LAYER] WriteAt(0,18,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:48.802] [LAYER] WriteAt(0,19,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:48.815] [LAYER] WriteAt(0,20,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:48.827] [LAYER] WriteAt(0,21,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:48.840] [LAYER] WriteAt(0,22,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:48.852] [LAYER] WriteAt(0,23,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:48.865] [LAYER] WriteAt(0,24,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:48.877] [LAYER] WriteAt(0,25,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:48.889] [LAYER] WriteAt(0,26,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:48.903] [LAYER] WriteAt(0,27,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:48.915] [LAYER] WriteAt(0,28,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:48.927] [LAYER] WriteAt(0,29,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:48.939] [LAYER] WriteAt(0,30,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:48.951] [LAYER] WriteAt(0,31,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:48.963] [LAYER] WriteAt(0,32,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:48.974] [LAYER] WriteAt(0,33,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:48.987] [LAYER] WriteAt(0,34,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:48.999] [LAYER] WriteAt(0,35,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:49.011] [LAYER] WriteAt(0,36,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:49.023] [LAYER] WriteAt(0,37,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:49.035] [LAYER] WriteAt(0,38,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:49.046] [LAYER] WriteAt(0,39,zIndex=10) - stored content (len=19): [38;2;107;71;178m│
+[2025-12-10 16:45:49.058] [LAYER] WriteAt(2,39,zIndex=10) - stored content (len=27): [38;2;136;136;136mNo items
+[2025-12-10 16:45:49.069] [LAYER] WriteAt(86,39,zIndex=10) - stored content (len=19): [38;2;107;71;178m│
+[2025-12-10 16:45:49.081] [LAYER] WriteAt(0,40,zIndex=10) - stored content (len=19): [38;2;107;71;178m│
+[2025-12-10 16:45:49.093] [LAYER] WriteAt(2,40,zIndex=10) - stored content (len=98): [38;2;136;136;136mA=Add | R=Archive | E=Edit | D=...
+[2025-12-10 16:45:49.105] [LAYER] WriteAt(86,40,zIndex=10) - stored content (len=19): [38;2;107;71;178m│
+[2025-12-10 16:45:49.116] [LAYER] WriteAt(0,41,zIndex=10) - stored content (len=109): [38;2;107;71;178m└───────────────────────────────...
+[2025-12-10 16:45:49.128] [LAYER] BeginLayer(zIndex=20) - Total switches: 3
+[2025-12-10 16:45:49.140] [LAYER] BeginLayer(zIndex=55) - Total switches: 4
+[2025-12-10 16:45:49.152] [LAYER] WriteAt(1,43,zIndex=55) - stored content (len=142): [K[38;2;153;102;255mEsc[0m[38;2;136;136;136m: ...
+[2025-12-10 16:45:49.164] [LAYER] BeginLayer(zIndex=65) - Total switches: 5
+[2025-12-10 16:45:49.177] [LAYER] BeginLayer(zIndex=100) - Total switches: 6
+[2025-12-10 16:45:49.191] [LAYER] WriteAt(0,0,zIndex=100) - stored content (len=109): [48;2;107;71;178m                                ...
+[2025-12-10 16:45:49.203] [LAYER] WriteAt(0,0,zIndex=100) - stored content (len=199): [48;2;107;71;178m[38;2;241;221;255m Tasks(T) [3...
+[2025-12-10 16:45:49.214] [RENDER] EndFrame: Starting - positions=54 layerSwitches=6
+[2025-12-10 16:45:49.226] [COMPOSITE] Starting layer composition for 54 positions
+[2025-12-10 16:45:49.238] [COMPOSITE] Position 1,3 - 1 layers, maxZ=50, content length=31
+[2025-12-10 16:45:49.250] [COMPOSITE] Position 1,3 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:49.263] [COMPOSITE] Position 1,5 - 1 layers, maxZ=50, content length=38
+[2025-12-10 16:45:49.276] [COMPOSITE] Position 1,5 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:49.287] [COMPOSITE] Position 0,3 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:49.300] [COMPOSITE] Position 0,3 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:49.312] [COMPOSITE] Position 2,3 - 1 layers, maxZ=10, content length=29
+[2025-12-10 16:45:49.324] [COMPOSITE] Position 2,3 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:49.336] [COMPOSITE] Position 76,3 - 1 layers, maxZ=10, content length=28
+[2025-12-10 16:45:49.348] [COMPOSITE] Position 76,3 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:49.360] [COMPOSITE] Position 0,4 - 1 layers, maxZ=10, content length=19
+[2025-12-10 16:45:49.371] [COMPOSITE] Position 0,4 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:49.384] [COMPOSITE] Position 2,4 - 1 layers, maxZ=10, content length=175
+[2025-12-10 16:45:49.395] [COMPOSITE] Position 2,4 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:49.408] [COMPOSITE] Position 86,4 - 1 layers, maxZ=10, content length=19
+[2025-12-10 16:45:49.422] [COMPOSITE] Position 86,4 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:49.436] [COMPOSITE] Position 0,5 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:49.450] [COMPOSITE] Position 0,5 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:49.463] [COMPOSITE] Position 2,6 - 1 layers, maxZ=10, content length=1819
+[2025-12-10 16:45:49.475] [COMPOSITE] Position 2,6 - CHANGED, will write
+[2025-12-10 16:45:49.487] [COMPOSITE] Position 2,6 - WRITING at (2,6) zIndex=10: [48;2;153;102;255m[38;2;255;255;255mp[7m[5m[4...
+[2025-12-10 16:45:49.500] [COMPOSITE] Position 51,6 - 1 layers, maxZ=10, content length=63
+[2025-12-10 16:45:49.512] [COMPOSITE] Position 51,6 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:49.524] [COMPOSITE] Position 78,6 - 1 layers, maxZ=10, content length=54
+[2025-12-10 16:45:49.536] [COMPOSITE] Position 78,6 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:49.548] [COMPOSITE] Position 96,6 - 1 layers, maxZ=10, content length=111
+[2025-12-10 16:45:49.560] [COMPOSITE] Position 96,6 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:49.572] [COMPOSITE] Position 0,7 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:49.583] [COMPOSITE] Position 0,7 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:49.596] [COMPOSITE] Position 0,8 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:49.610] [COMPOSITE] Position 0,8 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:49.622] [COMPOSITE] Position 0,9 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:49.634] [COMPOSITE] Position 0,9 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:49.646] [COMPOSITE] Position 0,10 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:49.658] [COMPOSITE] Position 0,10 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:49.670] [COMPOSITE] Position 0,11 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:49.683] [COMPOSITE] Position 0,11 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:49.694] [COMPOSITE] Position 0,12 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:49.706] [COMPOSITE] Position 0,12 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:49.718] [COMPOSITE] Position 0,13 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:49.730] [COMPOSITE] Position 0,13 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:49.742] [COMPOSITE] Position 0,14 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:49.754] [COMPOSITE] Position 0,14 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:49.766] [COMPOSITE] Position 0,15 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:49.777] [COMPOSITE] Position 0,15 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:49.789] [COMPOSITE] Position 0,16 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:49.801] [COMPOSITE] Position 0,16 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:49.813] [COMPOSITE] Position 0,17 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:49.826] [COMPOSITE] Position 0,17 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:49.838] [COMPOSITE] Position 0,18 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:49.850] [COMPOSITE] Position 0,18 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:49.862] [COMPOSITE] Position 0,19 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:49.874] [COMPOSITE] Position 0,19 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:49.886] [COMPOSITE] Position 0,20 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:49.897] [COMPOSITE] Position 0,20 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:49.908] [COMPOSITE] Position 0,21 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:49.920] [COMPOSITE] Position 0,21 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:49.932] [COMPOSITE] Position 0,22 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:49.944] [COMPOSITE] Position 0,22 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:49.958] [COMPOSITE] Position 0,23 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:49.970] [COMPOSITE] Position 0,23 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:49.981] [COMPOSITE] Position 0,24 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:49.992] [COMPOSITE] Position 0,24 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:50.005] [COMPOSITE] Position 0,25 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:50.017] [COMPOSITE] Position 0,25 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:50.031] [COMPOSITE] Position 0,26 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:50.043] [COMPOSITE] Position 0,26 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:50.055] [COMPOSITE] Position 0,27 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:50.067] [COMPOSITE] Position 0,27 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:50.079] [COMPOSITE] Position 0,28 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:50.092] [COMPOSITE] Position 0,28 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:50.103] [COMPOSITE] Position 0,29 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:50.115] [COMPOSITE] Position 0,29 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:50.126] [COMPOSITE] Position 0,30 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:50.138] [COMPOSITE] Position 0,30 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:50.150] [COMPOSITE] Position 0,31 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:50.161] [COMPOSITE] Position 0,31 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:50.173] [COMPOSITE] Position 0,32 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:50.184] [COMPOSITE] Position 0,32 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:50.196] [COMPOSITE] Position 0,33 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:50.208] [COMPOSITE] Position 0,33 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:50.221] [COMPOSITE] Position 0,34 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:50.233] [COMPOSITE] Position 0,34 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:50.244] [COMPOSITE] Position 0,35 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:50.256] [COMPOSITE] Position 0,35 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:50.268] [COMPOSITE] Position 0,36 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:50.280] [COMPOSITE] Position 0,36 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:50.292] [COMPOSITE] Position 0,37 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:50.304] [COMPOSITE] Position 0,37 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:50.316] [COMPOSITE] Position 0,38 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:50.328] [COMPOSITE] Position 0,38 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:50.339] [COMPOSITE] Position 0,39 - 1 layers, maxZ=10, content length=19
+[2025-12-10 16:45:50.352] [COMPOSITE] Position 0,39 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:50.364] [COMPOSITE] Position 2,39 - 1 layers, maxZ=10, content length=27
+[2025-12-10 16:45:50.376] [COMPOSITE] Position 2,39 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:50.388] [COMPOSITE] Position 86,39 - 1 layers, maxZ=10, content length=19
+[2025-12-10 16:45:50.400] [COMPOSITE] Position 86,39 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:50.412] [COMPOSITE] Position 0,40 - 1 layers, maxZ=10, content length=19
+[2025-12-10 16:45:50.424] [COMPOSITE] Position 0,40 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:50.437] [COMPOSITE] Position 2,40 - 1 layers, maxZ=10, content length=98
+[2025-12-10 16:45:50.450] [COMPOSITE] Position 2,40 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:50.463] [COMPOSITE] Position 86,40 - 1 layers, maxZ=10, content length=19
+[2025-12-10 16:45:50.476] [COMPOSITE] Position 86,40 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:50.490] [COMPOSITE] Position 0,41 - 1 layers, maxZ=10, content length=109
+[2025-12-10 16:45:50.501] [COMPOSITE] Position 0,41 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:50.514] [COMPOSITE] Position 1,43 - 1 layers, maxZ=55, content length=142
+[2025-12-10 16:45:50.527] [COMPOSITE] Position 1,43 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:50.539] [COMPOSITE] Position 0,0 - 1 layers, maxZ=100, content length=199
+[2025-12-10 16:45:50.552] [COMPOSITE] Position 0,0 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:50.563] [COMPOSITE] Finished - positions=54 layers=54 updates=1
+[2025-12-10 16:45:50.575] [RENDER] EndFrame: Writing 1 updated cells, frame length=1825
+[2025-12-10 16:45:50.616] [DEBUG] StandardListScreen: Routing to InlineEditor (Key=D1)
+[2025-12-10 16:45:50.628] [DEBUG] StandardListScreen: After HandleInput - IsConfirmed=False IsCancelled=False ShowInlineEditor=True
+[2025-12-10 16:45:50.641] [DEBUG] StandardListScreen: After close check - ShowInlineEditor=True
+[2025-12-10 16:45:50.654] [RENDER] BeginFrame #6 - BEFORE clear: composited=55, layered=54
+[2025-12-10 16:45:50.668] [RENDER] BeginFrame: Layer data cleared, composited cache still has 55 entries
+[2025-12-10 16:45:50.680] [LAYER] BeginLayer(zIndex=50) - Total switches: 1
+[2025-12-10 16:45:50.693] [LAYER] WriteAt(1,3,zIndex=50) - stored content (len=31): [38;2;153;102;255mProjects[0m
+[2025-12-10 16:45:50.705] [LAYER] WriteAt(1,5,zIndex=50) - stored content (len=38): [38;2;136;136;136mHome → Projects[0m
+[2025-12-10 16:45:50.717] [LAYER] BeginLayer(zIndex=10) - Total switches: 2
+[2025-12-10 16:45:50.730] [INFO] PadText: text='Project' rawLen=7 visibleLen=7 width=43 align=left
+[2025-12-10 16:45:50.743] [INFO] PadText: text='Status' rawLen=6 visibleLen=6 width=21 align=left
+[2025-12-10 16:45:50.756] [INFO] PadText: text='Tasks' rawLen=5 visibleLen=5 width=12 align=center
+[2025-12-10 16:45:50.769] [INFO] PadText: text='Description' rawLen=11 visibleLen=11 width=64 align=left
+[16:45:50.785] PmcScreen.RenderToEngine: RenderContent returned length=6547
+[2025-12-10 16:45:50.797] [LAYER] WriteAt(0,3,zIndex=10) - stored content (len=105): [38;2;107;71;178m┌───────────────────────────────...
+[2025-12-10 16:45:50.810] [LAYER] WriteAt(2,3,zIndex=10) - stored content (len=29): [38;2;153;102;255m Projects 
+[2025-12-10 16:45:50.823] [LAYER] WriteAt(76,3,zIndex=10) - stored content (len=28): [38;2;136;136;136m(0 items)
+[2025-12-10 16:45:50.835] [LAYER] WriteAt(0,4,zIndex=10) - stored content (len=19): [38;2;107;71;178m│
+[2025-12-10 16:45:50.848] [LAYER] WriteAt(2,4,zIndex=10) - stored content (len=175): [38;2;153;102;255mProject                        ...
+[2025-12-10 16:45:50.861] [LAYER] WriteAt(86,4,zIndex=10) - stored content (len=19): [38;2;107;71;178m│
+[2025-12-10 16:45:50.874] [LAYER] WriteAt(0,5,zIndex=10) - stored content (len=105): [38;2;107;71;178m│───────────────────────────────...
+[2025-12-10 16:45:50.887] [LAYER] WriteAt(2,6,zIndex=10) - stored content (len=1819): [48;2;153;102;255m[38;2;255;255;255mp[48;2;153;...
+[2025-12-10 16:45:50.899] [LAYER] WriteAt(51,6,zIndex=10) - stored content (len=63): [48;2;0;0;0m[38;2;241;221;255mactive            ...
+[2025-12-10 16:45:50.911] [LAYER] WriteAt(78,6,zIndex=10) - stored content (len=54): [48;2;0;0;0m[38;2;241;221;255m(empty)       [0m...
+[2025-12-10 16:45:50.923] [LAYER] WriteAt(96,6,zIndex=10) - stored content (len=111): [48;2;0;0;0m[38;2;241;221;255m(empty)           ...
+[2025-12-10 16:45:50.935] [LAYER] WriteAt(0,7,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:50.947] [LAYER] WriteAt(0,8,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:50.960] [LAYER] WriteAt(0,9,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:50.972] [LAYER] WriteAt(0,10,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:50.986] [LAYER] WriteAt(0,11,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:50.998] [LAYER] WriteAt(0,12,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:51.012] [LAYER] WriteAt(0,13,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:51.024] [LAYER] WriteAt(0,14,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:51.037] [LAYER] WriteAt(0,15,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:51.049] [LAYER] WriteAt(0,16,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:51.061] [LAYER] WriteAt(0,17,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:51.073] [LAYER] WriteAt(0,18,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:51.086] [LAYER] WriteAt(0,19,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:51.098] [LAYER] WriteAt(0,20,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:51.110] [LAYER] WriteAt(0,21,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:51.122] [LAYER] WriteAt(0,22,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:51.136] [LAYER] WriteAt(0,23,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:51.148] [LAYER] WriteAt(0,24,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:51.160] [LAYER] WriteAt(0,25,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:51.172] [LAYER] WriteAt(0,26,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:51.184] [LAYER] WriteAt(0,27,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:51.197] [LAYER] WriteAt(0,28,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:51.208] [LAYER] WriteAt(0,29,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:51.220] [LAYER] WriteAt(0,30,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:51.232] [LAYER] WriteAt(0,31,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:51.245] [LAYER] WriteAt(0,32,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:51.257] [LAYER] WriteAt(0,33,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:51.269] [LAYER] WriteAt(0,34,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:51.283] [LAYER] WriteAt(0,35,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:51.296] [LAYER] WriteAt(0,36,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:51.308] [LAYER] WriteAt(0,37,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:51.321] [LAYER] WriteAt(0,38,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:51.332] [LAYER] WriteAt(0,39,zIndex=10) - stored content (len=19): [38;2;107;71;178m│
+[2025-12-10 16:45:51.345] [LAYER] WriteAt(2,39,zIndex=10) - stored content (len=27): [38;2;136;136;136mNo items
+[2025-12-10 16:45:51.357] [LAYER] WriteAt(86,39,zIndex=10) - stored content (len=19): [38;2;107;71;178m│
+[2025-12-10 16:45:51.369] [LAYER] WriteAt(0,40,zIndex=10) - stored content (len=19): [38;2;107;71;178m│
+[2025-12-10 16:45:51.380] [LAYER] WriteAt(2,40,zIndex=10) - stored content (len=98): [38;2;136;136;136mA=Add | R=Archive | E=Edit | D=...
+[2025-12-10 16:45:51.392] [LAYER] WriteAt(86,40,zIndex=10) - stored content (len=19): [38;2;107;71;178m│
+[2025-12-10 16:45:51.405] [LAYER] WriteAt(0,41,zIndex=10) - stored content (len=109): [38;2;107;71;178m└───────────────────────────────...
+[2025-12-10 16:45:51.417] [LAYER] BeginLayer(zIndex=20) - Total switches: 3
+[2025-12-10 16:45:51.429] [LAYER] BeginLayer(zIndex=55) - Total switches: 4
+[2025-12-10 16:45:51.444] [LAYER] WriteAt(1,43,zIndex=55) - stored content (len=142): [K[38;2;153;102;255mEsc[0m[38;2;136;136;136m: ...
+[2025-12-10 16:45:51.457] [LAYER] BeginLayer(zIndex=65) - Total switches: 5
+[2025-12-10 16:45:51.470] [LAYER] BeginLayer(zIndex=100) - Total switches: 6
+[2025-12-10 16:45:51.484] [LAYER] WriteAt(0,0,zIndex=100) - stored content (len=109): [48;2;107;71;178m                                ...
+[2025-12-10 16:45:51.497] [LAYER] WriteAt(0,0,zIndex=100) - stored content (len=199): [48;2;107;71;178m[38;2;241;221;255m Tasks(T) [3...
+[2025-12-10 16:45:51.509] [RENDER] EndFrame: Starting - positions=54 layerSwitches=6
+[2025-12-10 16:45:51.521] [COMPOSITE] Starting layer composition for 54 positions
+[2025-12-10 16:45:51.533] [COMPOSITE] Position 1,3 - 1 layers, maxZ=50, content length=31
+[2025-12-10 16:45:51.546] [COMPOSITE] Position 1,3 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:51.558] [COMPOSITE] Position 1,5 - 1 layers, maxZ=50, content length=38
+[2025-12-10 16:45:51.570] [COMPOSITE] Position 1,5 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:51.583] [COMPOSITE] Position 0,3 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:51.595] [COMPOSITE] Position 0,3 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:51.607] [COMPOSITE] Position 2,3 - 1 layers, maxZ=10, content length=29
+[2025-12-10 16:45:51.619] [COMPOSITE] Position 2,3 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:51.631] [COMPOSITE] Position 76,3 - 1 layers, maxZ=10, content length=28
+[2025-12-10 16:45:51.642] [COMPOSITE] Position 76,3 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:51.654] [COMPOSITE] Position 0,4 - 1 layers, maxZ=10, content length=19
+[2025-12-10 16:45:51.667] [COMPOSITE] Position 0,4 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:51.681] [COMPOSITE] Position 2,4 - 1 layers, maxZ=10, content length=175
+[2025-12-10 16:45:51.693] [COMPOSITE] Position 2,4 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:51.704] [COMPOSITE] Position 86,4 - 1 layers, maxZ=10, content length=19
+[2025-12-10 16:45:51.716] [COMPOSITE] Position 86,4 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:51.728] [COMPOSITE] Position 0,5 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:51.741] [COMPOSITE] Position 0,5 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:51.753] [COMPOSITE] Position 2,6 - 1 layers, maxZ=10, content length=1819
+[2025-12-10 16:45:51.765] [COMPOSITE] Position 2,6 - CHANGED, will write
+[2025-12-10 16:45:51.777] [COMPOSITE] Position 2,6 - WRITING at (2,6) zIndex=10: [48;2;153;102;255m[38;2;255;255;255mp[48;2;153;...
+[2025-12-10 16:45:51.789] [COMPOSITE] Position 51,6 - 1 layers, maxZ=10, content length=63
+[2025-12-10 16:45:51.804] [COMPOSITE] Position 51,6 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:51.816] [COMPOSITE] Position 78,6 - 1 layers, maxZ=10, content length=54
+[2025-12-10 16:45:51.827] [COMPOSITE] Position 78,6 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:51.840] [COMPOSITE] Position 96,6 - 1 layers, maxZ=10, content length=111
+[2025-12-10 16:45:51.851] [COMPOSITE] Position 96,6 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:51.863] [COMPOSITE] Position 0,7 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:51.875] [COMPOSITE] Position 0,7 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:51.887] [COMPOSITE] Position 0,8 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:51.898] [COMPOSITE] Position 0,8 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:51.910] [COMPOSITE] Position 0,9 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:51.921] [COMPOSITE] Position 0,9 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:51.933] [COMPOSITE] Position 0,10 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:51.944] [COMPOSITE] Position 0,10 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:51.957] [COMPOSITE] Position 0,11 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:51.968] [COMPOSITE] Position 0,11 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:51.981] [COMPOSITE] Position 0,12 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:51.994] [COMPOSITE] Position 0,12 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:52.006] [COMPOSITE] Position 0,13 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:52.018] [COMPOSITE] Position 0,13 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:52.030] [COMPOSITE] Position 0,14 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:52.042] [COMPOSITE] Position 0,14 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:52.054] [COMPOSITE] Position 0,15 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:52.067] [COMPOSITE] Position 0,15 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:52.079] [COMPOSITE] Position 0,16 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:52.091] [COMPOSITE] Position 0,16 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:52.103] [COMPOSITE] Position 0,17 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:52.114] [COMPOSITE] Position 0,17 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:52.126] [COMPOSITE] Position 0,18 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:52.138] [COMPOSITE] Position 0,18 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:52.149] [COMPOSITE] Position 0,19 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:52.160] [COMPOSITE] Position 0,19 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:52.172] [COMPOSITE] Position 0,20 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:52.185] [COMPOSITE] Position 0,20 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:52.197] [COMPOSITE] Position 0,21 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:52.209] [COMPOSITE] Position 0,21 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:52.223] [COMPOSITE] Position 0,22 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:52.235] [COMPOSITE] Position 0,22 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:52.248] [COMPOSITE] Position 0,23 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:52.261] [COMPOSITE] Position 0,23 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:52.273] [COMPOSITE] Position 0,24 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:52.285] [COMPOSITE] Position 0,24 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:52.300] [COMPOSITE] Position 0,25 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:52.311] [COMPOSITE] Position 0,25 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:52.323] [COMPOSITE] Position 0,26 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:52.336] [COMPOSITE] Position 0,26 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:52.347] [COMPOSITE] Position 0,27 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:52.359] [COMPOSITE] Position 0,27 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:52.370] [COMPOSITE] Position 0,28 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:52.382] [COMPOSITE] Position 0,28 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:52.395] [COMPOSITE] Position 0,29 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:52.406] [COMPOSITE] Position 0,29 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:52.419] [COMPOSITE] Position 0,30 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:52.432] [COMPOSITE] Position 0,30 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:52.445] [COMPOSITE] Position 0,31 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:52.458] [COMPOSITE] Position 0,31 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:52.471] [COMPOSITE] Position 0,32 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:52.483] [COMPOSITE] Position 0,32 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:52.496] [COMPOSITE] Position 0,33 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:52.508] [COMPOSITE] Position 0,33 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:52.521] [COMPOSITE] Position 0,34 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:52.533] [COMPOSITE] Position 0,34 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:52.544] [COMPOSITE] Position 0,35 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:52.557] [COMPOSITE] Position 0,35 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:52.570] [COMPOSITE] Position 0,36 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:52.582] [COMPOSITE] Position 0,36 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:52.597] [COMPOSITE] Position 0,37 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:52.608] [COMPOSITE] Position 0,37 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:52.621] [COMPOSITE] Position 0,38 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:52.633] [COMPOSITE] Position 0,38 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:52.645] [COMPOSITE] Position 0,39 - 1 layers, maxZ=10, content length=19
+[2025-12-10 16:45:52.656] [COMPOSITE] Position 0,39 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:52.668] [COMPOSITE] Position 2,39 - 1 layers, maxZ=10, content length=27
+[2025-12-10 16:45:52.679] [COMPOSITE] Position 2,39 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:52.691] [COMPOSITE] Position 86,39 - 1 layers, maxZ=10, content length=19
+[2025-12-10 16:45:52.703] [COMPOSITE] Position 86,39 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:52.714] [COMPOSITE] Position 0,40 - 1 layers, maxZ=10, content length=19
+[2025-12-10 16:45:52.726] [COMPOSITE] Position 0,40 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:52.738] [COMPOSITE] Position 2,40 - 1 layers, maxZ=10, content length=98
+[2025-12-10 16:45:52.751] [COMPOSITE] Position 2,40 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:52.762] [COMPOSITE] Position 86,40 - 1 layers, maxZ=10, content length=19
+[2025-12-10 16:45:52.775] [COMPOSITE] Position 86,40 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:52.788] [COMPOSITE] Position 0,41 - 1 layers, maxZ=10, content length=109
+[2025-12-10 16:45:52.800] [COMPOSITE] Position 0,41 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:52.812] [COMPOSITE] Position 1,43 - 1 layers, maxZ=55, content length=142
+[2025-12-10 16:45:52.823] [COMPOSITE] Position 1,43 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:52.835] [COMPOSITE] Position 0,0 - 1 layers, maxZ=100, content length=199
+[2025-12-10 16:45:52.847] [COMPOSITE] Position 0,0 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:52.862] [COMPOSITE] Finished - positions=54 layers=54 updates=1
+[2025-12-10 16:45:52.874] [RENDER] EndFrame: Writing 1 updated cells, frame length=1825
+[2025-12-10 16:45:53.278] [DEBUG] StandardListScreen: Routing to InlineEditor (Key=Enter)
+[2025-12-10 16:45:53.295] [DEBUG] InlineEditor._ValidateAllFields CALLED - field count: 4
+[2025-12-10 16:45:53.308] [DEBUG] InlineEditor._ValidateAllFields - Field: name, Type: text, Required: True, Value: 'p1'
+[2025-12-10 16:45:53.320] [DEBUG] InlineEditor._ValidateAllFields - Field: status, Type: text, Required: False, Value: 'active'
+[2025-12-10 16:45:53.333] [DEBUG] InlineEditor._ValidateAllFields - Field: task_count, Type: text, Required: False, Value: ''
+[2025-12-10 16:45:53.345] [DEBUG] InlineEditor._ValidateAllFields - Field: description, Type: text, Required: False, Value: ''
+[2025-12-10 16:45:53.359] [DEBUG] InlineEditor._ValidateAllFields RESULT: isValid=True, errorCount=0
+[2025-12-10 16:45:53.378] [DEBUG] InlineEditor._InvokeCallback: Invoking callback with arg type=Hashtable
+[2025-12-10 16:45:53.397] [DEBUG] StandardListScreen._SaveEditedItem: Mode=add Values={"status":"active","task_count":"","description":"","name":"p1"}
+[2025-12-10 16:45:53.414] [DEBUG] ProjectListScreen.OnItemCreated: CALLED with values: {"status":"active","task_count":"","description":"","name":"p1"}
+[2025-12-10 16:45:53.432] [DEBUG] ProjectListScreen.OnItemCreated: Name validation passed
+[2025-12-10 16:45:53.447] [DEBUG] ProjectListScreen.OnItemCreated: Checking name length: 'p1' (len=2) vs max=
+[2025-12-10 16:45:53.461] [DEBUG] ProjectListScreen.OnItemCreated: Name too long
+[2025-12-10 16:45:53.477] [DEBUG] InlineEditor._InvokeCallback: Callback completed successfully
+[2025-12-10 16:45:53.490] [DEBUG] StandardListScreen: After HandleInput - IsConfirmed=True IsCancelled=False ShowInlineEditor=False
+[2025-12-10 16:45:53.502] [DEBUG] StandardListScreen: Editor confirmed/cancelled - closing editor NO CLEAR
+[2025-12-10 16:45:53.514] [RENDER] BeginFrame #7 - BEFORE clear: composited=55, layered=54
+[2025-12-10 16:45:53.527] [RENDER] BeginFrame: Layer data cleared, composited cache still has 55 entries
+[2025-12-10 16:45:53.540] [LAYER] BeginLayer(zIndex=50) - Total switches: 1
+[2025-12-10 16:45:53.553] [LAYER] WriteAt(1,3,zIndex=50) - stored content (len=31): [38;2;153;102;255mProjects[0m
+[2025-12-10 16:45:53.566] [LAYER] WriteAt(1,5,zIndex=50) - stored content (len=38): [38;2;136;136;136mHome → Projects[0m
+[2025-12-10 16:45:53.579] [LAYER] BeginLayer(zIndex=10) - Total switches: 2
+[2025-12-10 16:45:53.593] [INFO] PadText: text='Project' rawLen=7 visibleLen=7 width=43 align=left
+[2025-12-10 16:45:53.606] [INFO] PadText: text='Status' rawLen=6 visibleLen=6 width=21 align=left
+[2025-12-10 16:45:53.619] [INFO] PadText: text='Tasks' rawLen=5 visibleLen=5 width=12 align=center
+[2025-12-10 16:45:53.638] [INFO] PadText: text='Description' rawLen=11 visibleLen=11 width=64 align=left
+[16:45:53.654] PmcScreen.RenderToEngine: RenderContent returned length=4578
+[2025-12-10 16:45:53.669] [LAYER] WriteAt(0,3,zIndex=10) - stored content (len=105): [38;2;107;71;178m┌───────────────────────────────...
+[2025-12-10 16:45:53.683] [LAYER] WriteAt(2,3,zIndex=10) - stored content (len=29): [38;2;153;102;255m Projects 
+[2025-12-10 16:45:53.696] [LAYER] WriteAt(76,3,zIndex=10) - stored content (len=28): [38;2;136;136;136m(0 items)
+[2025-12-10 16:45:53.709] [LAYER] WriteAt(0,4,zIndex=10) - stored content (len=19): [38;2;107;71;178m│
+[2025-12-10 16:45:53.722] [LAYER] WriteAt(2,4,zIndex=10) - stored content (len=175): [38;2;153;102;255mProject                        ...
+[2025-12-10 16:45:53.735] [LAYER] WriteAt(86,4,zIndex=10) - stored content (len=19): [38;2;107;71;178m│
+[2025-12-10 16:45:53.747] [LAYER] WriteAt(0,5,zIndex=10) - stored content (len=105): [38;2;107;71;178m│───────────────────────────────...
+[2025-12-10 16:45:53.758] [LAYER] WriteAt(0,6,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:53.771] [LAYER] WriteAt(0,7,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:53.784] [LAYER] WriteAt(0,8,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:53.797] [LAYER] WriteAt(0,9,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:53.810] [LAYER] WriteAt(0,10,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:53.823] [LAYER] WriteAt(0,11,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:53.834] [LAYER] WriteAt(0,12,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:53.847] [LAYER] WriteAt(0,13,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:53.859] [LAYER] WriteAt(0,14,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:53.871] [LAYER] WriteAt(0,15,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:53.883] [LAYER] WriteAt(0,16,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:53.895] [LAYER] WriteAt(0,17,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:53.908] [LAYER] WriteAt(0,18,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:53.924] [LAYER] WriteAt(0,19,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:53.936] [LAYER] WriteAt(0,20,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:53.949] [LAYER] WriteAt(0,21,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:53.961] [LAYER] WriteAt(0,22,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:53.973] [LAYER] WriteAt(0,23,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:53.985] [LAYER] WriteAt(0,24,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:53.997] [LAYER] WriteAt(0,25,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:54.008] [LAYER] WriteAt(0,26,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:54.021] [LAYER] WriteAt(0,27,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:54.033] [LAYER] WriteAt(0,28,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:54.045] [LAYER] WriteAt(0,29,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:54.058] [LAYER] WriteAt(0,30,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:54.070] [LAYER] WriteAt(0,31,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:54.083] [LAYER] WriteAt(0,32,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:54.095] [LAYER] WriteAt(0,33,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:54.107] [LAYER] WriteAt(0,34,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:54.118] [LAYER] WriteAt(0,35,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:54.130] [LAYER] WriteAt(0,36,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:54.143] [LAYER] WriteAt(0,37,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:54.156] [LAYER] WriteAt(0,38,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:54.168] [LAYER] WriteAt(0,39,zIndex=10) - stored content (len=19): [38;2;107;71;178m│
+[2025-12-10 16:45:54.180] [LAYER] WriteAt(2,39,zIndex=10) - stored content (len=27): [38;2;136;136;136mNo items
+[2025-12-10 16:45:54.193] [LAYER] WriteAt(86,39,zIndex=10) - stored content (len=19): [38;2;107;71;178m│
+[2025-12-10 16:45:54.204] [LAYER] WriteAt(0,40,zIndex=10) - stored content (len=19): [38;2;107;71;178m│
+[2025-12-10 16:45:54.216] [LAYER] WriteAt(2,40,zIndex=10) - stored content (len=98): [38;2;136;136;136mA=Add | R=Archive | E=Edit | D=...
+[2025-12-10 16:45:54.228] [LAYER] WriteAt(86,40,zIndex=10) - stored content (len=19): [38;2;107;71;178m│
+[2025-12-10 16:45:54.240] [LAYER] WriteAt(0,41,zIndex=10) - stored content (len=109): [38;2;107;71;178m└───────────────────────────────...
+[2025-12-10 16:45:54.252] [LAYER] BeginLayer(zIndex=20) - Total switches: 3
+[2025-12-10 16:45:54.264] [LAYER] BeginLayer(zIndex=55) - Total switches: 4
+[2025-12-10 16:45:54.277] [LAYER] WriteAt(1,43,zIndex=55) - stored content (len=142): [K[38;2;153;102;255mEsc[0m[38;2;136;136;136m: ...
+[2025-12-10 16:45:54.289] [LAYER] BeginLayer(zIndex=65) - Total switches: 5
+[2025-12-10 16:45:54.301] [LAYER] BeginLayer(zIndex=100) - Total switches: 6
+[2025-12-10 16:45:54.314] [LAYER] WriteAt(0,0,zIndex=100) - stored content (len=109): [48;2;107;71;178m                                ...
+[2025-12-10 16:45:54.326] [LAYER] WriteAt(0,0,zIndex=100) - stored content (len=199): [48;2;107;71;178m[38;2;241;221;255m Tasks(T) [3...
+[2025-12-10 16:45:54.338] [RENDER] EndFrame: Starting - positions=51 layerSwitches=6
+[2025-12-10 16:45:54.349] [COMPOSITE] Starting layer composition for 51 positions
+[2025-12-10 16:45:54.363] [COMPOSITE] Position 1,3 - 1 layers, maxZ=50, content length=31
+[2025-12-10 16:45:54.375] [COMPOSITE] Position 1,3 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:54.386] [COMPOSITE] Position 1,5 - 1 layers, maxZ=50, content length=38
+[2025-12-10 16:45:54.398] [COMPOSITE] Position 1,5 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:54.410] [COMPOSITE] Position 0,3 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:54.422] [COMPOSITE] Position 0,3 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:54.435] [COMPOSITE] Position 2,3 - 1 layers, maxZ=10, content length=29
+[2025-12-10 16:45:54.449] [COMPOSITE] Position 2,3 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:54.466] [COMPOSITE] Position 76,3 - 1 layers, maxZ=10, content length=28
+[2025-12-10 16:45:54.479] [COMPOSITE] Position 76,3 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:54.491] [COMPOSITE] Position 0,4 - 1 layers, maxZ=10, content length=19
+[2025-12-10 16:45:54.504] [COMPOSITE] Position 0,4 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:54.515] [COMPOSITE] Position 2,4 - 1 layers, maxZ=10, content length=175
+[2025-12-10 16:45:54.527] [COMPOSITE] Position 2,4 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:54.540] [COMPOSITE] Position 86,4 - 1 layers, maxZ=10, content length=19
+[2025-12-10 16:45:54.551] [COMPOSITE] Position 86,4 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:54.563] [COMPOSITE] Position 0,5 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:54.575] [COMPOSITE] Position 0,5 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:54.587] [COMPOSITE] Position 0,6 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:54.599] [COMPOSITE] Position 0,6 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:54.612] [COMPOSITE] Position 0,7 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:54.624] [COMPOSITE] Position 0,7 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:54.636] [COMPOSITE] Position 0,8 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:54.649] [COMPOSITE] Position 0,8 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:54.660] [COMPOSITE] Position 0,9 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:54.674] [COMPOSITE] Position 0,9 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:54.685] [COMPOSITE] Position 0,10 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:54.697] [COMPOSITE] Position 0,10 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:54.710] [COMPOSITE] Position 0,11 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:54.722] [COMPOSITE] Position 0,11 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:54.742] [COMPOSITE] Position 0,12 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:54.754] [COMPOSITE] Position 0,12 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:54.767] [COMPOSITE] Position 0,13 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:54.780] [COMPOSITE] Position 0,13 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:54.792] [COMPOSITE] Position 0,14 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:54.805] [COMPOSITE] Position 0,14 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:54.817] [COMPOSITE] Position 0,15 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:54.830] [COMPOSITE] Position 0,15 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:54.845] [COMPOSITE] Position 0,16 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:54.863] [COMPOSITE] Position 0,16 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:54.877] [COMPOSITE] Position 0,17 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:54.889] [COMPOSITE] Position 0,17 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:54.901] [COMPOSITE] Position 0,18 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:54.913] [COMPOSITE] Position 0,18 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:54.925] [COMPOSITE] Position 0,19 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:54.938] [COMPOSITE] Position 0,19 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:54.950] [COMPOSITE] Position 0,20 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:54.963] [COMPOSITE] Position 0,20 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:54.976] [COMPOSITE] Position 0,21 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:54.988] [COMPOSITE] Position 0,21 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:54.999] [COMPOSITE] Position 0,22 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:55.011] [COMPOSITE] Position 0,22 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:55.022] [COMPOSITE] Position 0,23 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:55.033] [COMPOSITE] Position 0,23 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:55.045] [COMPOSITE] Position 0,24 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:55.057] [COMPOSITE] Position 0,24 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:55.068] [COMPOSITE] Position 0,25 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:55.080] [COMPOSITE] Position 0,25 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:55.091] [COMPOSITE] Position 0,26 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:55.103] [COMPOSITE] Position 0,26 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:55.115] [COMPOSITE] Position 0,27 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:55.126] [COMPOSITE] Position 0,27 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:55.138] [COMPOSITE] Position 0,28 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:55.150] [COMPOSITE] Position 0,28 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:55.164] [COMPOSITE] Position 0,29 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:55.176] [COMPOSITE] Position 0,29 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:55.188] [COMPOSITE] Position 0,30 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:55.200] [COMPOSITE] Position 0,30 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:55.212] [COMPOSITE] Position 0,31 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:55.226] [COMPOSITE] Position 0,31 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:55.238] [COMPOSITE] Position 0,32 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:55.250] [COMPOSITE] Position 0,32 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:55.261] [COMPOSITE] Position 0,33 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:55.273] [COMPOSITE] Position 0,33 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:55.284] [COMPOSITE] Position 0,34 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:55.296] [COMPOSITE] Position 0,34 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:55.308] [COMPOSITE] Position 0,35 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:55.320] [COMPOSITE] Position 0,35 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:55.332] [COMPOSITE] Position 0,36 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:55.345] [COMPOSITE] Position 0,36 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:55.357] [COMPOSITE] Position 0,37 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:55.368] [COMPOSITE] Position 0,37 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:55.380] [COMPOSITE] Position 0,38 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:55.393] [COMPOSITE] Position 0,38 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:55.406] [COMPOSITE] Position 0,39 - 1 layers, maxZ=10, content length=19
+[2025-12-10 16:45:55.418] [COMPOSITE] Position 0,39 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:55.431] [COMPOSITE] Position 2,39 - 1 layers, maxZ=10, content length=27
+[2025-12-10 16:45:55.444] [COMPOSITE] Position 2,39 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:55.456] [COMPOSITE] Position 86,39 - 1 layers, maxZ=10, content length=19
+[2025-12-10 16:45:55.469] [COMPOSITE] Position 86,39 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:55.481] [COMPOSITE] Position 0,40 - 1 layers, maxZ=10, content length=19
+[2025-12-10 16:45:55.494] [COMPOSITE] Position 0,40 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:55.505] [COMPOSITE] Position 2,40 - 1 layers, maxZ=10, content length=98
+[2025-12-10 16:45:55.518] [COMPOSITE] Position 2,40 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:55.530] [COMPOSITE] Position 86,40 - 1 layers, maxZ=10, content length=19
+[2025-12-10 16:45:55.542] [COMPOSITE] Position 86,40 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:55.554] [COMPOSITE] Position 0,41 - 1 layers, maxZ=10, content length=109
+[2025-12-10 16:45:55.566] [COMPOSITE] Position 0,41 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:55.579] [COMPOSITE] Position 1,43 - 1 layers, maxZ=55, content length=142
+[2025-12-10 16:45:55.592] [COMPOSITE] Position 1,43 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:55.605] [COMPOSITE] Position 0,0 - 1 layers, maxZ=100, content length=199
+[2025-12-10 16:45:55.617] [COMPOSITE] Position 0,0 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:55.629] [COMPOSITE] Finished - positions=51 layers=51 updates=0
+[2025-12-10 16:45:55.641] [RENDER] EndFrame: No updates, skipping write
+[2025-12-10 16:45:55.680] [RENDER] BeginFrame #8 - BEFORE clear: composited=55, layered=51
+[2025-12-10 16:45:55.692] [RENDER] BeginFrame: Layer data cleared, composited cache still has 55 entries
+[2025-12-10 16:45:55.705] [LAYER] BeginLayer(zIndex=50) - Total switches: 1
+[2025-12-10 16:45:55.719] [LAYER] WriteAt(1,3,zIndex=50) - stored content (len=31): [38;2;153;102;255mProjects[0m
+[2025-12-10 16:45:55.730] [LAYER] WriteAt(1,5,zIndex=50) - stored content (len=38): [38;2;136;136;136mHome → Projects[0m
+[2025-12-10 16:45:55.744] [LAYER] BeginLayer(zIndex=10) - Total switches: 2
+[2025-12-10 16:45:55.757] [INFO] PadText: text='Project' rawLen=7 visibleLen=7 width=43 align=left
+[2025-12-10 16:45:55.769] [INFO] PadText: text='Status' rawLen=6 visibleLen=6 width=21 align=left
+[2025-12-10 16:45:55.780] [INFO] PadText: text='Tasks' rawLen=5 visibleLen=5 width=12 align=center
+[2025-12-10 16:45:55.792] [INFO] PadText: text='Description' rawLen=11 visibleLen=11 width=64 align=left
+[16:45:55.808] PmcScreen.RenderToEngine: RenderContent returned length=4578
+[2025-12-10 16:45:55.821] [LAYER] WriteAt(0,3,zIndex=10) - stored content (len=105): [38;2;107;71;178m┌───────────────────────────────...
+[2025-12-10 16:45:55.833] [LAYER] WriteAt(2,3,zIndex=10) - stored content (len=29): [38;2;153;102;255m Projects 
+[2025-12-10 16:45:55.845] [LAYER] WriteAt(76,3,zIndex=10) - stored content (len=28): [38;2;136;136;136m(0 items)
+[2025-12-10 16:45:55.857] [LAYER] WriteAt(0,4,zIndex=10) - stored content (len=19): [38;2;107;71;178m│
+[2025-12-10 16:45:55.869] [LAYER] WriteAt(2,4,zIndex=10) - stored content (len=175): [38;2;153;102;255mProject                        ...
+[2025-12-10 16:45:55.883] [LAYER] WriteAt(86,4,zIndex=10) - stored content (len=19): [38;2;107;71;178m│
+[2025-12-10 16:45:55.895] [LAYER] WriteAt(0,5,zIndex=10) - stored content (len=105): [38;2;107;71;178m│───────────────────────────────...
+[2025-12-10 16:45:55.907] [LAYER] WriteAt(0,6,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:55.919] [LAYER] WriteAt(0,7,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:55.932] [LAYER] WriteAt(0,8,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:55.945] [LAYER] WriteAt(0,9,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:55.958] [LAYER] WriteAt(0,10,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:55.969] [LAYER] WriteAt(0,11,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:55.981] [LAYER] WriteAt(0,12,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:55.994] [LAYER] WriteAt(0,13,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:56.008] [LAYER] WriteAt(0,14,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:56.020] [LAYER] WriteAt(0,15,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:56.032] [LAYER] WriteAt(0,16,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:56.044] [LAYER] WriteAt(0,17,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:56.056] [LAYER] WriteAt(0,18,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:56.069] [LAYER] WriteAt(0,19,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:56.081] [LAYER] WriteAt(0,20,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:56.093] [LAYER] WriteAt(0,21,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:56.106] [LAYER] WriteAt(0,22,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:56.118] [LAYER] WriteAt(0,23,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:56.131] [LAYER] WriteAt(0,24,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:56.142] [LAYER] WriteAt(0,25,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:56.154] [LAYER] WriteAt(0,26,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:56.166] [LAYER] WriteAt(0,27,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:56.178] [LAYER] WriteAt(0,28,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:56.191] [LAYER] WriteAt(0,29,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:56.203] [LAYER] WriteAt(0,30,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:56.216] [LAYER] WriteAt(0,31,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:56.228] [LAYER] WriteAt(0,32,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:56.240] [LAYER] WriteAt(0,33,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:56.252] [LAYER] WriteAt(0,34,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:56.265] [LAYER] WriteAt(0,35,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:56.278] [LAYER] WriteAt(0,36,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:56.291] [LAYER] WriteAt(0,37,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:56.304] [LAYER] WriteAt(0,38,zIndex=10) - stored content (len=105): [38;2;107;71;178m│                               ...
+[2025-12-10 16:45:56.317] [LAYER] WriteAt(0,39,zIndex=10) - stored content (len=19): [38;2;107;71;178m│
+[2025-12-10 16:45:56.329] [LAYER] WriteAt(2,39,zIndex=10) - stored content (len=27): [38;2;136;136;136mNo items
+[2025-12-10 16:45:56.341] [LAYER] WriteAt(86,39,zIndex=10) - stored content (len=19): [38;2;107;71;178m│
+[2025-12-10 16:45:56.353] [LAYER] WriteAt(0,40,zIndex=10) - stored content (len=19): [38;2;107;71;178m│
+[2025-12-10 16:45:56.364] [LAYER] WriteAt(2,40,zIndex=10) - stored content (len=98): [38;2;136;136;136mA=Add | R=Archive | E=Edit | D=...
+[2025-12-10 16:45:56.376] [LAYER] WriteAt(86,40,zIndex=10) - stored content (len=19): [38;2;107;71;178m│
+[2025-12-10 16:45:56.388] [LAYER] WriteAt(0,41,zIndex=10) - stored content (len=109): [38;2;107;71;178m└───────────────────────────────...
+[2025-12-10 16:45:56.399] [LAYER] BeginLayer(zIndex=20) - Total switches: 3
+[2025-12-10 16:45:56.411] [LAYER] BeginLayer(zIndex=55) - Total switches: 4
+[2025-12-10 16:45:56.425] [LAYER] WriteAt(1,43,zIndex=55) - stored content (len=142): [K[38;2;153;102;255mEsc[0m[38;2;136;136;136m: ...
+[2025-12-10 16:45:56.438] [LAYER] BeginLayer(zIndex=65) - Total switches: 5
+[2025-12-10 16:45:56.452] [LAYER] BeginLayer(zIndex=100) - Total switches: 6
+[2025-12-10 16:45:56.467] [LAYER] WriteAt(0,0,zIndex=100) - stored content (len=109): [48;2;107;71;178m                                ...
+[2025-12-10 16:45:56.480] [LAYER] WriteAt(0,0,zIndex=100) - stored content (len=236): [48;2;107;71;178m[48;2;153;102;255m[38;2;255;25...
+[2025-12-10 16:45:56.492] [RENDER] EndFrame: Starting - positions=51 layerSwitches=6
+[2025-12-10 16:45:56.505] [COMPOSITE] Starting layer composition for 51 positions
+[2025-12-10 16:45:56.516] [COMPOSITE] Position 1,3 - 1 layers, maxZ=50, content length=31
+[2025-12-10 16:45:56.531] [COMPOSITE] Position 1,3 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:56.542] [COMPOSITE] Position 1,5 - 1 layers, maxZ=50, content length=38
+[2025-12-10 16:45:56.554] [COMPOSITE] Position 1,5 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:56.565] [COMPOSITE] Position 0,3 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:56.577] [COMPOSITE] Position 0,3 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:56.589] [COMPOSITE] Position 2,3 - 1 layers, maxZ=10, content length=29
+[2025-12-10 16:45:56.601] [COMPOSITE] Position 2,3 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:56.613] [COMPOSITE] Position 76,3 - 1 layers, maxZ=10, content length=28
+[2025-12-10 16:45:56.625] [COMPOSITE] Position 76,3 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:56.638] [COMPOSITE] Position 0,4 - 1 layers, maxZ=10, content length=19
+[2025-12-10 16:45:56.651] [COMPOSITE] Position 0,4 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:56.662] [COMPOSITE] Position 2,4 - 1 layers, maxZ=10, content length=175
+[2025-12-10 16:45:56.675] [COMPOSITE] Position 2,4 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:56.686] [COMPOSITE] Position 86,4 - 1 layers, maxZ=10, content length=19
+[2025-12-10 16:45:56.698] [COMPOSITE] Position 86,4 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:56.710] [COMPOSITE] Position 0,5 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:56.721] [COMPOSITE] Position 0,5 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:56.733] [COMPOSITE] Position 0,6 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:56.745] [COMPOSITE] Position 0,6 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:56.756] [COMPOSITE] Position 0,7 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:56.768] [COMPOSITE] Position 0,7 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:56.781] [COMPOSITE] Position 0,8 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:56.793] [COMPOSITE] Position 0,8 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:56.805] [COMPOSITE] Position 0,9 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:56.817] [COMPOSITE] Position 0,9 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:56.828] [COMPOSITE] Position 0,10 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:56.840] [COMPOSITE] Position 0,10 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:56.853] [COMPOSITE] Position 0,11 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:56.865] [COMPOSITE] Position 0,11 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:56.877] [COMPOSITE] Position 0,12 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:56.889] [COMPOSITE] Position 0,12 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:56.902] [COMPOSITE] Position 0,13 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:56.914] [COMPOSITE] Position 0,13 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:56.926] [COMPOSITE] Position 0,14 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:56.937] [COMPOSITE] Position 0,14 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:56.949] [COMPOSITE] Position 0,15 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:56.961] [COMPOSITE] Position 0,15 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:56.972] [COMPOSITE] Position 0,16 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:56.984] [COMPOSITE] Position 0,16 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:56.995] [COMPOSITE] Position 0,17 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:57.007] [COMPOSITE] Position 0,17 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:57.019] [COMPOSITE] Position 0,18 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:57.032] [COMPOSITE] Position 0,18 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:57.045] [COMPOSITE] Position 0,19 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:57.058] [COMPOSITE] Position 0,19 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:57.069] [COMPOSITE] Position 0,20 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:57.080] [COMPOSITE] Position 0,20 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:57.092] [COMPOSITE] Position 0,21 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:57.105] [COMPOSITE] Position 0,21 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:57.118] [COMPOSITE] Position 0,22 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:57.130] [COMPOSITE] Position 0,22 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:57.143] [COMPOSITE] Position 0,23 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:57.155] [COMPOSITE] Position 0,23 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:57.167] [COMPOSITE] Position 0,24 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:57.179] [COMPOSITE] Position 0,24 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:57.190] [COMPOSITE] Position 0,25 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:57.202] [COMPOSITE] Position 0,25 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:57.213] [COMPOSITE] Position 0,26 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:57.225] [COMPOSITE] Position 0,26 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:57.236] [COMPOSITE] Position 0,27 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:57.248] [COMPOSITE] Position 0,27 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:57.259] [COMPOSITE] Position 0,28 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:57.271] [COMPOSITE] Position 0,28 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:57.283] [COMPOSITE] Position 0,29 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:57.294] [COMPOSITE] Position 0,29 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:57.307] [COMPOSITE] Position 0,30 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:57.319] [COMPOSITE] Position 0,30 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:57.330] [COMPOSITE] Position 0,31 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:57.342] [COMPOSITE] Position 0,31 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:57.353] [COMPOSITE] Position 0,32 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:57.365] [COMPOSITE] Position 0,32 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:57.377] [COMPOSITE] Position 0,33 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:57.389] [COMPOSITE] Position 0,33 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:57.400] [COMPOSITE] Position 0,34 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:57.412] [COMPOSITE] Position 0,34 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:57.424] [COMPOSITE] Position 0,35 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:57.437] [COMPOSITE] Position 0,35 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:57.450] [COMPOSITE] Position 0,36 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:57.462] [COMPOSITE] Position 0,36 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:57.475] [COMPOSITE] Position 0,37 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:57.487] [COMPOSITE] Position 0,37 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:57.500] [COMPOSITE] Position 0,38 - 1 layers, maxZ=10, content length=105
+[2025-12-10 16:45:57.513] [COMPOSITE] Position 0,38 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:57.525] [COMPOSITE] Position 0,39 - 1 layers, maxZ=10, content length=19
+[2025-12-10 16:45:57.538] [COMPOSITE] Position 0,39 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:57.550] [COMPOSITE] Position 2,39 - 1 layers, maxZ=10, content length=27
+[2025-12-10 16:45:57.563] [COMPOSITE] Position 2,39 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:57.575] [COMPOSITE] Position 86,39 - 1 layers, maxZ=10, content length=19
+[2025-12-10 16:45:57.587] [COMPOSITE] Position 86,39 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:57.598] [COMPOSITE] Position 0,40 - 1 layers, maxZ=10, content length=19
+[2025-12-10 16:45:57.610] [COMPOSITE] Position 0,40 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:57.622] [COMPOSITE] Position 2,40 - 1 layers, maxZ=10, content length=98
+[2025-12-10 16:45:57.635] [COMPOSITE] Position 2,40 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:57.648] [COMPOSITE] Position 86,40 - 1 layers, maxZ=10, content length=19
+[2025-12-10 16:45:57.660] [COMPOSITE] Position 86,40 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:57.672] [COMPOSITE] Position 0,41 - 1 layers, maxZ=10, content length=109
+[2025-12-10 16:45:57.684] [COMPOSITE] Position 0,41 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:57.695] [COMPOSITE] Position 1,43 - 1 layers, maxZ=55, content length=142
+[2025-12-10 16:45:57.707] [COMPOSITE] Position 1,43 - UNCHANGED (cached), skipping
+[2025-12-10 16:45:57.719] [COMPOSITE] Position 0,0 - 1 layers, maxZ=100, content length=236
+[2025-12-10 16:45:57.731] [COMPOSITE] Position 0,0 - CHANGED, will write
+[2025-12-10 16:45:57.742] [COMPOSITE] Position 0,0 - WRITING at (0,0) zIndex=100: [48;2;107;71;178m[48;2;153;102;255m[38;2;255;25...
+[2025-12-10 16:45:57.755] [COMPOSITE] Finished - positions=51 layers=51 updates=1
+[2025-12-10 16:45:57.767] [RENDER] EndFrame: Writing 1 updated cells, frame length=242
+[2025-12-10 16:45:57.893] [INFO] Event loop exited normally
+[2025-12-10 16:45:57.905] [INFO] Cleanup - showing cursor and resetting terminal

@@ -11,14 +11,14 @@ Set-StrictMode -Version Latest
 . "$PSScriptRoot/../services/ExcelMappingService.ps1"
 
 # MEDIUM FIX ES-M4, ES-M5, ES-M7: Define constants for magic numbers
-$script:MAX_PREVIEW_ROWS = 15
+$global:MAX_PREVIEW_ROWS = 15
 $script:EXCEL_ATTACH_MAX_RETRIES = 3
 $script:EXCEL_ATTACH_RETRY_DELAY_MS = 500
-$script:MAX_CELLS_TO_READ = 100
+$global:MAX_CELLS_TO_READ = 100
 
 # LOW FIX ES-L3, ES-L4: Define constants for date validation range
-$script:MIN_VALID_YEAR = 1950
-$script:MAX_VALID_YEAR = 2100
+$global:MIN_VALID_YEAR = 1950
+$global:MAX_VALID_YEAR = 2100
 
 <#
 .SYNOPSIS
@@ -310,7 +310,7 @@ class ExcelImportScreen : PmcScreen {
 
         # Show preview data
         # MEDIUM FIX ES-M4: Use script-level constant for max preview rows
-        $maxRows = $script:MAX_PREVIEW_ROWS
+        $maxRows = $global:MAX_PREVIEW_ROWS
         $rowCount = 0
 
         foreach ($mapping in $this._activeProfile['mappings']) {
@@ -509,7 +509,7 @@ class ExcelImportScreen : PmcScreen {
                         $cellsToRead = @($this._activeProfile['mappings'] | ForEach-Object { $_['excel_cell'] })
 
                         # ES-M6 & ES-M7 FIX: Use script-level constant for max cells limit
-                        $maxCellsToRead = $script:MAX_CELLS_TO_READ
+                        $maxCellsToRead = $global:MAX_CELLS_TO_READ
                         if ($cellsToRead.Count -gt $maxCellsToRead) {
                             Write-PmcTuiLog "Warning: Profile has $($cellsToRead.Count) cell mappings, limiting to $maxCellsToRead to prevent performance issues" "WARN"
                             $cellsToRead = $cellsToRead | Select-Object -First $maxCellsToRead
@@ -618,9 +618,9 @@ class ExcelImportScreen : PmcScreen {
                         } else {
                             $dateValue = [datetime]$value
                             # LOW FIX ES-L2, ES-L3, ES-L4: Use script-level constants for date range validation
-                            if ($dateValue.Year -lt $script:MIN_VALID_YEAR -or $dateValue.Year -gt $script:MAX_VALID_YEAR) {
-                                Write-PmcTuiLog "Date value '$dateValue' for field $($mapping['display_name']) is outside reasonable range ($script:MIN_VALID_YEAR-$script:MAX_VALID_YEAR)" "WARNING"
-                                throw "Date '$dateValue' is outside reasonable range ($script:MIN_VALID_YEAR-$script:MAX_VALID_YEAR) for field '$($mapping['display_name'])'"
+                            if ($dateValue.Year -lt $global:MIN_VALID_YEAR -or $dateValue.Year -gt $global:MAX_VALID_YEAR) {
+                                Write-PmcTuiLog "Date value '$dateValue' for field $($mapping['display_name']) is outside reasonable range ($global:MIN_VALID_YEAR-$global:MAX_VALID_YEAR)" "WARNING"
+                                throw "Date '$dateValue' is outside reasonable range ($global:MIN_VALID_YEAR-$global:MAX_VALID_YEAR) for field '$($mapping['display_name'])'"
                             }
                             $dateValue
                         }

@@ -1126,12 +1126,22 @@ class TaskStore {
     [bool] AddTimeLog([hashtable]$timelog) {
         [Monitor]::Enter($this._dataLock)
         try {
+            if ($global:PmcTuiLogFile -and $global:PmcTuiLogLevel -ge 3) {
+                Write-PmcTuiLog "TaskStore.AddTimeLog: CALLED with timelog keys: $($timelog.Keys -join ', ')" "DEBUG"
+                foreach ($key in $timelog.Keys) {
+                    $val = $timelog[$key]
+                    $valType = if ($null -eq $val) { 'null' } else { $val.GetType().Name }
+                    Write-PmcTuiLog "TaskStore.AddTimeLog:   $key = $val (type: $valType)" "DEBUG"
+                }
+            }
             # Validate time log
             $validationErrors = $this._ValidateEntity($timelog, 'timelog')
             if ($validationErrors.Count -gt 0) {
                 $this.LastError = "Time log validation failed: $($validationErrors -join ', ')"
+                Write-PmcTuiLog "TaskStore.AddTimeLog: VALIDATION FAILED: $($validationErrors -join ', ')" "ERROR"
                 return $false
             }
+            Write-PmcTuiLog "TaskStore.AddTimeLog: Validation passed" "DEBUG"
 
             # Create backup BEFORE any modifications
             $this._CreateBackup()

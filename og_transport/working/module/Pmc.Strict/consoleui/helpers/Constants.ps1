@@ -29,15 +29,15 @@ This file should be loaded early in the application bootstrap process.
 
 # Minimum supported terminal dimensions
 # M-CQ-2: Replaces hardcoded 120x40, 80x24 throughout code
-$script:MIN_TERM_WIDTH = 80
-$script:MIN_TERM_HEIGHT = 24
+$global:MIN_TERM_WIDTH = 80
+$global:MIN_TERM_HEIGHT = 24
 
 # Recommended terminal dimensions for optimal experience
-$script:RECOMMENDED_TERM_WIDTH = 120
-$script:RECOMMENDED_TERM_HEIGHT = 40
+$global:RECOMMENDED_TERM_WIDTH = 120
+$global:RECOMMENDED_TERM_HEIGHT = 40
 
 # Maximum dimensions for virtual scrolling
-$script:MAX_VISIBLE_ROWS = 1000  # M-PERF-7: Virtual scrolling limit
+$global:MAX_VISIBLE_ROWS = 1000  # M-PERF-7: Virtual scrolling limit
 
 # ============================================================================
 # TASK STATUS CONSTANTS
@@ -45,126 +45,126 @@ $script:MAX_VISIBLE_ROWS = 1000  # M-PERF-7: Virtual scrolling limit
 
 # M-CQ-7: Status Constants
 # Task status values (enum-like constants)
-$script:TASK_STATUS_PENDING = 'pending'
-$script:TASK_STATUS_ACTIVE = 'active'
-$script:TASK_STATUS_COMPLETED = 'completed'
-$script:TASK_STATUS_BLOCKED = 'blocked'
-$script:TASK_STATUS_CANCELLED = 'cancelled'
-$script:TASK_STATUS_DEFERRED = 'deferred'
+$global:TASK_STATUS_PENDING = 'pending'
+$global:TASK_STATUS_ACTIVE = 'active'
+$global:TASK_STATUS_COMPLETED = 'completed'
+$global:TASK_STATUS_BLOCKED = 'blocked'
+$global:TASK_STATUS_CANCELLED = 'cancelled'
+$global:TASK_STATUS_DEFERRED = 'deferred'
 
 # All valid task statuses
-$script:TASK_STATUSES = @(
-    $script:TASK_STATUS_PENDING,
-    $script:TASK_STATUS_ACTIVE,
-    $script:TASK_STATUS_COMPLETED,
-    $script:TASK_STATUS_BLOCKED,
-    $script:TASK_STATUS_CANCELLED,
-    $script:TASK_STATUS_DEFERRED
+$global:TASK_STATUSES = @(
+    $global:TASK_STATUS_PENDING,
+    $global:TASK_STATUS_ACTIVE,
+    $global:TASK_STATUS_COMPLETED,
+    $global:TASK_STATUS_BLOCKED,
+    $global:TASK_STATUS_CANCELLED,
+    $global:TASK_STATUS_DEFERRED
 )
 
 # ============================================================================
 # PRIORITY CONSTANTS
 # ============================================================================
 
-$script:PRIORITY_HIGH = 'high'
-$script:PRIORITY_MEDIUM = 'medium'
-$script:PRIORITY_LOW = 'low'
-$script:PRIORITY_NONE = 'none'
+$global:PRIORITY_HIGH = 'high'
+$global:PRIORITY_MEDIUM = 'medium'
+$global:PRIORITY_LOW = 'low'
+$global:PRIORITY_NONE = 'none'
 
 # All valid priority levels
-$script:PRIORITIES = @(
-    $script:PRIORITY_HIGH,
-    $script:PRIORITY_MEDIUM,
-    $script:PRIORITY_LOW,
-    $script:PRIORITY_NONE
+$global:PRIORITIES = @(
+    $global:PRIORITY_HIGH,
+    $global:PRIORITY_MEDIUM,
+    $global:PRIORITY_LOW,
+    $global:PRIORITY_NONE
 )
 
 # Default priority for new tasks (configurable via preferences)
 # M-CFG-3: Make Default Priority Configurable
-$script:DEFAULT_PRIORITY = $script:PRIORITY_MEDIUM
+$global:DEFAULT_PRIORITY = $global:PRIORITY_MEDIUM
 
 # ============================================================================
 # PERFORMANCE CONSTANTS
 # ============================================================================
 
 # M-PERF-4: Debounce search input delay (milliseconds)
-$script:SEARCH_DEBOUNCE_MS = 150
+$global:SEARCH_DEBOUNCE_MS = 150
 
 # Cache refresh interval (milliseconds)
-$script:CACHE_REFRESH_INTERVAL_MS = 500
+$global:CACHE_REFRESH_INTERVAL_MS = 500
 
 # Maximum items before pagination required
-$script:MAX_ITEMS_BEFORE_PAGINATION = 100
+$global:MAX_ITEMS_BEFORE_PAGINATION = 100
 
 # ============================================================================
 # UI CONSTANTS
 # ============================================================================
 
 # Default column widths for various views
-$script:COLUMN_WIDTH_DATE = 10
-$script:COLUMN_WIDTH_TIME = 8
-$script:COLUMN_WIDTH_STATUS = 12
-$script:COLUMN_WIDTH_PRIORITY = 10
-$script:COLUMN_WIDTH_PROJECT = 20
-$script:COLUMN_WIDTH_TAGS = 15
+$global:COLUMN_WIDTH_DATE = 10
+$global:COLUMN_WIDTH_TIME = 8
+$global:COLUMN_WIDTH_STATUS = 12
+$global:COLUMN_WIDTH_PRIORITY = 10
+$global:COLUMN_WIDTH_PROJECT = 20
+$global:COLUMN_WIDTH_TAGS = 15
 
 # Padding and spacing
-$script:DEFAULT_PADDING = 1
-$script:DEFAULT_MARGIN = 0
+$global:DEFAULT_PADDING = 1
+$global:DEFAULT_MARGIN = 0
 
 # Dialog dimensions
-$script:DEFAULT_DIALOG_WIDTH = 60
-$script:DEFAULT_DIALOG_HEIGHT = 20
+$global:DEFAULT_DIALOG_WIDTH = 60
+$global:DEFAULT_DIALOG_HEIGHT = 20
 
 # ============================================================================
 # FILE PATHS
 # ============================================================================
 
 # M-CFG-1: Configurable Log Path (uses environment variable or default)
-$script:DEFAULT_LOG_PATH = "/tmp"
-$script:LOG_FILE_PREFIX = "pmc-tui"
-$script:LOG_FILE_EXTENSION = ".log"
+$global:DEFAULT_LOG_PATH = "/tmp"
+$global:LOG_FILE_PREFIX = "pmc-tui"
+$global:LOG_FILE_EXTENSION = ".log"
 
 # Backup directory (relative to config path)
-$script:BACKUP_DIRECTORY = "backups"
+$global:BACKUP_DIRECTORY = "backups"
 
 # Preferences file name
-$script:PREFERENCES_FILE = "preferences.json"
+$global:PREFERENCES_FILE = "preferences.json"
 
 # ============================================================================
 # VALIDATION CONSTANTS
 # ============================================================================
 
 # Maximum lengths for text fields
-$script:MAX_TASK_TITLE_LENGTH = 200
-$script:MAX_DESCRIPTION_LENGTH = 4000
-$script:MAX_TAG_LENGTH = 30
-$script:MAX_PROJECT_NAME_LENGTH = 100
+$global:MAX_TASK_TITLE_LENGTH = 200
+$global:MAX_DESCRIPTION_LENGTH = 4000
+$global:MAX_TAG_LENGTH = 30
+$global:MAX_PROJECT_NAME_LENGTH = 100
 
 # Maximum counts
-$script:MAX_TAGS_PER_TASK = 20
-$script:MAX_DEPENDENCIES_PER_TASK = 50
+$global:MAX_TAGS_PER_TASK = 20
+$global:MAX_DEPENDENCIES_PER_TASK = 50
 
 # ============================================================================
 # ACCESSIBILITY CONSTANTS
 # ============================================================================
 
 # M-ACC-2: Symbol alternatives for color-only indicators
-$script:USE_SYMBOLS = $true  # Configurable via preferences
+$global:USE_SYMBOLS = $true  # Configurable via preferences
 
 # Status symbols (when USE_SYMBOLS is true)
-$script:SYMBOL_COMPLETED = "[[OK]]"
-$script:SYMBOL_PENDING = "[ ]"
-$script:SYMBOL_BLOCKED = "[⊗]"
-$script:SYMBOL_ACTIVE = "[→]"
-$script:SYMBOL_OVERDUE = "[[WARN]]"
+$global:SYMBOL_COMPLETED = "[[OK]]"
+$global:SYMBOL_PENDING = "[ ]"
+$global:SYMBOL_BLOCKED = "[⊗]"
+$global:SYMBOL_ACTIVE = "[→]"
+$global:SYMBOL_OVERDUE = "[[WARN]]"
 
 # Screen reader alternatives
-$script:SYMBOL_COMPLETED_TEXT = "[DONE]"
-$script:SYMBOL_PENDING_TEXT = "[TODO]"
-$script:SYMBOL_BLOCKED_TEXT = "[BLOCKED]"
-$script:SYMBOL_ACTIVE_TEXT = "[IN-PROGRESS]"
-$script:SYMBOL_OVERDUE_TEXT = "[OVERDUE]"
+$global:SYMBOL_COMPLETED_TEXT = "[DONE]"
+$global:SYMBOL_PENDING_TEXT = "[TODO]"
+$global:SYMBOL_BLOCKED_TEXT = "[BLOCKED]"
+$global:SYMBOL_ACTIVE_TEXT = "[IN-PROGRESS]"
+$global:SYMBOL_OVERDUE_TEXT = "[OVERDUE]"
 
 # ============================================================================
 # TIMEZONE CONSTANTS
@@ -172,18 +172,18 @@ $script:SYMBOL_OVERDUE_TEXT = "[OVERDUE]"
 
 # M-INT-5: Timezone handling
 # Default timezone assumption: local system time
-$script:DEFAULT_TIMEZONE = [System.TimeZoneInfo]::Local
-$script:USE_UTC_INTERNALLY = $false  # If true, convert all dates to UTC internally
+$global:DEFAULT_TIMEZONE = [System.TimeZoneInfo]::Local
+$global:USE_UTC_INTERNALLY = $false  # If true, convert all dates to UTC internally
 
 # ============================================================================
 # ERROR MESSAGE FORMATS
 # ============================================================================
 
 # M-CQ-5: Standardize Error Messages
-$script:ERROR_FORMAT = "Operation failed: {0}"
-$script:WARNING_FORMAT = "Warning: {0}"
-$script:INFO_FORMAT = "Info: {0}"
-$script:SUCCESS_FORMAT = "Success: {0}"
+$global:ERROR_FORMAT = "Operation failed: {0}"
+$global:WARNING_FORMAT = "Warning: {0}"
+$global:INFO_FORMAT = "Info: {0}"
+$global:SUCCESS_FORMAT = "Success: {0}"
 
 # ============================================================================
 # HELPER FUNCTIONS
@@ -261,7 +261,7 @@ Boolean indicating if status is valid
 #>
 function Test-ValidTaskStatus {
     param([string]$status)
-    return $status -in $script:TASK_STATUSES
+    return $status -in $global:TASK_STATUSES
 }
 
 <#
@@ -300,18 +300,18 @@ function Get-StatusSymbol {
 
     if ($useSymbols) {
         switch ($status) {
-            $script:TASK_STATUS_COMPLETED { return $script:SYMBOL_COMPLETED }
-            $script:TASK_STATUS_BLOCKED { return $script:SYMBOL_BLOCKED }
-            $script:TASK_STATUS_ACTIVE { return $script:SYMBOL_ACTIVE }
-            $script:TASK_STATUS_PENDING { return $script:SYMBOL_PENDING }
+            $global:TASK_STATUS_COMPLETED { return $script:SYMBOL_COMPLETED }
+            $global:TASK_STATUS_BLOCKED { return $script:SYMBOL_BLOCKED }
+            $global:TASK_STATUS_ACTIVE { return $script:SYMBOL_ACTIVE }
+            $global:TASK_STATUS_PENDING { return $script:SYMBOL_PENDING }
             default { return $script:SYMBOL_PENDING }
         }
     } else {
         switch ($status) {
-            $script:TASK_STATUS_COMPLETED { return $script:SYMBOL_COMPLETED_TEXT }
-            $script:TASK_STATUS_BLOCKED { return $script:SYMBOL_BLOCKED_TEXT }
-            $script:TASK_STATUS_ACTIVE { return $script:SYMBOL_ACTIVE_TEXT }
-            $script:TASK_STATUS_PENDING { return $script:SYMBOL_PENDING_TEXT }
+            $global:TASK_STATUS_COMPLETED { return $script:SYMBOL_COMPLETED_TEXT }
+            $global:TASK_STATUS_BLOCKED { return $script:SYMBOL_BLOCKED_TEXT }
+            $global:TASK_STATUS_ACTIVE { return $script:SYMBOL_ACTIVE_TEXT }
+            $global:TASK_STATUS_PENDING { return $script:SYMBOL_PENDING_TEXT }
             default { return $script:SYMBOL_PENDING_TEXT }
         }
     }

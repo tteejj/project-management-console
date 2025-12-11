@@ -10,11 +10,11 @@ Set-StrictMode -Version Latest
 . "$PSScriptRoot/../base/StandardListScreen.ps1"
 
 # LOW FIX PLS-L4, L5, L9: Define constants for magic strings
-$script:DEFAULT_STATUS = 'active'
+$global:DEFAULT_STATUS = 'active'
 $script:ARCHIVED_STATUS = 'archived'
 $script:ARRAY_SEPARATOR = ', '
-$script:DATETIME_FORMAT = 'yyyy-MM-dd HH:mm:ss'
-$script:DATE_FORMAT = 'yyyy-MM-dd'
+$global:DATETIME_FORMAT = 'yyyy-MM-dd HH:mm:ss'
+$global:DATE_FORMAT = 'yyyy-MM-dd'
 $script:SUPPORTED_DATE_FORMATS = @(
     'yyyy-MM-dd'
     'yyyy-MM-dd HH:mm:ss'
@@ -93,7 +93,7 @@ class ProjectListScreen : StandardListScreen {
     # LOW FIX PLS-L6: Extract duplicate formatDate helper to class method
     hidden [string] FormatDateField([hashtable]$values, [string]$fieldName) {
         if ($values.ContainsKey($fieldName) -and $values.$fieldName -is [DateTime]) {
-            return $values.$fieldName.ToString($script:DATE_FORMAT)
+            return $values.$fieldName.ToString($global:DATE_FORMAT)
         }
         return ''
     }
@@ -200,7 +200,7 @@ class ProjectListScreen : StandardListScreen {
             # task_count is a spacer field (not editable)
             return @(
                 @{ Name='name'; Type='text'; Label=''; Required=$true; Value=''; Width=$nameWidth }
-                @{ Name='status'; Type='text'; Label=''; Value=$script:DEFAULT_STATUS; Width=$statusWidth }
+                @{ Name='status'; Type='text'; Label=''; Value=$global:DEFAULT_STATUS; Width=$statusWidth }
                 @{ Name='task_count'; Type='text'; Label=''; Value=''; Width=$taskCountWidth; Readonly=$true }
                 @{ Name='description'; Type='text'; Label=''; Value=''; Width=$descWidth }
             )
@@ -218,45 +218,58 @@ class ProjectListScreen : StandardListScreen {
 
     # Handle item creation
     [void] OnItemCreated([hashtable]$values) {
+        if ($global:PmcTuiLogFile -and $global:PmcTuiLogLevel -ge 3) {
+            Write-PmcTuiLog "ProjectListScreen.OnItemCreated: CALLED with values: $($values | ConvertTo-Json -Compress)" "DEBUG"
+        }
         try {
             # Validate required field
             if (-not $values.ContainsKey('name') -or [string]::IsNullOrWhiteSpace($values.name)) {
+                Write-PmcTuiLog "ProjectListScreen.OnItemCreated: Name validation failed" "DEBUG"
                 $this.SetStatusMessage("Project name is required", "error")
                 return
             }
+            Write-PmcTuiLog "ProjectListScreen.OnItemCreated: Name validation passed" "DEBUG"
 
             # Validate name length
             # HIGH FIX PLS-H1 & PLS-H2: Add null check before .Length access
             # MEDIUM FIX PLS-M4: Use constant for max length validation
-            if ($null -ne $values.name -and $values.name.Length -gt $script:MAX_PROJECT_NAME_LENGTH) {
-                $this.SetStatusMessage("Project name must be $script:MAX_PROJECT_NAME_LENGTH characters or less", "error")
+            if ($global:PmcTuiLogFile -and $global:PmcTuiLogLevel -ge 3) {
+                Write-PmcTuiLog "ProjectListScreen.OnItemCreated: Checking name length: '$($values.name)' (len=$($values.name.Length)) vs max=$global:MAX_PROJECT_NAME_LENGTH" "DEBUG"
+            }
+            if ($null -ne $values.name -and $values.name.Length -gt $global:MAX_PROJECT_NAME_LENGTH) {
+                Write-PmcTuiLog "ProjectListScreen.OnItemCreated: Name too long" "DEBUG"
+                $this.SetStatusMessage("Project name must be $global:MAX_PROJECT_NAME_LENGTH characters or less", "error")
                 return
             }
 
             # Validate description length if provided
             # MEDIUM FIX PLS-M5: Use constant for max description length validation
-            if ($values.ContainsKey('description') -and $values.description -and $values.description.Length -gt $script:MAX_DESCRIPTION_LENGTH) {
-                $this.SetStatusMessage("Description must be $script:MAX_DESCRIPTION_LENGTH characters or less", "error")
+            if ($values.ContainsKey('description') -and $values.description -and $values.description.Length -gt $global:MAX_DESCRIPTION_LENGTH) {
+                Write-PmcTuiLog "ProjectListScreen.OnItemCreated: Description too long" "DEBUG"
+                $this.SetStatusMessage("Description must be $global:MAX_DESCRIPTION_LENGTH characters or less", "error")
                 return
             }
 
+            Write-PmcTuiLog "ProjectListScreen.OnItemCreated: Parsing tags..." "DEBUG"
             # LOW FIX PLS-L6: Use class-level helper methods instead of inline closures
             # Parse tags
             $tags = $this.ParseArrayField($values, 'tags')
 
+            Write-PmcTuiLog "ProjectListScreen.OnItemCreated: Getting existing projects..." "DEBUG"
             # Check for duplicate project name before creating
             # CRITICAL FIX PLS-C5: Add null check on GetAllProjects()
             $existingProjects = $this.Store.GetAllProjects()
             if ($null -eq $existingProjects) { $existingProjects = @() }
 
+            Write-PmcTuiLog "ProjectListScreen.OnItemCreated: Building projectData..." "DEBUG"
             $projectData = @{
                 id = [guid]::NewGuid().ToString()
                 name = $values.name
                 description = $(if ($values.ContainsKey('description')) { $values.description } else { '' })
                 # MEDIUM FIX PLS-M8: Use script-level constant for datetime format
-                created = (Get-Date).ToString($script:DATETIME_FORMAT)
+                created = (Get-Date).ToString($global:DATETIME_FORMAT)
                 # MEDIUM FIX PLS-M3: Use script-level constant for default status
-                status = $(if ($values.ContainsKey('status')) { $values.status } else { $script:DEFAULT_STATUS })
+                status = $(if ($values.ContainsKey('status')) { $values.status } else { $global:DEFAULT_STATUS })
                 tags = $tags
 
                 # ID fields
@@ -336,7 +349,9 @@ class ProjectListScreen : StandardListScreen {
             }
 
             # Use ValidationHelper for comprehensive validation (already loaded by ClassLoader)
+            Write-PmcTuiLog "ProjectListScreen.OnItemCreated: Calling Test-ProjectValid..." "DEBUG"
             $validationResult = Test-ProjectValid $projectData -existingProjects $existingProjects
+            Write-PmcTuiLog "ProjectListScreen.OnItemCreated: Validation result IsValid=$($validationResult.IsValid)" "DEBUG"
 
             if (-not $validationResult.IsValid) {
                 # Show ALL validation errors
@@ -350,7 +365,9 @@ class ProjectListScreen : StandardListScreen {
                 return
             }
 
+            Write-PmcTuiLog "ProjectListScreen.OnItemCreated: Calling Store.AddProject..." "DEBUG"
             $success = $this.Store.AddProject($projectData)
+            Write-PmcTuiLog "ProjectListScreen.OnItemCreated: AddProject returned success=$success" "DEBUG"
             if ($success) {
                 $this.SetStatusMessage("Project created: $($projectData.name)", "success")
             } else {
@@ -469,15 +486,15 @@ class ProjectListScreen : StandardListScreen {
             # Validate name length
             # HIGH FIX PLS-H1 & PLS-H2: Add null check before .Length access
             # MEDIUM FIX PLS-M4: Use constant for max length validation
-            if ($null -ne $values.name -and $values.name.Length -gt $script:MAX_PROJECT_NAME_LENGTH) {
-                $this.SetStatusMessage("Project name must be $script:MAX_PROJECT_NAME_LENGTH characters or less", "error")
+            if ($null -ne $values.name -and $values.name.Length -gt $global:MAX_PROJECT_NAME_LENGTH) {
+                $this.SetStatusMessage("Project name must be $global:MAX_PROJECT_NAME_LENGTH characters or less", "error")
                 return
             }
 
             # Validate description length if provided
             # MEDIUM FIX PLS-M5: Use constant for max description length validation
-            if ($values.ContainsKey('description') -and $values.description -and $values.description.Length -gt $script:MAX_DESCRIPTION_LENGTH) {
-                $this.SetStatusMessage("Description must be $script:MAX_DESCRIPTION_LENGTH characters or less", "error")
+            if ($values.ContainsKey('description') -and $values.description -and $values.description.Length -gt $global:MAX_DESCRIPTION_LENGTH) {
+                $this.SetStatusMessage("Description must be $global:MAX_DESCRIPTION_LENGTH characters or less", "error")
                 return
             }
 
@@ -585,7 +602,7 @@ class ProjectListScreen : StandardListScreen {
 
         $projectStatus = Get-SafeProperty $project 'status'
         $projectName = Get-SafeProperty $project 'name'
-        $newStatus = $(if ($projectStatus -eq $script:ARCHIVED_STATUS) { $script:DEFAULT_STATUS } else { $script:ARCHIVED_STATUS })
+        $newStatus = $(if ($projectStatus -eq $script:ARCHIVED_STATUS) { $global:DEFAULT_STATUS } else { $script:ARCHIVED_STATUS })
         $this.Store.UpdateProject($projectName, @{ status = $newStatus })
 
         $action = $(if ($newStatus -eq $script:ARCHIVED_STATUS) { "archived" } else { "activated" })

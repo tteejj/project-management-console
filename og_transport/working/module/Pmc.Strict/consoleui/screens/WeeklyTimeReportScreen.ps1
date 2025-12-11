@@ -145,7 +145,7 @@ class WeeklyTimeReportScreen : PmcScreen {
             foreach ($log in $weekLogs) {
                 # Determine grouping key
                 $key = ''
-                if ($log.id1) {
+                if ($log.ContainsKey('id1') -and $log.id1) {
                     $key = "#$($log.id1)"
                 } else {
                     $name = $log.project
@@ -157,7 +157,7 @@ class WeeklyTimeReportScreen : PmcScreen {
                 if (-not $this.ProjectSummaries.ContainsKey($key)) {
                     $name = ''
                     $id1 = ''
-                    if ($log.id1) {
+                    if ($log.ContainsKey('id1') -and $log.id1) {
                         $id1 = $log.id1
                         $name = $log.project
                         if (-not $name) { $name = '' }
@@ -286,7 +286,7 @@ class WeeklyTimeReportScreen : PmcScreen {
         $mutedColor = $this.Header.GetThemedFg('Foreground.Muted')
         $headerColor = $this.Header.GetThemedFg('Foreground.Muted')
         $successColor = $this.Header.GetThemedFg('Foreground.Success')
-        $warningColor = $this.Header.GetThemedAnsi('Warning', $false)
+        $warningColor = $this.Header.GetThemedFg('Foreground.Error')
         $reset = "`e[0m"
 
         $y = $contentRect.Y + 1

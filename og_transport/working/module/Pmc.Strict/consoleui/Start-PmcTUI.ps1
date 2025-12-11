@@ -129,9 +129,47 @@ try {
     throw
 }
 
+Write-PmcTuiLog "Loading services..." "INFO"
+try {
+    # Load services BEFORE widgets (ProjectPicker depends on TaskStore)
+    . "$PSScriptRoot/services/ChecklistService.ps1"
+    . "$PSScriptRoot/services/CommandService.ps1"
+    . "$PSScriptRoot/services/ExcelComReader.ps1"
+    . "$PSScriptRoot/services/ExcelMappingService.ps1"
+    . "$PSScriptRoot/services/MenuRegistry.ps1"
+    . "$PSScriptRoot/services/NoteService.ps1"
+    . "$PSScriptRoot/services/PreferencesService.ps1"
+    . "$PSScriptRoot/services/TaskStore.ps1"
+    Write-PmcTuiLog "Services loaded" "INFO"
+} catch {
+    Write-PmcTuiLog "Failed to load services: $_" "ERROR"
+    throw
+}
+
+Write-PmcTuiLog "Loading helpers..." "INFO"
+try {
+    # Load helpers BEFORE widgets (TextAreaEditor depends on GapBuffer)
+    . "$PSScriptRoot/helpers/ConfigCache.ps1"
+    . "$PSScriptRoot/helpers/Constants.ps1"
+    . "$PSScriptRoot/helpers/DataBindingHelper.ps1"
+    . "$PSScriptRoot/helpers/GapBuffer.ps1"
+    . "$PSScriptRoot/helpers/LinuxKeyHelper.ps1"
+    . "$PSScriptRoot/helpers/ShortcutRegistry.ps1"
+    . "$PSScriptRoot/helpers/ThemeHelper.ps1"
+    . "$PSScriptRoot/helpers/TypeNormalization.ps1"
+    . "$PSScriptRoot/helpers/ValidationHelper.ps1"
+    Write-PmcTuiLog "Helpers loaded" "INFO"
+} catch {
+    Write-PmcTuiLog "Failed to load helpers: $_" "ERROR"
+    throw
+}
+
 Write-PmcTuiLog "Loading widgets..." "INFO"
 try {
     # All widgets (inherit from PmcWidget) - MUST load before PmcScreen
+    # IMPORTANT: Load TextInput and ProjectPicker BEFORE InlineEditor (which depends on them)
+    . "$PSScriptRoot/widgets/TextInput.ps1"
+    . "$PSScriptRoot/widgets/ProjectPicker.ps1"
     . "$PSScriptRoot/widgets/DatePicker.ps1"
     . "$PSScriptRoot/widgets/FilterPanel.ps1"
     . "$PSScriptRoot/widgets/InlineEditor.ps1"
@@ -141,12 +179,10 @@ try {
     . "$PSScriptRoot/widgets/PmcMenuBar.ps1"
     . "$PSScriptRoot/widgets/PmcPanel.ps1"
     . "$PSScriptRoot/widgets/PmcStatusBar.ps1"
-    . "$PSScriptRoot/widgets/ProjectPicker.ps1"
     . "$PSScriptRoot/widgets/SimpleFilePicker.ps1"
     . "$PSScriptRoot/widgets/TabPanel.ps1"
     . "$PSScriptRoot/widgets/TagEditor.ps1"
     . "$PSScriptRoot/widgets/TextAreaEditor.ps1"
-    . "$PSScriptRoot/widgets/TextInput.ps1"
     . "$PSScriptRoot/widgets/TimeEntryDetailDialog.ps1"
     . "$PSScriptRoot/widgets/UniversalList.ps1"
     Write-PmcTuiLog "Widgets loaded" "INFO"
@@ -166,36 +202,13 @@ try {
     throw
 }
 
-Write-PmcTuiLog "Loading helpers..." "INFO"
+Write-PmcTuiLog "Loading HelpViewScreen (needed by base classes)..." "INFO"
 try {
-    . "$PSScriptRoot/helpers/ConfigCache.ps1"
-    . "$PSScriptRoot/helpers/Constants.ps1"
-    . "$PSScriptRoot/helpers/DataBindingHelper.ps1"
-    . "$PSScriptRoot/helpers/GapBuffer.ps1"
-    . "$PSScriptRoot/helpers/LinuxKeyHelper.ps1"
-    . "$PSScriptRoot/helpers/ShortcutRegistry.ps1"
-    . "$PSScriptRoot/helpers/ThemeHelper.ps1"
-    . "$PSScriptRoot/helpers/TypeNormalization.ps1"
-    . "$PSScriptRoot/helpers/ValidationHelper.ps1"
-    Write-PmcTuiLog "Helpers loaded" "INFO"
+    # Load HelpViewScreen FIRST (StandardListScreen depends on it)
+    . "$PSScriptRoot/screens/HelpViewScreen.ps1"
+    Write-PmcTuiLog "HelpViewScreen loaded" "INFO"
 } catch {
-    Write-PmcTuiLog "Failed to load helpers: $_" "ERROR"
-    throw
-}
-
-Write-PmcTuiLog "Loading services..." "INFO"
-try {
-    . "$PSScriptRoot/services/ChecklistService.ps1"
-    . "$PSScriptRoot/services/CommandService.ps1"
-    . "$PSScriptRoot/services/ExcelComReader.ps1"
-    . "$PSScriptRoot/services/ExcelMappingService.ps1"
-    . "$PSScriptRoot/services/MenuRegistry.ps1"
-    . "$PSScriptRoot/services/NoteService.ps1"
-    . "$PSScriptRoot/services/PreferencesService.ps1"
-    . "$PSScriptRoot/services/TaskStore.ps1"
-    Write-PmcTuiLog "Services loaded" "INFO"
-} catch {
-    Write-PmcTuiLog "Failed to load services: $_" "ERROR"
+    Write-PmcTuiLog "Failed to load HelpViewScreen: $_" "ERROR"
     throw
 }
 
@@ -211,25 +224,34 @@ try {
     throw
 }
 
-Write-PmcTuiLog "Loading application components..." "INFO"
+Write-PmcTuiLog "Loading ServiceContainer (needed by screens)..." "INFO"
 try {
+    # Load ServiceContainer BEFORE screens (TaskListScreen depends on it)
     . "$PSScriptRoot/ServiceContainer.ps1"
-    . "$PSScriptRoot/PmcApplication.ps1"
-    Write-PmcTuiLog "Application components loaded" "INFO"
+    Write-PmcTuiLog "ServiceContainer loaded" "INFO"
 } catch {
-    Write-PmcTuiLog "Failed to load application: $_" "ERROR"
+    Write-PmcTuiLog "Failed to load ServiceContainer: $_" "ERROR"
     throw
 }
 
-Write-PmcTuiLog "Loading initial screens..." "INFO"
+Write-PmcTuiLog "Loading remaining screens..." "INFO"
 try {
-    . "$PSScriptRoot/screens/HelpViewScreen.ps1"
+    # Load remaining screens AFTER base classes (they inherit from StandardListScreen, etc.)
     . "$PSScriptRoot/screens/TaskListScreen.ps1"
     . "$PSScriptRoot/screens/ProjectListScreen.ps1"
     . "$PSScriptRoot/screens/ProjectInfoScreenV4.ps1"
-    Write-PmcTuiLog "Initial screens loaded" "INFO"
+    Write-PmcTuiLog "Remaining screens loaded" "INFO"
 } catch {
     Write-PmcTuiLog "Failed to load screens: $_" "ERROR"
+    throw
+}
+
+Write-PmcTuiLog "Loading PmcApplication..." "INFO"
+try {
+    . "$PSScriptRoot/PmcApplication.ps1"
+    Write-PmcTuiLog "PmcApplication loaded" "INFO"
+} catch {
+    Write-PmcTuiLog "Failed to load PmcApplication: $_" "ERROR"
     throw
 }
 

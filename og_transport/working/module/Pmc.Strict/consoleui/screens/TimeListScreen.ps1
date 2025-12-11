@@ -11,12 +11,12 @@ Set-StrictMode -Version Latest
 . "$PSScriptRoot/../widgets/TimeEntryDetailDialog.ps1"
 
 # LOW FIX TLS-L2, L3, L4: Define constants for magic numbers and limits
-$script:MAX_TASK_LENGTH = 200
-$script:MAX_TASK_TRUNCATE_LENGTH = 197
-$script:MAX_NOTES_LENGTH = 300
-$script:MAX_NOTES_TRUNCATE_LENGTH = 297
-$script:MAX_HOURS_PER_ENTRY = 24
-$script:MIN_HOURS_PER_ENTRY = 0.25
+$global:MAX_TASK_LENGTH = 200
+$global:MAX_TASK_TRUNCATE_LENGTH = 197
+$global:MAX_NOTES_LENGTH = 300
+$global:MAX_NOTES_TRUNCATE_LENGTH = 297
+$global:MAX_HOURS_PER_ENTRY = 24
+$global:MIN_HOURS_PER_ENTRY = 0.25
 $script:DIALOG_TIMEOUT_ITERATIONS = 36000  # 36000 * 50ms = 30 minutes
 $script:DIALOG_POLL_INTERVAL_MS = 50
 
@@ -192,8 +192,8 @@ class TimeListScreen : StandardListScreen {
                 if ($currentTask -and $currentTask -ne $entry.task) {
                     # Limit concatenated task length to prevent excessive growth
                     $newTask = "$currentTask; $($entry.task)"
-                    $grouped[$groupKey].task = $(if ($newTask.Length -gt $script:MAX_TASK_LENGTH) {
-                        $newTask.Substring(0, $script:MAX_TASK_TRUNCATE_LENGTH) + "..."
+                    $grouped[$groupKey].task = $(if ($newTask.Length -gt $global:MAX_TASK_LENGTH) {
+                        $newTask.Substring(0, $global:MAX_TASK_TRUNCATE_LENGTH) + "..."
                     } else {
                         $newTask
                     })
@@ -209,8 +209,8 @@ class TimeListScreen : StandardListScreen {
                 if ($currentNotes -and $currentNotes -ne $entry.notes) {
                     # Limit concatenated notes length to prevent excessive growth
                     $newNotes = "$currentNotes; $($entry.notes)"
-                    $grouped[$groupKey].notes = $(if ($newNotes.Length -gt $script:MAX_NOTES_LENGTH) {
-                        $newNotes.Substring(0, $script:MAX_NOTES_TRUNCATE_LENGTH) + "..."
+                    $grouped[$groupKey].notes = $(if ($newNotes.Length -gt $global:MAX_NOTES_LENGTH) {
+                        $newNotes.Substring(0, $global:MAX_NOTES_TRUNCATE_LENGTH) + "..."
                     } else {
                         $newNotes
                     })
@@ -297,7 +297,7 @@ class TimeListScreen : StandardListScreen {
                 @{ Name='project'; Type='project'; Label='Project (or leave blank for timecode)'; Value=''; Width=$projectWidth }
                 @{ Name='timecode'; Type='text'; Label='Timecode (2-5 digits, or leave blank for project)'; Value=''; MaxLength=5; Width=$timecodeWidth }
                 # MEDIUM FIX TMS-M3 & TLS-M2: Use constant for max hours validation
-                @{ Name='hours'; Type='number'; Label='Hours'; Min=$script:MIN_HOURS_PER_ENTRY; Max=$script:MAX_HOURS_PER_ENTRY; Step=0.25; Value=$script:MIN_HOURS_PER_ENTRY; Width=$hoursWidth }
+                @{ Name='hours'; Type='number'; Label='Hours'; Min=$global:MIN_HOURS_PER_ENTRY; Max=$global:MAX_HOURS_PER_ENTRY; Step=0.25; Value=$global:MIN_HOURS_PER_ENTRY; Width=$hoursWidth }
                 @{ Name='notes'; Type='text'; Label='Notes'; Value=''; Width=$notesWidth }
             )
         } else {
@@ -316,7 +316,7 @@ class TimeListScreen : StandardListScreen {
                 @{ Name='project'; Type='project'; Label='Project (or leave blank for timecode)'; Value=$projectVal; Width=$projectWidth }
                 @{ Name='timecode'; Type='text'; Label='Timecode (2-5 digits, or leave blank for project)'; Value=$timecodeVal; MaxLength=5; Width=$timecodeWidth }
                 # MEDIUM FIX TMS-M3 & TLS-M2: Use constant for max hours validation
-                @{ Name='hours'; Type='number'; Label='Hours'; Min=$script:MIN_HOURS_PER_ENTRY; Max=$script:MAX_HOURS_PER_ENTRY; Step=0.25; Value=$hoursVal; Width=$hoursWidth }
+                @{ Name='hours'; Type='number'; Label='Hours'; Min=$global:MIN_HOURS_PER_ENTRY; Max=$global:MAX_HOURS_PER_ENTRY; Step=0.25; Value=$hoursVal; Width=$hoursWidth }
                 @{ Name='notes'; Type='text'; Label='Notes'; Value=$notesVal; Width=$notesWidth }
             )
         }
@@ -324,35 +324,50 @@ class TimeListScreen : StandardListScreen {
 
     # Handle item creation
     [void] OnItemCreated([hashtable]$values) {
+        if ($global:PmcTuiLogFile -and $global:PmcTuiLogLevel -ge 3) {
+            Write-PmcTuiLog "TimeListScreen.OnItemCreated: CALLED with values: $($values | ConvertTo-Json -Compress)" "DEBUG"
+        }
         try {
             # ENDEMIC FIX: Safe conversion with validation
             if (-not $values.ContainsKey('hours') -or [string]::IsNullOrWhiteSpace($values.hours)) {
+                Write-PmcTuiLog "TimeListScreen.OnItemCreated: Hours validation failed" "DEBUG"
                 $this.SetStatusMessage("Hours field is required", "error")
                 return
             }
+            Write-PmcTuiLog "TimeListScreen.OnItemCreated: Hours validation passed" "DEBUG"
 
             $hoursValue = 0.0
             try {
                 $hoursValue = [double]$values.hours
             } catch {
+                Write-PmcTuiLog "TimeListScreen.OnItemCreated: Hours conversion failed" "DEBUG"
                 $this.SetStatusMessage("Invalid hours value: $($values.hours)", "error")
                 return
+            }
+
+            if ($global:PmcTuiLogFile -and $global:PmcTuiLogLevel -ge 3) {
+                Write-PmcTuiLog "TimeListScreen.OnItemCreated: Hours value=$hoursValue, MAX_HOURS_PER_ENTRY=$global:MAX_HOURS_PER_ENTRY" "DEBUG"
             }
 
             # Validate hour range
             # MEDIUM FIX TLS-M3: Use constant for hours validation
             if ($hoursValue -le 0) {
+                Write-PmcTuiLog "TimeListScreen.OnItemCreated: Hours <= 0" "DEBUG"
                 $this.SetStatusMessage("Hours must be greater than 0", "error")
                 return
             }
-            if ($hoursValue -gt $script:MAX_HOURS_PER_ENTRY) {
-                $this.SetStatusMessage("Hours must be $script:MAX_HOURS_PER_ENTRY or less", "error")
+            if ($hoursValue -gt $global:MAX_HOURS_PER_ENTRY) {
+                Write-PmcTuiLog "TimeListScreen.OnItemCreated: Hours > MAX ($hoursValue > $global:MAX_HOURS_PER_ENTRY)" "DEBUG"
+                $this.SetStatusMessage("Hours must be $global:MAX_HOURS_PER_ENTRY or less", "error")
                 return
             }
+            Write-PmcTuiLog "TimeListScreen.OnItemCreated: Hour range validation passed" "DEBUG"
 
             # HIGH FIX TMS-H3: Use Math.Round instead of [int] to prevent precision loss
             # 2.75 hours = 165 minutes (not 165.0 truncated to 165)
-            $minutes = [Math]::Round($hoursValue * 60)
+            # CRITICAL: Cast to [int] because validation requires int type
+            $minutes = [int][Math]::Round($hoursValue * 60)
+            Write-PmcTuiLog "TimeListScreen.OnItemCreated: Calculated minutes=$minutes" "DEBUG"
 
             # Safe date conversion
             $dateValue = [DateTime]::Today
@@ -363,6 +378,7 @@ class TimeListScreen : StandardListScreen {
                     Write-PmcTuiLog "Failed to parse date '$($values.date)', using today" "WARNING"
                 }
             }
+            Write-PmcTuiLog "TimeListScreen.OnItemCreated: Date=$dateValue" "DEBUG"
 
             $timeData = @{
                 date = $dateValue
@@ -373,8 +389,13 @@ class TimeListScreen : StandardListScreen {
                 notes = $(if ($values.ContainsKey('notes')) { $values.notes } else { '' })
                 created = [DateTime]::Now
             }
+            Write-PmcTuiLog "TimeListScreen.OnItemCreated: Calling Store.AddTimeLog..." "DEBUG"
 
             $success = $this.Store.AddTimeLog($timeData)
+            Write-PmcTuiLog "TimeListScreen.OnItemCreated: AddTimeLog returned success=$success" "DEBUG"
+            if (-not $success) {
+                Write-PmcTuiLog "TimeListScreen.OnItemCreated: Store.LastError=$($this.Store.LastError)" "ERROR"
+            }
 
             $statusMsg = "Time entry added: {0:F2} hours" -f $hoursValue
             if ($success) {
@@ -411,8 +432,8 @@ class TimeListScreen : StandardListScreen {
                 $this.SetStatusMessage("Hours must be greater than 0", "error")
                 return
             }
-            if ($hoursValue -gt $script:MAX_HOURS_PER_ENTRY) {
-                $this.SetStatusMessage("Hours must be $script:MAX_HOURS_PER_ENTRY or less", "error")
+            if ($hoursValue -gt $global:MAX_HOURS_PER_ENTRY) {
+                $this.SetStatusMessage("Hours must be $global:MAX_HOURS_PER_ENTRY or less", "error")
                 return
             }
 

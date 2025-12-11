@@ -1877,15 +1877,22 @@ class InlineEditor : PmcWidget {
             $callbackText = $callback.ToString().Trim()
             # Match {} or { } or {  } etc (braces with only whitespace inside)
             if ([string]::IsNullOrWhiteSpace($callbackText) -or $callbackText -match '^\{\s*\}$') {
+                Write-PmcTuiLog "InlineEditor._InvokeCallback: Callback is null/empty, skipping" "DEBUG"
                 return
             }
 
+            if ($global:PmcTuiLogFile -and $global:PmcTuiLogLevel -ge 3) {
+                Write-PmcTuiLog "InlineEditor._InvokeCallback: Invoking callback with arg type=$($arg.GetType().Name)" "DEBUG"
+            }
             try {
                 if ($null -ne $arg) {
                     # Use Invoke-Command with -ArgumentList to pass single arg without array wrapping
                     Invoke-Command -ScriptBlock $callback -ArgumentList (,$arg)
                 } else {
                     & $callback
+                }
+                if ($global:PmcTuiLogFile -and $global:PmcTuiLogLevel -ge 3) {
+                    Write-PmcTuiLog "InlineEditor._InvokeCallback: Callback completed successfully" "DEBUG"
                 }
             } catch {
                 # Log callback errors but DON'T rethrow - callbacks must never crash the app

@@ -13,8 +13,8 @@ Set-StrictMode -Version Latest
 # LOW FIX SS-L1, SS-L2, SS-L3: Define constants for column widths and limits
 $script:SETTING_NAME_WIDTH = 20
 $script:SETTING_VALUE_WIDTH = 30
-$script:MIN_PRINTABLE_CHAR = 32
-$script:MAX_PRINTABLE_CHAR = 126
+$global:MIN_PRINTABLE_CHAR = 32
+$global:MAX_PRINTABLE_CHAR = 126
 
 <#
 .SYNOPSIS
@@ -369,7 +369,7 @@ class SettingsScreen : PmcScreen {
             }
             default {
                 # EDGE FIX SS-E1: Use script-level constants for printable character range
-                if ($keyInfo.KeyChar -ge $script:MIN_PRINTABLE_CHAR -and $keyInfo.KeyChar -le $script:MAX_PRINTABLE_CHAR) {
+                if ($keyInfo.KeyChar -ge $global:MIN_PRINTABLE_CHAR -and $keyInfo.KeyChar -le $global:MAX_PRINTABLE_CHAR) {
                     $this.InputBuffer += $keyInfo.KeyChar
                 }
                 return $true

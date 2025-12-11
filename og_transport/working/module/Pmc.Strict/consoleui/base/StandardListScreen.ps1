@@ -746,7 +746,9 @@ class StandardListScreen : PmcScreen {
     Field values from InlineEditor
     #>
     hidden [void] _SaveEditedItem($values) {
-        # Write-PmcTuiLog "StandardListScreen._SaveEditedItem: Mode=$($this.EditorMode) Values=$($values | ConvertTo-Json -Compress)" "DEBUG"
+        if ($global:PmcTuiLogFile -and $global:PmcTuiLogLevel -ge 3) {
+            Write-PmcTuiLog "StandardListScreen._SaveEditedItem: Mode=$($this.EditorMode) Values=$($values | ConvertTo-Json -Compress)" "DEBUG"
+        }
 
         try {
             if ($this.EditorMode -eq 'add') {
