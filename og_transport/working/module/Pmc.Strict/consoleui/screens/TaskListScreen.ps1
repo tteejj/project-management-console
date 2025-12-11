@@ -545,13 +545,14 @@ class TaskListScreen : StandardListScreen {
 
         # Calculate column widths based on terminal width
         # FIX: Account for UniversalList padding overhead (6 chars per column * 5 columns = 30 chars)
-        # Also subtract 4 for borders
         $availableWidth = $(if ($this.List -and $this.List.Width -gt 34) { $this.List.Width - 34 } else { 80 })
-        $titleWidth = [Math]::Max(20, [Math]::Floor($availableWidth * 0.32))
-        $detailsWidth = [Math]::Max(15, [Math]::Floor($availableWidth * 0.22))
-        $dueWidth = 12
-        $projectWidth = [Math]::Max(12, [Math]::Floor($availableWidth * 0.14))
-        $tagsWidth = [Math]::Max(10, [Math]::Floor($availableWidth * 0.18))
+        
+        # Use constants for consistency with GetEditFields
+        $titleWidth = [Math]::Max(20, [Math]::Floor($availableWidth * [TaskListScreen]::COL_WIDTH_TEXT))
+        $detailsWidth = [Math]::Max(15, [Math]::Floor($availableWidth * [TaskListScreen]::COL_WIDTH_DETAILS))
+        $dueWidth = [Math]::Max(10, [Math]::Floor($availableWidth * [TaskListScreen]::COL_WIDTH_DUE))
+        $projectWidth = [Math]::Max(12, [Math]::Floor($availableWidth * [TaskListScreen]::COL_WIDTH_PROJECT))
+        $tagsWidth = [Math]::Max(10, [Math]::Floor($availableWidth * [TaskListScreen]::COL_WIDTH_TAGS))
 
         return @(
             @{
@@ -728,11 +729,13 @@ class TaskListScreen : StandardListScreen {
         # Calculate field widths based on available space
         # FIX: Match GetColumns logic to ensure alignment and prevent spillover
         $availableWidth = $(if ($this.List -and $this.List.Width -gt 34) { $this.List.Width - 34 } else { 80 })
-        $textWidth = [Math]::Max(20, [Math]::Floor($availableWidth * 0.30))
-        $detailsWidth = [Math]::Max(15, [Math]::Floor($availableWidth * 0.25))
-        $dueWidth = [Math]::Max(10, [Math]::Floor($availableWidth * 0.12))
-        $projectWidth = [Math]::Max(12, [Math]::Floor($availableWidth * 0.18))
-        $tagsWidth = [Math]::Max(10, [Math]::Floor($availableWidth * 0.15))
+        
+        # Use constants for consistency
+        $textWidth = [Math]::Max(20, [Math]::Floor($availableWidth * [TaskListScreen]::COL_WIDTH_TEXT))
+        $detailsWidth = [Math]::Max(15, [Math]::Floor($availableWidth * [TaskListScreen]::COL_WIDTH_DETAILS))
+        $dueWidth = [Math]::Max(10, [Math]::Floor($availableWidth * [TaskListScreen]::COL_WIDTH_DUE))
+        $projectWidth = [Math]::Max(12, [Math]::Floor($availableWidth * [TaskListScreen]::COL_WIDTH_PROJECT))
+        $tagsWidth = [Math]::Max(10, [Math]::Floor($availableWidth * [TaskListScreen]::COL_WIDTH_TAGS))
 
         return @(
             @{ Name='text'; Label=''; Type='text'; Value=(Get-SafeProperty $item 'text'); Required=$true; MaxLength=200; Width=$textWidth }
