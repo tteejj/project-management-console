@@ -42,7 +42,7 @@ class CommandService {
                     [CommandService]::_instance = [CommandService]::new()
                 }
             } finally {
-                [System.Threading.Monitor]::DoExit([CommandService]::_instanceLock)
+                [System.Threading.Monitor]::Exit([CommandService]::_instanceLock)
             }
         }
         return [CommandService]::_instance

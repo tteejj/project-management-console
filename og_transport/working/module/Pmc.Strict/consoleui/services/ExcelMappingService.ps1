@@ -41,7 +41,7 @@ class ExcelMappingService {
                     [ExcelMappingService]::_instance = [ExcelMappingService]::new()
                 }
             } finally {
-                [System.Threading.Monitor]::DoExit([ExcelMappingService]::_instanceLock)
+                [System.Threading.Monitor]::Exit([ExcelMappingService]::_instanceLock)
             }
         }
         return [ExcelMappingService]::_instance

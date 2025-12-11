@@ -42,7 +42,7 @@ class NoteService {
                     [NoteService]::_instance = [NoteService]::new()
                 }
             } finally {
-                [System.Threading.Monitor]::DoExit([NoteService]::_instanceLock)
+                [System.Threading.Monitor]::Exit([NoteService]::_instanceLock)
             }
         }
         return [NoteService]::_instance

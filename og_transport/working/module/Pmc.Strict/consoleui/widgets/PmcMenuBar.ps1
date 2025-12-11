@@ -308,37 +308,36 @@ class PmcMenuBar : PmcWidget {
     Execute currently selected menu item
     #>
     [bool] ExecuteSelectedItem() {
-        # PERF: Disabled - if ($global:PmcTuiLogFile) {
-        # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ExecuteSelectedItem: DropdownVisible=$($this.DropdownVisible) MenuIndex=$($this.SelectedMenuIndex) ItemIndex=$($this.SelectedItemIndex)"
-        # }
+        if ($global:PmcTuiLogFile) {
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [INFO] ExecuteSelectedItem: START - DropdownVisible=$($this.DropdownVisible) MenuIndex=$($this.SelectedMenuIndex) ItemIndex=$($this.SelectedItemIndex)"
+        }
 
         if (-not $this.DropdownVisible -or $this.SelectedMenuIndex -lt 0 -or $this.SelectedItemIndex -lt 0) {
-            # PERF: Disabled - if ($global:PmcTuiLogFile) {
-            # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ExecuteSelectedItem: Conditions not met, returning false"
-            # }
+            if ($global:PmcTuiLogFile) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [WARN] ExecuteSelectedItem: Conditions not met, returning false"
+            }
             return $false
         }
 
         $menu = $this.Menus[$this.SelectedMenuIndex]
         if ($this.SelectedItemIndex -ge $menu.Items.Count) {
-            # PERF: Disabled - if ($global:PmcTuiLogFile) {
-            # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ExecuteSelectedItem: ItemIndex ($($this.SelectedItemIndex)) >= ItemCount ($($menu.Items.Count)), returning false"
-            # }
+            if ($global:PmcTuiLogFile) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [WARN] ExecuteSelectedItem: ItemIndex ($($this.SelectedItemIndex)) >= ItemCount ($($menu.Items.Count)), returning false"
+            }
             return $false
         }
 
         $item = $menu.Items[$this.SelectedItemIndex]
         if ($item.IsSeparator -or -not $item.Enabled) {
-            # PERF: Disabled - if ($global:PmcTuiLogFile) {
-            # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ExecuteSelectedItem: Item is separator or disabled, returning false"
-            # }
+            if ($global:PmcTuiLogFile) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [WARN] ExecuteSelectedItem: Item is separator or disabled, returning false"
+            }
             return $false
         }
 
-        # PERF: Disabled - if ($global:PmcTuiLogFile) {
-
-        # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ExecuteSelectedItem: Executing item='$($item.Label)' from menu='$($menu.Title)'"
-        # }
+        if ($global:PmcTuiLogFile) {
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [INFO] ExecuteSelectedItem: Executing item='$($item.Label)' from menu='$($menu.Title)'"
+        }
 
         # Close dropdown BEFORE executing action
         # This ensures the menu clears before screen changes
@@ -347,7 +346,24 @@ class PmcMenuBar : PmcWidget {
 
         # Execute action
         if ($item.Action) {
-            & $item.Action
+            try {
+                if ($global:PmcTuiLogFile) {
+                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [INFO] ExecuteSelectedItem: Invoking action for '$($item.Label)'"
+                }
+                & $item.Action
+                if ($global:PmcTuiLogFile) {
+                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [INFO] ExecuteSelectedItem: Action completed successfully"
+                }
+            } catch {
+                if ($global:PmcTuiLogFile) {
+                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [ERROR] ExecuteSelectedItem: Action failed: $_"
+                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [ERROR] Stack: $($_.ScriptStackTrace)"
+                }
+            }
+        } else {
+            if ($global:PmcTuiLogFile) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [WARN] ExecuteSelectedItem: No action defined for '$($item.Label)'"
+            }
         }
 
         # Fire event

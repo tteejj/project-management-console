@@ -4887,3 +4887,8 @@ at <ScriptBlock>, C:\Users\jhnhe\OneDrive\Documents\GitHub\project-management-co
 [2025-12-10 18:33:08.132] [COMPOSITE] Position 0,0 - UNCHANGED (cached), skipping
 [2025-12-10 18:33:08.162] [COMPOSITE] Finished - positions=7 layers=7 updates=2
 [2025-12-10 18:33:08.192] [RENDER] EndFrame: Writing 2 updated cells, frame length=308
+[2025-12-10 21:39:32.472] [DEBUG] SaveData: Calling Save-PmcData with tasks=2 projects=1 timelogs=2
+[2025-12-10 21:39:32.475] [DEBUG] SaveData: First project name='p1' ID1=''
+[2025-12-10 21:39:32.706] [DEBUG] SaveData: Success
+[2025-12-10 21:39:32.850] [INFO] Event loop exited normally
+[2025-12-10 21:39:32.880] [INFO] Cleanup - showing cursor and resetting terminal

@@ -47,7 +47,7 @@ class ChecklistService {
                     [ChecklistService]::_instance = [ChecklistService]::new()
                 }
             } finally {
-                [System.Threading.Monitor]::DoExit([ChecklistService]::_instanceLock)
+                [System.Threading.Monitor]::Exit([ChecklistService]::_instanceLock)
             }
         }
         return [ChecklistService]::_instance

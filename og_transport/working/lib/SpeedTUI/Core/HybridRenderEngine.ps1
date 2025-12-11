@@ -68,6 +68,9 @@ class HybridRenderEngine {
     hidden [int]$_frameCount = 0
     hidden [int]$_cellsUpdated = 0
 
+    # -- CACHING --
+    static hidden [hashtable]$_ansiCache = @{}
+
     HybridRenderEngine() {
         $this._clipStack = [Stack[object]]::new()
         $this._offsetStack = [Stack[object]]::new()
@@ -369,10 +372,50 @@ class HybridRenderEngine {
         }
     }
 
+    [void] RequestClear() {
+        # Force full redraw on next frame
+        $this.InvalidateCachedRegion(0, $this.Height - 1)
+        # Also clear the terminal immediately to prevent artifacts during transition
+        [Console]::Clear()
+    }
+
     [void] DrawBox([int]$x, [int]$y, [int]$width, [int]$height, [string]$style="Single") {
-        # Convenience method, delegates to WriteAt
-        # (Implementation omitted for brevity - same as Enhanced/Optimized)
-        # Using WriteAt ensures the box respects Z-Layers!
+        if ($width -lt 2 -or $height -lt 2) { return }
+
+        # Get box characters from cache or define them
+        $chars = switch ($style) {
+            "Double" { @{
+                TL = "╔"; TR = "╗"; BL = "╚"; BR = "╝"
+                H = "═"; V = "║"
+            }}
+            "Rounded" { @{
+                TL = "╭"; TR = "╮"; BL = "╰"; BR = "╯"
+                H = "─"; V = "│"
+            }}
+            default { @{
+                TL = "┌"; TR = "┐"; BL = "└"; BR = "┘"
+                H = "─"; V = "│"
+            }}
+        }
+
+        # Draw top border
+        $topLine = $chars.TL + ($chars.H * ($width - 2)) + $chars.TR
+        $this.WriteAt($x, $y, $topLine)
+
+        # Draw side borders
+        # We construct vertical segments. 
+        # Note: We don't draw the center as spaces here to allow transparency if desired,
+        # BUT usually boxes are opaque. To make it opaque (cover content behind), 
+        # we should fill the middle with spaces.
+        $middleLine = $chars.V + (" " * ($width - 2)) + $chars.V
+        
+        for ($i = 1; $i -lt ($height - 1); $i++) {
+            $this.WriteAt($x, $y + $i, $middleLine)
+        }
+
+        # Draw bottom border
+        $bottomLine = $chars.BL + ($chars.H * ($width - 2)) + $chars.BR
+        $this.WriteAt($x, $y + $height - 1, $bottomLine)
     }
 
     [void] InvalidateCachedRegion([int]$minY, [int]$maxY) {
@@ -387,6 +430,24 @@ class HybridRenderEngine {
                 }
             }
         }
+
+        # VISUAL FIX: Also clear the lines on the terminal immediately
+        # This prevents artifacts (like old menu items) from remaining visible
+        # if the new frame doesn't write to those exact locations.
+        try {
+            $sb = [InternalStringBuilderPool]::Get()
+            for ($y = $minY; $y -le $maxY; $y++) {
+                if ($y -ge 0 -and $y -lt $this.Height) {
+                    [void]$sb.Append("`e[$($y + 1);1H") # Move to start of line
+                    [void]$sb.Append("`e[2K")           # Clear line
+                }
+            }
+            [Console]::Write($sb.ToString())
+            [InternalStringBuilderPool]::Recycle($sb)
+        } catch {
+            # Ignore errors if console is not available
+        }
+
         # Mark dirty so EndFrame scans it
         $this._UpdateDirtyBounds(0, $minY)
         $this._UpdateDirtyBounds($this.Width - 1, $maxY)
@@ -495,7 +556,7 @@ class HybridRenderEngine {
                     # Emit RGB or Reset sequence
                     if ($back.ForegroundRgb -eq -1) { [void]$sb.Append("`e[39m") }
                     else { 
-                        $rgb = Unpack-RGB $back.ForegroundRgb
+                        $rgb = [HybridRenderEngine]::_UnpackRGB($back.ForegroundRgb)
                         [void]$sb.Append("`e[38;2;$($rgb.R);$($rgb.G);$($rgb.B)m") 
                     }
                     $currentFg = $back.ForegroundRgb
@@ -504,7 +565,7 @@ class HybridRenderEngine {
                 if ($back.BackgroundRgb -ne $currentBg) {
                     if ($back.BackgroundRgb -eq -1) { [void]$sb.Append("`e[49m") }
                     else { 
-                        $rgb = Unpack-RGB $back.BackgroundRgb
+                        $rgb = [HybridRenderEngine]::_UnpackRGB($back.BackgroundRgb)
                         [void]$sb.Append("`e[48;2;$($rgb.R);$($rgb.G);$($rgb.B)m") 
                     }
                     $currentBg = $back.BackgroundRgb
@@ -532,7 +593,6 @@ class HybridRenderEngine {
 
     hidden [void] _ParseAnsiState([char]$cmd, [string]$params, [ref]$fg, [ref]$bg, [ref]$attr) {
         # Helper to parse ANSI codes and update state integers
-        # This mirrors the logic in EnhancedRenderEngine
         if ($cmd -ne 'm') { return }
         
         if ([string]::IsNullOrEmpty($params)) {
@@ -540,32 +600,107 @@ class HybridRenderEngine {
             return
         }
 
+        # Check cache
+        if ([HybridRenderEngine]::_ansiCache.ContainsKey($params)) {
+            $cached = [HybridRenderEngine]::_ansiCache[$params]
+            # If cached value is a hashtable with state changes, apply them
+            # However, since we need to update refs based on current state (accumulative?), 
+            # actually ANSI codes like '31' are absolute for color, but '1' is additive for attr.
+            # Simple caching of the *parsing result* (the loop below) is hard because of 'parts'.
+            # But we can cache the *operations* for a param string.
+            
+            # For now, let's implement a simple cache for the most common single-code params
+            # which avoids splitting and looping.
+             if ($cached -is [hashtable]) {
+                if ($cached.ContainsKey('Fg')) { $fg.Value = $cached.Fg }
+                if ($cached.ContainsKey('Bg')) { $bg.Value = $cached.Bg }
+                if ($cached.ContainsKey('Attr')) { $attr.Value = $attr.Value -bor $cached.Attr }
+                if ($cached.ContainsKey('Reset')) { $fg.Value = -1; $bg.Value = -1; $attr.Value = 0 }
+                return
+            }
+        }
+
         $parts = $params -split ';'
         $i = 0
+        
+        # Track changes for caching (only for simple cases)
+        $cacheable = $true
+        $cachedChanges = @{}
+
         while ($i -lt $parts.Length) {
             $code = [int]$parts[$i]
             switch ($code) {
-                0 { $fg.Value = -1; $bg.Value = -1; $attr.Value = 0 }
-                1 { $attr.Value = $attr.Value -bor 1 } # Bold
-                4 { $attr.Value = $attr.Value -bor 2 } # Underline
+                0 { 
+                    $fg.Value = -1; $bg.Value = -1; $attr.Value = 0 
+                    $cachedChanges['Reset'] = $true
+                }
+                1 { 
+                    $attr.Value = $attr.Value -bor 1 
+                    $cachedChanges['Attr'] = ($cachedChanges['Attr'] -bor 1)
+                } # Bold
+                4 { 
+                    $attr.Value = $attr.Value -bor 2 
+                    $cachedChanges['Attr'] = ($cachedChanges['Attr'] -bor 2)
+                } # Underline
                 38 { 
                     # FG RGB: 38;2;R;G;B
+                    $cacheable = $false # Don't cache complex RGB for now
                     if ($i+4 -lt $parts.Length -and $parts[$i+1] -eq 2) {
-                        $fg.Value = Pack-RGB $parts[$i+2] $parts[$i+3] $parts[$i+4]
+                        $fg.Value = [HybridRenderEngine]::_PackRGB($parts[$i+2], $parts[$i+3], $parts[$i+4])
                         $i += 4
                     }
                 }
                 48 { 
                     # BG RGB: 48;2;R;G;B
+                    $cacheable = $false
                     if ($i+4 -lt $parts.Length -and $parts[$i+1] -eq 2) {
-                        $bg.Value = Pack-RGB $parts[$i+2] $parts[$i+3] $parts[$i+4]
+                        $bg.Value = [HybridRenderEngine]::_PackRGB($parts[$i+2], $parts[$i+3], $parts[$i+4])
                         $i += 4
                     }
                 }
-                39 { $fg.Value = -1 }
-                49 { $bg.Value = -1 }
+                39 { 
+                    $fg.Value = -1 
+                    $cachedChanges['Fg'] = -1
+                }
+                49 { 
+                    $bg.Value = -1 
+                    $cachedChanges['Bg'] = -1
+                }
+                default {
+                    # Handle standard 16 colors
+                    if ($code -ge 30 -and $code -le 37) { 
+                        # Standard FG (map to approximated RGB or special value? 
+                        # CellBuffer uses int RGB. Let's map to -1 for now or implementation dependent.
+                        # For strictly RGB engine, we might ignore or map to standard palette.
+                        # This implementation seems to assume RGB or -1.
+                        # Let's mark not cacheable if we don't handle it fully here.
+                        $cacheable = $false
+                    }
+                }
             }
             $i++
+        }
+
+        # Cache simple results
+        if ($cacheable -and $parts.Length -eq 1) {
+            [HybridRenderEngine]::_ansiCache[$params] = $cachedChanges
+        }
+    }
+
+    hidden static [int] _PackRGB([int]$r, [int]$g, [int]$b) {
+        # Clamp to valid range
+        $r = [Math]::Max(0, [Math]::Min(255, $r))
+        $g = [Math]::Max(0, [Math]::Min(255, $g))
+        $b = [Math]::Max(0, [Math]::Min(255, $b))
+
+        return ($r -shl 16) -bor ($g -shl 8) -bor $b
+    }
+
+    hidden static [hashtable] _UnpackRGB([int]$packed) {
+        return @{
+            R = ($packed -shr 16) -band 0xFF
+            G = ($packed -shr 8) -band 0xFF
+            B = $packed -band 0xFF
         }
     }
 }

@@ -42,7 +42,11 @@ class OptimizedRenderEngine {
     hidden [int]$_frameCount = 0
     hidden [int]$_updatedCells = 0
     hidden [int]$_layerSwitches = 0  # Track layer changes for debugging
-    
+
+    # DIRTY RECTANGLE OPTIMIZATION
+    # Tracks the bounding box of all content written this frame to avoid scanning unchanged regions
+    hidden [hashtable]$_dirtyBounds = $null
+
     <#
     .SYNOPSIS
     Initialize the optimized render engine
@@ -55,6 +59,9 @@ class OptimizedRenderEngine {
 
         # Get console dimensions
         $this.UpdateDimensions()
+
+        # Initialize dirty bounds (start with full screen on first frame)
+        $this._ResetDirtyBounds($true)
     }
     
     <#
@@ -158,8 +165,11 @@ class OptimizedRenderEngine {
         $this._currentFrame = Get-PooledStringBuilder 4096
         $this._updatedCells = 0
 
+        # Reset dirty bounds to "nothing changed" - will grow as WriteAt calls are made
+        $this._ResetDirtyBounds($false)
+
         if ($global:PmcTuiLogFile) {
-            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [RENDER] BeginFrame: Layer data cleared, composited cache still has $($this._compositedContent.Count) entries"
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [RENDER] BeginFrame: Layer data cleared, composited cache still has $($this._compositedContent.Count) entries, dirty bounds reset"
         }
     }
     
@@ -197,6 +207,10 @@ class OptimizedRenderEngine {
         }
 
         $this._layeredContent[$key][$this._currentZIndex] = $content
+
+        # Update dirty bounds to include this position
+        # Note: We don't know exact content width yet (ANSI codes), so we expand conservatively
+        $this._UpdateDirtyBounds($x, $y)
 
         if ($global:PmcTuiLogFile -and $global:PmcTuiLogLevel -ge 3) {
             $preview = $(if ($content.Length -gt 50) { $content.Substring(0, 50) + "..." } else { $content })
@@ -252,8 +266,11 @@ class OptimizedRenderEngine {
         $this._compositedContent.Clear()
         $this._layeredContent.Clear()
 
+        # Mark entire screen as dirty for next frame
+        $this._ResetDirtyBounds($true)
+
         if ($global:PmcTuiLogFile) {
-            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [RENDER] RequestClear: Terminal cleared + caches invalidated"
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [RENDER] RequestClear: Terminal cleared + caches invalidated + full screen marked dirty"
         }
     }
 
@@ -349,11 +366,43 @@ class OptimizedRenderEngine {
         $positionsProcessed = 0
         $layersComposited = 0
 
+        # DIRTY RECTANGLE OPTIMIZATION: Only process positions within dirty bounds
+        # This can reduce iteration from 1000s of positions to just the changed region
+        $dirtyMinX = $this._dirtyBounds.MinX
+        $dirtyMaxX = $this._dirtyBounds.MaxX
+        $dirtyMinY = $this._dirtyBounds.MinY
+        $dirtyMaxY = $this._dirtyBounds.MaxY
+
+        # If nothing was written this frame, skip compositing entirely
+        if ($dirtyMaxX -lt 0) {
+            if ($global:PmcTuiLogFile) {
+                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [COMPOSITE] No dirty bounds - skipping (empty frame)"
+            }
+            return
+        }
+
         if ($global:PmcTuiLogFile) {
-            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [COMPOSITE] Starting layer composition for $($this._layeredContent.Count) positions"
+            $dirtyWidth = $dirtyMaxX - $dirtyMinX + 1
+            $dirtyHeight = $dirtyMaxY - $dirtyMinY + 1
+            $dirtyArea = $dirtyWidth * $dirtyHeight
+            $totalArea = $this.Width * $this.Height
+            $coverage = [Math]::Round(($dirtyArea / $totalArea) * 100, 1)
+            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [COMPOSITE] Starting layer composition - total positions=$($this._layeredContent.Count), dirty rect=($dirtyMinX,$dirtyMinY)-($dirtyMaxX,$dirtyMaxY) [$dirtyWidth x $dirtyHeight] = $coverage% of screen"
         }
 
         foreach ($key in $this._layeredContent.Keys) {
+            # Parse position from key "x,y" to check if it's in dirty bounds
+            $parts = $key -split ','
+            $keyX = [int]$parts[0]
+            $keyY = [int]$parts[1]
+
+            # Skip positions outside dirty rectangle
+            if ($keyX -lt $dirtyMinX -or $keyX -gt $dirtyMaxX -or $keyY -lt $dirtyMinY -or $keyY -gt $dirtyMaxY) {
+                if ($global:PmcTuiLogFile -and $global:PmcTuiLogLevel -ge 3) {
+                    Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [COMPOSITE] Position $key OUTSIDE dirty rect, skipping"
+                }
+                continue
+            }
             $positionsProcessed++
             $layers = $this._layeredContent[$key]
 
@@ -513,10 +562,59 @@ class OptimizedRenderEngine {
         $this.WriteAt($x, $y + $height - 1, $chars.BL + $hLine + $chars.BR)
     }
     
+    # -------------------------------------------------------------------------
+    # DIRTY RECTANGLE TRACKING (INTERNAL)
+    # -------------------------------------------------------------------------
+
+    <#
+    .SYNOPSIS
+    Reset dirty bounds to either full screen or empty
+
+    .PARAMETER fullScreen
+    If true, marks entire screen as dirty. If false, marks nothing as dirty (inverted bounds).
+    #>
+    hidden [void] _ResetDirtyBounds([bool]$fullScreen) {
+        if ($fullScreen) {
+            # Mark entire screen as dirty (for initial frame or after RequestClear)
+            $this._dirtyBounds = @{
+                MinX = 0
+                MinY = 0
+                MaxX = $this.Width - 1
+                MaxY = $this.Height - 1
+            }
+        } else {
+            # Start with inverted bounds that will expand as WriteAt is called
+            # MinX/MinY start at max, MaxX/MaxY start at min - this ensures first WriteAt sets proper bounds
+            $this._dirtyBounds = @{
+                MinX = $this.Width
+                MinY = $this.Height
+                MaxX = -1
+                MaxY = -1
+            }
+        }
+    }
+
+    <#
+    .SYNOPSIS
+    Expand dirty bounds to include a specific position
+
+    .PARAMETER x
+    X coordinate to include
+
+    .PARAMETER y
+    Y coordinate to include
+    #>
+    hidden [void] _UpdateDirtyBounds([int]$x, [int]$y) {
+        if ($x -lt $this._dirtyBounds.MinX) { $this._dirtyBounds.MinX = $x }
+        if ($x -gt $this._dirtyBounds.MaxX) { $this._dirtyBounds.MaxX = $x }
+        if ($y -lt $this._dirtyBounds.MinY) { $this._dirtyBounds.MinY = $y }
+        if ($y -gt $this._dirtyBounds.MaxY) { $this._dirtyBounds.MaxY = $y }
+    }
+
     <#
     .SYNOPSIS
     Get performance statistics
-    
+
     .OUTPUTS
     Hashtable with performance metrics
     #>
@@ -527,6 +625,7 @@ class OptimizedRenderEngine {
             LastUpdatedCells = $this._updatedCells
             Width = $this.Width
             Height = $this.Height
+            DirtyBounds = $this._dirtyBounds
         }
     }
 }
