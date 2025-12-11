@@ -59,8 +59,9 @@ try {
     
     # Load performance optimizations first
     . "$SpeedTUIRoot/Core/Internal/PerformanceCore.ps1"
+    . "$SpeedTUIRoot/Core/CellBuffer.ps1"
     . "$SpeedTUIRoot/Core/SimplifiedTerminal.ps1"  # Use simplified terminal for speed!
-    . "$SpeedTUIRoot/Core/OptimizedRenderEngine.ps1"  # Use optimized engine for flicker-free rendering!
+    . "$SpeedTUIRoot/Core/HybridRenderEngine.ps1"  # Use Hybrid engine for flicker-free rendering!
     
     # Load base components and helpers
     . "$SpeedTUIRoot/Core/Component.ps1"  # Use enhanced component with caching!

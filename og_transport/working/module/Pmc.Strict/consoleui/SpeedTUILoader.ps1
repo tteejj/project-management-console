@@ -28,8 +28,8 @@ try {
     # 3. Terminal and rendering
     . "$SpeedTUIRoot/Core/SimplifiedTerminal.ps1"
     . "$SpeedTUIRoot/Core/CellBuffer.ps1"
-    . "$SpeedTUIRoot/Core/OptimizedRenderEngine.ps1"
-    # NOTE: EnhancedRenderEngine removed - OptimizedRenderEngine has z-index support
+    . "$SpeedTUIRoot/Core/HybridRenderEngine.ps1"
+    # NOTE: EnhancedRenderEngine removed - HybridRenderEngine has z-index support
 
     # 4. Base Component class (THIS IS WHAT PmcWidget EXTENDS)
     . "$SpeedTUIRoot/Core/Component.ps1"

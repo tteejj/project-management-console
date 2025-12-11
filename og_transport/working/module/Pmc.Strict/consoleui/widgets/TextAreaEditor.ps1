@@ -24,6 +24,10 @@ class TextAreaEditor {
     # Line tracking for efficient operations
     hidden [System.Collections.ArrayList]$_lineStarts
     hidden [bool]$_lineIndexDirty = $true
+    
+    # Dirty line tracking for partial rendering
+    hidden [System.Collections.Generic.HashSet[int]]$_dirtyLines
+    hidden [bool]$_fullRedrawNeeded = $true
 
     # Cursor position
     [int]$CursorX = 0
@@ -55,6 +59,7 @@ class TextAreaEditor {
         $this._gapBuffer = [GapBuffer]::new()
         $this._gapBuffer.Insert(0, "")  # Start with empty content
         $this._lineStarts = [System.Collections.ArrayList]::new()
+        $this._dirtyLines = [System.Collections.Generic.HashSet[int]]::new()
         $this._undoStack = [System.Collections.ArrayList]::new()
         $this._redoStack = [System.Collections.ArrayList]::new()
         $this.BuildLineIndex()
@@ -161,90 +166,128 @@ class TextAreaEditor {
         return $lineStart + $actualCol
     }
 
-    # Cell-based rendering for OptimizedRenderEngine
+    # Cell-based rendering optimized for HybridRenderEngine
     [void] RenderToEngine([object]$engine) {
         $lineCount = $this.GetLineCount()
+        
+        # Use clipping if supported (Hybrid engine)
+        if ($engine.PSObject.Methods['PushClip']) {
+            $engine.PushClip($this.X, $this.Y, $this.Width, $this.Height)
+        }
 
-        # PERF: Disabled excessive logging
-        # if ($global:PmcTuiLogFile) {
-        #     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] TextAreaEditor.RenderToEngine: Start - X=$($this.X) Y=$($this.Y) W=$($this.Width) H=$($this.Height) Lines=$lineCount ScrollY=$($this.ScrollOffsetY)"
-        # }
+        # Determine if full redraw needed
+        $renderAll = $this._fullRedrawNeeded
+        
+        # Always dirty the cursor line (and previous cursor line if tracked, but we redraw current anyway)
+        # Ideally we should track old cursor Y, but simply dirtying current Y covers the "draw cursor" part.
+        # To clear old cursor, we'd need to know where it was.
+        # For simplicity in this iteration: If we moved vertically, we might need full redraw or smart tracking.
+        # Let's assume full redraw on scroll/large move, and dirty line on typing.
+        
+        # Add current cursor line to dirty set
+        [void]$this._dirtyLines.Add($this.CursorY)
 
-        # Render each visible line
+        # Render visible lines
         for ($i = 0; $i -lt $this.Height; $i++) {
             $lineIndex = $this.ScrollOffsetY + $i
             $screenY = $this.Y + $i
 
-            # PERF: Disabled excessive logging
-            # if ($global:PmcTuiLogFile -and $i -lt 3) {
-            #     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] TextAreaEditor.RenderToEngine: Line $i - lineIndex=$lineIndex screenY=$screenY"
-            # }
+            # Skip if not dirty and not full redraw
+            if (-not $renderAll -and -not $this._dirtyLines.Contains($lineIndex)) {
+                continue
+            }
 
             if ($lineIndex -lt $lineCount) {
                 $line = $this.GetLine($lineIndex)
-
-                # PERF: Disabled excessive logging
-                # if ($global:PmcTuiLogFile -and $i -lt 3) {
-                #     $linePreview = $(if ($line.Length -gt 20) { $line.Substring(0, 20) + "..." } else { $line })
-                #     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] TextAreaEditor.RenderToEngine: Line content: '$linePreview' (len=$($line.Length))"
-                # }
-
-                # Handle horizontal scrolling
-                $startCol = $this.ScrollOffsetX
-                $endCol = [Math]::Min($startCol + $this.Width, $line.Length)
-
-                # Render visible portion of line
-                for ($col = $startCol; $col -lt $endCol; $col++) {
-                    $screenX = $this.X + ($col - $startCol)
-                    $char = $line[$col]
-
-                    # Check if this character is in selection
-                    if ($this.SelectionMode -ne [SelectionMode]::None -and
-                        $this.IsCharInSelection($lineIndex, $col)) {
-                        # Write with selection background
-                        $engine.WriteAt($screenX, $screenY, $char, [ConsoleColor]::White, [ConsoleColor]::DarkBlue)
+                
+                # Handle horizontal scrolling logic
+                $visibleLen = [Math]::Max(0, $line.Length - $this.ScrollOffsetX)
+                
+                if ($visibleLen -gt 0) {
+                    # Extract visible text
+                    # We grab a bit more than needed and let clipping handle the right edge
+                    # or clamp to Width to avoid huge strings
+                    $extractLen = [Math]::Min($visibleLen, $this.Width)
+                    $textToShow = $line.Substring($this.ScrollOffsetX, $extractLen)
+                    
+                    # Handle selection if active (complex case)
+                    if ($this.SelectionMode -ne [SelectionMode]::None) {
+                        # Fallback to cell-by-cell for selection highlighting to ensure correct colors
+                        # (Selection logic is complex to stringify efficiently without a builder)
+                        $this._RenderLineWithSelectionToEngine($engine, $lineIndex, $screenY, $textToShow)
                     } else {
-                        # Write normal character
-                        $engine.WriteAt($screenX, $screenY, $char)
+                        # Fast path: Write whole string at once
+                        $engine.WriteAt($this.X, $screenY, $textToShow)
                     }
                 }
-
-                # Clear rest of line with spaces
-                for ($xOffset = ($endCol - $startCol); $xOffset -lt $this.Width; $xOffset++) {
-                    $engine.WriteAt($this.X + $xOffset, $screenY, ' ')
+                
+                # Clear rest of line (if text is shorter than width)
+                if ($visibleLen -lt $this.Width) {
+                    $clearX = $this.X + $visibleLen
+                    $clearWidth = $this.Width - $visibleLen
+                    # Use engine's Clear or Write spaces
+                    if ($engine.PSObject.Methods['Clear']) {
+                        $engine.Clear($clearX, $screenY, $clearWidth, 1)
+                    } else {
+                        $spaces = [string]::new(' ', $clearWidth)
+                        $engine.WriteAt($clearX, $screenY, $spaces)
+                    }
                 }
             } else {
                 # Clear empty lines
-                for ($xOffset = 0; $xOffset -lt $this.Width; $xOffset++) {
-                    $engine.WriteAt($this.X + $xOffset, $screenY, ' ')
+                if ($engine.PSObject.Methods['Clear']) {
+                    $engine.Clear($this.X, $screenY, $this.Width, 1)
+                } else {
+                    $spaces = [string]::new(' ', $this.Width)
+                    $engine.WriteAt($this.X, $screenY, $spaces)
                 }
             }
         }
 
-        # Position cursor by writing at cursor location
-        # This ensures the engine's last WriteAt call is at the cursor position
+        # Clear dirty state
+        $this._dirtyLines.Clear()
+        $this._fullRedrawNeeded = $false
+
+        # Render Cursor
         $cursorScreenX = $this.X + $this.CursorX - $this.ScrollOffsetX
         $cursorScreenY = $this.Y + $this.CursorY - $this.ScrollOffsetY
 
+        # Only draw if inside bounds
         if ($cursorScreenX -ge $this.X -and $cursorScreenX -lt ($this.X + $this.Width) -and
             $cursorScreenY -ge $this.Y -and $cursorScreenY -lt ($this.Y + $this.Height)) {
-            # Get the character at cursor position to re-write it
+            
+            # Get char at cursor
             $cursorLineIndex = $this.CursorY
+            $charAtCursor = ' '
             if ($cursorLineIndex -lt $this.GetLineCount()) {
-                $line = $this.GetLine($cursorLineIndex)
-                if ($this.CursorX -lt $line.Length) {
-                    $charAtCursor = $line[$this.CursorX]
-                } else {
-                    $charAtCursor = ' '
+                $l = $this.GetLine($cursorLineIndex)
+                if ($this.CursorX -lt $l.Length) {
+                    $charAtCursor = $l[$this.CursorX]
                 }
-            } else {
-                $charAtCursor = ' '
             }
+            
+            # Draw cursor (Inverse video)
+            $engine.WriteAt($cursorScreenX, $cursorScreenY, "`e[7m$charAtCursor`e[0m")
+        }
 
-            # Write the character at cursor position with reverse video for block cursor effect
-            # Use ANSI escape codes for black text on white background
-            $blockCursor = "`e[30;47m$charAtCursor`e[0m"
-            $engine.WriteAt($cursorScreenX, $cursorScreenY, $blockCursor)
+        if ($engine.PSObject.Methods['PopClip']) {
+            $engine.PopClip()
+        }
+    }
+
+    hidden [void] _RenderLineWithSelectionToEngine([object]$engine, [int]$lineIndex, [int]$screenY, [string]$visibleText) {
+        # Helper to render selection cell-by-cell (slower but correct)
+        # This only runs when user is actively selecting text
+        for ($i = 0; $i -lt $visibleText.Length; $i++) {
+            $col = $this.ScrollOffsetX + $i
+            $char = $visibleText[$i]
+            $screenX = $this.X + $i
+            
+            if ($this.IsCharInSelection($lineIndex, $col)) {
+                $engine.WriteAt($screenX, $screenY, $char, [ConsoleColor]::White, [ConsoleColor]::DarkBlue)
+            } else {
+                $engine.WriteAt($screenX, $screenY, $char)
+            }
         }
     }
 
@@ -422,11 +465,12 @@ class TextAreaEditor {
         $isCtrl = $key.Modifiers -band [System.ConsoleModifiers]::Control
 
         # Save state for undo before modifications
-        if (-not ($key.Key -in @([System.ConsoleKey]::LeftArrow, [System.ConsoleKey]::RightArrow,
-                                  [System.ConsoleKey]::UpArrow, [System.ConsoleKey]::DownArrow,
-                                  [System.ConsoleKey]::Home, [System.ConsoleKey]::End))) {
-            $this.SaveUndoState()
-        }
+        # PERF OPTIMIZATION: Disabled auto-undo state saving on every keystroke to fix typing lag
+        # if (-not ($key.Key -in @([System.ConsoleKey]::LeftArrow, [System.ConsoleKey]::RightArrow,
+        #                           [System.ConsoleKey]::UpArrow, [System.ConsoleKey]::DownArrow,
+        #                           [System.ConsoleKey]::Home, [System.ConsoleKey]::End))) {
+        #     $this.SaveUndoState()
+        # }
 
         switch ($key.Key) {
             # Navigation with selection support

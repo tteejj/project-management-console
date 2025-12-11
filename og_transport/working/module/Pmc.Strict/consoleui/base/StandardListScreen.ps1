@@ -750,6 +750,16 @@ class StandardListScreen : PmcScreen {
             Write-PmcTuiLog "StandardListScreen._SaveEditedItem: Mode=$($this.EditorMode) Values=$($values | ConvertTo-Json -Compress)" "DEBUG"
         }
 
+        # SOFT VALIDATION: Check for errors but proceed
+        $validationMsg = ""
+        if ($this.InlineEditor.ValidationErrors.Count -gt 0) {
+            $validationMsg = " (with warnings)"
+            # Log warnings
+            if ($global:PmcTuiLogFile) {
+                Write-PmcTuiLog "Saving item with validation warnings: $($this.InlineEditor.ValidationErrors -join '; ')" "WARNING"
+            }
+        }
+
         try {
             if ($this.EditorMode -eq 'add') {
                 # Call subclass callback for item creation
@@ -774,6 +784,10 @@ class StandardListScreen : PmcScreen {
             $this.CurrentEditItem = $null
 
             # Write-PmcTuiLog "_SaveEditedItem: After close - ShowInlineEditor=$($this.ShowInlineEditor)" "DEBUG"
+            
+            # Show success message (with warning if applicable)
+            $statusLevel = $(if ($validationMsg) { "warning" } else { "success" })
+            $this.SetStatusMessage("Item saved$validationMsg", $statusLevel)
         }
         catch {
             Write-PmcTuiLog "_SaveEditedItem failed: $_" "ERROR"
@@ -1025,6 +1039,39 @@ class StandardListScreen : PmcScreen {
     }
 
     # === Rendering ===
+
+    <#
+    .SYNOPSIS
+    Render directly to engine (Hybrid/Optimized support)
+    #>
+    [void] RenderToEngine([object]$engine) {
+        if ($null -eq $this.List) {
+            throw "CRITICAL ERROR: StandardListScreen.List is null - screen was not properly initialized"
+        }
+
+        # Sync state to List widget
+        if ($this.ShowInlineEditor -and $this.InlineEditor) {
+            $this.List._showInlineEditor = $true
+            $this.List._inlineEditor = $this.InlineEditor
+        } else {
+            $this.List._showInlineEditor = $false
+        }
+        
+        # Sync filter panel state
+        $this.List.IsInFilterMode = $this.ShowFilterPanel
+
+        # Render list (it handles clipping and overlays internally)
+        if ($this.List.PSObject.Methods['RenderToEngine']) {
+            $this.List.RenderToEngine($engine)
+        } else {
+            # Fallback if list doesn't support engine rendering (shouldn't happen if updated)
+            $output = $this.RenderContent()
+            if ($output) {
+                # Simple write at 0,0 if content returned
+                $engine.WriteAt(0, 0, $output)
+            }
+        }
+    }
 
     <#
     .SYNOPSIS

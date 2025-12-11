@@ -30,6 +30,51 @@ class PmcDialog {
         $this.Height = 10
     }
 
+    [void] RenderToEngine([object]$engine, [int]$termWidth, [int]$termHeight, [hashtable]$theme) {
+        # Dialogs are always on top (Z=50)
+        if ($engine.PSObject.Methods['BeginLayer']) {
+            $engine.BeginLayer(50)
+        }
+
+        # Render to string
+        $ansiOutput = $this.Render($termWidth, $termHeight, $theme)
+        
+        # Parse and write to engine
+        $pattern = "`e\[(\d+);(\d+)H"
+        $matches = [regex]::Matches($ansiOutput, $pattern)
+
+        if ($matches.Count -eq 0) {
+            # Should not happen for dialogs as they position themselves
+            if ($ansiOutput) {
+                $engine.WriteAt(0, 0, $ansiOutput)
+            }
+        } else {
+            for ($i = 0; $i -lt $matches.Count; $i++) {
+                $match = $matches[$i]
+                $row = [int]$match.Groups[1].Value
+                $col = [int]$match.Groups[2].Value
+                $x = $col - 1
+                $y = $row - 1
+
+                $startIndex = $match.Index + $match.Length
+                if ($i + 1 -lt $matches.Count) {
+                    $endIndex = $matches[$i + 1].Index
+                } else {
+                    $endIndex = $ansiOutput.Length
+                }
+
+                $content = $ansiOutput.Substring($startIndex, $endIndex - $startIndex)
+                if ($content) {
+                    $engine.WriteAt($x, $y, $content)
+                }
+            }
+        }
+
+        if ($engine.PSObject.Methods['EndLayer']) {
+            $engine.EndLayer()
+        }
+    }
+
     [string] Render([int]$termWidth, [int]$termHeight, [hashtable]$theme) {
         $sb = [System.Text.StringBuilder]::new(2048)
 

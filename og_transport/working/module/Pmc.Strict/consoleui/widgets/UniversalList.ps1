@@ -863,7 +863,12 @@ class UniversalList : PmcWidget {
     }
 
     # PERFORMANCE: Direct engine rendering (bypasses ANSI string building/parsing)
-    [void] OnRenderToEngine([object]$engine) {
+    [void] RenderToEngine([object]$engine) {
+        
+        # Use clipping if available (Hybrid engine)
+        if ($engine.PSObject.Methods['PushClip']) {
+            $engine.PushClip($this.X, $this.Y, $this.Width, $this.Height)
+        }
 
         # If filter panel is shown, render list + filter panel
         if ($this.IsInFilterMode) {
@@ -873,10 +878,13 @@ class UniversalList : PmcWidget {
             if ($filterOutput) {
                 $this._ParseAnsiToEngine($engine, $filterOutput)
             }
-            return
+        } else {
+            $this._RenderListDirect($engine)
         }
 
-        $this._RenderListDirect($engine)
+        if ($engine.PSObject.Methods['PopClip']) {
+            $engine.PopClip()
+        }
     }
 
     # === Private Helper Methods ===

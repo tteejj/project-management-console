@@ -651,13 +651,24 @@ class TaskListScreen : StandardListScreen {
                     $d = & $getSafe $task 'due'
                     if (-not $d) { return '' }
                     try {
-                        $date = [DateTime]$d
+                        # Handle both DateTime objects and parseable strings
+                        if ($d -is [DateTime]) {
+                            $date = $d
+                        } elseif ($d -is [string]) {
+                            $date = [DateTime]::Parse($d)
+                        } else {
+                            # Fallback: convert to string and truncate
+                            $str = $d.ToString()
+                            return $(if ($str.Length -gt 10) { $str.Substring(0, 10) } else { $str })
+                        }
                         if ($date.Date -eq [DateTime]::Today) { return 'Today' }
                         if ($date.Date -eq [DateTime]::Today.AddDays(1)) { return 'Tomorrow' }
                         if ($date.Date -lt [DateTime]::Today) { return 'OVERDUE!' }
                         return $date.ToString('MMM dd')
                     } catch {
-                        return $d
+                        # Catch block: truncate to fit column
+                        $str = $d.ToString()
+                        return $(if ($str.Length -gt 10) { $str.Substring(0, 10) } else { $str })
                     }
                 }.GetNewClosure()
                 Color = { param($task)
@@ -818,7 +829,13 @@ class TaskListScreen : StandardListScreen {
             # Add to store (auto-persists and fires events)
             $success = $this.Store.AddTask($taskData)
             if ($success) {
-                $this.SetStatusMessage("Task created: $($taskData.text)", "success")
+                # Check for validation warnings
+                if (-not [string]::IsNullOrEmpty($this.Store.LastWarning)) {
+                    $this.SetStatusMessage("Task created with warnings: $($this.Store.LastWarning)", "warning")
+                    $this.Store.LastWarning = ""  # Clear warning
+                } else {
+                    $this.SetStatusMessage("Task created: $($taskData.text)", "success")
+                }
             } else {
                 $this.SetStatusMessage("Failed to create task: $($this.Store.LastError)", "error")
             }
@@ -971,7 +988,13 @@ class TaskListScreen : StandardListScreen {
 
             if ($success) {
                 # Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [OnItemUpdated] SUCCESS - calling LoadData()"
-                $this.SetStatusMessage("Task updated: $($values.text)", "success")
+                # Check for validation warnings
+                if (-not [string]::IsNullOrEmpty($this.Store.LastWarning)) {
+                    $this.SetStatusMessage("Task updated with warnings: $($this.Store.LastWarning)", "warning")
+                    $this.Store.LastWarning = ""  # Clear warning
+                } else {
+                    $this.SetStatusMessage("Task updated: $($values.text)", "success")
+                }
                 try {
                     $this.LoadData()  # Refresh the list to show updated data
                     # Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [OnItemUpdated] LoadData() completed"
@@ -1074,7 +1097,13 @@ class TaskListScreen : StandardListScreen {
 
         if ($success) {
             $statusText = $(if ($newStatus) { "completed" } else { "reopened" })
-            $this.SetStatusMessage("Task ${statusText}: $taskText", "success")
+            # Check for validation warnings
+            if (-not [string]::IsNullOrEmpty($this.Store.LastWarning)) {
+                $this.SetStatusMessage("Task ${statusText} with warnings: $($this.Store.LastWarning)", "warning")
+                $this.Store.LastWarning = ""  # Clear warning
+            } else {
+                $this.SetStatusMessage("Task ${statusText}: $taskText", "success")
+            }
             # TaskStore event will invalidate cache and trigger refresh
         } else {
             $this.SetStatusMessage("Failed to update task: $($this.Store.LastError)", "error")
@@ -1105,7 +1134,13 @@ class TaskListScreen : StandardListScreen {
         })
 
         if ($success) {
-            $this.SetStatusMessage("Task completed: $taskText", "success")
+            # Check for validation warnings
+            if (-not [string]::IsNullOrEmpty($this.Store.LastWarning)) {
+                $this.SetStatusMessage("Task completed with warnings: $($this.Store.LastWarning)", "warning")
+                $this.Store.LastWarning = ""  # Clear warning
+            } else {
+                $this.SetStatusMessage("Task completed: $taskText", "success")
+            }
             # TaskStore event will invalidate cache and trigger refresh
         } else {
             $this.SetStatusMessage("Failed to complete task: $($this.Store.LastError)", "error")
@@ -1145,7 +1180,13 @@ class TaskListScreen : StandardListScreen {
 
         $success = $this.Store.AddTask($clonedTask)
         if ($success) {
-            $this.SetStatusMessage("Task cloned: $($clonedTask.text)", "success")
+            # Check for validation warnings
+            if (-not [string]::IsNullOrEmpty($this.Store.LastWarning)) {
+                $this.SetStatusMessage("Task cloned with warnings: $($this.Store.LastWarning)", "warning")
+                $this.Store.LastWarning = ""  # Clear warning
+            } else {
+                $this.SetStatusMessage("Task cloned: $($clonedTask.text)", "success")
+            }
             # TaskStore event will invalidate cache and trigger refresh
         } else {
             $this.SetStatusMessage("Failed to clone task: $($this.Store.LastError)", "error")
@@ -1225,10 +1266,20 @@ class TaskListScreen : StandardListScreen {
             param($values)
             # Ensure parent_id is preserved
             $values.parent_id = $parentId
-            $self.Store.AddTask($values)
+            $success = $self.Store.AddTask($values)
             $self.ShowInlineEditor = $false
             $self.RefreshList()
-            $self.SetStatusMessage("Subtask added", "success")
+            if ($success) {
+                # Check for validation warnings
+                if (-not [string]::IsNullOrEmpty($self.Store.LastWarning)) {
+                    $self.SetStatusMessage("Subtask added with warnings: $($self.Store.LastWarning)", "warning")
+                    $self.Store.LastWarning = ""  # Clear warning
+                } else {
+                    $self.SetStatusMessage("Subtask added", "success")
+                }
+            } else {
+                $self.SetStatusMessage("Failed to add subtask: $($self.Store.LastError)", "error")
+            }
         }.GetNewClosure()
 
         $this.InlineEditor.OnCancelled = {
@@ -1251,6 +1302,7 @@ class TaskListScreen : StandardListScreen {
 
         $successCount = 0
         $failCount = 0
+        $warningCount = 0
         foreach ($task in $selected) {
             $taskId = Get-SafeProperty $task 'id'
             $success = $this.Store.UpdateTask($taskId, @{
@@ -1259,14 +1311,22 @@ class TaskListScreen : StandardListScreen {
             })
             if ($success) {
                 $successCount++
+                # Check for warnings
+                if (-not [string]::IsNullOrEmpty($this.Store.LastWarning)) {
+                    $warningCount++
+                    Write-PmcTuiLog "BulkCompleteSelected: Task ${taskId} completed with warnings: $($this.Store.LastWarning)" "WARN"
+                    $this.Store.LastWarning = ""  # Clear warning
+                }
             } else {
                 $failCount++
                 Write-PmcTuiLog "BulkCompleteSelected failed for task ${taskId}: $($this.Store.LastError)" "ERROR"
             }
         }
 
-        if ($failCount -eq 0) {
+        if ($failCount -eq 0 -and $warningCount -eq 0) {
             $this.SetStatusMessage("Completed $successCount tasks", "success")
+        } elseif ($failCount -eq 0) {
+            $this.SetStatusMessage("Completed $successCount tasks ($warningCount with warnings)", "warning")
         } else {
             $this.SetStatusMessage("Completed $successCount tasks, failed $failCount", "warning")
         }

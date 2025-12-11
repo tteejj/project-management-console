@@ -376,6 +376,96 @@ class PmcMenuBar : PmcWidget {
 
     # === Rendering ===
 
+    [void] RenderToEngine([object]$engine) {
+        # Menu bar base is on Z=50 (high but below dropdown)
+        if ($engine.PSObject.Methods['BeginLayer']) {
+            $engine.BeginLayer(50)
+        }
+
+        # Render menu bar
+        $menuBarLine = $this._RenderMenuBar()
+        
+        # Parse and write menu bar
+        $pattern = "`e\[(\d+);(\d+)H"
+        $matches = [regex]::Matches($menuBarLine, $pattern)
+
+        if ($matches.Count -eq 0) {
+            if ($menuBarLine) {
+                $engine.WriteAt(0, 0, $menuBarLine)
+            }
+        } else {
+            for ($i = 0; $i -lt $matches.Count; $i++) {
+                $match = $matches[$i]
+                $row = [int]$match.Groups[1].Value
+                $col = [int]$match.Groups[2].Value
+                $x = $col - 1
+                $y = $row - 1
+
+                $startIndex = $match.Index + $match.Length
+                if ($i + 1 -lt $matches.Count) {
+                    $endIndex = $matches[$i + 1].Index
+                } else {
+                    $endIndex = $menuBarLine.Length
+                }
+
+                $content = $menuBarLine.Substring($startIndex, $endIndex - $startIndex)
+                if ($content) {
+                    $engine.WriteAt($x, $y, $content)
+                }
+            }
+        }
+
+        if ($engine.PSObject.Methods['EndLayer']) {
+            $engine.EndLayer()
+        }
+
+        # Render dropdown if visible
+        if ($this.DropdownVisible -and $this.SelectedMenuIndex -ge 0) {
+            # Dropdown is on Z=100 (highest)
+            if ($engine.PSObject.Methods['BeginLayer']) {
+                $engine.BeginLayer(100)
+            }
+
+            $dropdown = $this._RenderDropdown()
+            
+            # Parse and write dropdown
+            $matches = [regex]::Matches($dropdown, $pattern)
+            
+            if ($matches.Count -eq 0) {
+                if ($dropdown) {
+                    $engine.WriteAt(0, 0, $dropdown)
+                }
+            } else {
+                for ($i = 0; $i -lt $matches.Count; $i++) {
+                    $match = $matches[$i]
+                    $row = [int]$match.Groups[1].Value
+                    $col = [int]$match.Groups[2].Value
+                    $x = $col - 1
+                    $y = $row - 1
+
+                    $startIndex = $match.Index + $match.Length
+                    if ($i + 1 -lt $matches.Count) {
+                        $endIndex = $matches[$i + 1].Index
+                    } else {
+                        $endIndex = $dropdown.Length
+                    }
+
+                    $content = $dropdown.Substring($startIndex, $endIndex - $startIndex)
+                    if ($content) {
+                        $engine.WriteAt($x, $y, $content)
+                    }
+                }
+            }
+
+            if ($engine.PSObject.Methods['EndLayer']) {
+                $engine.EndLayer()
+            }
+        } else {
+            # No dropdown visible - reset tracking
+            $this._prevDropdownHeight = 0
+        }
+    }
+
     [string] OnRender() {
         # PERF: Disabled - if ($global:PmcTuiLogFile) {
         # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] MenuBar.OnRender: Called (DropdownVisible=$($this.DropdownVisible) _prevHeight=$($this._prevDropdownHeight) _prevX=$($this._prevDropdownX) _prevY=$($this._prevDropdownY))"

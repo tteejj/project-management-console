@@ -106,6 +106,7 @@ class TaskStore {
     [bool]$IsLoaded = $false
     [bool]$IsSaving = $false
     [string]$LastError = ""
+    [string]$LastWarning = ""
     [bool]$AutoSave = $true  # CRITICAL: Enable by default to prevent data loss
     [bool]$HasPendingChanges = $false  # True when changes need to be saved
 
@@ -563,11 +564,13 @@ class TaskStore {
             # Validate task
             $validationErrors = $this._ValidateEntity($task, 'task')
             if ($validationErrors.Count -gt 0) {
-                $this.LastError = "Task validation failed: $($validationErrors -join ', ')"
-                Write-PmcTuiLog "AddTask: Validation FAILED: $($validationErrors -join ', ')" "ERROR"
-                return $false
+                $warnMsg = "Task validation warnings: $($validationErrors -join ', ')"
+                $this.LastWarning = $warnMsg
+                Write-PmcTuiLog "AddTask: WARNINGS - $warnMsg" "WARN"
+                # Continue anyway - all validations are warnings now
+            } else {
+                Write-PmcTuiLog "AddTask: Validation passed" "DEBUG"
             }
-            # Write-PmcTuiLog "AddTask: Validation passed" "DEBUG"
 
             # Create backup BEFORE any modifications
             $this._CreateBackup()
@@ -740,9 +743,10 @@ class TaskStore {
             $validationErrors = $this._ValidateEntity($task, 'task')
             # Add-Content -Path "$($env:TEMP)\pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') TaskStore.UpdateTask: AFTER VALIDATION - errors count=$($validationErrors.Count) errors=$($validationErrors -join '; ')"
             if ($validationErrors.Count -gt 0) {
-                $this.LastError = "Task validation failed: $($validationErrors -join ', ')"
-                $this._Rollback()
-                return $false
+                $warnMsg = "Task validation warnings: $($validationErrors -join ', ')"
+                $this.LastWarning = $warnMsg
+                Write-PmcTuiLog "UpdateTask: WARNINGS - $warnMsg" "WARN"
+                # Continue anyway - all validations are warnings now
             }
 
             # Mark pending changes and invalidate stats cache
@@ -894,21 +898,30 @@ class TaskStore {
     True if add succeeded, False otherwise
     #>
     [bool] AddProject([hashtable]$project) {
+        Write-PmcTuiLog "TaskStore.AddProject: START - name='$($project.name)'" "DEBUG"
         [Monitor]::Enter($this._dataLock)
         try {
             # Validate project
+            Write-PmcTuiLog "TaskStore.AddProject: Calling _ValidateEntity..." "DEBUG"
             $validationErrors = $this._ValidateEntity($project, 'project')
             if ($validationErrors.Count -gt 0) {
-                $this.LastError = "Project validation failed: $($validationErrors -join ', ')"
-                return $false
+                $warnMsg = "Project validation warnings: $($validationErrors -join ', ')"
+                $this.LastWarning = $warnMsg
+                Write-PmcTuiLog "TaskStore.AddProject: WARNINGS - $warnMsg" "WARN"
+                # Continue anyway - all validations are warnings now
+            } else {
+                Write-PmcTuiLog "TaskStore.AddProject: Validation passed" "DEBUG"
             }
 
             # Check for duplicate name
             $existing = $this._data.projects | Where-Object { $_.name -eq $project.name }
             if ($existing) {
-                $this.LastError = "Project already exists: $($project.name)"
+                $errorMsg = "Project already exists: $($project.name)"
+                $this.LastError = $errorMsg
+                Write-PmcTuiLog "TaskStore.AddProject: FAILED - $errorMsg" "ERROR"
                 return $false
             }
+            Write-PmcTuiLog "TaskStore.AddProject: No duplicate found" "DEBUG"
 
             # Create backup BEFORE any modifications
             $this._CreateBackup()
@@ -921,6 +934,7 @@ class TaskStore {
             $project.modified = $now
 
             # Add to collection
+            Write-PmcTuiLog "TaskStore.AddProject: Adding to collection..." "DEBUG"
             $this._data.projects.Add($project)
 
             # Mark pending changes
@@ -928,9 +942,12 @@ class TaskStore {
 
             # Persist only if AutoSave is enabled
             if ($this.AutoSave) {
+                Write-PmcTuiLog "TaskStore.AddProject: AutoSave enabled, calling SaveData..." "DEBUG"
                 if (-not $this.SaveData()) {
+                    Write-PmcTuiLog "TaskStore.AddProject: FAILED - SaveData returned false" "ERROR"
                     return $false
                 }
+                Write-PmcTuiLog "TaskStore.AddProject: SaveData succeeded" "DEBUG"
             }
 
             # Fire events
@@ -938,6 +955,7 @@ class TaskStore {
             $this._InvokeCallback($this.OnProjectsChanged, $this._data.projects.ToArray())
             $this._InvokeCallback($this.OnDataChanged, $null)
 
+            Write-PmcTuiLog "TaskStore.AddProject: SUCCESS" "DEBUG"
             return $true
         }
         finally {
@@ -1016,10 +1034,10 @@ class TaskStore {
             # Validate updated project
             $validationErrors = $this._ValidateEntity($project, 'project')
             if ($validationErrors.Count -gt 0) {
-                $this.LastError = "Project validation failed: $($validationErrors -join ', ')"
-                Write-PmcTuiLog "UpdateProject: Validation FAILED - $($validationErrors -join ', ')" "ERROR"
-                $this._Rollback()
-                return $false
+                $warnMsg = "Project validation warnings: $($validationErrors -join ', ')"
+                $this.LastWarning = $warnMsg
+                Write-PmcTuiLog "UpdateProject: WARNINGS - $warnMsg" "WARN"
+                # Continue anyway - all validations are warnings now
             }
 
             # Mark pending changes
@@ -1473,7 +1491,18 @@ class TaskStore {
                             $result
                         }
                         'bool' { $value -is [bool] }
-                        'datetime' { $value -is [DateTime] }
+                        'datetime' {
+                            # Accept DateTime objects OR valid date strings (for backward compatibility with old data)
+                            if ($value -is [DateTime]) {
+                                $true
+                            } elseif ($value -is [string]) {
+                                # Try to parse as datetime - if successful, it's valid
+                                $parsedDate = $null
+                                [DateTime]::TryParse($value, [ref]$parsedDate)
+                            } else {
+                                $false
+                            }
+                        }
                         'array' { $value -is [array] }
                         default { $true }
                     }

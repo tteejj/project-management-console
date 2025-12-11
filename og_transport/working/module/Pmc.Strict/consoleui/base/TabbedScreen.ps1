@@ -455,6 +455,45 @@ class TabbedScreen : PmcScreen {
 
     # === Rendering ===
 
+    [void] RenderToEngine([object]$engine) {
+        if (-not $this.TabPanel) {
+            return
+        }
+
+        # Render TabPanel
+        if ($this.TabPanel.PSObject.Methods['RenderToEngine']) {
+            $this.TabPanel.RenderToEngine($engine)
+        } else {
+            # Fallback
+            $output = $this.TabPanel.Render()
+            if ($output) {
+                # Simple write at 0,0 if content returned
+                $engine.WriteAt(0, 0, $output)
+            }
+        }
+
+        # If editor is showing, render it
+        if ($this.ShowEditor -and $this.InlineEditor) {
+            if ($this.InlineEditor.PSObject.Methods['RenderToEngine']) {
+                $this.InlineEditor.RenderToEngine($engine)
+            } else {
+                # Fallback with Z-layer
+                if ($engine.PSObject.Methods['BeginLayer']) {
+                    $engine.BeginLayer(10)
+                }
+                
+                $editorOutput = $this.InlineEditor.Render()
+                if ($editorOutput) {
+                    $engine.WriteAt($this.InlineEditor.X, $this.InlineEditor.Y, $editorOutput)
+                }
+                
+                if ($engine.PSObject.Methods['EndLayer']) {
+                    $engine.EndLayer()
+                }
+            }
+        }
+    }
+
     [string] RenderContent() {
         if (-not $this.TabPanel) {
             if ($global:PmcTuiLogFile) {

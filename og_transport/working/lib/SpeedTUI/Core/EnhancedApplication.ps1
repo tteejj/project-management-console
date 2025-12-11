@@ -4,7 +4,7 @@
 using namespace System.Collections.Generic
 
 # Load dependencies
-. "$PSScriptRoot/OptimizedRenderEngine.ps1"  # Use optimized engine for flicker-free rendering!
+. "$PSScriptRoot/HybridRenderEngine.ps1"  # Use Hybrid engine for flicker-free rendering!
 . "$PSScriptRoot/SimplifiedTerminal.ps1"  # Use simplified terminal for speed!
 . "$PSScriptRoot/Logger.ps1"
 
@@ -27,7 +27,7 @@ $app.Run([DashboardScreen]::new())
 #>
 class EnhancedApplication {
     # Core systems (hidden performance layer)
-    hidden [OptimizedRenderEngine]$_renderEngine
+    hidden [HybridRenderEngine]$_renderEngine
     hidden [SimplifiedTerminal]$_terminal  
     hidden [object]$_logger
     hidden [object]$_performanceMonitor
@@ -50,7 +50,7 @@ class EnhancedApplication {
         try {
             # Initialize core systems
             $this._terminal = [SimplifiedTerminal]::GetInstance()
-            $this._renderEngine = [OptimizedRenderEngine]::new()
+            $this._renderEngine = [HybridRenderEngine]::new()
             
             # Get performance monitor if available
             if (Get-Command "Get-PerformanceMonitor" -ErrorAction SilentlyContinue) {
@@ -460,7 +460,7 @@ class EnhancedApplication {
     .SYNOPSIS
     Get render engine for power users (advanced API)
     #>
-    [OptimizedRenderEngine] GetRenderEngine() {
+    [HybridRenderEngine] GetRenderEngine() {
         return $this._renderEngine
     }
     

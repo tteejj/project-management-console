@@ -107,6 +107,64 @@ class PmcWidget : Component {
         $this._EnsureThemeInitialized()
     }
 
+    # === Rendering ===
+
+    <#
+    .SYNOPSIS
+    Render to engine (Hybrid support)
+    Base implementation: Renders to string, then parses ANSI to engine cells.
+    Subclasses should override this for performance (direct cell writing).
+    #>
+    [void] RenderToEngine([object]$engine) {
+        # Use clipping if available to prevent bleeding
+        if ($engine.PSObject.Methods['PushClip']) {
+            $engine.PushClip($this.X, $this.Y, $this.Width, $this.Height)
+        }
+
+        # Render to string
+        $ansiOutput = $this.Render()
+        
+        # Parse ANSI and write to engine
+        # Simple parser for standard ANSI positioning
+        $pattern = "`e\[(\d+);(\d+)H"
+        $matches = [regex]::Matches($ansiOutput, $pattern)
+
+        if ($matches.Count -eq 0) {
+            # No positioning codes - just write at widget origin
+            if (-not [string]::IsNullOrEmpty($ansiOutput)) {
+                $engine.WriteAt($this.X, $this.Y, $ansiOutput)
+            }
+        } else {
+            # Content has positioning codes (absolute 1-based)
+            # We need to map them relative to engine or just trust them if they match
+            
+            for ($i = 0; $i -lt $matches.Count; $i++) {
+                $match = $matches[$i]
+                $row = [int]$match.Groups[1].Value
+                $col = [int]$match.Groups[2].Value
+                # Convert 1-based ANSI to 0-based engine coords
+                $x = $col - 1
+                $y = $row - 1
+
+                $startIndex = $match.Index + $match.Length
+                if ($i + 1 -lt $matches.Count) {
+                    $endIndex = $matches[$i + 1].Index
+                } else {
+                    $endIndex = $ansiOutput.Length
+                }
+
+                $content = $ansiOutput.Substring($startIndex, $endIndex - $startIndex)
+                if (-not [string]::IsNullOrEmpty($content)) {
+                    $engine.WriteAt($x, $y, $content)
+                }
+            }
+        }
+
+        if ($engine.PSObject.Methods['PopClip']) {
+            $engine.PopClip()
+        }
+    }
+
     # === Theme System Methods ===
 
     <#

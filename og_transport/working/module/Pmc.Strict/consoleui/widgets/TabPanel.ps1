@@ -289,6 +289,53 @@ class TabPanel : PmcWidget {
 
     # === Rendering ===
 
+    [void] RenderToEngine([object]$engine) {
+        # Use clipping if available
+        if ($engine.PSObject.Methods['PushClip']) {
+            $engine.PushClip($this.X, $this.Y, $this.Width, $this.Height)
+        }
+
+        # Render to string (reusing existing logic for now)
+        # TODO: Refactor _RenderTabBar and _RenderContent to write directly to engine for perf
+        $ansiOutput = $this.Render()
+        
+        # Parse and write to engine
+        # Reuse logic from PmcScreen or implement simple parser here
+        $pattern = "`e\[(\d+);(\d+)H"
+        $matches = [regex]::Matches($ansiOutput, $pattern)
+
+        if ($matches.Count -eq 0) {
+            if ($ansiOutput) {
+                $engine.WriteAt(0, 0, $ansiOutput)
+            }
+        } else {
+            for ($i = 0; $i -lt $matches.Count; $i++) {
+                $match = $matches[$i]
+                $row = [int]$match.Groups[1].Value
+                $col = [int]$match.Groups[2].Value
+                # Convert 1-based ANSI to 0-based engine coords
+                $x = $col - 1
+                $y = $row - 1
+
+                $startIndex = $match.Index + $match.Length
+                if ($i + 1 -lt $matches.Count) {
+                    $endIndex = $matches[$i + 1].Index
+                } else {
+                    $endIndex = $ansiOutput.Length
+                }
+
+                $content = $ansiOutput.Substring($startIndex, $endIndex - $startIndex)
+                if ($content) {
+                    $engine.WriteAt($x, $y, $content)
+                }
+            }
+        }
+
+        if ($engine.PSObject.Methods['PopClip']) {
+            $engine.PopClip()
+        }
+    }
+
     [string] Render() {
         $sb = [StringBuilder]::new(4096)
 

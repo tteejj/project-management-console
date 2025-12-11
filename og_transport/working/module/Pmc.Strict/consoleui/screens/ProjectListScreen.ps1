@@ -91,11 +91,11 @@ class ProjectListScreen : StandardListScreen {
     }
 
     # LOW FIX PLS-L6: Extract duplicate formatDate helper to class method
-    hidden [string] FormatDateField([hashtable]$values, [string]$fieldName) {
+    hidden [object] FormatDateField([hashtable]$values, [string]$fieldName) {
         if ($values.ContainsKey($fieldName) -and $values.$fieldName -is [DateTime]) {
-            return $values.$fieldName.ToString($global:DATE_FORMAT)
+            return $values.$fieldName
         }
-        return ''
+        return $null
     }
 
     # Constructor
@@ -266,8 +266,8 @@ class ProjectListScreen : StandardListScreen {
                 id = [guid]::NewGuid().ToString()
                 name = $values.name
                 description = $(if ($values.ContainsKey('description')) { $values.description } else { '' })
-                # MEDIUM FIX PLS-M8: Use script-level constant for datetime format
-                created = (Get-Date).ToString($global:DATETIME_FORMAT)
+                # CRITICAL FIX: Use datetime object, not string (validation expects datetime type)
+                created = Get-Date
                 # MEDIUM FIX PLS-M3: Use script-level constant for default status
                 status = $(if ($values.ContainsKey('status')) { $values.status } else { $global:DEFAULT_STATUS })
                 tags = $tags
@@ -369,7 +369,13 @@ class ProjectListScreen : StandardListScreen {
             $success = $this.Store.AddProject($projectData)
             Write-PmcTuiLog "ProjectListScreen.OnItemCreated: AddProject returned success=$success" "DEBUG"
             if ($success) {
-                $this.SetStatusMessage("Project created: $($projectData.name)", "success")
+                # Check for validation warnings
+                if (-not [string]::IsNullOrEmpty($this.Store.LastWarning)) {
+                    $this.SetStatusMessage("Project created with warnings: $($this.Store.LastWarning)", "warning")
+                    $this.Store.LastWarning = ""  # Clear warning
+                } else {
+                    $this.SetStatusMessage("Project created: $($projectData.name)", "success")
+                }
             } else {
                 $this.SetStatusMessage("Failed to create project: $($this.Store.LastError)", "error")
             }
@@ -523,7 +529,13 @@ class ProjectListScreen : StandardListScreen {
 
             $success = $this.Store.UpdateProject($originalName, $changes)
             if ($success) {
-                $this.SetStatusMessage("Project updated: $($values.name)", "success")
+                # Check for validation warnings
+                if (-not [string]::IsNullOrEmpty($this.Store.LastWarning)) {
+                    $this.SetStatusMessage("Project updated with warnings: $($this.Store.LastWarning)", "warning")
+                    $this.Store.LastWarning = ""  # Clear warning
+                } else {
+                    $this.SetStatusMessage("Project updated: $($values.name)", "success")
+                }
             } else {
                 $this.SetStatusMessage("Failed to update project: $($this.Store.LastError)", "error")
             }

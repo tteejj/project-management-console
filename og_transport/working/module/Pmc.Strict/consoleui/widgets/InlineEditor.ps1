@@ -98,7 +98,7 @@ class InlineEditor : PmcWidget {
     hidden [hashtable]$_fieldWidgets = @{}                           # Widget instances keyed by field name
     hidden [hashtable]$_datePickerWidgets = @{}                      # DatePicker instances for date fields (kept separate from TextInput)
     hidden [int]$_currentFieldIndex = 0                              # Currently focused field
-    hidden [string[]]$_validationErrors = @()                        # Current validation errors
+    [string[]]$ValidationErrors = @()                                # Current validation errors (Public for Soft Validation)
     hidden [hashtable]$_fieldErrors = @{}                            # H-UI-3: Per-field validation errors for real-time display
     hidden [bool]$_showFieldWidgets = $false                         # Whether to show expanded field widget
     hidden [string]$_expandedFieldName = ""                          # Name of currently expanded field
@@ -142,7 +142,7 @@ class InlineEditor : PmcWidget {
         $this._datePickerWidgets.Clear()
         $this._currentFieldIndex = 0
         # Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [InlineEditor.SetFields] Cleared existing fields/widgets"
-        $this._validationErrors = @()
+        $this.ValidationErrors = @()
         $this._datePickerMode = $false
 
         # Reset state flags
@@ -401,8 +401,8 @@ class InlineEditor : PmcWidget {
                         $this._InvokeCallback($this.OnConfirmed, $values)
                         return $true
                     } else {
-                        # Write-PmcTuiLog "InlineEditor: Validation FAILED - Errors: $($this._validationErrors -join ', ')" "ERROR"
-                        $this._InvokeCallback($this.OnValidationFailed, $this._validationErrors)
+                        # Write-PmcTuiLog "InlineEditor: Validation FAILED - Errors: $($this.ValidationErrors -join ', ')" "ERROR"
+                        $this._InvokeCallback($this.OnValidationFailed, $this.ValidationErrors)
                         return $true
                     }
                 }
@@ -423,8 +423,8 @@ class InlineEditor : PmcWidget {
                     return $true
                 } else {
                     # Validation failed - show errors and stay open
-                    # Write-PmcTuiLog "InlineEditor: Validation FAILED - Errors: $($this._validationErrors -join ', ')" "ERROR"
-                    $this._InvokeCallback($this.OnValidationFailed, $this._validationErrors)
+                    # Write-PmcTuiLog "InlineEditor: Validation FAILED - Errors: $($this.ValidationErrors -join ', ')" "ERROR"
+                    $this._InvokeCallback($this.OnValidationFailed, $this.ValidationErrors)
                     return $true
                 }
             }
@@ -515,7 +515,7 @@ class InlineEditor : PmcWidget {
                 # This prevents stale error messages from appearing while the user is actively typing
                 # Skip for navigation and submission keys
                 if ($keyInfo.Key -ne 'Enter') {
-                    $this._validationErrors = @()
+                    $this.ValidationErrors = @()
                 }
 
                 if (-not $this._fieldWidgets.ContainsKey($currentField.Name)) {
@@ -537,7 +537,7 @@ class InlineEditor : PmcWidget {
                         } else {
                             # Validation failed - show errors, reset TextInput confirmation, stay open
                             $widget.IsConfirmed = $false
-                            $this._InvokeCallback($this.OnValidationFailed, $this._validationErrors)
+                            $this._InvokeCallback($this.OnValidationFailed, $this.ValidationErrors)
                             return $true
                         }
                     }
@@ -563,6 +563,56 @@ class InlineEditor : PmcWidget {
         }
 
         return $false
+    }
+
+    # === Rendering ===
+
+    [void] RenderToEngine([object]$engine) {
+        # Process debounced validation first
+        $this._ProcessDebouncedValidation()
+
+        # Use Z-layer for popup effect (Editor is always on top)
+        if ($engine.PSObject.Methods['BeginLayer']) {
+            $engine.BeginLayer(10)
+        }
+
+        # Render to string
+        $ansiOutput = $this.Render()
+        
+        # Write to engine
+        $pattern = "`e\[(\d+);(\d+)H"
+        $matches = [regex]::Matches($ansiOutput, $pattern)
+
+        if ($matches.Count -eq 0) {
+            if ($ansiOutput) {
+                # Fallback: write at widget position if no positioning in output
+                $engine.WriteAt($this.X, $this.Y, $ansiOutput)
+            }
+        } else {
+            for ($i = 0; $i -lt $matches.Count; $i++) {
+                $match = $matches[$i]
+                $row = [int]$match.Groups[1].Value
+                $col = [int]$match.Groups[2].Value
+                $x = $col - 1
+                $y = $row - 1
+
+                $startIndex = $match.Index + $match.Length
+                if ($i + 1 -lt $matches.Count) {
+                    $endIndex = $matches[$i + 1].Index
+                } else {
+                    $endIndex = $ansiOutput.Length
+                }
+
+                $content = $ansiOutput.Substring($startIndex, $endIndex - $startIndex)
+                if ($content) {
+                    $engine.WriteAt($x, $y, $content)
+                }
+            }
+        }
+
+        if ($engine.PSObject.Methods['EndLayer']) {
+            $engine.EndLayer()
+        }
     }
 
     <#
@@ -1065,10 +1115,10 @@ class InlineEditor : PmcWidget {
         $sb.Append($borderColor)
         $sb.Append($this.GetBoxChar('single_vertical'))
 
-        if ($this._validationErrors.Count -gt 0) {
+        if ($this.ValidationErrors.Count -gt 0) {
             $sb.Append($this.BuildMoveTo($this.X + 2, $errorRowY))
             $sb.Append($errorColor)
-            $errorMsg = $this._validationErrors[0]  # Show first error
+            $errorMsg = $this.ValidationErrors[0]  # Show first error
             $sb.Append($this.TruncateText($errorMsg, $this.Width - 4))
         } else {
             $sb.Append(" " * ($this.Width - 2))
@@ -1585,7 +1635,7 @@ class InlineEditor : PmcWidget {
     hidden [void] _MoveToNextField() {
         if ($this._currentFieldIndex -lt ($this._fields.Count - 1)) {
             $this._currentFieldIndex++
-            $this._validationErrors = @()
+            $this.ValidationErrors = @()
         } else {
             # Wrap to first field
             $this._currentFieldIndex = 0
@@ -1599,7 +1649,7 @@ class InlineEditor : PmcWidget {
     hidden [void] _MoveToPreviousField() {
         if ($this._currentFieldIndex -gt 0) {
             $this._currentFieldIndex--
-            $this._validationErrors = @()
+            $this.ValidationErrors = @()
         } else {
             # Wrap to last field
             $this._currentFieldIndex = $this._fields.Count - 1
@@ -1744,7 +1794,7 @@ class InlineEditor : PmcWidget {
     #>
     hidden [bool] _ValidateAllFields() {
         Write-PmcTuiLog "InlineEditor._ValidateAllFields CALLED - field count: $($this._fields.Count)" "DEBUG"
-        $this._validationErrors = @()
+        $this.ValidationErrors = @()
 
         foreach ($field in $this._fields) {
             $fieldName = $field.Name
@@ -1779,7 +1829,7 @@ class InlineEditor : PmcWidget {
                 if ($isEmpty) {
                     $err = "$($field.Label) is required"
                     Write-PmcTuiLog "InlineEditor._ValidateAllFields - VALIDATION ERROR: $err" "ERROR"
-                    $this._validationErrors += $err
+                    $this.ValidationErrors += $err
                 }
             }
 
@@ -1791,20 +1841,23 @@ class InlineEditor : PmcWidget {
                 if ($value -lt $min) {
                     $err = "$($field.Label) must be >= $min"
                     Write-PmcTuiLog "InlineEditor._ValidateAllFields - VALIDATION ERROR: $err" "ERROR"
-                    $this._validationErrors += $err
+                    $this.ValidationErrors += $err
                 }
 
                 if ($value -gt $max) {
                     $err = "$($field.Label) must be <= $max"
                     Write-PmcTuiLog "InlineEditor._ValidateAllFields - VALIDATION ERROR: $err" "ERROR"
-                    $this._validationErrors += $err
+                    $this.ValidationErrors += $err
                 }
             }
         }
 
-        $isValid = $this._validationErrors.Count -eq 0
-        Write-PmcTuiLog "InlineEditor._ValidateAllFields RESULT: isValid=$isValid, errorCount=$($this._validationErrors.Count)" "DEBUG"
-        return $isValid
+        $isValid = $this.ValidationErrors.Count -eq 0
+        Write-PmcTuiLog "InlineEditor._ValidateAllFields RESULT: isValid=$isValid, errorCount=$($this.ValidationErrors.Count)" "DEBUG"
+        
+        # SOFT VALIDATION: Always return true to allow saving with warnings
+        # The errors are still in ValidationErrors for display/logging
+        return $true
     }
 
     <#

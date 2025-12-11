@@ -61,11 +61,11 @@ class PmcApplication {
     PmcApplication([object]$container) {
         # Store container for passing to screens
         $this.Container = $container
-        # Initialize render engine (OptimizedRenderEngine with z-index support)
+        # Initialize render engine (HybridRenderEngine with z-index support)
         try {
-            $this.RenderEngine = New-Object OptimizedRenderEngine
+            $this.RenderEngine = New-Object HybridRenderEngine
             if ($null -eq $this.RenderEngine) {
-                throw "Failed to create OptimizedRenderEngine instance"
+                throw "Failed to create HybridRenderEngine instance"
             }
             $this.RenderEngine.Initialize()
         } catch {
@@ -520,7 +520,10 @@ class PmcApplication {
                 # OPTIMIZATION: Drain ALL available input before rendering
                 # This eliminates input lag from sleep delays
                 try {
-                    while ([Console]::KeyAvailable) {
+                    $maxKeysPerFrame = 50
+                    $keysProcessed = 0
+                    while ([Console]::KeyAvailable -and $keysProcessed -lt $maxKeysPerFrame) {
+                        $keysProcessed++
                         $key = [Console]::ReadKey($true)
 
                     # Global keys - Ctrl+Q to exit

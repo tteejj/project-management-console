@@ -196,7 +196,16 @@ class NoteEditorScreen : PmcScreen {
         }
 
         # Render TextAreaEditor directly to engine (cell-based)
+        # Use clipping to prevent spill-over into footer
+        if ($engine.PSObject.Methods['PushClip']) {
+            $engine.PushClip($this._editor.X, $this._editor.Y, $this._editor.Width, $this._editor.Height)
+        }
+        
         $this._editor.RenderToEngine($engine)
+        
+        if ($engine.PSObject.Methods['PopClip']) {
+            $engine.PopClip()
+        }
 
         # Render Footer
         if ($this.Footer) {
