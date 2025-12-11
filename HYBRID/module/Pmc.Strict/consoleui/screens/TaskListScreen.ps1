@@ -544,11 +544,12 @@ class TaskListScreen : StandardListScreen {
         $testSafe = ${function:Global:Test-SafeProperty}
 
         # Calculate column widths based on terminal width
-        $availableWidth = $(if ($this.List -and $this.List.Width -gt 4) { $this.List.Width - 4 } else { 113 })
+        # Account for 4 separators (2 spaces each = 8 chars total) between 5 columns
+        $availableWidth = $(if ($this.List -and $this.List.Width -gt 4) { $this.List.Width - 4 - 8 } else { 105 })
         $titleWidth = [Math]::Max(20, [Math]::Floor($availableWidth * 0.32))
         $detailsWidth = [Math]::Max(15, [Math]::Floor($availableWidth * 0.22))
-        $dueWidth = 12
-        $projectWidth = [Math]::Max(12, [Math]::Floor($availableWidth * 0.14))
+        $dueWidth = [Math]::Max(10, [Math]::Floor($availableWidth * 0.12))
+        $projectWidth = [Math]::Max(12, [Math]::Floor($availableWidth * 0.16))
         $tagsWidth = [Math]::Max(10, [Math]::Floor($availableWidth * 0.18))
 
         return @(
@@ -712,13 +713,14 @@ class TaskListScreen : StandardListScreen {
 
     # Override: Get edit fields for inline editor
     [array] GetEditFields($item) {
-        # Calculate field widths based on available space
-        $availableWidth = $(if ($this.List -and $this.List.Width -gt 4) { $this.List.Width - 4 } else { 100 })
-        $textWidth = [Math]::Max(20, [Math]::Floor($availableWidth * 0.30))
-        $detailsWidth = [Math]::Max(15, [Math]::Floor($availableWidth * 0.25))
+        # Calculate field widths - MUST MATCH GetColumns() for proper alignment
+        # Account for 4 separators (2 spaces each = 8 chars total) between 5 columns
+        $availableWidth = $(if ($this.List -and $this.List.Width -gt 4) { $this.List.Width - 4 - 8 } else { 105 })
+        $textWidth = [Math]::Max(20, [Math]::Floor($availableWidth * 0.32))
+        $detailsWidth = [Math]::Max(15, [Math]::Floor($availableWidth * 0.22))
         $dueWidth = [Math]::Max(10, [Math]::Floor($availableWidth * 0.12))
-        $projectWidth = [Math]::Max(12, [Math]::Floor($availableWidth * 0.18))
-        $tagsWidth = [Math]::Max(10, [Math]::Floor($availableWidth * 0.15))
+        $projectWidth = [Math]::Max(12, [Math]::Floor($availableWidth * 0.16))
+        $tagsWidth = [Math]::Max(10, [Math]::Floor($availableWidth * 0.18))
 
         return @(
             @{ Name='text'; Label=''; Type='text'; Value=(Get-SafeProperty $item 'text'); Required=$true; MaxLength=200; Width=$textWidth }

@@ -72,12 +72,21 @@ class CommandLibraryScreen : StandardListScreen {
 
     # Define columns for list display
     [array] GetColumns() {
+        # Calculate column widths dynamically based on available width
+        # Account for 4 separators (2 spaces each = 8 chars total) between 5 columns
+        $availableWidth = $(if ($this.List -and $this.List.Width -gt 4) { $this.List.Width - 4 - 8 } else { 103 })
+        $nameWidth = [Math]::Max(20, [Math]::Floor($availableWidth * 0.24))
+        $categoryWidth = [Math]::Max(12, [Math]::Floor($availableWidth * 0.15))
+        $usesWidth = 8  # Fixed narrow column
+        $lastUsedWidth = [Math]::Max(10, [Math]::Floor($availableWidth * 0.12))
+        $descWidth = [Math]::Max(30, [Math]::Floor($availableWidth * 0.44))
+
         return @(
-            @{ Name='name'; Label='Name'; Width=25 }
-            @{ Name='category'; Label='Category'; Width=15 }
-            @{ Name='usage_count'; Label='Uses'; Width=6 }
-            @{ Name='last_used'; Label='Last Used'; Width=12 }
-            @{ Name='description'; Label='Description'; Width=45 }
+            @{ Name='name'; Label='Name'; Width=$nameWidth }
+            @{ Name='category'; Label='Category'; Width=$categoryWidth }
+            @{ Name='usage_count'; Label='Uses'; Width=$usesWidth }
+            @{ Name='last_used'; Label='Last Used'; Width=$lastUsedWidth }
+            @{ Name='description'; Label='Description'; Width=$descWidth }
         )
     }
 
@@ -168,23 +177,29 @@ class CommandLibraryScreen : StandardListScreen {
 
     # Define edit fields for InlineEditor
     [array] GetEditFields([object]$item) {
+        # Calculate field widths - MUST MATCH GetColumns() for proper alignment
+        # Account for 4 separators (2 spaces each = 8 chars total) between 5 columns
+        $availableWidth = $(if ($this.List -and $this.List.Width -gt 4) { $this.List.Width - 4 - 8 } else { 103 })
+        $nameWidth = [Math]::Max(20, [Math]::Floor($availableWidth * 0.24))
+        $categoryWidth = [Math]::Max(12, [Math]::Floor($availableWidth * 0.15))
+        # Skip uses and last_used (not editable)
+        $descWidth = [Math]::Max(30, [Math]::Floor($availableWidth * 0.44))
+
         if ($null -eq $item -or $item.Count -eq 0) {
             # New command - empty fields
             return @(
-                @{ Name='name'; Type='text'; Label='Command Name'; Required=$true; Value='' }
-                @{ Name='category'; Type='text'; Label='Category'; Value='General' }
-                @{ Name='command_text'; Type='text'; Label='Command'; Required=$true; Value=''; MaxLength=500 }
-                @{ Name='description'; Type='text'; Label='Description'; Value='' }
-                @{ Name='tags'; Type='tags'; Label='Tags'; Value='' }
+                @{ Name='name'; Type='text'; Label=''; Required=$true; Value=''; Width=$nameWidth }
+                @{ Name='category'; Type='text'; Label=''; Value='General'; Width=$categoryWidth }
+                @{ Name='command_text'; Type='text'; Label=''; Required=$true; Value=''; MaxLength=500; Width=$descWidth }
+                @{ Name='description'; Type='text'; Label=''; Value=''; Width=$descWidth }
             )
         } else {
             # Existing command - populate from item
             return @(
-                @{ Name='name'; Type='text'; Label='Command Name'; Required=$true; Value=$item.name }
-                @{ Name='category'; Type='text'; Label='Category'; Value=$item.category }
-                @{ Name='command_text'; Type='text'; Label='Command'; Required=$true; Value=$item.command_text; MaxLength=500 }
-                @{ Name='description'; Type='text'; Label='Description'; Value=$item.description }
-                @{ Name='tags'; Type='tags'; Label='Tags'; Value=$item.tags }
+                @{ Name='name'; Type='text'; Label=''; Required=$true; Value=$item.name; Width=$nameWidth }
+                @{ Name='category'; Type='text'; Label=''; Value=$item.category; Width=$categoryWidth }
+                @{ Name='command_text'; Type='text'; Label=''; Required=$true; Value=$item.command_text; MaxLength=500; Width=$descWidth }
+                @{ Name='description'; Type='text'; Label=''; Value=$item.description; Width=$descWidth }
             )
         }
     }
@@ -308,20 +323,24 @@ class CommandLibraryScreen : StandardListScreen {
     # === Input Handling ===
 
     [bool] HandleKeyPress([ConsoleKeyInfo]$keyInfo) {
-        # CRITICAL: Handle Enter BEFORE parent to prevent edit dialog
-        # Custom key: Enter = Copy command to clipboard (NOT edit)
-        if ($keyInfo.Key -eq ([ConsoleKey]::Enter)) {
-            $this.CopyCommand()
-            return $true
+        # CRITICAL FIX: Only handle custom keys when NOT in edit mode
+        # This allows typing 'c' in command name field and using Enter to save
+        if (-not $this.ShowInlineEditor -and -not $this.ShowFilterPanel) {
+            # Custom key: Enter = Copy command to clipboard (only when not editing)
+            if ($keyInfo.Key -eq ([ConsoleKey]::Enter)) {
+                $this.CopyCommand()
+                return $true
+            }
+
+            # Custom key: C = Copy command to clipboard (only when not editing)
+            if ($keyInfo.Key -eq ([ConsoleKey]::C)) {
+                $this.CopyCommand()
+                return $true
+            }
         }
 
-        # Custom key: C = Copy command to clipboard
-        if ($keyInfo.Key -eq ([ConsoleKey]::C)) {
-            $this.CopyCommand()
-            return $true
-        }
-
-        # Call parent handler for list navigation, add/delete (but NOT Enter which triggers edit)
+        # Call parent handler for list navigation, add/edit/delete
+        # When in edit mode, parent will handle Enter to save
         $handled = ([StandardListScreen]$this).HandleKeyPress($keyInfo)
         if ($handled) { return $true }
 

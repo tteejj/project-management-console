@@ -698,7 +698,27 @@ class ProjectListScreen : StandardListScreen {
                 $self.OpenProjectFolder($selected)
             }.GetNewClosure() },
             @{ Key='i'; Label='Import Excel'; Callback={
-                $self.ImportFromExcel()
+                # Check if Excel is available before attempting import
+                $excelAvailable = $false
+                try {
+                    if ($PSVersionTable.PSVersion.Major -ge 6) {
+                        # PowerShell Core - check for Excel COM object on Windows
+                        if ($IsWindows) {
+                            $excelAvailable = $null -ne (Get-Command excel.exe -ErrorAction SilentlyContinue)
+                        }
+                    } else {
+                        # Windows PowerShell - check for Excel COM
+                        $excelAvailable = $null -ne (New-Object -ComObject Excel.Application -ErrorAction SilentlyContinue)
+                    }
+                } catch {
+                    $excelAvailable = $false
+                }
+
+                if ($excelAvailable) {
+                    $self.ImportFromExcel()
+                } else {
+                    $self.SetStatusMessage("Excel is not installed or not available", "error")
+                }
             }.GetNewClosure() }
         )
     }
@@ -717,12 +737,32 @@ class ProjectListScreen : StandardListScreen {
 
     [bool] HandleKeyPress([ConsoleKeyInfo]$keyInfo) {
         # Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') ProjectListScreen.HandleKeyPress: Key=$($keyInfo.Key) Char='$($keyInfo.KeyChar)' Modifiers=$($keyInfo.Modifiers)"
+
         # CRITICAL: Call parent FIRST for MenuBar, F10, Alt+keys
         $handled = ([PmcScreen]$this).HandleKeyPress($keyInfo)
         if ($handled) { return $true }
 
         # Handle custom project keys after menu bar (ONLY when editor/filter NOT showing!)
         if (-not $this.ShowInlineEditor -and -not $this.ShowFilterPanel) {
+            # Custom key: Enter = View project details (user preference over standard edit behavior)
+            if ($keyInfo.Key -eq ([ConsoleKey]::Enter)) {
+                $selected = $this.List.GetSelectedItem()
+                if ($selected) {
+                    $this.ViewProjectDetails($selected)
+                }
+                return $true
+            }
+
+            # Custom key: E = Edit selected project
+            if ($keyInfo.KeyChar -eq 'e' -or $keyInfo.KeyChar -eq 'E') {
+                if ($this.AllowEdit) {
+                    $selected = $this.List.GetSelectedItem()
+                    if ($selected) {
+                        $this.EditItem($selected)
+                    }
+                }
+                return $true
+            }
             # Custom key: V = View project details/stats
             if ($keyInfo.KeyChar -eq 'v' -or $keyInfo.KeyChar -eq 'V') {
             # Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') *** V KEY PRESSED IN ProjectListScreen.HandleKeyPress ***"

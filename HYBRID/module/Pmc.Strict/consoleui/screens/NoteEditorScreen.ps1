@@ -96,8 +96,7 @@ class NoteEditorScreen : PmcScreen {
         $this.Footer.AddShortcut("Ctrl+S", "Save")
         $this.Footer.AddShortcut("Ctrl+L", "Checklist")
         $this.Footer.AddShortcut("Esc", "Back")
-        $this.Footer.AddShortcut("Ctrl+Z", "Undo")
-        $this.Footer.AddShortcut("Ctrl+Y", "Redo")
+        # PERFORMANCE: Undo/Redo removed - disabled for responsiveness
         Write-PmcTuiLog "NoteEditorScreen.Initialize: Footer shortcuts configured" "DEBUG"
 
         # Update header breadcrumb and position

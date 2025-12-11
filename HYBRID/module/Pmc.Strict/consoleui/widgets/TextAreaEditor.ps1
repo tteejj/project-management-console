@@ -45,6 +45,7 @@ class TextAreaEditor {
     # Editor settings
     [int]$TabWidth = 4
     [bool]$Modified = $false
+    [bool]$EnableUndo = $false  # PERFORMANCE: Undo disabled by default for responsiveness
 
     # File info
     [string]$FilePath = ""
@@ -983,6 +984,11 @@ class TextAreaEditor {
 
     # Undo/Redo
     [void] SaveUndoState() {
+        # PERFORMANCE: Skip if undo is disabled
+        if (-not $this.EnableUndo) {
+            return
+        }
+
         $state = @{
             Text = $this._gapBuffer.GetText()
             CursorX = $this.CursorX
@@ -998,6 +1004,11 @@ class TextAreaEditor {
     }
 
     [void] Undo() {
+        # PERFORMANCE: Skip if undo is disabled
+        if (-not $this.EnableUndo) {
+            return
+        }
+
         if ($this._undoStack.Count -gt 0) {
             # Save current state to redo stack
             $currentState = @{

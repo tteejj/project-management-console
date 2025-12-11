@@ -79,6 +79,11 @@ class TimeReportScreen : PmcScreen {
             # Use TaskStore singleton instead of loading from disk
             $timelogs = $this.Store.GetAllTimeLogs()
 
+            # CRITICAL FIX: Add null check for GetAllTimeLogs()
+            if ($null -eq $timelogs) {
+                $timelogs = @()
+            }
+
             # TS-M8 FIX: Add better feedback for empty state
             if ($timelogs.Count -eq 0) {
                 $this.ProjectSummaries = @()

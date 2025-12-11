@@ -134,18 +134,14 @@ class ProjectInfoScreenV4 : TabbedScreen {
         # Clear existing tabs
         $this.TabPanel.Tabs.Clear()
 
-        # Tab 1: Identity
+        # Tab 1: Identity (removed ProjFolder and CAAName - they're in Files tab)
         $this.TabPanel.AddTab('Identity', @(
             @{Name='ID1'; Label='ID1'; Value=$this._GetValue('ID1'); Type='text'}
             @{Name='ID2'; Label='ID2'; Value=$this._GetValue('ID2'); Type='text'}
-            @{Name='ProjFolder'; Label='Project Folder'; Value=$this._GetValue('ProjFolder'); Type='text'}
-            @{Name='CAAName'; Label='CAA Name'; Value=$this._GetValue('CAAName'); Type='text'}
         ))
 
-        # Tab 2: Request
+        # Tab 2: Request (removed RequestName and T2020 - they're in Files tab)
         $this.TabPanel.AddTab('Request', @(
-            @{Name='RequestName'; Label='Request Name'; Value=$this._GetValue('RequestName'); Type='text'}
-            @{Name='T2020'; Label='T2020'; Value=$this._GetValue('T2020'); Type='text'}
             @{Name='AssignedDate'; Label='Assigned Date'; Value=$this._GetValue('AssignedDate'); Type='date'}
             @{Name='DueDate'; Label='Due Date'; Value=$this._GetValue('DueDate'); Type='date'}
             @{Name='BFDate'; Label='BF Date'; Value=$this._GetValue('BFDate'); Type='date'}
@@ -439,16 +435,16 @@ class ProjectInfoScreenV4 : TabbedScreen {
         }
 
         try {
-            $isWindows = [System.Environment]::OSVersion.Platform -eq 'Win32NT'
+            $isWin = [System.Environment]::OSVersion.Platform -eq 'Win32NT'
 
             if ($app -eq 'notepad') {
-                if ($isWindows) {
+                if ($isWin) {
                     Start-Process notepad.exe -ArgumentList $path
                 } else {
                     Start-Process xdg-open -ArgumentList $path
                 }
             } elseif ($app -eq 'excel') {
-                if ($isWindows) {
+                if ($isWin) {
                     # Try to find Excel
                     if (Get-Command excel.exe -ErrorAction SilentlyContinue) {
                         Start-Process excel.exe -ArgumentList $path
@@ -495,9 +491,9 @@ class ProjectInfoScreenV4 : TabbedScreen {
         }
 
         try {
-            $isWindows = [System.Environment]::OSVersion.Platform -eq 'Win32NT'
+            $isWin = [System.Environment]::OSVersion.Platform -eq 'Win32NT'
 
-            if ($isWindows) {
+            if ($isWin) {
                 Start-Process explorer.exe -ArgumentList $path
             } else {
                 Start-Process xdg-open -ArgumentList $path

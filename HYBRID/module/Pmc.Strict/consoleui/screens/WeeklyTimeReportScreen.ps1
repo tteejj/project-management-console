@@ -420,12 +420,14 @@ class WeeklyTimeReportScreen : PmcScreen {
         # Week navigation with arrow keys
         if ($keyInfo.Key -eq 'LeftArrow') {
             $this.WeekOffset--
+            $this.NeedsClear = $true  # Force full screen clear to prevent duplication
             $this.LoadData()
             return $true
         }
 
         if ($keyInfo.Key -eq 'RightArrow') {
             $this.WeekOffset++
+            $this.NeedsClear = $true  # Force full screen clear to prevent duplication
             $this.LoadData()
             return $true
         }
@@ -433,12 +435,14 @@ class WeeklyTimeReportScreen : PmcScreen {
         # Week navigation with = and - keys
         if ($keyInfo.KeyChar -eq '=') {
             $this.WeekOffset++
+            $this.NeedsClear = $true  # Force full screen clear to prevent duplication
             $this.LoadData()
             return $true
         }
 
         if ($keyInfo.KeyChar -eq '-') {
             $this.WeekOffset--
+            $this.NeedsClear = $true  # Force full screen clear to prevent duplication
             $this.LoadData()
             return $true
         }

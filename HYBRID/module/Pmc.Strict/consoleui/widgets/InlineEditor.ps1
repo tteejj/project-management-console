@@ -441,6 +441,7 @@ class InlineEditor : PmcWidget {
 
         if ($keyInfo.Key -eq 'Escape') {
             $this.IsCancelled = $true
+            $this.NeedsClear = $true  # Request full screen clear to remove partial entry
             $this._InvokeCallback($this.OnCancelled, $null)
             return $true
         }
