@@ -97,12 +97,13 @@ class TimeReportScreen : PmcScreen {
                 # Determine grouping key (prefer ID over name)
                 $groupKey = ''
                 $projectDisplay = ''
-                if ($log.id1) {
+                if ($log.ContainsKey('id1') -and $log.id1) {
                     $groupKey = "ID:$($log.id1)"
-                    $projectDisplay = $(if ($log.project) { "$($log.project) [#$($log.id1)]" } else { "#$($log.id1)" })
+                    $projectDisplay = $(if ($log.ContainsKey('project') -and $log.project) { "$($log.project) [#$($log.id1)]" } else { "#$($log.id1)" })
                 } else {
-                    $groupKey = "NAME:$($log.project)"
-                    $projectDisplay = $log.project
+                    $projectVal = $(if ($log.ContainsKey('project')) { $log.project } else { 'Unknown' })
+                    $groupKey = "NAME:$projectVal"
+                    $projectDisplay = $projectVal
                 }
 
                 # Initialize group if needed

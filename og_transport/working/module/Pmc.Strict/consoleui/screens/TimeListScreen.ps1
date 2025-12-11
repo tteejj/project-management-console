@@ -84,6 +84,8 @@ class TimeListScreen : StandardListScreen {
             @{ Name='task'; Label='Task'; Width=25 },
             @{ Name='project'; Label='Project'; Width=16 },
             @{ Name='timecode'; Label='Code'; Width=10 },
+            @{ Name='id1'; Label='ID1'; Width=10 },
+            @{ Name='id2'; Label='ID2'; Width=10 },
             @{ Name='duration'; Label='Duration'; Width=18 },
             @{ Name='notes'; Label='Notes'; Width=40 }
         )
@@ -296,6 +298,8 @@ class TimeListScreen : StandardListScreen {
                 @{ Name='task'; Type='text'; Label='Task'; Value=''; Width=$taskWidth }
                 @{ Name='project'; Type='project'; Label='Project (or leave blank for timecode)'; Value=''; Width=$projectWidth }
                 @{ Name='timecode'; Type='text'; Label='Timecode (2-5 digits, or leave blank for project)'; Value=''; MaxLength=5; Width=$timecodeWidth }
+                @{ Name='id1'; Type='text'; Label='ID1'; Value=''; MaxLength=10; Width=10 }
+                @{ Name='id2'; Type='text'; Label='ID2'; Value=''; MaxLength=10; Width=10 }
                 # MEDIUM FIX TMS-M3 & TLS-M2: Use constant for max hours validation
                 @{ Name='hours'; Type='number'; Label='Hours'; Min=$global:MIN_HOURS_PER_ENTRY; Max=$global:MAX_HOURS_PER_ENTRY; Step=0.25; Value=$global:MIN_HOURS_PER_ENTRY; Width=$hoursWidth }
                 @{ Name='notes'; Type='text'; Label='Notes'; Value=''; Width=$notesWidth }
@@ -304,6 +308,8 @@ class TimeListScreen : StandardListScreen {
             # Existing time entry - populate from item
             $projectVal = $(if ($item.ContainsKey('project')) { $item.project } else { '' })
             $timecodeVal = $(if ($item.ContainsKey('timecode')) { $item.timecode } else { '' })
+            $id1Val = $(if ($item.ContainsKey('id1')) { $item.id1 } else { '' })
+            $id2Val = $(if ($item.ContainsKey('id2')) { $item.id2 } else { '' })
             # Convert minutes to hours for display
             $hoursVal = $(if ($item.ContainsKey('minutes')) { [math]::Round($item.minutes / 60, 2) } else { 0.25 })
             # HIGH FIX TLS-H1: Add null check for task field
@@ -315,6 +321,8 @@ class TimeListScreen : StandardListScreen {
                 @{ Name='task'; Type='text'; Label='Task'; Value=$taskVal; Width=$taskWidth }
                 @{ Name='project'; Type='project'; Label='Project (or leave blank for timecode)'; Value=$projectVal; Width=$projectWidth }
                 @{ Name='timecode'; Type='text'; Label='Timecode (2-5 digits, or leave blank for project)'; Value=$timecodeVal; MaxLength=5; Width=$timecodeWidth }
+                @{ Name='id1'; Type='text'; Label='ID1'; Value=$id1Val; MaxLength=10; Width=10 }
+                @{ Name='id2'; Type='text'; Label='ID2'; Value=$id2Val; MaxLength=10; Width=10 }
                 # MEDIUM FIX TMS-M3 & TLS-M2: Use constant for max hours validation
                 @{ Name='hours'; Type='number'; Label='Hours'; Min=$global:MIN_HOURS_PER_ENTRY; Max=$global:MAX_HOURS_PER_ENTRY; Step=0.25; Value=$hoursVal; Width=$hoursWidth }
                 @{ Name='notes'; Type='text'; Label='Notes'; Value=$notesVal; Width=$notesWidth }
@@ -385,6 +393,8 @@ class TimeListScreen : StandardListScreen {
                 task = $(if ($values.ContainsKey('task')) { $values.task } else { '' })
                 project = $(if ($values.ContainsKey('project')) { $values.project } else { '' })
                 timecode = $(if ($values.ContainsKey('timecode')) { $values.timecode } else { '' })
+                id1 = $(if ($values.ContainsKey('id1')) { $values.id1 } else { '' })
+                id2 = $(if ($values.ContainsKey('id2')) { $values.id2 } else { '' })
                 minutes = $minutes
                 notes = $(if ($values.ContainsKey('notes')) { $values.notes } else { '' })
                 created = [DateTime]::Now
@@ -439,7 +449,8 @@ class TimeListScreen : StandardListScreen {
 
             # HIGH FIX TMS-H3: Use Math.Round instead of [int] to prevent precision loss
             # 2.75 hours = 165 minutes (not 165.0 truncated to 165)
-            $minutes = [Math]::Round($hoursValue * 60)
+            # CRITICAL: Cast to [int] because validation requires int type
+            $minutes = [int][Math]::Round($hoursValue * 60)
 
             # Safe date conversion
             $dateValue = [DateTime]::Today
@@ -456,6 +467,8 @@ class TimeListScreen : StandardListScreen {
                 task = $(if ($values.ContainsKey('task')) { $values.task } else { '' })
                 project = $(if ($values.ContainsKey('project')) { $values.project } else { '' })
                 timecode = $(if ($values.ContainsKey('timecode')) { $values.timecode } else { '' })
+                id1 = $(if ($values.ContainsKey('id1')) { $values.id1 } else { '' })
+                id2 = $(if ($values.ContainsKey('id2')) { $values.id2 } else { '' })
                 minutes = $minutes
                 notes = $(if ($values.ContainsKey('notes')) { $values.notes } else { '' })
             }

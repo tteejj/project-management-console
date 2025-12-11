@@ -148,7 +148,7 @@ class WeeklyTimeReportScreen : PmcScreen {
                 if ($log.ContainsKey('id1') -and $log.id1) {
                     $key = "#$($log.id1)"
                 } else {
-                    $name = $log.project
+                    $name = $(if ($log.ContainsKey('project')) { $log.project } else { '' })
                     if (-not $name) { $name = 'Unknown' }
                     $key = $name
                 }
@@ -159,10 +159,10 @@ class WeeklyTimeReportScreen : PmcScreen {
                     $id1 = ''
                     if ($log.ContainsKey('id1') -and $log.id1) {
                         $id1 = $log.id1
-                        $name = $log.project
+                        $name = $(if ($log.ContainsKey('project')) { $log.project } else { '' })
                         if (-not $name) { $name = '' }
                     } else {
-                        $name = $log.project
+                        $name = $(if ($log.ContainsKey('project')) { $log.project } else { '' })
                         if (-not $name) { $name = 'Unknown' }
                     }
 
@@ -183,6 +183,10 @@ class WeeklyTimeReportScreen : PmcScreen {
 
                 # Add hours to appropriate day
                 # TS-H3 FIX: Add error handling for unsafe DateTime cast
+                if (-not $log.ContainsKey('date')) {
+                    Write-PmcTuiLog "WeeklyTimeReportScreen: Log entry missing date field" "WARNING"
+                    continue
+                }
                 $logDate = $null
                 try {
                     $logDate = $(if ($log.date -is [DateTime]) {
@@ -195,6 +199,10 @@ class WeeklyTimeReportScreen : PmcScreen {
                     continue  # Skip this log entry
                 }
 
+                if (-not $log.ContainsKey('minutes')) {
+                    Write-PmcTuiLog "WeeklyTimeReportScreen: Log entry missing minutes field" "WARNING"
+                    continue
+                }
                 $dayIndex = ($logDate.DayOfWeek.value__ + 6) % 7  # 0=Mon, 1=Tue, ..., 5=Sat, 6=Sun
                 $hours = [Math]::Round($log.minutes / 60.0, 1)
 

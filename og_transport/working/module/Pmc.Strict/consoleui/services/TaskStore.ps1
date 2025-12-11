@@ -118,20 +118,55 @@ class TaskStore {
         task = @{
             required = @('text')
             types = @{
+                id = 'string'
                 text = 'string'
+                details = 'string'
                 project = 'string'
                 priority = 'int'
+                status = 'string'
                 due = 'datetime'
                 tags = 'array'
                 completed = 'bool'
+                created = 'datetime'
+                parent_id = 'string'
             }
         }
         project = @{
             required = @('name')
             types = @{
+                id = 'string'
                 name = 'string'
                 description = 'string'
+                created = 'datetime'
                 status = 'string'
+                tags = 'array'
+                ID1 = 'string'
+                ID2 = 'string'
+                ProjFolder = 'string'
+                CAAName = 'string'
+                RequestName = 'string'
+                T2020 = 'string'
+                AssignedDate = 'datetime'
+                DueDate = 'datetime'
+                BFDate = 'datetime'
+                RequestDate = 'datetime'
+                AuditType = 'string'
+                AuditorName = 'string'
+                AuditorPhone = 'string'
+                AuditorTL = 'string'
+                AuditorTLPhone = 'string'
+                AuditCase = 'string'
+                CASCase = 'string'
+                AuditStartDate = 'datetime'
+                TPName = 'string'
+                TPNum = 'string'
+                Address = 'string'
+                City = 'string'
+                Province = 'string'
+                PostalCode = 'string'
+                Country = 'string'
+                AuditPeriodFrom = 'datetime'
+                AuditPeriodTo = 'datetime'
             }
         }
         timelog = @{
@@ -141,6 +176,8 @@ class TaskStore {
                 task = 'string'
                 project = 'string'
                 timecode = 'string'
+                id1 = 'string'
+                id2 = 'string'
                 minutes = 'int'
                 notes = 'string'
                 created = 'datetime'
