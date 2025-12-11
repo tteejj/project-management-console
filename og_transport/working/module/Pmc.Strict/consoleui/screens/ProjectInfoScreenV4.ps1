@@ -134,22 +134,35 @@ class ProjectInfoScreenV4 : TabbedScreen {
         # Clear existing tabs
         $this.TabPanel.Tabs.Clear()
 
-        # Tab 1: Identity
+        # Tab 1: Identity (Merged with Request)
         $this.TabPanel.AddTab('Identity', @(
             @{Name='ID1'; Label='ID1'; Value=$this._GetValue('ID1'); Type='text'}
             @{Name='ID2'; Label='ID2'; Value=$this._GetValue('ID2'); Type='text'}
             @{Name='ProjFolder'; Label='Project Folder'; Value=$this._GetValue('ProjFolder'); Type='text'}
             @{Name='CAAName'; Label='CAA Name'; Value=$this._GetValue('CAAName'); Type='text'}
-        ))
-
-        # Tab 2: Request
-        $this.TabPanel.AddTab('Request', @(
+            # Merged Request fields
             @{Name='RequestName'; Label='Request Name'; Value=$this._GetValue('RequestName'); Type='text'}
             @{Name='T2020'; Label='T2020'; Value=$this._GetValue('T2020'); Type='text'}
             @{Name='AssignedDate'; Label='Assigned Date'; Value=$this._GetValue('AssignedDate'); Type='date'}
             @{Name='DueDate'; Label='Due Date'; Value=$this._GetValue('DueDate'); Type='date'}
             @{Name='BFDate'; Label='BF Date'; Value=$this._GetValue('BFDate'); Type='date'}
             @{Name='RequestDate'; Label='Request Date'; Value=$this._GetValue('RequestDate'); Type='date'}
+        ))
+
+        # Tab 2: Contacts (Moved from More)
+        $this.TabPanel.AddTab('Contacts', @(
+            # Contact 1
+            @{Name='Contact1Name'; Label='Contact 1 Name'; Value=$this._GetValue('Contact1Name'); Type='text'}
+            @{Name='Contact1Title'; Label='Contact 1 Title'; Value=$this._GetValue('Contact1Title'); Type='text'}
+            @{Name='Contact1Phone'; Label='Contact 1 Phone'; Value=$this._GetValue('Contact1Phone'); Type='text'}
+            @{Name='Contact1Email'; Label='Contact 1 Email'; Value=$this._GetValue('Contact1Email'); Type='text'}
+            @{Name='Contact1Fax'; Label='Contact 1 Fax'; Value=$this._GetValue('Contact1Fax'); Type='text'}
+            # Contact 2
+            @{Name='Contact2Name'; Label='Contact 2 Name'; Value=$this._GetValue('Contact2Name'); Type='text'}
+            @{Name='Contact2Title'; Label='Contact 2 Title'; Value=$this._GetValue('Contact2Title'); Type='text'}
+            @{Name='Contact2Phone'; Label='Contact 2 Phone'; Value=$this._GetValue('Contact2Phone'); Type='text'}
+            @{Name='Contact2Email'; Label='Contact 2 Email'; Value=$this._GetValue('Contact2Email'); Type='text'}
+            @{Name='Contact2Fax'; Label='Contact 2 Fax'; Value=$this._GetValue('Contact2Fax'); Type='text'}
         ))
 
         # Tab 3: Audit
@@ -191,20 +204,8 @@ class ProjectInfoScreenV4 : TabbedScreen {
             @{Name='Period5End'; Label='Period 5 End'; Value=$this._GetValue('Period5End'); Type='date'}
         ))
 
-        # Tab 6: More (Contacts, Software, Misc)
+        # Tab 6: More (Software, Misc - Contacts moved to Tab 2)
         $this.TabPanel.AddTab('More', @(
-            # Contact 1
-            @{Name='Contact1Name'; Label='Contact 1 Name'; Value=$this._GetValue('Contact1Name'); Type='text'}
-            @{Name='Contact1Title'; Label='Contact 1 Title'; Value=$this._GetValue('Contact1Title'); Type='text'}
-            @{Name='Contact1Phone'; Label='Contact 1 Phone'; Value=$this._GetValue('Contact1Phone'); Type='text'}
-            @{Name='Contact1Email'; Label='Contact 1 Email'; Value=$this._GetValue('Contact1Email'); Type='text'}
-            @{Name='Contact1Fax'; Label='Contact 1 Fax'; Value=$this._GetValue('Contact1Fax'); Type='text'}
-            # Contact 2
-            @{Name='Contact2Name'; Label='Contact 2 Name'; Value=$this._GetValue('Contact2Name'); Type='text'}
-            @{Name='Contact2Title'; Label='Contact 2 Title'; Value=$this._GetValue('Contact2Title'); Type='text'}
-            @{Name='Contact2Phone'; Label='Contact 2 Phone'; Value=$this._GetValue('Contact2Phone'); Type='text'}
-            @{Name='Contact2Email'; Label='Contact 2 Email'; Value=$this._GetValue('Contact2Email'); Type='text'}
-            @{Name='Contact2Fax'; Label='Contact 2 Fax'; Value=$this._GetValue('Contact2Fax'); Type='text'}
             # Software 1
             @{Name='Software1Name'; Label='Software 1 Name'; Value=$this._GetValue('Software1Name'); Type='text'}
             @{Name='Software1Version'; Label='Software 1 Version'; Value=$this._GetValue('Software1Version'); Type='text'}

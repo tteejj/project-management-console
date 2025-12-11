@@ -544,7 +544,9 @@ class TaskListScreen : StandardListScreen {
         $testSafe = ${function:Global:Test-SafeProperty}
 
         # Calculate column widths based on terminal width
-        $availableWidth = $(if ($this.List -and $this.List.Width -gt 4) { $this.List.Width - 4 } else { 113 })
+        # FIX: Account for UniversalList padding overhead (6 chars per column * 5 columns = 30 chars)
+        # Also subtract 4 for borders
+        $availableWidth = $(if ($this.List -and $this.List.Width -gt 34) { $this.List.Width - 34 } else { 80 })
         $titleWidth = [Math]::Max(20, [Math]::Floor($availableWidth * 0.32))
         $detailsWidth = [Math]::Max(15, [Math]::Floor($availableWidth * 0.22))
         $dueWidth = 12
@@ -724,7 +726,8 @@ class TaskListScreen : StandardListScreen {
     # Override: Get edit fields for inline editor
     [array] GetEditFields($item) {
         # Calculate field widths based on available space
-        $availableWidth = $(if ($this.List -and $this.List.Width -gt 4) { $this.List.Width - 4 } else { 100 })
+        # FIX: Match GetColumns logic to ensure alignment and prevent spillover
+        $availableWidth = $(if ($this.List -and $this.List.Width -gt 34) { $this.List.Width - 34 } else { 80 })
         $textWidth = [Math]::Max(20, [Math]::Floor($availableWidth * 0.30))
         $detailsWidth = [Math]::Max(15, [Math]::Floor($availableWidth * 0.25))
         $dueWidth = [Math]::Max(10, [Math]::Floor($availableWidth * 0.12))

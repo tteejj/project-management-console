@@ -268,6 +268,11 @@ class TextAreaEditor {
             
             # Draw cursor (Inverse video)
             $engine.WriteAt($cursorScreenX, $cursorScreenY, "`e[7m$charAtCursor`e[0m")
+            
+            # Force hardware cursor to position (more reliable than just inverse video)
+            if ($engine.PSObject.Methods['SetCursor']) {
+                $engine.SetCursor($cursorScreenX, $cursorScreenY)
+            }
         }
 
         if ($engine.PSObject.Methods['PopClip']) {

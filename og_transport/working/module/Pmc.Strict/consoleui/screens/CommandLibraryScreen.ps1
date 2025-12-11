@@ -75,8 +75,6 @@ class CommandLibraryScreen : StandardListScreen {
         return @(
             @{ Name='name'; Label='Name'; Width=25 }
             @{ Name='category'; Label='Category'; Width=15 }
-            @{ Name='usage_count'; Label='Uses'; Width=6 }
-            @{ Name='last_used'; Label='Last Used'; Width=12 }
             @{ Name='description'; Label='Description'; Width=45 }
         )
     }
@@ -308,7 +306,11 @@ class CommandLibraryScreen : StandardListScreen {
     # === Input Handling ===
 
     [bool] HandleKeyPress([ConsoleKeyInfo]$keyInfo) {
-        # CRITICAL: Handle Enter BEFORE parent to prevent edit dialog
+        # CRITICAL FIX: If editing, let parent handle it (routes to InlineEditor)
+        if ($this.ShowInlineEditor -or $this.ShowFilterPanel) {
+            return ([StandardListScreen]$this).HandleKeyPress($keyInfo)
+        }
+
         # Custom key: Enter = Copy command to clipboard (NOT edit)
         if ($keyInfo.Key -eq ([ConsoleKey]::Enter)) {
             $this.CopyCommand()
