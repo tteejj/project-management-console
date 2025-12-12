@@ -221,6 +221,29 @@ class PmcWidget : Component {
         return $result
     }
 
+    <#
+    .SYNOPSIS
+    Get packed RGB integer for a specific role (Hybrid Engine optimized)
+
+    .PARAMETER role
+    Color role or property name
+
+    .PARAMETER background
+    If true, gets background color (supports gradient/position if index provided)
+
+    .OUTPUTS
+    Int - Packed RGB integer or -1
+    #>
+    [int] GetThemedInt([string]$role) {
+        $engine = [PmcThemeEngine]::GetInstance()
+        return $engine.GetForegroundInt($role)
+    }
+
+    [int] GetThemedBgInt([string]$role, [int]$width, [int]$charIndex) {
+        $engine = [PmcThemeEngine]::GetInstance()
+        return $engine.GetBackgroundInt($role, $width, $charIndex)
+    }
+
     # === Box Drawing Methods ===
 
     <#

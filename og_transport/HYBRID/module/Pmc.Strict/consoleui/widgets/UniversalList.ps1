@@ -908,21 +908,24 @@ class UniversalList : PmcWidget {
             $engine.PushClip($this.X, $this.Y, $this.Width, $this.Height)
         }
 
-        # Helper to convert theme ANSI to int
-        $borderColor = [HybridRenderEngine]::AnsiColorToInt($this.GetThemedFg('Border.Widget'))
-        $textColor = [HybridRenderEngine]::AnsiColorToInt($this.GetThemedFg('Foreground.Row'))
-        $primaryColor = [HybridRenderEngine]::AnsiColorToInt($this.GetThemedFg('Foreground.Title'))
-        $mutedColor = [HybridRenderEngine]::AnsiColorToInt($this.GetThemedFg('Foreground.Muted'))
+        # Get Theme Ints directly
+        $borderColor = $this.GetThemedInt('Border.Widget')
+        $textColor = $this.GetThemedInt('Foreground.Row')
+        $primaryColor = $this.GetThemedInt('Foreground.Title')
+        $mutedColor = $this.GetThemedInt('Foreground.Muted')
         $defaultBg = -1 # Transparent/Default
         
-        $highlightBg = [HybridRenderEngine]::AnsiColorToInt($this.GetThemedBg('Background.RowSelected', 1, 0))
-        $highlightFg = [HybridRenderEngine]::AnsiColorToInt($this.GetThemedFg('Foreground.RowSelected'))
+        $highlightBg = $this.GetThemedBgInt('Background.RowSelected', 1, 0)
+        $highlightFg = $this.GetThemedInt('Foreground.RowSelected')
         
         # Fallbacks
         if ($highlightBg -eq -1) { $highlightBg = [HybridRenderEngine]::_PackRGB(64, 94, 117) } # Blue
         if ($highlightFg -eq -1) { $highlightFg = [HybridRenderEngine]::_PackRGB(255, 255, 255) } # White
 
         # Draw top border
+        # Note: We manually draw top border components to overlay title/count cleanly
+        # But we can use DrawBox for the frame if we careful about not overwriting title immediately
+        # Or just manual draw is fine.
         $engine.WriteAt($this.X, $this.Y - 1, $this.GetBoxChar('single_topleft'), $borderColor, $defaultBg)
         $engine.Fill($this.X + 1, $this.Y - 1, $this.Width - 2, 1, $this.GetBoxChar('single_horizontal')[0], $borderColor, $defaultBg)
         $engine.WriteAt($this.X + $this.Width - 1, $this.Y - 1, $this.GetBoxChar('single_topright'), $borderColor, $defaultBg)

@@ -452,6 +452,10 @@ class HybridRenderEngine {
     }
 
     [void] DrawBox([int]$x, [int]$y, [int]$width, [int]$height, [string]$style="Single") {
+        $this.DrawBox($x, $y, $width, $height, $style, -1, -1)
+    }
+
+    [void] DrawBox([int]$x, [int]$y, [int]$width, [int]$height, [string]$style, [int]$fg, [int]$bg) {
         if ($width -lt 2 -or $height -lt 2) { return }
 
         # Get box characters from cache or define them
@@ -472,7 +476,7 @@ class HybridRenderEngine {
 
         # Draw top border
         $topLine = $chars.TL + ($chars.H * ($width - 2)) + $chars.TR
-        $this.WriteAt($x, $y, $topLine)
+        $this.WriteAt($x, $y, $topLine, $fg, $bg)
 
         # Draw side borders
         # We construct vertical segments. 
@@ -482,12 +486,12 @@ class HybridRenderEngine {
         $middleLine = $chars.V + (" " * ($width - 2)) + $chars.V
         
         for ($i = 1; $i -lt ($height - 1); $i++) {
-            $this.WriteAt($x, $y + $i, $middleLine)
+            $this.WriteAt($x, $y + $i, $middleLine, $fg, $bg)
         }
 
         # Draw bottom border
         $bottomLine = $chars.BL + ($chars.H * ($width - 2)) + $chars.BR
-        $this.WriteAt($x, $y + $height - 1, $bottomLine)
+        $this.WriteAt($x, $y + $height - 1, $bottomLine, $fg, $bg)
     }
 
     [void] InvalidateCachedRegion([int]$minY, [int]$maxY) {

@@ -127,7 +127,7 @@ class PmcFilePicker : PmcWidget {
         # Fill background
         $engine.Fill($this.X, $this.Y, $this.Width, $this.Height, ' ', $fg, $bg)
         # Draw Border
-        $engine.DrawBox($this.X, $this.Y, $this.Width, $this.Height, 'single')
+        $engine.DrawBox($this.X, $this.Y, $this.Width, $this.Height, 'single', $borderFg, $bg)
         
         # Title
         $title = "Select Directory"

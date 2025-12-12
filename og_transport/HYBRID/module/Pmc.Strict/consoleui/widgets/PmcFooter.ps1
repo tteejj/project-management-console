@@ -152,9 +152,9 @@ class PmcFooter : PmcWidget {
         $this.RegisterLayout($engine)
 
         # Colors (Ints)
-        $keyFg = [HybridRenderEngine]::AnsiColorToInt($this.GetThemedFg('Foreground.Title'))
-        $textFg = [HybridRenderEngine]::AnsiColorToInt($this.GetThemedFg('Foreground.Muted'))
-        $sepFg = [HybridRenderEngine]::AnsiColorToInt($this.GetThemedFg('Border.Widget'))
+        $keyFg = $this.GetThemedInt('Foreground.Title')
+        $textFg = $this.GetThemedInt('Foreground.Muted')
+        $sepFg = $this.GetThemedInt('Border.Widget')
         $defaultBg = -1
 
         # Clear line first
