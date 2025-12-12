@@ -539,20 +539,26 @@ class TaskListScreen : StandardListScreen {
         $self = $this
 
         # CRITICAL FIX: Capture helper functions for scriptblock closures
-        # GetNewClosure() captures variables but NOT functions from outer scope
         $getSafe = ${function:Global:Get-SafeProperty}
         $testSafe = ${function:Global:Test-SafeProperty}
 
         # Calculate column widths based on terminal width
-        # FIX: Account for UniversalList padding overhead (6 chars per column * 5 columns = 30 chars)
-        $availableWidth = $(if ($this.List -and $this.List.Width -gt 34) { $this.List.Width - 34 } else { 80 })
+        # FIX: Account for UniversalList overhead (2 borders + 5 columns * 4 separator spaces = 22 chars)
+        $availableWidth = $(if ($this.List -and $this.List.Width -gt 22) { $this.List.Width - 22 } else { 80 })
         
-        # Use constants for consistency with GetEditFields
-        $titleWidth = [Math]::Max(20, [Math]::Floor($availableWidth * [TaskListScreen]::COL_WIDTH_TEXT))
-        $detailsWidth = [Math]::Max(15, [Math]::Floor($availableWidth * [TaskListScreen]::COL_WIDTH_DETAILS))
-        $dueWidth = [Math]::Max(10, [Math]::Floor($availableWidth * [TaskListScreen]::COL_WIDTH_DUE))
-        $projectWidth = [Math]::Max(12, [Math]::Floor($availableWidth * [TaskListScreen]::COL_WIDTH_PROJECT))
-        $tagsWidth = [Math]::Max(10, [Math]::Floor($availableWidth * [TaskListScreen]::COL_WIDTH_TAGS))
+        # Use proportional widths with minimal safety floor (5 chars) to prevents overflow
+        $titleWidth = [Math]::Max(5, [Math]::Floor($availableWidth * [TaskListScreen]::COL_WIDTH_TEXT))
+        $detailsWidth = [Math]::Max(5, [Math]::Floor($availableWidth * [TaskListScreen]::COL_WIDTH_DETAILS))
+        $dueWidth = [Math]::Max(5, [Math]::Floor($availableWidth * [TaskListScreen]::COL_WIDTH_DUE))
+        $projectWidth = [Math]::Max(5, [Math]::Floor($availableWidth * [TaskListScreen]::COL_WIDTH_PROJECT))
+        $tagsWidth = [Math]::Max(5, [Math]::Floor($availableWidth * [TaskListScreen]::COL_WIDTH_TAGS))
+
+        # Ensure total doesn't exceed available (due to rounding) - subtract from title if needed
+        $total = $titleWidth + $detailsWidth + $dueWidth + $projectWidth + $tagsWidth
+        if ($total -gt $availableWidth) {
+            $diff = $total - $availableWidth
+            $titleWidth = [Math]::Max(5, $titleWidth - $diff)
+        }
 
         return @(
             @{
@@ -726,16 +732,17 @@ class TaskListScreen : StandardListScreen {
 
     # Override: Get edit fields for inline editor
     [array] GetEditFields($item) {
-        # Calculate field widths based on available space
-        # FIX: Match GetColumns logic to ensure alignment and prevent spillover
-        $availableWidth = $(if ($this.List -and $this.List.Width -gt 34) { $this.List.Width - 34 } else { 80 })
-        
-        # Use constants for consistency
-        $textWidth = [Math]::Max(20, [Math]::Floor($availableWidth * [TaskListScreen]::COL_WIDTH_TEXT))
-        $detailsWidth = [Math]::Max(15, [Math]::Floor($availableWidth * [TaskListScreen]::COL_WIDTH_DETAILS))
-        $dueWidth = [Math]::Max(10, [Math]::Floor($availableWidth * [TaskListScreen]::COL_WIDTH_DUE))
-        $projectWidth = [Math]::Max(12, [Math]::Floor($availableWidth * [TaskListScreen]::COL_WIDTH_PROJECT))
-        $tagsWidth = [Math]::Max(10, [Math]::Floor($availableWidth * [TaskListScreen]::COL_WIDTH_TAGS))
+        # FIX: Reuse GetColumns() to ensure widths match exactly
+        $cols = $this.GetColumns()
+        $colMap = @{}
+        foreach ($c in $cols) { $colMap[$c.Name] = $c.Width }
+
+        # Map column names to field names (GetColumns uses 'title', edit uses 'text')
+        $textWidth = $colMap['title']
+        $detailsWidth = $colMap['details']
+        $dueWidth = $colMap['due']
+        $projectWidth = $colMap['project']
+        $tagsWidth = $colMap['tags']
 
         return @(
             @{ Name='text'; Label=''; Type='text'; Value=(Get-SafeProperty $item 'text'); Required=$true; MaxLength=200; Width=$textWidth }
@@ -1544,41 +1551,27 @@ class TaskListScreen : StandardListScreen {
             return
         }
 
-        # Position at the EXACT row where the task is displayed
-        # UniversalList rows: Y + 1 (header), Y + 2 (separator), Y + 3 (first data row)
-        $rowY = $this.List.Y + [TaskListScreen]::LIST_HEADER_ROWS + $visibleRow
-
         # Ensure InlineEditor is loaded
         if (-not ([System.Management.Automation.PSTypeName]'InlineEditor').Type) {
             . "$PSScriptRoot/../widgets/InlineEditor.ps1"
         }
 
-        # Build fields for inline editor - PERCENTAGE-BASED widths
-        # Calculate based on available terminal width (List.Width - borders)
-        $availableWidth = $this.List.Width - 4  # Subtract borders and padding
-        $textWidth = [Math]::Floor($availableWidth * [TaskListScreen]::COL_WIDTH_TEXT)
-        $detailsWidth = [Math]::Floor($availableWidth * [TaskListScreen]::COL_WIDTH_DETAILS)
-        $dueWidth = [Math]::Floor($availableWidth * [TaskListScreen]::COL_WIDTH_DUE)
-        $projectWidth = [Math]::Floor($availableWidth * [TaskListScreen]::COL_WIDTH_PROJECT)
-        $tagsWidth = [Math]::Floor($availableWidth * [TaskListScreen]::COL_WIDTH_TAGS)
-
         $fields = @(
-            @{ Name='text'; Label=''; Type='text'; Value=(Get-SafeProperty $item 'text'); Required=$true; MaxLength=200; Width=$textWidth }
-            @{ Name='details'; Label=''; Type='text'; Value=(Get-SafeProperty $item 'details'); Width=$detailsWidth }
-            @{ Name='due'; Label=''; Type='date'; Value=(Get-SafeProperty $item 'due'); Width=$dueWidth }
-            @{ Name='project'; Label=''; Type='project'; Value=(Get-SafeProperty $item 'project'); Width=$projectWidth }
-            @{ Name='tags'; Label=''; Type='tags'; Value=(Get-SafeProperty $item 'tags'); Width=$tagsWidth }
+            @{ Name='text'; Label=''; Type='text'; Value=(Get-SafeProperty $item 'text'); Required=$true; MaxLength=200 }
+            @{ Name='details'; Label=''; Type='text'; Value=(Get-SafeProperty $item 'details') }
+            @{ Name='due'; Label=''; Type='date'; Value=(Get-SafeProperty $item 'due') }
+            @{ Name='project'; Label=''; Type='project'; Value=(Get-SafeProperty $item 'project') }
+            @{ Name='tags'; Label=''; Type='tags'; Value=(Get-SafeProperty $item 'tags') }
         )
 
         # Configure base class inline editor for horizontal inline editing
         $this.InlineEditor.LayoutMode = 'horizontal'
         $this.InlineEditor.SetFields($fields)
-        # Position at List.X + 2 (after left border, where data columns start)
-        # The columns are rendered starting at X + 2 in UniversalList (see line 952)
-        $editorX = $this.List.X + 2
-        $this.InlineEditor.SetPosition($editorX, $rowY)
-        $this.InlineEditor.SetSize($this.TermWidth, 1)  # Single row
-
+        
+        # PROPER FIX: Use Region System for alignment
+        # The region ID is constructed by UniversalList.RenderToEngine based on data index
+        $this.InlineEditor.TargetRegionID = "$($this.List.RegionID)_Row_${selectedIndex}"
+        
         # Set up save callback
         $self = $this
         $taskId = $item.id

@@ -47,6 +47,7 @@ class PmcWidget : Component {
     # === PMC-Specific Properties ===
     [string]$Name = ""                    # Widget name for debugging
     [hashtable]$LayoutConstraints = @{}   # Named region constraints
+    [string]$RegionID = ""                # Engine Layout Region ID
 
     # === Theme Integration ===
     hidden [hashtable]$_pmcTheme = $null        # Cached PMC theme
@@ -105,6 +106,25 @@ class PmcWidget : Component {
     PmcWidget([string]$name) : base() {
         $this.Name = $name
         $this._EnsureThemeInitialized()
+    }
+
+    # === Layout System ===
+
+    <#
+    .SYNOPSIS
+    Register layout regions with the engine.
+    Override this to define complex grids or sub-regions.
+    #>
+    [void] RegisterLayout([object]$engine) {
+        if ([string]::IsNullOrEmpty($this.RegionID)) {
+            $this.RegionID = $this.Name + "_" + [Guid]::NewGuid().ToString().Substring(0, 8)
+        }
+        
+        # Define base region for this widget
+        # Z-Index default 0, parent relative if supported later
+        if ($engine.PSObject.Methods['DefineRegion']) {
+            $engine.DefineRegion($this.RegionID, $this.X, $this.Y, $this.Width, $this.Height)
+        }
     }
 
     # === Rendering ===

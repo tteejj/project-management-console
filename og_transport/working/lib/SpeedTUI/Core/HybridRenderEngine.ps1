@@ -32,6 +32,28 @@ using namespace System.Collections.Generic
 # Ensure dependencies are loaded (CellBuffer, PerformanceCore)
 # These usually come from the module loader, but we depend on them here.
 
+class LayoutRegion {
+    [string]$ID
+    [int]$X
+    [int]$Y
+    [int]$Width
+    [int]$Height
+    [int]$ZIndex
+    [string]$ParentID
+    [bool]$Clip
+
+    LayoutRegion([string]$id, [int]$x, [int]$y, [int]$width, [int]$height) {
+        $this.ID = $id
+        $this.X = $x
+        $this.Y = $y
+        $this.Width = $width
+        $this.Height = $height
+        $this.ZIndex = 0
+        $this.ParentID = ""
+        $this.Clip = $true
+    }
+}
+
 class HybridRenderEngine {
     # -- CORE BUFFERS --
     # FrontBuffer: Represents exactly what is currently visible on the user's screen.
@@ -70,6 +92,9 @@ class HybridRenderEngine {
 
     # -- CACHING --
     static hidden [hashtable]$_ansiCache = @{}
+
+    # -- LAYOUT SYSTEM --
+    hidden [hashtable]$_regions = @{}
 
     HybridRenderEngine() {
         $this._clipStack = [Stack[object]]::new()
@@ -276,6 +301,66 @@ class HybridRenderEngine {
     # DRAWING API
     # -------------------------------------------------------------------------
 
+    # Write text with specific colors (bypasses ANSI parsing of text content)
+    [void] WriteAt([int]$x, [int]$y, [string]$content, [int]$fg, [int]$bg) {
+        if (-not $this._inFrame -or [string]::IsNullOrEmpty($content)) { return }
+
+        # Apply Offset (Coordinate Translation)
+        $offsetX = 0
+        $offsetY = 0
+        if ($this._offsetStack.Count -gt 0) {
+            $current = $this._offsetStack.Peek()
+            $offsetX = $current.X
+            $offsetY = $current.Y
+        }
+        
+        $finalX = $x + $offsetX
+        $finalY = $y + $offsetY
+        
+        # Check current clip bounds
+        $clip = $null
+        if ($this._clipStack.Count -gt 0) { $clip = $this._clipStack.Peek() }
+
+        $len = $content.Length
+        for ($i = 0; $i -lt $len; $i++) {
+            $currentX = $finalX + $i
+            
+            # 1. Check Bounds (Screen)
+            if ($finalY -ge 0 -and $finalY -lt $this.Height -and $currentX -ge 0 -and $currentX -lt $this.Width) {
+                
+                # 2. Check Clipping (Viewport)
+                $isClipped = $false
+                if ($clip) {
+                    if ($currentX -lt $clip.X -or $currentX -ge $clip.R -or $finalY -lt $clip.Y -or $finalY -ge $clip.B) {
+                        $isClipped = $true
+                    }
+                }
+
+                # 3. Check Z-Index (Depth)
+                if (-not $isClipped) {
+                    if ($this._currentZ -ge $this._zBuffer[$finalY][$currentX]) {
+                        # ** WRITE IS ALLOWED **
+                        $this._backBuffer.SetCell($currentX, $finalY, $content[$i], $fg, $bg, 0)
+                        $this._zBuffer[$finalY][$currentX] = $this._currentZ
+                        $this._UpdateDirtyBounds($currentX, $finalY)
+                    }
+                }
+            }
+        }
+    }
+
+    # Helper to parse ANSI color string to packed integer
+    static [int] AnsiColorToInt([string]$ansi) {
+        if ([string]::IsNullOrEmpty($ansi)) { return -1 }
+        
+        # Match RGB format: \e[38;2;R;G;Bm or \e[48;2;R;G;Bm
+        if ($ansi -match ';2;(\d+);(\d+);(\d+)m') {
+            return [HybridRenderEngine]::_PackRGB([int]$Matches[1], [int]$Matches[2], [int]$Matches[3])
+        }
+        
+        return -1
+    }
+
     [void] WriteAt([int]$x, [int]$y, [string]$content) {
         if (-not $this._inFrame -or [string]::IsNullOrEmpty($content)) { return }
 
@@ -360,6 +445,96 @@ class HybridRenderEngine {
             
             $currentX++
             $i++
+        }
+    }
+
+    # Fill a rectangular region with a character and colors (bypasses ANSI parsing)
+    [void] Fill([int]$x, [int]$y, [int]$width, [int]$height, [char]$char, [int]$fg, [int]$bg) {
+        if (-not $this._inFrame -or $width -le 0 -or $height -le 0) { return }
+
+        # Apply Offset (Coordinate Translation)
+        $offsetX = 0
+        $offsetY = 0
+        if ($this._offsetStack.Count -gt 0) {
+            $current = $this._offsetStack.Peek()
+            $offsetX = $current.X
+            $offsetY = $current.Y
+        }
+        
+        $startX = $x + $offsetX
+        $startY = $y + $offsetY
+        
+        # Check current clip bounds
+        $clip = $null
+        if ($this._clipStack.Count -gt 0) { $clip = $this._clipStack.Peek() }
+
+        for ($row = 0; $row -lt $height; $row++) {
+            $currentY = $startY + $row
+            
+            # Check Y bounds
+            if ($currentY -lt 0 -or $currentY -ge $this.Height) { continue }
+            if ($clip -and ($currentY -lt $clip.Y -or $currentY -ge $clip.B)) { continue }
+            
+            for ($col = 0; $col -lt $width; $col++) {
+                $currentX = $startX + $col
+                
+                # Check X bounds
+                if ($currentX -lt 0 -or $currentX -ge $this.Width) { continue }
+                if ($clip -and ($currentX -lt $clip.X -or $currentX -ge $clip.R)) { continue }
+                
+                # Check Z-Index
+                if ($this._currentZ -ge $this._zBuffer[$currentY][$currentX]) {
+                    # WRITE
+                    $this._backBuffer.SetCell($currentX, $currentY, $char, $fg, $bg, 0)
+                    $this._zBuffer[$currentY][$currentX] = $this._currentZ
+                    $this._UpdateDirtyBounds($currentX, $currentY)
+                }
+            }
+        }
+    }
+
+    # Fill a rectangular region with a character and colors (bypasses ANSI parsing)
+    [void] Fill([int]$x, [int]$y, [int]$width, [int]$height, [char]$char, [int]$fg, [int]$bg) {
+        if (-not $this._inFrame -or $width -le 0 -or $height -le 0) { return }
+
+        # Apply Offset (Coordinate Translation)
+        $offsetX = 0
+        $offsetY = 0
+        if ($this._offsetStack.Count -gt 0) {
+            $current = $this._offsetStack.Peek()
+            $offsetX = $current.X
+            $offsetY = $current.Y
+        }
+        
+        $startX = $x + $offsetX
+        $startY = $y + $offsetY
+        
+        # Check current clip bounds
+        $clip = $null
+        if ($this._clipStack.Count -gt 0) { $clip = $this._clipStack.Peek() }
+
+        for ($row = 0; $row -lt $height; $row++) {
+            $currentY = $startY + $row
+            
+            # Check Y bounds
+            if ($currentY -lt 0 -or $currentY -ge $this.Height) { continue }
+            if ($clip -and ($currentY -lt $clip.Y -or $currentY -ge $clip.B)) { continue }
+            
+            for ($col = 0; $col -lt $width; $col++) {
+                $currentX = $startX + $col
+                
+                # Check X bounds
+                if ($currentX -lt 0 -or $currentX -ge $this.Width) { continue }
+                if ($clip -and ($currentX -lt $clip.X -or $currentX -ge $clip.R)) { continue }
+                
+                # Check Z-Index
+                if ($this._currentZ -ge $this._zBuffer[$currentY][$currentX]) {
+                    # WRITE
+                    $this._backBuffer.SetCell($currentX, $currentY, $char, $fg, $bg, 0)
+                    $this._zBuffer[$currentY][$currentX] = $this._currentZ
+                    $this._UpdateDirtyBounds($currentX, $currentY)
+                }
+            }
         }
     }
 
@@ -702,5 +877,107 @@ class HybridRenderEngine {
             G = ($packed -shr 8) -band 0xFF
             B = $packed -band 0xFF
         }
+    }
+
+    # -------------------------------------------------------------------------
+    # LAYOUT SYSTEM
+    # -------------------------------------------------------------------------
+
+    [void] DefineRegion([string]$id, [int]$x, [int]$y, [int]$width, [int]$height, [int]$zIndex = 0, [string]$parentId = "") {
+        $region = [LayoutRegion]::new($id, $x, $y, $width, $height)
+        $region.ZIndex = $zIndex
+        $region.ParentID = $parentId
+        $this._regions[$id] = $region
+    }
+
+    [hashtable] GetRegionBounds([string]$id) {
+        if (-not $this._regions.ContainsKey($id)) { return $null }
+        
+        $region = $this._regions[$id]
+        $bounds = @{ X=$region.X; Y=$region.Y; Width=$region.Width; Height=$region.Height; ZIndex=$region.ZIndex }
+        
+        # Resolve parent offsets recursively
+        $current = $region
+        while (-not [string]::IsNullOrEmpty($current.ParentID)) {
+            if ($this._regions.ContainsKey($current.ParentID)) {
+                $parent = $this._regions[$current.ParentID]
+                $bounds.X += $parent.X
+                $bounds.Y += $parent.Y
+                $bounds.ZIndex += $parent.ZIndex
+                $current = $parent
+            } else {
+                break
+            }
+        }
+        
+        return $bounds
+    }
+
+    [void] WriteToRegion([string]$regionId, [string]$content, [int]$fg = -1, [int]$bg = -1) {
+        $bounds = $this.GetRegionBounds($regionId)
+        if ($null -eq $bounds) { return }
+        
+        # Apply region z-index temporarily
+        $oldZ = $this._currentZ
+        $this._currentZ = $bounds.ZIndex
+        
+        # Set clip to region bounds
+        $this.PushClip($bounds.X, $bounds.Y, $bounds.Width, $bounds.Height)
+        
+        # Write at region origin (0,0 relative to region)
+        # Note: WriteAt handles clipping logic
+        if ($fg -ne -1 -or $bg -ne -1) {
+            $this.WriteAt($bounds.X, $bounds.Y, $content, $fg, $bg)
+        } else {
+            $this.WriteAt($bounds.X, $bounds.Y, $content)
+        }
+        
+        $this.PopClip()
+        $this._currentZ = $oldZ
+    }
+
+    # Define a grid of columns within a parent region
+    # columns: array of hashtables @{ Name='...'; Width=... } or just widths
+    # Returns: array of generated region IDs
+    [string[]] DefineGrid([string]$baseId, [int]$x, [int]$y, [int]$totalWidth, [int]$height, [array]$columns) {
+        $generatedIds = @()
+        $currentX = $x
+        
+        for ($i = 0; $i -lt $columns.Count; $i++) {
+            $col = $columns[$i]
+            $colWidth = 0
+            $colName = "Col$i"
+            
+            if ($col -is [hashtable]) {
+                if ($col.ContainsKey('Width')) { $colWidth = $col.Width }
+                if ($col.ContainsKey('Name')) { $colName = $col.Name }
+            } elseif ($col -is [int]) {
+                $colWidth = $col
+            }
+            
+            # Create region for column content
+            $regionId = "${baseId}_${colName}"
+            $this.DefineRegion($regionId, $currentX, $y, $colWidth, $height)
+            $generatedIds += $regionId
+            
+            # Advance X (including 4-space gap which is NOT part of the region)
+            $currentX += $colWidth + 4
+        }
+        
+        return $generatedIds
+    }
+
+    # Get immediate child regions for a parent ID
+    [string[]] GetChildRegions([string]$parentId) {
+        $children = @()
+        foreach ($key in $this._regions.Keys) {
+            $region = $this._regions[$key]
+            if ($region.ParentID -eq $parentId) {
+                $children += $region.ID
+            }
+        }
+        # Sort by X to ensure column order
+        $sorted = $children | Sort-Object { $this._regions[$_].X }
+        return $sorted
     }
 }

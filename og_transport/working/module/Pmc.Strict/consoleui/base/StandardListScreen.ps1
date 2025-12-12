@@ -1139,6 +1139,23 @@ class StandardListScreen : PmcScreen {
     }
 
 
+    # === Terminal Resize ===
+
+    [void] OnTerminalResize([int]$newWidth, [int]$newHeight) {
+        # Call base implementation to resize widgets
+        ([PmcScreen]$this).OnTerminalResize($newWidth, $newHeight)
+
+        # Re-calculate column widths to match new terminal size
+        # This prevents mismatch between List columns and InlineEditor fields
+        try {
+            $columns = $this.GetColumns()
+            $this.List.SetColumns($columns)
+            $this.List.Invalidate()
+        } catch {
+            # Ignore errors during resize (e.g. if GetColumns depends on data not yet loaded)
+        }
+    }
+
     # === Helper Methods ===
 
     <#

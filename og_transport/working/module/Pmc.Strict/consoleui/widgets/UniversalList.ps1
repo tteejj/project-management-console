@@ -180,6 +180,10 @@ class UniversalList : PmcWidget {
     # L-POL-22: Column width adjustment
     hidden [hashtable]$_columnWidths = @{}                               # Custom column widths (overrides defaults)
 
+    # === Region Cache for Layout System ===
+    hidden [string[]]$_headerColRegions = @()                            # Region IDs for header columns
+    hidden [hashtable]$_rowColRegions = @{}                              # Region IDs for data row columns (key: row index, value: array of region IDs)
+
     # Reset column widths to defaults
     [void] ResetColumnWidths() {
         $this._columnWidths.Clear()
@@ -204,11 +208,44 @@ class UniversalList : PmcWidget {
 
         # Initialize filter panel
         $this._filterPanel = [FilterPanel]::new()
-        $this._filterPanel.SetPosition($this.X + 10, $this.Y + 5)
+        # Initial position, will be updated by parent screen's layout
+        $this._filterPanel.SetPosition(0, 0) 
         $this._filterPanel.SetSize(60, 12)
         $self = $this
         $this._filterPanel.OnFiltersChanged = { param($filters)
             $self._ApplyFilters()
+        }
+    }
+
+    # === Layout System ===
+
+    <#
+    .SYNOPSIS
+    Register layout regions with the engine.
+    This defines the grid structure for the list.
+    #>
+    [void] RegisterLayout([object]$engine) {
+        # Call base class to register its own region
+        ([PmcWidget]$this).RegisterLayout($engine)
+
+        # Column definitions (for DefineGrid)
+        $colDefs = @()
+        foreach ($col in $this._columns) {
+            $w = $(if ($this._columnWidths.ContainsKey($col.Name)) { $this._columnWidths[$col.Name] } else { $col.Width })
+            $colDefs += @{ Name=$col.Name; Width=$w }
+        }
+        
+        # Define Header Grid
+        # Content starts at X+2 (Left border + 1 padding), ends at Width - 1 (Right border)
+        # Use a fixed height of 1 for header row
+        $this._headerColRegions = $engine.DefineGrid("$($this.RegionID)_Header", $this.X + 2, $this.Y + 1, $this.Width - 4, 1, $colDefs)
+
+        # Define template row grids (virtual scrolling means we define for max visible rows)
+        $maxVisibleRows = $this.Height - 6 # Top border, title, header, separator, bottom border, status, actions
+        for ($i = 0; $i -lt $maxVisibleRows; $i++) {
+            $rowY = $this.Y + 3 + $i # Y + 1 (title), Y + 2 (header), Y + 3 (separator), Y + 4 (first data row relative to list's Y)
+            $rowBaseRegionId = "$($this.RegionID)_Row_${i}"
+            $this._rowColRegions[$i] = $engine.DefineGrid($rowBaseRegionId, $this.X + 2, $rowY, $this.Width - 4, 1, $colDefs)
         }
     }
 
@@ -527,8 +564,7 @@ class UniversalList : PmcWidget {
         # Create inline editor if not exists
         if ($null -eq $this._inlineEditor) {
             $this._inlineEditor = [InlineEditor]::new()
-            $this._inlineEditor.SetPosition($this.X + 10, $this.Y + 5)
-            $this._inlineEditor.SetSize(70, 25)
+            # Position and Size are now managed by the Layout System via TargetRegionID
         }
 
         # Build field definitions from columns if not provided
@@ -863,27 +899,180 @@ class UniversalList : PmcWidget {
     }
 
     # PERFORMANCE: Direct engine rendering (bypasses ANSI string building/parsing)
+    # This method is now responsible for defining regions and writing to them.
     [void] RenderToEngine([object]$engine) {
-        
+        # Ensure our base region and grid regions are defined
+        $this.RegisterLayout($engine)
+
         # Use clipping if available (Hybrid engine)
         if ($engine.PSObject.Methods['PushClip']) {
             $engine.PushClip($this.X, $this.Y, $this.Width, $this.Height)
         }
 
-        # If filter panel is shown, render list + filter panel
+        # Helper to convert theme ANSI to int
+        $borderColor = [HybridRenderEngine]::AnsiColorToInt($this.GetThemedFg('Border.Widget'))
+        $textColor = [HybridRenderEngine]::AnsiColorToInt($this.GetThemedFg('Foreground.Row'))
+        $primaryColor = [HybridRenderEngine]::AnsiColorToInt($this.GetThemedFg('Foreground.Title'))
+        $mutedColor = [HybridRenderEngine]::AnsiColorToInt($this.GetThemedFg('Foreground.Muted'))
+        $defaultBg = -1 # Transparent/Default
+        
+        $highlightBg = [HybridRenderEngine]::AnsiColorToInt($this.GetThemedBg('Background.RowSelected', 1, 0))
+        $highlightFg = [HybridRenderEngine]::AnsiColorToInt($this.GetThemedFg('Foreground.RowSelected'))
+        
+        # Fallbacks
+        if ($highlightBg -eq -1) { $highlightBg = [HybridRenderEngine]::_PackRGB(64, 94, 117) } # Blue
+        if ($highlightFg -eq -1) { $highlightFg = [HybridRenderEngine]::_PackRGB(255, 255, 255) } # White
+
+        # Draw top border
+        $engine.WriteAt($this.X, $this.Y - 1, $this.GetBoxChar('single_topleft'), $borderColor, $defaultBg)
+        $engine.Fill($this.X + 1, $this.Y - 1, $this.Width - 2, 1, $this.GetBoxChar('single_horizontal')[0], $borderColor, $defaultBg)
+        $engine.WriteAt($this.X + $this.Width - 1, $this.Y - 1, $this.GetBoxChar('single_topright'), $borderColor, $defaultBg)
+
+        # Title (overwrites top border part)
+        $titleText = " $($this.Title) "
+        $engine.WriteAt($this.X + 2, $this.Y - 1, $titleText, $primaryColor, $defaultBg)
+
+        # Item count
+        $countText = "($($this._filteredData.Count) items)"
+        $engine.WriteAt($this.X + $this.Width - $countText.Length - 2, $this.Y - 1, $countText, $mutedColor, $defaultBg)
+
+        $currentRow = 1
+
+        # Draw Headers into regions
+        $supportsUnicode = $env:LANG -match 'UTF-8' -or [Console]::OutputEncoding.EncodingName -match 'UTF'
+        $sortUpSymbol = $(if ($supportsUnicode) { "↑" } else { "^" })
+        $sortDownSymbol = $(if ($supportsUnicode) { "↓" } else { "v" })
+
+        # Use pre-defined header column regions
+        $headerColRegions = $engine.GetChildRegions("$($this.RegionID)_Header")
+        
+        for ($i = 0; $i -lt $this._columns.Count; $i++) {
+            $col = $this._columns[$i]
+            $label = $col.Label
+            
+            if ($this._sortColumn -eq $col.Name) {
+                $sortIndicator = $(if ($this._sortAscending) { " $sortUpSymbol" } else { " $sortDownSymbol" })
+                $label += $sortIndicator
+            }
+            
+            # Write to region (Engine handles clipping/bounds)
+            if ($null -ne $headerColRegions -and $i -lt $headerColRegions.Count) {
+                $engine.WriteToRegion($headerColRegions[$i], $label, $primaryColor, $defaultBg)
+            }
+        }
+
+        $currentRow++
+
+        # Separator row
+        $sepY = $this.Y + $currentRow
+        $engine.WriteAt($this.X, $sepY - 1, $this.GetBoxChar('single_vertical'), $borderColor, $defaultBg)
+        $engine.Fill($this.X + 1, $sepY - 1, $this.Width - 2, 1, $this.GetBoxChar('single_horizontal')[0], $borderColor, $defaultBg)
+        $engine.WriteAt($this.X + $this.Width - 1, $sepY - 1, $this.GetBoxChar('single_vertical'), $borderColor, $defaultBg)
+
+        $currentRow++
+
+        # Data rows
+        $maxVisibleRows = $this.Height - 6
+        $visibleStartIndex = $this._scrollOffset
+        $filteredCount = $(if ($null -eq $this._filteredData) { 0 } elseif ($this._filteredData -is [array]) { $this._filteredData.Count } else { 1 })
+        $linesToRender = [Math]::Min($maxVisibleRows, $filteredCount - $visibleStartIndex)
+
+        for ($i = 0; $i -lt $linesToRender; $i++) {
+            $dataIndex = $visibleStartIndex + $i
+            $item = $this._filteredData[$dataIndex]
+            $rowY = $this.Y + $currentRow + $i
+
+            $isSelected = ($dataIndex -eq $this._selectedIndex)
+            
+            # Check skip logic (edit mode)
+            $skipRowHighlight = $false
+            if ($this._columns[0].ContainsKey('SkipRowHighlight') -and $null -ne $this._columns[0].SkipRowHighlight) {
+                 try { $skipRowHighlight = & $this._columns[0].SkipRowHighlight $item } catch { }
+            }
+            
+            $rowInEditMode = $false
+            if ($null -ne $this.GetIsInEditMode) {
+                try { $res = & $this.GetIsInEditMode $item; $rowInEditMode = [bool]$res } catch { }
+            }
+
+            # Left Border
+            $engine.WriteAt($this.X, $rowY - 1, $this.GetBoxChar('single_vertical'), $borderColor, $defaultBg)
+
+            $rowBaseRegionId = "$($this.RegionID)_Row_${i}"
+            $rowColRegions = $engine.GetChildRegions($rowBaseRegionId)
+
+            if ($skipRowHighlight -or $rowInEditMode) {
+                 # Clear content area for editor
+                 $engine.Fill($this.X + 1, $rowY - 1, $this.Width - 2, 1, ' ', $defaultBg, $defaultBg)
+            } else {
+                $bg = $(if ($isSelected) { $highlightBg } else { $defaultBg })
+                $fg = $(if ($isSelected) { $highlightFg } else { $textColor })
+
+                # Draw Row Content into regions
+                for ($j = 0; $j -lt $this._columns.Count; $j++) {
+                    $col = $this._columns[$j]
+                    $cellValue = $this._GetItemProperty($item, $col.Name)
+                    $cellText = $(if ($null -ne $cellValue) { $cellValue.ToString() } else { "" })
+                    
+                    # Fill region background first (for highlight)
+                    if ($null -ne $rowColRegions -and $j -lt $rowColRegions.Count) {
+                        $rBounds = $engine.GetRegionBounds($rowColRegions[$j])
+                        if ($rBounds) {
+                            $engine.Fill($rBounds.X, $rBounds.Y, $rBounds.Width, $rBounds.Height, ' ', $fg, $bg)
+                            $engine.WriteToRegion($rowColRegions[$j], $cellText, $fg, $bg)
+                        }
+                    }
+                }
+                
+                # Fill remaining part of the row (between last column and right border)
+                if ($null -ne $rowColRegions -and $rowColRegions.Count -gt 0) {
+                    $lastColRegionBounds = $engine.GetRegionBounds($rowColRegions[-1])
+                    if ($lastColRegionBounds) {
+                        $endOfContentX = $lastColRegionBounds.X + $lastColRegionBounds.Width + 4 # last column + its gap
+                        $fillWidth = ($this.X + $this.Width - 1) - $endOfContentX
+                        if ($fillWidth -gt 0) {
+                            $engine.Fill($endOfContentX, $rowY - 1, $fillWidth, 1, ' ', $fg, $bg)
+                        }
+                    }
+                }
+            }
+
+            # Right Border
+            $engine.WriteAt($this.X + $this.Width - 1, $rowY - 1, $this.GetBoxChar('single_vertical'), $borderColor, $defaultBg)
+        }
+        
+        # Clear empty rows at bottom
+        $emptyStartRow = $currentRow + $linesToRender
+        $emptyEndRow = $this.Height - 2
+        for ($r = $emptyStartRow; $r -le $emptyEndRow; $r++) {
+             $rowY = $this.Y + $r
+             $engine.WriteAt($this.X, $rowY - 1, $this.GetBoxChar('single_vertical'), $borderColor, $defaultBg)
+             $engine.Fill($this.X + 1, $rowY - 1, $this.Width - 2, 1, ' ', $defaultBg, $defaultBg)
+             $engine.WriteAt($this.X + $this.Width - 1, $rowY - 1, $this.GetBoxChar('single_vertical'), $borderColor, $defaultBg)
+        }
+
+        # Bottom border
+        $bottomY = $this.Y + $this.Height - 2
+        $engine.WriteAt($this.X, $bottomY - 1, $this.GetBoxChar('single_bottomleft'), $borderColor, $defaultBg)
+        $engine.Fill($this.X + 1, $bottomY - 1, $this.Width - 2, 1, $this.GetBoxChar('single_horizontal')[0], $borderColor, $defaultBg)
+        $engine.WriteAt($this.X + $this.Width - 1, $bottomY - 1, $this.GetBoxChar('single_bottomright'), $borderColor, $defaultBg)
+
+        # Status line
+        $statusY = $this.Y + $this.Height - 1
+        $statusText = " Row $($this._selectedIndex + 1) of $filteredCount "
+        $engine.WriteAt($this.X, $statusY - 1, $statusText, $mutedColor, $defaultBg)
+
+        if ($engine.PSObject.Methods['PopClip']) {
+            $engine.PopClip()
+        }
+
+        # If filter panel is shown, render it as overlay
         if ($this.IsInFilterMode) {
-            $this._RenderListDirect($engine)
             # Filter panel still uses string path
             $filterOutput = $this._filterPanel.Render()
             if ($filterOutput) {
                 $this._ParseAnsiToEngine($engine, $filterOutput)
             }
-        } else {
-            $this._RenderListDirect($engine)
-        }
-
-        if ($engine.PSObject.Methods['PopClip']) {
-            $engine.PopClip()
         }
     }
 
@@ -968,12 +1157,12 @@ class UniversalList : PmcWidget {
             }
 
             # Use EXACT SAME logic as data rows
-            $targetWidth = $width + 2
+            $targetWidth = $width
             $truncated = $this.TruncateText($label, $targetWidth)
             $padded = $this.PadText($truncated, $targetWidth, $col.Align)
             $sb.Append($padded)
             $sb.Append("    ")
-            $currentX += $width + 6
+            $currentX += $width + 4
         }
 
         $sb.Append($this.BuildMoveTo($this.X + $this.Width - 1, $headerY))
@@ -1289,7 +1478,7 @@ class UniversalList : PmcWidget {
                     $rowBuilder.Append($reset)
                     # Add fixed-width spacing to reach column width (now without background color)
                     $visibleLen = $this.GetVisibleLength($valueStr)
-                    $targetWidth = $width + 2
+                    $targetWidth = $width
                     if ($visibleLen -lt $targetWidth) {
                         $rowBuilder.Append(" " * ($targetWidth - $visibleLen))
                     }
@@ -1298,7 +1487,7 @@ class UniversalList : PmcWidget {
                 } else {
                     # Normal mode - use padding
                     $valueStrLen = $(if ($null -ne $valueStr -and $valueStr -is [string]) { $valueStr.Length } else { 0 })
-                    $targetWidth = $width + 2
+                    $targetWidth = $width
                     $truncated = $this.TruncateText($valueStr, $targetWidth)
                     $truncLen = $(if ($null -ne $truncated -and $truncated -is [string]) { $truncated.Length } else { 0 })
                     $displayValue = $this.PadText($truncated, $targetWidth, $col.Align)
@@ -1311,7 +1500,7 @@ class UniversalList : PmcWidget {
                     $rowBuilder.Append("    ")
                 }
 
-                $currentX += $width + 6
+                $currentX += $width + 4
             }
 
             # CRITICAL FIX: Always reset after row content to prevent color bleeding
@@ -1889,167 +2078,4 @@ class UniversalList : PmcWidget {
         }
     }
 
-    # Render list directly to engine (no string building)
-    hidden [void] _RenderListDirect([object]$engine) {
-        # Colors from new theme system
-        $borderColor = $this.GetThemedFg('Border.Widget')
-        $textColor = $this.GetThemedFg('Foreground.Row')
-        $primaryColor = $this.GetThemedFg('Foreground.Title')
-        $mutedColor = $this.GetThemedFg('Foreground.Muted')
-        $successColor = $this.GetThemedFg('Foreground.Success')
-
-        # Selected row colors
-        $highlightBg = $this.GetThemedBg('Background.RowSelected', 1, 0)
-        $highlightFg = $this.GetThemedFg('Foreground.RowSelected')
-
-        # CRITICAL FIX: Fallback if theme returns empty
-        if ([string]::IsNullOrWhiteSpace($highlightBg)) {
-            $highlightBg = "`e[48;2;64;94;117m"  # Fallback blue background
-        }
-        if ([string]::IsNullOrWhiteSpace($highlightFg)) {
-            $highlightFg = "`e[38;2;255;255;255m"  # Fallback white foreground
-        }
-
-        # EXTENSIVE DEBUG: Log ALL color values
-        # PERF FIX: Disabled - Add-Content -Path "$($env:TEMP)\pmc-colors-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') highlightBg='$highlightBg' len=$($highlightBg.Length) highlightFg='$highlightFg' len=$($highlightFg.Length)"
-
-        $reset = "`e[0m"
-
-        # Draw top border
-        $topLine = $borderColor + $this.BuildBoxBorder($this.Width, 'top', 'single')
-        $engine.WriteAt($this.X - 1, $this.Y - 1, $topLine)
-
-        # Title
-        $titleText = " $($this.Title) "
-        $engine.WriteAt($this.X + 1, $this.Y - 1, $primaryColor + $titleText + $reset)
-
-        # Item count
-        $countText = "($($this._filteredData.Count) items)"
-        $engine.WriteAt($this.X + $this.Width - $countText.Length - 3, $this.Y - 1, $mutedColor + $countText + $reset)
-
-        $currentRow = 1
-
-        # Column headers
-        $headerY = $this.Y + $currentRow
-        $engine.WriteAt($this.X - 1, $headerY - 1, $borderColor + $this.GetBoxChar('single_vertical') + $reset)
-
-        # Build header line
-        $headerBuilder = [StringBuilder]::new()
-        $currentX = 2
-        $supportsUnicode = $env:LANG -match 'UTF-8' -or [Console]::OutputEncoding.EncodingName -match 'UTF'
-        $sortUpSymbol = $(if ($supportsUnicode) { "↑" } else { "^" })
-        $sortDownSymbol = $(if ($supportsUnicode) { "↓" } else { "v" })
-
-        foreach ($col in $this._columns) {
-            $label = $col.Label
-            $width = $(if ($this._columnWidths.ContainsKey($col.Name)) {
-                $this._columnWidths[$col.Name]
-            } else {
-                $col.Width
-            })
-
-            if ($this._sortColumn -eq $col.Name) {
-                $sortIndicator = $(if ($this._sortAscending) { " $sortUpSymbol" } else { " $sortDownSymbol" })
-                $label += $sortIndicator
-            }
-
-            # Use EXACT SAME logic as data rows
-            $targetWidth = $width + 2
-            $truncated = $this.TruncateText($label, $targetWidth)
-            $padded = $this.PadText($truncated, $targetWidth, $col.Align)
-            $headerBuilder.Append($padded)
-            $headerBuilder.Append("    ")
-        }
-
-        $engine.WriteAt($this.X + 1, $headerY - 1, $primaryColor + $headerBuilder.ToString() + $reset)
-        $engine.WriteAt($this.X + $this.Width - 2, $headerY - 1, $borderColor + $this.GetBoxChar('single_vertical') + $reset)
-
-        $currentRow++
-
-        # Separator row
-        $sepY = $this.Y + $currentRow
-        $sepLine = $borderColor + $this.GetBoxChar('single_vertical') + $this.BuildHorizontalLine($this.Width - 2, 'single') + $this.GetBoxChar('single_vertical') + $reset
-        $engine.WriteAt($this.X - 1, $sepY - 1, $sepLine)
-
-        $currentRow++
-
-        # Data rows (virtual scrolling)
-        $maxVisibleRows = $this.Height - 6
-        $visibleStartIndex = $this._scrollOffset
-
-        $filteredCount = $(if ($null -eq $this._filteredData) {
-            0
-        } elseif ($this._filteredData -is [array]) {
-            $this._filteredData.Count
-        } else {
-            1
-        })
-
-        $linesToRender = [Math]::Min($maxVisibleRows, $filteredCount - $visibleStartIndex)
-
-        for ($i = 0; $i -lt $linesToRender; $i++) {
-            $dataIndex = $visibleStartIndex + $i
-            $item = $this._filteredData[$dataIndex]
-            $rowY = $this.Y + $currentRow + $i
-
-            # Left border
-            $engine.WriteAt($this.X - 1, $rowY - 1, $borderColor + $this.GetBoxChar('single_vertical') + $reset)
-
-            # Determine if selected
-            $isSelected = ($dataIndex -eq $this._selectedIndex)
-
-            # Build row content
-            $rowBuilder = [StringBuilder]::new()
-            $currentX = 2
-
-            foreach ($col in $this._columns) {
-                $cellValue = $this._GetItemProperty($item, $col.Name)
-                if ($null -eq $cellValue) {
-                    $cellValue = ""
-                }
-
-                # Format cell value - convert to string
-                $cellText = $(if ($cellValue -is [array]) {
-                    ($cellValue -join ', ')
-                } elseif ($null -ne $cellValue) {
-                    $cellValue.ToString()
-                } else {
-                    ""
-                })
-
-                $width = $(if ($this._columnWidths.ContainsKey($col.Name)) {
-                    $this._columnWidths[$col.Name]
-                } else {
-                    $col.Width
-                })
-
-                if ($isSelected) {
-                    $rowBuilder.Append($highlightBg)
-                }
-
-                $rowBuilder.Append($this.PadText($cellText, $width, $col.Align))
-
-                if ($isSelected) {
-                    $rowBuilder.Append($reset)
-                }
-
-                $rowBuilder.Append("  ")
-            }
-
-            $engine.WriteAt($this.X + 1, $rowY - 1, $rowBuilder.ToString())
-
-            # Right border
-            $engine.WriteAt($this.X + $this.Width - 2, $rowY - 1, $borderColor + $this.GetBoxChar('single_vertical') + $reset)
-        }
-
-        # Bottom border
-        $bottomY = $this.Y + $this.Height - 2
-        $bottomLine = $borderColor + $this.BuildBoxBorder($this.Width, 'bottom', 'single') + $reset
-        $engine.WriteAt($this.X - 1, $bottomY - 1, $bottomLine)
-
-        # Status line
-        $statusY = $this.Y + $this.Height - 1
-        $statusText = " Row $($this._selectedIndex + 1) of $filteredCount "
-        $engine.WriteAt($this.X - 1, $statusY - 1, $mutedColor + $statusText + $reset)
-    }
-}
+    # Render list directly to engine (using direct cell access for speed and precision)

@@ -1,0 +1,62 @@
+[2025-12-10 16:04:09.004] [INFO] Loading PMC module...
+[2025-12-10 16:04:10.938] [INFO] PMC module loaded
+[2025-12-10 16:04:10.940] [INFO] Loading dependencies (FieldSchemas, etc.)...
+[2025-12-10 16:04:11.124] [INFO] Dependencies loaded
+[2025-12-10 16:04:11.132] [INFO] Loading SpeedTUI framework...
+[2025-12-10 16:04:11.615] [INFO] SpeedTUI framework loaded
+[2025-12-10 16:04:11.624] [INFO] Loading PraxisVT...
+[2025-12-10 16:04:11.641] [INFO] PraxisVT loaded
+[2025-12-10 16:04:11.649] [INFO] Loading core dependencies...
+[2025-12-10 16:04:11.766] [INFO] Core dependencies loaded
+[2025-12-10 16:04:11.778] [INFO] Loading widget base classes...
+[2025-12-10 16:04:11.870] [INFO] Widget base classes loaded
+[2025-12-10 16:04:11.879] [INFO] Loading widgets...
+[2025-12-10 16:04:12.015] [ERROR] Failed to load widgets: At C:\Users\jhnhe\OneDrive\Documents\GitHub\project-management-console\og_transport\working\module\Pmc.Strict\consoleui\widgets\InlineEditor.ps1:340 char:36
++                     $textWidget = [TextInput]::new()
++                                    ~~~~~~~~~
+Unable to find type [TextInput].
+
+At C:\Users\jhnhe\OneDrive\Documents\GitHub\project-management-console\og_transport\working\module\Pmc.Strict\consoleui\widgets\InlineEditor.ps1:1108 char:28
++                 $widget = [TextInput]::new()
++                            ~~~~~~~~~
+Unable to find type [TextInput].
+
+At C:\Users\jhnhe\OneDrive\Documents\GitHub\project-management-console\og_transport\working\module\Pmc.Strict\consoleui\widgets\InlineEditor.ps1:1133 char:28
++                 $widget = [TextInput]::new()
++                            ~~~~~~~~~
+Unable to find type [TextInput].
+
+At C:\Users\jhnhe\OneDrive\Documents\GitHub\project-management-console\og_transport\working\module\Pmc.Strict\consoleui\widgets\InlineEditor.ps1:1159 char:28
++                 $widget = [TextInput]::new()
++                            ~~~~~~~~~
+Unable to find type [TextInput].
+
+At C:\Users\jhnhe\OneDrive\Documents\GitHub\project-management-console\og_transport\working\module\Pmc.Strict\consoleui\widgets\InlineEditor.ps1:1188 char:32
++                     $widget = [TextInput]::new()
++                                ~~~~~~~~~
+Unable to find type [TextInput].
+
+At C:\Users\jhnhe\OneDrive\Documents\GitHub\project-management-console\og_transport\working\module\Pmc.Strict\consoleui\widgets\InlineEditor.ps1:1197 char:32
++                     $widget = [ProjectPicker]::new()
++                                ~~~~~~~~~~~~~
+Unable to find type [ProjectPicker].
+
+At C:\Users\jhnhe\OneDrive\Documents\GitHub\project-management-console\og_transport\working\module\Pmc.Strict\consoleui\widgets\InlineEditor.ps1:1212 char:28
++                 $widget = [TextInput]::new()
++                            ~~~~~~~~~
+Unable to find type [TextInput].
+
+At C:\Users\jhnhe\OneDrive\Documents\GitHub\project-management-console\og_transport\working\module\Pmc.Strict\consoleui\widgets\InlineEditor.ps1:1236 char:28
++                 $widget = [TextInput]::new()
++                            ~~~~~~~~~
+Unable to find type [TextInput].
+
+At C:\Users\jhnhe\OneDrive\Documents\GitHub\project-management-console\og_transport\working\module\Pmc.Strict\consoleui\widgets\InlineEditor.ps1:1257 char:28
++                 $widget = [TextInput]::new()
++                            ~~~~~~~~~
+Unable to find type [TextInput].
+
+At C:\Users\jhnhe\OneDrive\Documents\GitHub\project-management-console\og_transport\working\module\Pmc.Strict\consoleui\widgets\InlineEditor.ps1:1703 char:35
++                 $projectPicker = [ProjectPicker]::new()
++                                   ~~~~~~~~~~~~~
+Unable to find type [ProjectPicker].

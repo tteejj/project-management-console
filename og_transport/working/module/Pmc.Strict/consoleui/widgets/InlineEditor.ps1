@@ -92,6 +92,7 @@ class InlineEditor : PmcWidget {
     [bool]$IsConfirmed = $false                # True when Enter pressed and validated
     [bool]$IsCancelled = $false                # True when Esc pressed
     [bool]$NeedsClear = $false                 # True when field widget was closed and screen needs clear
+    [string]$TargetRegionID = ""               # Engine Layout Region to target (if any)
 
     # === Private State ===
     hidden [List[hashtable]]$_fields = [List[hashtable]]::new()      # Field definition
@@ -576,36 +577,87 @@ class InlineEditor : PmcWidget {
             $engine.BeginLayer(10)
         }
 
-        # Render to string
-        $ansiOutput = $this.Render()
-        
-        # Write to engine
-        $pattern = "`e\[(\d+);(\d+)H"
-        $matches = [regex]::Matches($ansiOutput, $pattern)
+        # LAYOUT SYSTEM: Use target region if available (Perfect Alignment Mode)
+        if (-not [string]::IsNullOrEmpty($this.TargetRegionID) -and $this.LayoutMode -eq 'horizontal') {
+            # Get grid regions from engine
+            $colRegions = $engine.GetChildRegions($this.TargetRegionID)
+            
+            # Colors
+            $focusBg = [HybridRenderEngine]::AnsiColorToInt($this.GetThemedBg('Background.FieldFocused', 10, 0))
+            $focusFg = [HybridRenderEngine]::AnsiColorToInt($this.GetThemedFg('Foreground.FieldFocused'))
+            $normalBg = [HybridRenderEngine]::AnsiColorToInt($this.GetThemedBg('Background.Field', 10, 0))
+            $normalFg = [HybridRenderEngine]::AnsiColorToInt($this.GetThemedFg('Foreground.Field'))
+            
+            # Fallbacks
+            if ($focusBg -eq -1) { $focusBg = [HybridRenderEngine]::_PackRGB(0, 100, 180) } # Blue
+            if ($focusFg -eq -1) { $focusFg = [HybridRenderEngine]::_PackRGB(255, 255, 255) }
+            if ($normalBg -eq -1) { $normalBg = -1 } # Default
+            if ($normalFg -eq -1) { $normalFg = [HybridRenderEngine]::_PackRGB(200, 200, 200) }
 
-        if ($matches.Count -eq 0) {
-            if ($ansiOutput) {
-                # Fallback: write at widget position if no positioning in output
-                $engine.WriteAt($this.X, $this.Y, $ansiOutput)
+            # Render fields into regions
+            for ($i = 0; $i -lt [Math]::Min($this._fields.Count, $colRegions.Count); $i++) {
+                $field = $this._fields[$i]
+                $regionId = $colRegions[$i]
+                $isFocused = ($i -eq $this._currentFieldIndex)
+                
+                $fg = $(if ($isFocused) { $focusFg } else { $normalFg })
+                $bg = $(if ($isFocused) { $focusBg } else { $normalBg })
+                
+                # Get display value
+                $val = $this._GetFieldValuePreview($field)
+                
+                # If TextInput widget active, use its value (shows cursor logic if we implemented cursor in WriteToRegion)
+                # For now, just show text value. Cursor implementation would require region-relative cursor support.
+                if ($isFocused -and $this._fieldWidgets.ContainsKey($field.Name)) {
+                    $widget = $this._fieldWidgets[$field.Name]
+                    if ($widget -is [TextInput]) {
+                        $val = $widget.GetText()
+                    }
+                }
+                
+                # Write to region (Engine handles clipping/padding)
+                # Clear region background first if focused
+                if ($isFocused) {
+                    $bounds = $engine.GetRegionBounds($regionId)
+                    if ($bounds) {
+                        $engine.Fill($bounds.X, $bounds.Y, $bounds.Width, $bounds.Height, ' ', $fg, $bg)
+                    }
+                }
+                
+                $engine.WriteToRegion($regionId, $val, $fg, $bg)
             }
         } else {
-            for ($i = 0; $i -lt $matches.Count; $i++) {
-                $match = $matches[$i]
-                $row = [int]$match.Groups[1].Value
-                $col = [int]$match.Groups[2].Value
-                $x = $col - 1
-                $y = $row - 1
+            # Standard Manual Rendering (Fallback)
+            $ansiOutput = $this.Render()
+            
+            # Write to engine
+            $pattern = "`e\[(\d+);(\d+)H"
+            $matches = [regex]::Matches($ansiOutput, $pattern)
 
-                $startIndex = $match.Index + $match.Length
-                if ($i + 1 -lt $matches.Count) {
-                    $endIndex = $matches[$i + 1].Index
-                } else {
-                    $endIndex = $ansiOutput.Length
+            if ($matches.Count -eq 0) {
+                if ($ansiOutput) {
+                    # Fallback: write at widget position if no positioning in output
+                    $engine.WriteAt($this.X, $this.Y, $ansiOutput)
                 }
+            } else {
+                for ($i = 0; $i -lt $matches.Count; $i++) {
+                    $match = $matches[$i]
+                    $row = [int]$match.Groups[1].Value
+                    $col = [int]$match.Groups[2].Value
+                    $x = $col - 1
+                    $y = $row - 1
 
-                $content = $ansiOutput.Substring($startIndex, $endIndex - $startIndex)
-                if ($content) {
-                    $engine.WriteAt($x, $y, $content)
+                    $startIndex = $match.Index + $match.Length
+                    if ($i + 1 -lt $matches.Count) {
+                        $endIndex = $matches[$i + 1].Index
+                    } else {
+                        $endIndex = $ansiOutput.Length
+                    }
+
+                    $content = $ansiOutput.Substring($startIndex, $endIndex - $startIndex)
+                    if ($content) {
+                        $engine.WriteAt($x, $y, $content)
+                    }
                 }
             }
         }
@@ -794,7 +846,7 @@ class InlineEditor : PmcWidget {
                     $focusFg = $this.GetThemedFg('Foreground.FieldFocused')
 
                     # Render with highlighting and blinking cursor
-                    $renderWidth = $fieldWidth + 2
+                    $renderWidth = $fieldWidth
                     for ($charIdx = 0; $charIdx -lt $renderWidth; $charIdx++) {
                         if ($charIdx -eq $relCursorPos) {
                             # Cursor position - invert colors and blink
@@ -812,7 +864,7 @@ class InlineEditor : PmcWidget {
                     $sb.Append($reset)
                 } else {
                     # Widget field (date/project/tags) that isn't TextInput - show preview with focus
-                    $renderWidth = $fieldWidth + 2
+                    $renderWidth = $fieldWidth
                     $displayValue = $value.PadRight($renderWidth)
                     if ($displayValue.Length -gt $renderWidth) {
                         $displayValue = $displayValue.Substring(0, $renderWidth)
@@ -836,7 +888,7 @@ class InlineEditor : PmcWidget {
                     }
                 }
 
-                $renderWidth = $fieldWidth + 2
+                $renderWidth = $fieldWidth
                 $displayValue = $displayValue.PadRight($renderWidth)
                 if ($displayValue.Length -gt $renderWidth) {
                     $displayValue = $displayValue.Substring(0, $renderWidth)
@@ -851,7 +903,7 @@ class InlineEditor : PmcWidget {
 
             # Add separator spacing to match column spacing
             $sb.Append("    ")
-            $currentX += $fieldWidth + 6
+            $currentX += $fieldWidth + 4
         }
 
         # CRITICAL FIX: Reset colors THEN clear to EOL (ensures no background bleeds into padding)
