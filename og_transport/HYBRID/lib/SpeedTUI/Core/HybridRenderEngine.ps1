@@ -388,6 +388,53 @@ class HybridRenderEngine {
         }
     }
 
+    [void] WriteAt([int]$x, [int]$y, [string]$content, [int]$fg, [int]$bg) {
+        if (-not $this._inFrame -or [string]::IsNullOrEmpty($content)) { return }
+
+        # Apply Offset
+        $offsetX = 0
+        $offsetY = 0
+        if ($this._offsetStack.Count -gt 0) {
+            $current = $this._offsetStack.Peek()
+            $offsetX = $current.X
+            $offsetY = $current.Y
+        }
+        
+        $finalX = $x + $offsetX
+        $finalY = $y + $offsetY
+        $currentX = $finalX
+        
+        # Check current clip bounds
+        $clip = $null
+        if ($this._clipStack.Count -gt 0) { $clip = $this._clipStack.Peek() }
+
+        $len = $content.Length
+        for ($i = 0; $i -lt $len; $i++) {
+            # Check Bounds
+            if ($finalY -ge 0 -and $finalY -lt $this.Height -and $currentX -ge 0 -and $currentX -lt $this.Width) {
+                
+                # Check Clipping
+                $isClipped = $false
+                if ($clip) {
+                    if ($currentX -lt $clip.X -or $currentX -ge $clip.R -or $finalY -lt $clip.Y -or $finalY -ge $clip.B) {
+                        $isClipped = $true
+                    }
+                }
+
+                # Check Z-Index
+                if (-not $isClipped) {
+                    if ($this._currentZ -ge $this._zBuffer[$finalY][$currentX]) {
+                        # Write
+                        $this._backBuffer.SetCell($currentX, $finalY, $content[$i], $fg, $bg, 0)
+                        $this._zBuffer[$finalY][$currentX] = $this._currentZ
+                        $this._UpdateDirtyBounds($currentX, $finalY)
+                    }
+                }
+            }
+            $currentX++
+        }
+    }
+
     [void] Clear([int]$x, [int]$y, [int]$width, [int]$height) {
         # Helper to clear area using spaces
         # We construct a string of spaces and use WriteAt so Z-Index/Clipping applies automatically
