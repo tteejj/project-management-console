@@ -192,9 +192,9 @@ class PmcHeader : PmcWidget {
         $this.RegisterLayout($engine)
 
         # Colors (Ints)
-        $titleFg = [HybridRenderEngine]::AnsiColorToInt($this.GetThemedFg('Foreground.Title'))
-        $mutedFg = [HybridRenderEngine]::AnsiColorToInt($this.GetThemedFg('Foreground.Muted'))
-        $borderFg = [HybridRenderEngine]::AnsiColorToInt($this.GetThemedFg('Border.Widget'))
+        $titleFg = $this.GetThemedInt('Foreground.Title')
+        $mutedFg = $this.GetThemedInt('Foreground.Muted')
+        $borderFg = $this.GetThemedInt('Border.Widget')
         $defaultBg = -1
 
         # Title

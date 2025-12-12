@@ -159,9 +159,9 @@ class PmcStatusBar : PmcWidget {
     [void] RenderToEngine([object]$engine) {
         $this.RegisterLayout($engine)
 
-        $bg = [HybridRenderEngine]::AnsiColorToInt($this.GetThemedBg('Background.MenuBar', 1, 0))
-        $fg = [HybridRenderEngine]::AnsiColorToInt($this.GetThemedFg('Foreground.Row'))
-        $muted = [HybridRenderEngine]::AnsiColorToInt($this.GetThemedFg('Foreground.Muted'))
+        $bg = $this.GetThemedBgInt('Background.MenuBar', 1, 0)
+        $fg = $this.GetThemedInt('Foreground.Row')
+        $muted = $this.GetThemedInt('Foreground.Muted')
         
         if ($bg -eq -1) { $bg = [HybridRenderEngine]::_PackRGB(30, 30, 30) } # Dark grey fallback
 

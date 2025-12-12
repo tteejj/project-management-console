@@ -328,36 +328,21 @@ class TextInput : PmcWidget {
         $this.RegisterLayout($engine)
 
         # Colors (Ints)
-        $bg = [HybridRenderEngine]::AnsiColorToInt($this.GetThemedBg('Background.MenuBar', 1, 0)) # Fallback bg
+        $bg = $this.GetThemedBgInt('Background.MenuBar', 1, 0)
         if ($bg -eq -1) { $bg = [HybridRenderEngine]::_PackRGB(30, 30, 30) }
-        $fg = [HybridRenderEngine]::AnsiColorToInt($this.GetThemedFg('Foreground.Row'))
-        $borderFg = [HybridRenderEngine]::AnsiColorToInt($this.GetThemedFg('Border.Widget'))
-        $primaryFg = [HybridRenderEngine]::AnsiColorToInt($this.GetThemedFg('Foreground.Title'))
-        $mutedFg = [HybridRenderEngine]::AnsiColorToInt($this.GetThemedFg('Foreground.Muted'))
-        $errorFg = [HybridRenderEngine]::AnsiColorToInt($this.GetThemedFg('Foreground.Error'))
+
+        $fg = $this.GetThemedInt('Foreground.Row')
+        $borderFg = $this.GetThemedInt('Border.Widget')
+        $primaryFg = $this.GetThemedInt('Foreground.Title')
+        $mutedFg = $this.GetThemedInt('Foreground.Muted')
+        $errorFg = $this.GetThemedInt('Foreground.Error')
         
         # Border Color
         $activeBorderFg = if (-not $this.IsValid) { $errorFg } elseif ($this.HasFocus) { $primaryFg } else { $borderFg }
 
         # Draw Box
         $engine.Fill($this.X, $this.Y, $this.Width, $this.Height, ' ', $fg, $bg)
-        $engine.DrawBox($this.X, $this.Y, $this.Width, $this.Height, 'single')
-        # Redraw border with active color? DrawBox uses default colors?
-        # My DrawBox doesn't take color. I should probably add color support or manually draw it.
-        # But wait, DrawBox uses WriteAt. If I set colors in engine state...
-        # HybridRenderEngine doesn't have "current color" state for DrawBox.
-        # DrawBox just writes chars. So it uses "current" color? Or default?
-        # The DrawBox implementation: 
-        # $this.WriteAt($x, $y, $topLine)
-        # WriteAt parses ANSI if present. DrawBox chars are plain.
-        # So DrawBox uses default/transparent colors unless WriteAt context is set?
-        # My new WriteAt takes colors. DrawBox calls WriteAt(x,y,string).
-        # So it uses -1, -1.
-        # I should probably update DrawBox to take color, or just overlay color?
-        # For now, let's manually draw the border color by writing spaces with color? No.
-        # Let's assume DrawBox is fine for now, or use `WriteToRegion` tricks.
-        # Actually, I can just write the border chars manually with color if needed.
-        # But let's skip coloring the border for now to save complexity, or assume it inherits.
+        $engine.DrawBox($this.X, $this.Y, $this.Width, $this.Height, 'single', $activeBorderFg, $bg)
         
         # Title
         if ($this.Label) {
