@@ -303,20 +303,20 @@ class ProjectPicker : PmcWidget {
         $this.RegisterLayout($engine)
 
         # Colors (Ints)
-        $bg = [HybridRenderEngine]::AnsiColorToInt($this.GetThemedBg('Background.MenuBar', 1, 0))
-        $fg = [HybridRenderEngine]::AnsiColorToInt($this.GetThemedFg('Foreground.Row'))
-        $borderFg = [HybridRenderEngine]::AnsiColorToInt($this.GetThemedFg('Border.Widget'))
-        $primaryFg = [HybridRenderEngine]::AnsiColorToInt($this.GetThemedFg('Foreground.Title'))
-        $mutedFg = [HybridRenderEngine]::AnsiColorToInt($this.GetThemedFg('Foreground.Muted'))
-        $errorFg = [HybridRenderEngine]::AnsiColorToInt($this.GetThemedFg('Foreground.Error'))
-        $highlightBg = [HybridRenderEngine]::AnsiColorToInt($this.GetThemedBg('Background.RowSelected', 1, 0))
-        $highlightFg = [HybridRenderEngine]::AnsiColorToInt($this.GetThemedFg('Foreground.RowSelected'))
+        $bg = $this.GetThemedBgInt('Background.MenuBar', 1, 0)
+        $fg = $this.GetThemedInt('Foreground.Row')
+        $borderFg = $this.GetThemedInt('Border.Widget')
+        $primaryFg = $this.GetThemedInt('Foreground.Title')
+        $mutedFg = $this.GetThemedInt('Foreground.Muted')
+        $errorFg = $this.GetThemedInt('Foreground.Error')
+        $highlightBg = $this.GetThemedBgInt('Background.RowSelected', 1, 0)
+        $highlightFg = $this.GetThemedInt('Foreground.RowSelected')
         
         if ($bg -eq -1) { $bg = [HybridRenderEngine]::_PackRGB(30, 30, 30) }
 
         # Draw Box
         $engine.Fill($this.X, $this.Y, $this.Width, $this.Height, ' ', $fg, $bg)
-        $engine.DrawBox($this.X, $this.Y, $this.Width, $this.Height, 'single')
+        $engine.DrawBox($this.X, $this.Y, $this.Width, $this.Height, 'single', $borderFg, $bg)
         
         # Title
         $title = if ($this._isCreateMode) { "Create New Project" } else { $this.Label }

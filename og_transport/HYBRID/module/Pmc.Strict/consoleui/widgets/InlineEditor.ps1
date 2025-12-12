@@ -584,10 +584,10 @@ class InlineEditor : PmcWidget {
             $colRegions = $engine.GetChildRegions($this.TargetRegionID)
             
             # Colors
-            $focusBg = [HybridRenderEngine]::AnsiColorToInt($this.GetThemedBg('Background.FieldFocused', 10, 0))
-            $focusFg = [HybridRenderEngine]::AnsiColorToInt($this.GetThemedFg('Foreground.FieldFocused'))
-            $normalBg = [HybridRenderEngine]::AnsiColorToInt($this.GetThemedBg('Background.Field', 10, 0))
-            $normalFg = [HybridRenderEngine]::AnsiColorToInt($this.GetThemedFg('Foreground.Field'))
+            $focusBg = $this.GetThemedBgInt('Background.FieldFocused', 10, 0)
+            $focusFg = $this.GetThemedInt('Foreground.FieldFocused')
+            $normalBg = $this.GetThemedBgInt('Background.Field', 10, 0)
+            $normalFg = $this.GetThemedInt('Foreground.Field')
             
             # Fallbacks
             if ($focusBg -eq -1) { $focusBg = [HybridRenderEngine]::_PackRGB(0, 100, 180) } # Blue
