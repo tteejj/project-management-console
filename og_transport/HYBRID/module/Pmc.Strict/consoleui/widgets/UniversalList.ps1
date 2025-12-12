@@ -854,6 +854,44 @@ class UniversalList : PmcWidget {
             return $true
         }
 
+        # Delete key handling
+        if ($keyInfo.Key -eq 'Delete') {
+             if ($this.AllowMultiSelect -and $this._selectedIndices.Count -gt 0) {
+                 # Multi-delete
+                 $items = $this.GetSelectedItems()
+                 $this._InvokeCallback($this.OnItemDelete, $items)
+             } else {
+                 # Single delete
+                 $item = $this.GetSelectedItem()
+                 if ($null -ne $item) {
+                     $this._InvokeCallback($this.OnItemDelete, $item)
+                 }
+             }
+             return $true
+        }
+
+        # F7 - Sort/Filter (Sort menu)
+        if ($keyInfo.Key -eq 'F7') {
+             # Cycle sort column
+             if ($this._columns.Count -gt 0) {
+                # Find current sort column index
+                $currentIdx = -1
+                for ($i = 0; $i -lt $this._columns.Count; $i++) {
+                    if ($this._columns[$i].Name -eq $this._sortColumn) {
+                        $currentIdx = $i
+                        break
+                    }
+                }
+
+                # Next column, ascending
+                $nextIdx = ($currentIdx + 1) % $this._columns.Count
+                $this._sortColumn = $this._columns[$nextIdx].Name
+                $this._sortAscending = $true
+                $this._ApplySort()
+             }
+             return $true
+        }
+
         # Action handling
         $keyChar = $keyInfo.KeyChar.ToString().ToLower()
 

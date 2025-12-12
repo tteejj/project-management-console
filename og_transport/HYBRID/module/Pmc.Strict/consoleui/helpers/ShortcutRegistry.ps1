@@ -37,6 +37,10 @@ class ShortcutRegistry {
         # Register common global shortcuts
         $this._globalShortcuts['Esc'] = 'Back/Cancel'
         $this._globalShortcuts['F10'] = 'Menu'
+        $this._globalShortcuts['Ctrl+Z'] = 'Undo'
+        $this._globalShortcuts['Ctrl+Y'] = 'Redo'
+        $this._globalShortcuts['Delete'] = 'Delete Item'
+        $this._globalShortcuts['F7'] = 'Sort/Filter'
         $this._globalShortcuts['?'] = 'Help'
     }
 

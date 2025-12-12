@@ -46,6 +46,7 @@ class PmcApplication {
     # === Rendering State ===
     [bool]$IsDirty = $true  # Dirty flag - true when redraw needed
     [int]$RenderErrorCount = 0  # Track consecutive render errors for recovery
+    [DateTime]$_lastClockUpdate = [DateTime]::MinValue # Track last clock update
 
     # === Automation Support ===
     [string]$AutomationCommandFile = ""  # Path to command file for automation
@@ -497,6 +498,32 @@ class PmcApplication {
                         break
                     }
 
+                        # Global keys - Ctrl+Z (Undo)
+                        if ($key.Modifiers -eq [ConsoleModifiers]::Control -and $key.Key -eq 'Z') {
+                            if (Get-Command Invoke-PmcUndo -ErrorAction SilentlyContinue) {
+                                Invoke-PmcUndo | Out-Null
+                                $this.IsDirty = $true
+                                # Reload data on current screen if possible
+                                if ($this.CurrentScreen -and $this.CurrentScreen.PSObject.Methods['LoadData']) {
+                                    $this.CurrentScreen.LoadData()
+                                }
+                                continue
+                            }
+                        }
+
+                        # Global keys - Ctrl+Y (Redo)
+                        if ($key.Modifiers -eq [ConsoleModifiers]::Control -and $key.Key -eq 'Y') {
+                            if (Get-Command Invoke-PmcRedo -ErrorAction SilentlyContinue) {
+                                Invoke-PmcRedo | Out-Null
+                                $this.IsDirty = $true
+                                # Reload data on current screen if possible
+                                if ($this.CurrentScreen -and $this.CurrentScreen.PSObject.Methods['LoadData']) {
+                                    $this.CurrentScreen.LoadData()
+                                }
+                                continue
+                            }
+                        }
+
                     # Pass to current screen (screen handles its own menu)
                     if ($this.CurrentScreen) {
                         if ($this.CurrentScreen.PSObject.Methods['HandleKeyPress']) {
@@ -531,6 +558,15 @@ class PmcApplication {
 
                 # Capture dirty state before rendering
                 $wasActive = $this.IsDirty
+
+                # LIVE CLOCK UPDATE: Update status bar clock every second
+                if ((Get-Date) -gt $this._lastClockUpdate.AddSeconds(1)) {
+                    if ($this.CurrentScreen -and $this.CurrentScreen.StatusBar) {
+                        $this.CurrentScreen.StatusBar.SetRightText((Get-Date).ToString("HH:mm:ss"))
+                        $this.IsDirty = $true # Force redraw for clock update
+                    }
+                    $this._lastClockUpdate = Get-Date
+                }
 
                 # OPTIMIZATION: Check terminal resize periodically (every 10 iterations or when idle)
                 # FIX: Was only checking when idle, but if app is always dirty, resize never detected
