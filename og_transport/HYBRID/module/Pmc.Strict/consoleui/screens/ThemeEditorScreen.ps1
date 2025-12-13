@@ -67,53 +67,53 @@ class ThemeEditorScreen : PmcScreen {
             # Define available themes (using PMC theme system hex colors)
             $this.Themes = @(
                 @{
-                    Name = "Default"
-                    Hex = "#33aaff"
+                    Name        = "Default"
+                    Hex         = "#33aaff"
                     Description = "Classic blue"
                 }
                 @{
-                    Name = "Ocean"
-                    Hex = "#33aaff"
+                    Name        = "Ocean"
+                    Hex         = "#33aaff"
                     Description = "Cool ocean blue"
                 }
                 @{
-                    Name = "Lime"
-                    Hex = "#33cc66"
+                    Name        = "Lime"
+                    Hex         = "#33cc66"
                     Description = "Fresh lime green"
                 }
                 @{
-                    Name = "Purple"
-                    Hex = "#9966ff"
+                    Name        = "Purple"
+                    Hex         = "#9966ff"
                     Description = "Vibrant purple"
                 }
                 @{
-                    Name = "Slate"
-                    Hex = "#8899aa"
+                    Name        = "Slate"
+                    Hex         = "#8899aa"
                     Description = "Cool blue-gray"
                 }
                 @{
-                    Name = "Forest"
-                    Hex = "#228844"
+                    Name        = "Forest"
+                    Hex         = "#228844"
                     Description = "Deep forest green"
                 }
                 @{
-                    Name = "Sunset"
-                    Hex = "#ff8833"
+                    Name        = "Sunset"
+                    Hex         = "#ff8833"
                     Description = "Warm sunset orange"
                 }
                 @{
-                    Name = "Rose"
-                    Hex = "#ff6699"
+                    Name        = "Rose"
+                    Hex         = "#ff6699"
                     Description = "Soft rose pink"
                 }
                 @{
-                    Name = "Sky"
-                    Hex = "#66ccff"
+                    Name        = "Sky"
+                    Hex         = "#66ccff"
                     Description = "Bright sky blue"
                 }
                 @{
-                    Name = "Gold"
-                    Hex = "#ffaa33"
+                    Name        = "Gold"
+                    Hex         = "#ffaa33"
                     Description = "Rich golden yellow"
                 }
             )
@@ -140,10 +140,12 @@ class ThemeEditorScreen : PmcScreen {
                             break
                         }
                     }
-                } else {
+                }
+                else {
                     $this.CurrentTheme = "Default"
                 }
-            } catch {
+            }
+            catch {
                 $this.CurrentTheme = "Default"
             }
 
@@ -151,142 +153,94 @@ class ThemeEditorScreen : PmcScreen {
             $count = $(if ($this.Themes) { $this.Themes.Count } else { 0 })
             $this.ShowSuccess("$count themes available")
 
-        } catch {
+        }
+        catch {
             $this.ShowError("Failed to load themes: $_")
             $this.Themes = @()
         }
     }
 
-    [string] RenderContent() {
-        $sb = [System.Text.StringBuilder]::new(4096)
-
-        if (-not $this.LayoutManager) {
-            return $sb.ToString()
-        }
-
-        # Get content area
-        $contentRect = $this.LayoutManager.GetRegion('Content', $this.TermWidth, $this.TermHeight)
-
+    [void] RenderContentToEngine([object]$engine) {
         # Colors
-        $textColor = $this.Header.GetThemedFg('Foreground.Field')
-        $selectedBg = $this.Header.GetThemedBg('Background.FieldFocused', 80, 0)
-        $selectedFg = $this.Header.GetThemedFg('Foreground.Field')
-        $cursorColor = $this.Header.GetThemedFg('Foreground.FieldFocused')
-        $mutedColor = $this.Header.GetThemedFg('Foreground.Muted')
-        $headerColor = $this.Header.GetThemedFg('Foreground.Muted')
-        $reset = "`e[0m"
-
+        $textColor = $this.Header.GetThemedColorInt('Foreground.Field')
+        $selectedBg = $this.Header.GetThemedColorInt('Background.FieldFocused')
+        $selectedFg = $this.Header.GetThemedColorInt('Foreground.Field')
+        $cursorColor = $this.Header.GetThemedColorInt('Foreground.FieldFocused')
+        $mutedColor = $this.Header.GetThemedColorInt('Foreground.Muted')
+        $headerColor = $this.Header.GetThemedColorInt('Foreground.Muted')
+        $bg = $this.Header.GetThemedColorInt('Background.Primary')
+        
+        $y = 4
+        
         # Render column headers
-        $headerY = $this.Header.Y + 3
-        $sb.Append($this.Header.BuildMoveTo($contentRect.X + 4, $headerY))
-        $sb.Append($headerColor)
-        $sb.Append("THEME NAME")
-        $sb.Append("     ")
-        $sb.Append("DESCRIPTION")
-        $sb.Append("                    ")
-        $sb.Append("STATUS")
-        $sb.Append($reset)
+        $headerY = $y
+        $engine.WriteAt($this.Header.X + 4, $headerY, "THEME NAME", $headerColor, $bg)
+        $engine.WriteAt($this.Header.X + 19, $headerY, "DESCRIPTION", $headerColor, $bg)
+        $engine.WriteAt($this.Header.X + 49, $headerY, "STATUS", $headerColor, $bg)
+        $y++
 
         # Render theme list
-        $startY = $headerY + 2
-        $maxLines = $contentRect.Height - 4
-
+        $startY = $y + 1 # Add extra space
+        $maxLines = $this.TermHeight - $startY - 10 # Reserve space for preview
+        
         for ($i = 0; $i -lt [Math]::Min($this.Themes.Count, $maxLines); $i++) {
             $theme = $this.Themes[$i]
-            $y = $startY + $i
+            $rowY = $startY + $i
             $isSelected = ($i -eq $this.SelectedIndex)
             $isCurrent = ($theme.Name -eq $this.CurrentTheme)
+            
+            $rowBg = $(if ($isSelected) { $selectedBg } else { $bg })
+            $rowFg = $(if ($isSelected) { $selectedFg } else { $textColor })
 
             # Cursor
-            $sb.Append($this.Header.BuildMoveTo($contentRect.X + 2, $y))
             if ($isSelected) {
-                $sb.Append($cursorColor)
-                $sb.Append(">")
-                $sb.Append($reset)
-            } else {
-                $sb.Append(" ")
+                $engine.WriteAt($this.Header.X + 2, $rowY, ">", $cursorColor, $bg)
             }
 
             # Theme name
-            $x = $contentRect.X + 4
-            $sb.Append($this.Header.BuildMoveTo($x, $y))
-            if ($isSelected) {
-                $sb.Append($selectedBg)
-                $sb.Append($selectedFg)
-            } else {
-                $sb.Append($textColor)
-            }
-            $sb.Append($theme.Name.PadRight(15))
-            $sb.Append($reset)
+            $x = $this.Header.X + 4
+            $engine.WriteAt($x, $rowY, $theme.Name.PadRight(15), $rowFg, $rowBg)
+            $x += 15
 
             # Description
-            $x += 15
-            $sb.Append($this.Header.BuildMoveTo($x, $y))
-            if ($isSelected) {
-                $sb.Append($selectedBg)
-                $sb.Append($selectedFg)
-            } else {
-                $sb.Append($mutedColor)
-            }
-            $sb.Append($theme.Description.PadRight(30))
-            $sb.Append($reset)
+            $descFg = $(if ($isSelected) { $selectedFg } else { $mutedColor })
+            $engine.WriteAt($x, $rowY, $theme.Description.PadRight(30), $descFg, $rowBg)
+            $x += 30
 
             # Current indicator
-            $x += 30
-            $sb.Append($this.Header.BuildMoveTo($x, $y))
             if ($isCurrent) {
-                $successColor = $this.Header.GetThemedFg('Foreground.Success')
-                $sb.Append($successColor)
-                $sb.Append("[CURRENT]")
-                $sb.Append($reset)
+                $statusColor = $this.Header.GetThemedColorInt('Foreground.Success')
+                $engine.WriteAt($x, $rowY, "[CURRENT]", $statusColor, $bg)
             }
         }
 
         # Show color preview for selected theme
         if ($this.SelectedIndex -ge 0 -and $this.SelectedIndex -lt $this.Themes.Count) {
             $theme = $this.Themes[$this.SelectedIndex]
-            $previewY = $startY + $this.Themes.Count + 2
+            $previewY = $startY + [Math]::Min($this.Themes.Count, $maxLines) + 2
 
-            if ($previewY -lt $contentRect.Y + $contentRect.Height - 2) {
-                $sb.Append($this.Header.BuildMoveTo($contentRect.X + 4, $previewY))
-                $sb.Append($headerColor)
-                $sb.Append("━" * 40)
-                $sb.Append($reset)
-
+            if ($previewY -lt $this.TermHeight - 2) {
+                $engine.WriteAt($this.Header.X + 4, $previewY, "━" * 40, $headerColor, $bg)
                 $previewY++
-                $sb.Append($this.Header.BuildMoveTo($contentRect.X + 4, $previewY))
-                $sb.Append($textColor)
-                $sb.Append("Selected: ")
-                $sb.Append($this.Header.GetThemedFg('Foreground.FieldFocused'))
-                $sb.Append($theme.Name)
-                $sb.Append($reset)
-
+                
+                $engine.WriteAt($this.Header.X + 4, $previewY, "Selected: ", $textColor, $bg)
+                $engine.WriteAt($this.Header.X + 14, $previewY, $theme.Name, $this.Header.GetThemedColorInt('Foreground.FieldFocused'), $bg)
                 $previewY++
-                $sb.Append($this.Header.BuildMoveTo($contentRect.X + 4, $previewY))
-                $sb.Append($mutedColor)
-                $sb.Append("Hex Code: ")
-                $sb.Append($this.Header.GetThemedFg('Foreground.Success'))
-                $sb.Append($theme.Hex)
-                $sb.Append($reset)
-
+                
+                $engine.WriteAt($this.Header.X + 4, $previewY, "Hex Code: ", $mutedColor, $bg)
+                $engine.WriteAt($this.Header.X + 14, $previewY, $theme.Hex, $this.Header.GetThemedColorInt('Foreground.Success'), $bg)
                 $previewY++
-                $sb.Append($this.Header.BuildMoveTo($contentRect.X + 4, $previewY))
-                $sb.Append($mutedColor)
-                $sb.Append("Description: ")
-                $sb.Append($textColor)
-                $sb.Append($theme.Description)
-                $sb.Append($reset)
-
+                
+                $engine.WriteAt($this.Header.X + 4, $previewY, "Description: ", $mutedColor, $bg)
+                $engine.WriteAt($this.Header.X + 17, $previewY, $theme.Description, $textColor, $bg)
                 $previewY += 2
-                $sb.Append($this.Header.BuildMoveTo($contentRect.X + 4, $previewY))
-                $sb.Append($headerColor)
-                $sb.Append("Press Enter to apply, T to test, Esc to cancel")
-                $sb.Append($reset)
+                
+                $engine.WriteAt($this.Header.X + 4, $previewY, "Press Enter to apply, T to test, Esc to cancel", $headerColor, $bg)
             }
         }
-
-        return $sb.ToString()
     }
+
+    [string] RenderContent() { return "" }
 
     [bool] HandleKeyPress([ConsoleKeyInfo]$keyInfo) {
         # CRITICAL: Call parent FIRST for MenuBar, F10, Alt+keys
@@ -376,10 +330,12 @@ class ThemeEditorScreen : PmcScreen {
                 }
                 try {
                     $this.ShowSuccess("Theme applied! Changes visible immediately.")
-                } catch {
+                }
+                catch {
                     # ShowSuccess may fail
                 }
-            } else {
+            }
+            else {
                 if ($global:PmcTuiLogFile) {
                     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ThemeEditor._ApplyTheme: Hot reload FAILED - falling back to screen pop"
                 }
@@ -390,13 +346,15 @@ class ThemeEditorScreen : PmcScreen {
                     $global:PmcApp.PopScreen()
                 }
             }
-        } catch {
+        }
+        catch {
             if ($global:PmcTuiLogFile) {
                 Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ThemeEditor._ApplyTheme: ERROR: $_"
             }
             try {
                 $this.ShowError("Failed to apply theme: $_")
-            } catch {
+            }
+            catch {
                 # ShowError may fail
             }
         }
