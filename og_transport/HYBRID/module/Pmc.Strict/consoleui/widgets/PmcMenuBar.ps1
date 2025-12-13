@@ -332,10 +332,10 @@ class PmcMenuBar : PmcWidget {
         $this.RegisterLayout($engine)
 
         # Colors (Ints)
-        $bg = [HybridRenderEngine]::AnsiColorToInt($this.GetThemedBg('Background.MenuBar', 1, 0))
-        $fg = [HybridRenderEngine]::AnsiColorToInt($this.GetThemedFg('Foreground.Row'))
-        $highlightBg = [HybridRenderEngine]::AnsiColorToInt($this.GetThemedBg('Background.RowSelected', 1, 0))
-        $highlightFg = [HybridRenderEngine]::AnsiColorToInt($this.GetThemedFg('Foreground.RowSelected'))
+        $bg = $this.GetThemedBgInt('Background.MenuBar', 1, 0)
+        $fg = $this.GetThemedInt('Foreground.Row')
+        $highlightBg = $this.GetThemedBgInt('Background.RowSelected', 1, 0)
+        $highlightFg = $this.GetThemedInt('Foreground.RowSelected')
         
         if ($bg -eq -1) { $bg = [HybridRenderEngine]::_PackRGB(30, 30, 30) }
 
@@ -396,12 +396,12 @@ class PmcMenuBar : PmcWidget {
         $engine.DefineRegion($regionId, $x, $y, $width, $height, 100) # Z=100
         
         # Colors
-        $bg = [HybridRenderEngine]::AnsiColorToInt($this.GetThemedBg('Background.MenuBar', 1, 0))
-        $fg = [HybridRenderEngine]::AnsiColorToInt($this.GetThemedFg('Foreground.Row'))
-        $borderFg = [HybridRenderEngine]::AnsiColorToInt($this.GetThemedFg('Border.Widget'))
-        $highlightBg = [HybridRenderEngine]::AnsiColorToInt($this.GetThemedBg('Background.RowSelected', 1, 0))
-        $highlightFg = [HybridRenderEngine]::AnsiColorToInt($this.GetThemedFg('Foreground.RowSelected'))
-        $mutedFg = [HybridRenderEngine]::AnsiColorToInt($this.GetThemedFg('Foreground.Muted'))
+        $bg = $this.GetThemedBgInt('Background.MenuBar', 1, 0)
+        $fg = $this.GetThemedInt('Foreground.Row')
+        $borderFg = $this.GetThemedInt('Border.Widget')
+        $highlightBg = $this.GetThemedBgInt('Background.RowSelected', 1, 0)
+        $highlightFg = $this.GetThemedInt('Foreground.RowSelected')
+        $mutedFg = $this.GetThemedInt('Foreground.Muted')
         
         if ($bg -eq -1) { $bg = [HybridRenderEngine]::_PackRGB(30, 30, 30) }
 

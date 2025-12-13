@@ -928,6 +928,7 @@ class UniversalList : PmcWidget {
             $engine.WriteAt($this.X + 2, $this.Y, " $($this.Title) ", $primaryColor, $rowBg)
         }
 
+<<<<<<< HEAD
         # 3. Draw Header
         if ($this._headerColRegions.Count -gt 0) {
             for ($c = 0; $c -lt $this._columns.Count; $c++) {
@@ -946,6 +947,60 @@ class UniversalList : PmcWidget {
                 if ($regionId) {
                     $engine.WriteToRegion($regionId, $label, $primaryColor, $rowBg)
                 }
+=======
+        # Get Theme Ints directly
+        $borderColor = $this.GetThemedInt('Border.Widget')
+        $textColor = $this.GetThemedInt('Foreground.Row')
+        $primaryColor = $this.GetThemedInt('Foreground.Title')
+        $mutedColor = $this.GetThemedInt('Foreground.Muted')
+        $defaultBg = -1 # Transparent/Default
+        
+        $highlightBg = $this.GetThemedBgInt('Background.RowSelected', 1, 0)
+        $highlightFg = $this.GetThemedInt('Foreground.RowSelected')
+        
+        # Fallbacks
+        if ($highlightBg -eq -1) { $highlightBg = [HybridRenderEngine]::_PackRGB(64, 94, 117) } # Blue
+        if ($highlightFg -eq -1) { $highlightFg = [HybridRenderEngine]::_PackRGB(255, 255, 255) } # White
+
+        # Draw top border
+        # Note: We manually draw top border components to overlay title/count cleanly
+        # But we can use DrawBox for the frame if we careful about not overwriting title immediately
+        # Or just manual draw is fine.
+        $engine.WriteAt($this.X, $this.Y - 1, $this.GetBoxChar('single_topleft'), $borderColor, $defaultBg)
+        $engine.Fill($this.X + 1, $this.Y - 1, $this.Width - 2, 1, $this.GetBoxChar('single_horizontal')[0], $borderColor, $defaultBg)
+        $engine.WriteAt($this.X + $this.Width - 1, $this.Y - 1, $this.GetBoxChar('single_topright'), $borderColor, $defaultBg)
+
+        # Title (overwrites top border part)
+        $titleText = " $($this.Title) "
+        $engine.WriteAt($this.X + 2, $this.Y - 1, $titleText, $primaryColor, $defaultBg)
+
+        # Item count
+        $countText = "($($this._filteredData.Count) items)"
+        $engine.WriteAt($this.X + $this.Width - $countText.Length - 2, $this.Y - 1, $countText, $mutedColor, $defaultBg)
+
+        $currentRow = 1
+
+        # Draw Headers into regions
+        $supportsUnicode = $env:LANG -match 'UTF-8' -or [Console]::OutputEncoding.EncodingName -match 'UTF'
+        $sortUpSymbol = $(if ($supportsUnicode) { "↑" } else { "^" })
+        $sortDownSymbol = $(if ($supportsUnicode) { "↓" } else { "v" })
+
+        # Use pre-defined header column regions
+        $headerColRegions = $engine.GetChildRegions("$($this.RegionID)_Header")
+        
+        for ($i = 0; $i -lt $this._columns.Count; $i++) {
+            $col = $this._columns[$i]
+            $label = $col.Label
+            
+            if ($this._sortColumn -eq $col.Name) {
+                $sortIndicator = $(if ($this._sortAscending) { " $sortUpSymbol" } else { " $sortDownSymbol" })
+                $label += $sortIndicator
+            }
+            
+            # Write to region (Engine handles clipping/bounds)
+            if ($null -ne $headerColRegions -and $i -lt $headerColRegions.Count) {
+                $engine.WriteToRegion($headerColRegions[$i], $label, $primaryColor, $defaultBg)
+>>>>>>> b5bbd6c7f294581f60139c5de10bb9af977c6242
             }
         }
         

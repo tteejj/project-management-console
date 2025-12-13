@@ -592,6 +592,7 @@ class InlineEditor : PmcWidget {
             $engine.BeginLayer(10)
         }
 
+<<<<<<< HEAD
         # Handle Expanded Widget Mode (DatePicker, ProjectPicker, etc.)
         if ($this._showFieldWidgets -and -not [string]::IsNullOrWhiteSpace($this._expandedFieldName)) {
             $field = $this._fields | Where-Object { $_.Name -eq $this._expandedFieldName } | Select-Object -First 1
@@ -603,6 +604,40 @@ class InlineEditor : PmcWidget {
                     $widget = $this._datePickerWidgets[$field.Name]
                 }
                 elseif ($this._fieldWidgets.ContainsKey($field.Name)) {
+=======
+        # LAYOUT SYSTEM: Use target region if available (Perfect Alignment Mode)
+        if (-not [string]::IsNullOrEmpty($this.TargetRegionID) -and $this.LayoutMode -eq 'horizontal') {
+            # Get grid regions from engine
+            $colRegions = $engine.GetChildRegions($this.TargetRegionID)
+            
+            # Colors
+            $focusBg = $this.GetThemedBgInt('Background.FieldFocused', 10, 0)
+            $focusFg = $this.GetThemedInt('Foreground.FieldFocused')
+            $normalBg = $this.GetThemedBgInt('Background.Field', 10, 0)
+            $normalFg = $this.GetThemedInt('Foreground.Field')
+            
+            # Fallbacks
+            if ($focusBg -eq -1) { $focusBg = [HybridRenderEngine]::_PackRGB(0, 100, 180) } # Blue
+            if ($focusFg -eq -1) { $focusFg = [HybridRenderEngine]::_PackRGB(255, 255, 255) }
+            if ($normalBg -eq -1) { $normalBg = -1 } # Default
+            if ($normalFg -eq -1) { $normalFg = [HybridRenderEngine]::_PackRGB(200, 200, 200) }
+
+            # Render fields into regions
+            for ($i = 0; $i -lt [Math]::Min($this._fields.Count, $colRegions.Count); $i++) {
+                $field = $this._fields[$i]
+                $regionId = $colRegions[$i]
+                $isFocused = ($i -eq $this._currentFieldIndex)
+                
+                $fg = $(if ($isFocused) { $focusFg } else { $normalFg })
+                $bg = $(if ($isFocused) { $focusBg } else { $normalBg })
+                
+                # Get display value
+                $val = $this._GetFieldValuePreview($field)
+                
+                # If TextInput widget active, use its value (shows cursor logic if we implemented cursor in WriteToRegion)
+                # For now, just show text value. Cursor implementation would require region-relative cursor support.
+                if ($isFocused -and $this._fieldWidgets.ContainsKey($field.Name)) {
+>>>>>>> b5bbd6c7f294581f60139c5de10bb9af977c6242
                     $widget = $this._fieldWidgets[$field.Name]
                 }
 

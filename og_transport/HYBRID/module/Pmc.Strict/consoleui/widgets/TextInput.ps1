@@ -331,19 +331,21 @@ class TextInput : PmcWidget {
         $this.RegisterLayout($engine)
 
         # Colors (Ints)
-        $bg = [HybridRenderEngine]::AnsiColorToInt($this.GetThemedBg('Background.MenuBar', 1, 0)) # Fallback bg
+        $bg = $this.GetThemedBgInt('Background.MenuBar', 1, 0)
         if ($bg -eq -1) { $bg = [HybridRenderEngine]::_PackRGB(30, 30, 30) }
-        $fg = [HybridRenderEngine]::AnsiColorToInt($this.GetThemedFg('Foreground.Row'))
-        $borderFg = [HybridRenderEngine]::AnsiColorToInt($this.GetThemedFg('Border.Widget'))
-        $primaryFg = [HybridRenderEngine]::AnsiColorToInt($this.GetThemedFg('Foreground.Title'))
-        $mutedFg = [HybridRenderEngine]::AnsiColorToInt($this.GetThemedFg('Foreground.Muted'))
-        $errorFg = [HybridRenderEngine]::AnsiColorToInt($this.GetThemedFg('Foreground.Error'))
+
+        $fg = $this.GetThemedInt('Foreground.Row')
+        $borderFg = $this.GetThemedInt('Border.Widget')
+        $primaryFg = $this.GetThemedInt('Foreground.Title')
+        $mutedFg = $this.GetThemedInt('Foreground.Muted')
+        $errorFg = $this.GetThemedInt('Foreground.Error')
         
         # Border Color
         $activeBorderFg = if (-not $this.IsValid) { $errorFg } elseif ($this.HasFocus) { $primaryFg } else { $borderFg }
 
         # Draw Box
         $engine.Fill($this.X, $this.Y, $this.Width, $this.Height, ' ', $fg, $bg)
+<<<<<<< HEAD
         $engine.DrawBox($this.X, $this.Y, $this.Width, $this.Height, $activeBorderFg, $bg)
         # Redraw border with active color? DrawBox uses default colors?
         # My DrawBox doesn't take color. I should probably add color support or manually draw it.
@@ -361,6 +363,9 @@ class TextInput : PmcWidget {
         # Let's assume DrawBox is fine for now, or use `WriteToRegion` tricks.
         # Actually, I can just write the border chars manually with color if needed.
         # But let's skip coloring the border for now to save complexity, or assume it inherits.
+=======
+        $engine.DrawBox($this.X, $this.Y, $this.Width, $this.Height, 'single', $activeBorderFg, $bg)
+>>>>>>> b5bbd6c7f294581f60139c5de10bb9af977c6242
         
         # Title
         if ($this.Label) {

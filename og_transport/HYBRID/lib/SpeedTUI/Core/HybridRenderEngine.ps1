@@ -466,12 +466,20 @@ class HybridRenderEngine {
         [Console]::Clear()
     }
 
+<<<<<<< HEAD
     [void] DrawBox([int]$x, [int]$y, [int]$width, [int]$height, [int]$fg, [int]$bg) {
         # Overload 2: Colors only (Default Style) - This fixes the 6-arg call
         $this.DrawBox($x, $y, $width, $height, $fg, $bg, "Single")
     }
 
     [void] DrawBox([int]$x, [int]$y, [int]$width, [int]$height, [int]$fg, [int]$bg, [string]$style) {
+=======
+    [void] DrawBox([int]$x, [int]$y, [int]$width, [int]$height, [string]$style="Single") {
+        $this.DrawBox($x, $y, $width, $height, $style, -1, -1)
+    }
+
+    [void] DrawBox([int]$x, [int]$y, [int]$width, [int]$height, [string]$style, [int]$fg, [int]$bg) {
+>>>>>>> b5bbd6c7f294581f60139c5de10bb9af977c6242
         if ($width -lt 2 -or $height -lt 2) { return }
 
         # Get box characters from cache or define them
@@ -510,7 +518,7 @@ class HybridRenderEngine {
 
         # Draw bottom border
         $bottomLine = $chars.BL + ($chars.H * ($width - 2)) + $chars.BR
-        $this.WriteAt($x, $y + $height - 1, $bottomLine)
+        $this.WriteAt($x, $y + $height - 1, $bottomLine, $fg, $bg)
     }
 
     [void] InvalidateCachedRegion([int]$minY, [int]$maxY) {

@@ -1,4 +1,4 @@
-﻿# PmcThemeEngine.ps1 - Core theme system with gradient support
+# PmcThemeEngine.ps1 - Core theme system with gradient support
 #
 # Handles all color resolution for the TUI:
 # - Solid colors (single RGB value)
@@ -32,6 +32,11 @@ class PmcThemeEngine {
     # Cache: key = "PropertyName_Width_Generation", value = string[] of ANSI sequences
     hidden [hashtable]$_gradientCache = @{}
     hidden [hashtable]$_solidCache = @{}
+
+    # Int Caches
+    hidden [hashtable]$_solidIntCache = @{}
+    hidden [hashtable]$_gradientIntCache = @{}
+
     hidden [int]$_cacheGeneration = 0
 
     # Singleton access
@@ -48,18 +53,20 @@ class PmcThemeEngine {
 
     # Load theme from config.json structure
     [void] LoadFromConfig([hashtable]$themeConfig) {
-        # PERF: Disabled - Add-Content -Path "$($env:TEMP)\pmc-theme-engine-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') LoadFromConfig: CALLED with themeConfig.Keys=$($themeConfig.Keys -join ', ')"
-
         if ($themeConfig.ContainsKey('Palette')) {
             $this._palette = $themeConfig.Palette
+<<<<<<< HEAD
             # PERF: Disabled - Add-Content -Path "$($env:TEMP)\pmc-theme-engine-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') LoadFromConfig: Loaded Palette with $($this._palette.Count) colors"
         }
         else {
             # PERF: Disabled - Add-Content -Path "$($env:TEMP)\pmc-theme-engine-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') LoadFromConfig: NO Palette in config"
+=======
+>>>>>>> b5bbd6c7f294581f60139c5de10bb9af977c6242
         }
 
         if ($themeConfig.ContainsKey('Properties')) {
             $this._properties = $themeConfig.Properties
+<<<<<<< HEAD
             # DEBUG ENABLED
             Write-PmcTuiLog "LoadFromConfig: Loaded Properties with $($this._properties.Count) items" "INFO"
             $propKeys = ($this._properties.Keys | Sort-Object) -join ', '
@@ -68,18 +75,18 @@ class PmcThemeEngine {
         else {
             # Default properties if not defined
             # PERF: Disabled - Add-Content -Path "$($env:TEMP)\pmc-theme-engine-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') LoadFromConfig: NO Properties in config, initializing defaults"
+=======
+        } else {
+>>>>>>> b5bbd6c7f294581f60139c5de10bb9af977c6242
             $this._InitializeDefaultProperties()
-            # PERF: Disabled - Add-Content -Path "$($env:TEMP)\pmc-theme-engine-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') LoadFromConfig: After defaults, _properties.Count=$($this._properties.Count)"
         }
 
         $this.InvalidateCache()
-        # PERF: Disabled - Add-Content -Path "$($env:TEMP)\pmc-theme-engine-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') LoadFromConfig: COMPLETE, cache invalidated"
     }
 
     # Get background ANSI - handles solid or gradient
-    # For solid: width/charIndex ignored
-    # For gradient: returns ANSI for specific character position
     [string] GetBackgroundAnsi([string]$propertyName, [int]$width, [int]$charIndex) {
+<<<<<<< HEAD
         # CRITICAL DEBUG: Log property lookup
         $debugMsg = "GetBackgroundAnsi: propertyName='$propertyName' _properties.Count=$($this._properties.Count) ContainsKey=$($this._properties.ContainsKey($propertyName))"
         # DEBUG ENABLED
@@ -90,12 +97,13 @@ class PmcThemeEngine {
         if ($this._properties.Count -eq 0) {
             # FAIL FAST: Do not load defaults
             # $this._InitializeDefaultProperties()
+=======
+        if ($this._properties.Count -eq 0) {
+            $this._InitializeDefaultProperties()
+>>>>>>> b5bbd6c7f294581f60139c5de10bb9af977c6242
         }
 
         if (-not $this._properties.ContainsKey($propertyName)) {
-            # Log all available keys for debugging
-            $availableKeys = ($this._properties.Keys | Sort-Object) -join ', '
-            # PERF: Disabled - Add-Content -Path "$($env:TEMP)\pmc-theme-engine-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') PROPERTY NOT FOUND: '$propertyName' - Available: [$availableKeys]"
             return ''
         }
 
@@ -118,6 +126,7 @@ class PmcThemeEngine {
     # Get foreground ANSI - usually solid
     [string] GetForegroundAnsi([string]$propertyName) {
         if ($this._properties.Count -eq 0) {
+<<<<<<< HEAD
             # FAIL FAST
             # $this._InitializeDefaultProperties()
         }
@@ -125,6 +134,12 @@ class PmcThemeEngine {
         if (-not $this._properties.ContainsKey($propertyName)) {
             # DEBUG: Log missing property
             Write-PmcTuiLog "MISSING THEME PROPERTY: $propertyName" "ERROR"
+=======
+            $this._InitializeDefaultProperties()
+        }
+
+        if (-not $this._properties.ContainsKey($propertyName)) {
+>>>>>>> b5bbd6c7f294581f60139c5de10bb9af977c6242
             return ''
         }
 
@@ -142,6 +157,7 @@ class PmcThemeEngine {
         return ''
     }
 
+<<<<<<< HEAD
     # Get integer color value for HybridRenderEngine
     # Returns packed RGB int (0x00RRGGBB)
     [int] GetThemeColorInt([string]$propertyName) {
@@ -179,6 +195,54 @@ class PmcThemeEngine {
         catch {
             return 0
         }
+=======
+    # === INT API (For Hybrid Engine) ===
+
+    # Get foreground Packed Int - usually solid
+    [int] GetForegroundInt([string]$propertyName) {
+        if ($this._properties.Count -eq 0) {
+            $this._InitializeDefaultProperties()
+        }
+
+        if (-not $this._properties.ContainsKey($propertyName)) {
+            return -1
+        }
+
+        $prop = $this._properties[$propertyName]
+
+        if ($prop.Type -eq 'Solid') {
+            return $this._GetSolidIntCached($prop.Color)
+        }
+
+        return -1
+    }
+
+    # Get background Packed Int
+    [int] GetBackgroundInt([string]$propertyName, [int]$width, [int]$charIndex) {
+        if ($this._properties.Count -eq 0) {
+            $this._InitializeDefaultProperties()
+        }
+
+        if (-not $this._properties.ContainsKey($propertyName)) {
+            return -1
+        }
+
+        $prop = $this._properties[$propertyName]
+
+        if ($prop.Type -eq 'Solid') {
+            return $this._GetSolidIntCached($prop.Color)
+        }
+        elseif ($prop.Type -eq 'Gradient') {
+            # Gradient support for Ints
+            $gradient = $this._GetGradientIntArrayCached($propertyName, $prop, $width)
+            if ($charIndex -ge 0 -and $charIndex -lt $gradient.Count) {
+                return $gradient[$charIndex]
+            }
+            return -1
+        }
+
+        return -1
+>>>>>>> b5bbd6c7f294581f60139c5de10bb9af977c6242
     }
 
     # Cached solid color ANSI
@@ -194,6 +258,19 @@ class PmcThemeEngine {
         return $ansi
     }
 
+    # Cached solid color Int
+    hidden [int] _GetSolidIntCached([string]$color) {
+        $cacheKey = "${color}_$($this._cacheGeneration)"
+
+        if ($this._solidIntCache.ContainsKey($cacheKey)) {
+            return $this._solidIntCache[$cacheKey]
+        }
+
+        $intColor = $this._ColorToInt($color)
+        $this._solidIntCache[$cacheKey] = $intColor
+        return $intColor
+    }
+
     # Cached gradient array
     hidden [string[]] _GetGradientArrayCached([string]$propertyName, [hashtable]$gradient, [int]$width, [bool]$background) {
         $cacheKey = "${propertyName}_${width}_${background}_$($this._cacheGeneration)"
@@ -207,6 +284,19 @@ class PmcThemeEngine {
         return $array
     }
 
+    # Cached gradient Int array
+    hidden [int[]] _GetGradientIntArrayCached([string]$propertyName, [hashtable]$gradient, [int]$width) {
+        $cacheKey = "${propertyName}_${width}_INT_$($this._cacheGeneration)"
+
+        if ($this._gradientIntCache.ContainsKey($cacheKey)) {
+            return $this._gradientIntCache[$cacheKey]
+        }
+
+        $array = $this._ComputeGradientInt($gradient, $width)
+        $this._gradientIntCache[$cacheKey] = $array
+        return $array
+    }
+
     # Compute gradient as array of ANSI sequences
     hidden [string[]] _ComputeGradient([hashtable]$gradient, [int]$length, [bool]$background) {
         $result = [List[string]]::new($length)
@@ -214,6 +304,7 @@ class PmcThemeEngine {
 
         for ($i = 0; $i -lt $length; $i++) {
             $ratio = $(if ($length -eq 1) { 0.0 } else { $i / ($length - 1) })
+<<<<<<< HEAD
 
             # Find surrounding stops
             $beforeStop = $stops[0]
@@ -236,10 +327,50 @@ class PmcThemeEngine {
                 })
 
             $color = $this._InterpolateColor($beforeStop.Color, $afterStop.Color, $localRatio)
+=======
+            $color = $this._GetColorAtRatio($stops, $ratio)
+>>>>>>> b5bbd6c7f294581f60139c5de10bb9af977c6242
             $result.Add($this._ColorToAnsi($color, $background))
         }
 
         return $result.ToArray()
+    }
+
+    # Compute gradient as array of Ints
+    hidden [int[]] _ComputeGradientInt([hashtable]$gradient, [int]$length) {
+        $result = [List[int]]::new($length)
+        $stops = $gradient.Stops | Sort-Object Position
+
+        for ($i = 0; $i -lt $length; $i++) {
+            $ratio = $(if ($length -eq 1) { 0.0 } else { $i / ($length - 1) })
+            $color = $this._GetColorAtRatio($stops, $ratio)
+            $result.Add($this._ColorToInt($color))
+        }
+
+        return $result.ToArray()
+    }
+
+    hidden [string] _GetColorAtRatio([array]$stops, [double]$ratio) {
+        # Find surrounding stops
+        $beforeStop = $stops[0]
+        $afterStop = $stops[-1]
+
+        for ($s = 0; $s -lt $stops.Count - 1; $s++) {
+            if ($ratio -ge $stops[$s].Position -and $ratio -le $stops[$s + 1].Position) {
+                $beforeStop = $stops[$s]
+                $afterStop = $stops[$s + 1]
+                break
+            }
+        }
+
+        # Local interpolation between the two stops
+        $localRatio = $(if ($afterStop.Position -eq $beforeStop.Position) {
+            0.0
+        } else {
+            ($ratio - $beforeStop.Position) / ($afterStop.Position - $beforeStop.Position)
+        })
+
+        return $this._InterpolateColor($beforeStop.Color, $afterStop.Color, $localRatio)
     }
 
     # Linear color interpolation
@@ -286,6 +417,23 @@ class PmcThemeEngine {
             # DEBUG
             Write-Host "ANSI CONVERSION FAILED: '$hex' - $_" -ForegroundColor Red
             return ''
+        }
+    }
+
+    # Convert hex color to Packed Int
+    hidden [int] _ColorToInt([string]$hex) {
+        $hex = $hex.TrimStart('#')
+        if ($hex.Length -ne 6) { return -1 }
+
+        try {
+            $r = [Convert]::ToInt32($hex.Substring(0, 2), 16)
+            $g = [Convert]::ToInt32($hex.Substring(2, 2), 16)
+            $b = [Convert]::ToInt32($hex.Substring(4, 2), 16)
+
+            # Pack RGB: (R << 16) | (G << 8) | B
+            return ($r -shl 16) -bor ($g -shl 8) -bor $b
+        } catch {
+            return -1
         }
     }
 
@@ -366,5 +514,7 @@ class PmcThemeEngine {
         $this._cacheGeneration++
         $this._gradientCache.Clear()
         $this._solidCache.Clear()
+        $this._solidIntCache.Clear()
+        $this._gradientIntCache.Clear()
     }
 }

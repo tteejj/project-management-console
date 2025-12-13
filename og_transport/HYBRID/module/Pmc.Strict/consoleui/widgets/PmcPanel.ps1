@@ -140,9 +140,9 @@ class PmcPanel : PmcWidget {
         $this.RegisterLayout($engine)
 
         # Colors (Ints)
-        $borderColor = [HybridRenderEngine]::AnsiColorToInt($this.GetThemedFg('Border.Widget'))
-        $titleColor = [HybridRenderEngine]::AnsiColorToInt($this.GetThemedFg('Foreground.Title'))
-        $textColor = [HybridRenderEngine]::AnsiColorToInt($this.GetThemedFg('Foreground.Row'))
+        $borderColor = $this.GetThemedInt('Border.Widget')
+        $titleColor = $this.GetThemedInt('Foreground.Title')
+        $textColor = $this.GetThemedInt('Foreground.Row')
         $bg = -1 # Transparent default? Or theme bg? Panels usually transparent or specific bg.
         
         # Draw Border
