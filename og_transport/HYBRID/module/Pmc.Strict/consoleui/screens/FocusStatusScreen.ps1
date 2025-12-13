@@ -58,38 +58,42 @@ class FocusStatusScreen : PmcScreen {
 
             # Get current focus
             $this.CurrentFocus = $(if ($data.PSObject.Properties['currentContext']) {
-                $data.currentContext
-            } else {
-                'inbox'
-            })
+                    $data.currentContext
+                }
+                else {
+                    'inbox'
+                })
 
             # Count tasks if focus is set
             if ($this.CurrentFocus -and $this.CurrentFocus -ne 'inbox') {
                 # Count active tasks
                 $contextTasks = @($data.tasks | Where-Object {
-                    $_.project -eq $this.CurrentFocus -and -not $_.completed
-                })
+                        $_.project -eq $this.CurrentFocus -and -not $_.completed
+                    })
                 $this.ActiveTaskCount = $contextTasks.Count
 
                 # Count overdue tasks
                 $today = (Get-Date).Date
                 $this.OverdueTaskCount = @($contextTasks | Where-Object {
-                    if (-not $_.due) { return $false }
-                    try {
-                        $dueDate = [DateTime]::Parse($_.due)
-                        return ($dueDate.Date -lt $today)
-                    } catch {
-                        return $false
-                    }
-                }).Count
-            } else {
+                        if (-not $_.due) { return $false }
+                        try {
+                            $dueDate = [DateTime]::Parse($_.due)
+                            return ($dueDate.Date -lt $today)
+                        }
+                        catch {
+                            return $false
+                        }
+                    }).Count
+            }
+            else {
                 $this.ActiveTaskCount = 0
                 $this.OverdueTaskCount = 0
             }
 
             $this.ShowStatus("Focus: $($this.CurrentFocus)")
 
-        } catch {
+        }
+        catch {
             $this.ShowError("Failed to load focus status: $_")
             $this.CurrentFocus = ""
             $this.ActiveTaskCount = 0
@@ -97,80 +101,51 @@ class FocusStatusScreen : PmcScreen {
         }
     }
 
-    [string] RenderContent() {
-        $sb = [System.Text.StringBuilder]::new(1024)
-
-        if (-not $this.LayoutManager) {
-            return $sb.ToString()
-        }
-
-        # Get content area
-        $contentRect = $this.LayoutManager.GetRegion('Content', $this.TermWidth, $this.TermHeight)
-
+    [void] RenderContentToEngine([object]$engine) {
         # Colors
-        $textColor = $this.Header.GetThemedFg('Foreground.Field')
-        $highlightColor = $this.Header.GetThemedFg('Foreground.FieldFocused')
-        $successColor = $this.Header.GetThemedFg('Foreground.Success')
-        $warningColor = $this.Header.GetThemedAnsi('Warning', $false)
-        $mutedColor = $this.Header.GetThemedFg('Foreground.Muted')
-        $reset = "`e[0m"
-
+        $textColor = $this.Header.GetThemedColorInt('Foreground.Field')
+        $highlightColor = $this.Header.GetThemedColorInt('Foreground.FieldFocused')
+        $successColor = $this.Header.GetThemedColorInt('Foreground.Success')
+        $warningColor = $this.Header.GetThemedColorInt('Foreground.Warning') 
+        $mutedColor = $this.Header.GetThemedColorInt('Foreground.Muted')
+        $bg = $this.Header.GetThemedColorInt('Background.Primary')
+        
         # Center content vertically
-        $startY = $contentRect.Y + [Math]::Floor($contentRect.Height / 3)
+        $y = 4 + [Math]::Floor(($this.TermHeight - 4) / 3)
+        $x = 4
 
         # Show current focus
-        $y = $startY
-        $sb.Append($this.Header.BuildMoveTo($contentRect.X + 4, $y))
-        $sb.Append($mutedColor)
-        $sb.Append("Current Focus:")
-        $sb.Append($reset)
+        $engine.WriteAt($x, $y, "Current Focus:", $mutedColor, $bg)
         $y++
 
-        $sb.Append($this.Header.BuildMoveTo($contentRect.X + 6, $y))
-        $sb.Append($highlightColor)
         if ($this.CurrentFocus -eq 'inbox' -or -not $this.CurrentFocus) {
-            $sb.Append("No focus set")
-        } else {
-            $sb.Append($this.CurrentFocus)
+            $engine.WriteAt($x + 2, $y, "No focus set", $highlightColor, $bg)
         }
-        $sb.Append($reset)
+        else {
+            $engine.WriteAt($x + 2, $y, $this.CurrentFocus, $highlightColor, $bg)
+        }
         $y += 3
 
         # Show task statistics if focus is set
         if ($this.CurrentFocus -and $this.CurrentFocus -ne 'inbox') {
-            $sb.Append($this.Header.BuildMoveTo($contentRect.X + 4, $y))
-            $sb.Append($mutedColor)
-            $sb.Append("Active Tasks:")
-            $sb.Append($reset)
-            $sb.Append(" ")
-            $sb.Append($textColor)
-            $sb.Append($this.ActiveTaskCount)
-            $sb.Append($reset)
+            $engine.WriteAt($x, $y, "Active Tasks:", $mutedColor, $bg)
+            $engine.WriteAt($x + 14, $y, "$($this.ActiveTaskCount)", $textColor, $bg)
             $y += 2
 
             # Show overdue count if any
             if ($this.OverdueTaskCount -gt 0) {
-                $sb.Append($this.Header.BuildMoveTo($contentRect.X + 4, $y))
-                $sb.Append($warningColor)
-                $sb.Append("Overdue:")
-                $sb.Append($reset)
-                $sb.Append(" ")
-                $sb.Append($warningColor)
-                $sb.Append($this.OverdueTaskCount)
-                $sb.Append($reset)
+                $engine.WriteAt($x, $y, "Overdue:", $warningColor, $bg)
+                $engine.WriteAt($x + 9, $y, "$($this.OverdueTaskCount)", $warningColor, $bg)
                 $y += 2
             }
         }
 
         # Show hint
         $y += 2
-        $sb.Append($this.Header.BuildMoveTo($contentRect.X + 4, $y))
-        $sb.Append($mutedColor)
-        $sb.Append("Press Esc to exit")
-        $sb.Append($reset)
-
-        return $sb.ToString()
+        $engine.WriteAt($x, $y, "Press Esc to exit", $mutedColor, $bg)
     }
+
+    [string] RenderContent() { return "" }
 
     [bool] HandleKeyPress([ConsoleKeyInfo]$keyInfo) {
         # No special input handling needed

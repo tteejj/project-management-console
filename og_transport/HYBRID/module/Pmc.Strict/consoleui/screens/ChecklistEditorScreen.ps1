@@ -85,22 +85,26 @@ class ChecklistEditorScreen : PmcScreen {
         }
     }
 
-    [string] Render() {
-        $sb = [StringBuilder]::new()
-
-        # Render widgets (header, menubar, footer, statusbar)
-        $output = ([PmcScreen]$this).Render()
-        $sb.Append($output)
-
+    [void] RenderContentToEngine([object]$engine) {
         # Calculate content area
         $contentY = 6  # After menubar and header
         $contentHeight = $this.TermHeight - 8  # Subtract header, footer, statusbar
         $contentWidth = $this.TermWidth
 
+        # Define colors from header/theme to match
+        $primaryColor = $this.Header.GetThemedColorInt('Foreground.Primary')
+        $mutedColor = $this.Header.GetThemedColorInt('Foreground.Muted')
+        $successColor = $this.Header.GetThemedColorInt('Foreground.Success')
+        $bgColor = $this.Header.GetThemedColorInt('Background.Primary')
+        $selBg = $this.Header.GetThemedColorInt('Background.RowSelected')
+        $selFg = $this.Header.GetThemedColorInt('Foreground.RowSelected')
+
+        # Clear Content Area
+        $engine.Fill(0, $contentY, $contentWidth, $contentHeight, ' ', $primaryColor, $bgColor)
+
         # Render progress bar
         $progressText = "Progress: $($this._instance.completed_count)/$($this._instance.total_count) ($($this._instance.percent_complete)%)"
-        $sb.Append($this.Header.BuildMoveTo(2, $contentY))
-        $sb.Append($progressText)
+        $engine.WriteAt(2, $contentY, $progressText, $primaryColor, $bgColor)
 
         # Render items
         $itemsY = $contentY + 2
@@ -111,32 +115,31 @@ class ChecklistEditorScreen : PmcScreen {
             $item = $this._instance.items[$itemIndex]
 
             $y = $itemsY + $i
-            $sb.Append($this.Header.BuildMoveTo(2, $y))
+            $isSelected = ($itemIndex -eq $this._selectedIndex)
 
-            # Highlight selected
-            if ($itemIndex -eq $this._selectedIndex) {
-                $sb.Append("`e[7m")  # Reverse video
-            }
+            # Determine colors for this row
+            $fg = $(if ($isSelected) { $selFg } else { $primaryColor })
+            $bg = $(if ($isSelected) { $selBg } else { $bgColor })
 
             # Checkbox
             $checkbox = $(if ($item.completed) { "[X]" } else { "[ ]" })
-            $sb.Append($checkbox)
-            $sb.Append(" ")
-
-            # Item text
-            $text = $item.text
-            if ($text.Length -gt ($contentWidth - 10)) {
-                $text = $text.Substring(0, $contentWidth - 13) + "..."
+            $rowText = "$checkbox $($item.text)"
+            
+            # Truncate if too long
+            if ($rowText.Length -gt ($contentWidth - 4)) {
+                $rowText = $rowText.Substring(0, $contentWidth - 7) + "..."
             }
-            $sb.Append($text)
 
-            if ($itemIndex -eq $this._selectedIndex) {
-                $sb.Append("`e[0m")  # Reset
+            # Fill row background if selected
+            if ($isSelected) {
+                $engine.Fill(2, $y, $contentWidth - 4, 1, ' ', $fg, $bg)
             }
+
+            $engine.WriteAt(2, $y, $rowText, $fg, $bg)
         }
-
-        return $sb.ToString()
     }
+
+    [string] Render() { return "" }
 
     [bool] HandleKeyPress([ConsoleKeyInfo]$keyInfo) {
         # Up arrow
@@ -168,7 +171,8 @@ class ChecklistEditorScreen : PmcScreen {
                 $this._checklistService.ToggleItem($this._instanceId, $this._selectedIndex)
                 $this.LoadData()
                 $this.SetStatusMessage("Item toggled", "success")
-            } catch {
+            }
+            catch {
                 $this.SetStatusMessage("Error: $($_.Exception.Message)", "error")
             }
             return $true

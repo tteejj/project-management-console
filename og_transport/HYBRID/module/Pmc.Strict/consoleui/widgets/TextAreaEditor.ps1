@@ -80,7 +80,8 @@ class TextAreaEditor : PmcWidget {
         $this._gapBuffer.Delete(0, $this._gapBuffer.GetLength())
         if ([string]::IsNullOrEmpty($text)) {
             $this._gapBuffer.Insert(0, "")
-        } else {
+        }
+        else {
             $this._gapBuffer.Insert(0, $text)
         }
 
@@ -131,10 +132,11 @@ class TextAreaEditor : PmcWidget {
 
         $lineStart = $this._lineStarts[$lineIndex]
         $lineEnd = $(if ($lineIndex + 1 -lt $this._lineStarts.Count) {
-            $this._lineStarts[$lineIndex + 1] - 1
-        } else {
-            $this._gapBuffer.GetLength()
-        })
+                $this._lineStarts[$lineIndex + 1] - 1
+            }
+            else {
+                $this._gapBuffer.GetLength()
+            })
 
         # Exclude the newline character
         if ($lineEnd -gt $lineStart -and $this._gapBuffer.GetChar($lineEnd - 1) -eq "`n") {
@@ -181,10 +183,10 @@ class TextAreaEditor : PmcWidget {
         
         # Colors (Ints)
         # Default colors
-        $bg = [HybridRenderEngine]::_PackRGB(16, 16, 16)
-        $fg = [HybridRenderEngine]::_PackRGB(231, 231, 231)
-        $selBg = [HybridRenderEngine]::_PackRGB(0, 0, 128) # DarkBlue
-        $selFg = [HybridRenderEngine]::_PackRGB(255, 255, 255)
+        $bg = $this.GetThemedColorInt('Background.Widget')
+        $fg = $this.GetThemedColorInt('Foreground.Primary')
+        $selBg = $this.GetThemedColorInt('Background.RowSelected') 
+        $selFg = $this.GetThemedColorInt('Foreground.RowSelected')
         
         # Set clip to widget bounds
         $engine.PushClip($this.X, $this.Y, $this.Width, $this.Height)
@@ -213,7 +215,8 @@ class TextAreaEditor : PmcWidget {
                     if ($this.SelectionMode -ne [SelectionMode]::None -and
                         $this.IsCharInSelection($lineIndex, $col)) {
                         $engine.WriteAt($screenX, $screenY, $char, $selFg, $selBg)
-                    } else {
+                    }
+                    else {
                         $engine.WriteAt($screenX, $screenY, $char, $fg, $bg)
                     }
                 }
@@ -263,14 +266,18 @@ class TextAreaEditor : PmcWidget {
             # Stream selection
             if ($line -eq $startLine -and $line -eq $endLine) {
                 return $col -ge $startCol -and $col -lt $endCol
-            } elseif ($line -eq $startLine) {
+            }
+            elseif ($line -eq $startLine) {
                 return $col -ge $startCol
-            } elseif ($line -eq $endLine) {
+            }
+            elseif ($line -eq $endLine) {
                 return $col -lt $endCol
-            } else {
+            }
+            else {
                 return $true
             }
-        } elseif ($this.SelectionMode -eq [SelectionMode]::Block) {
+        }
+        elseif ($this.SelectionMode -eq [SelectionMode]::Block) {
             # Block selection
             return $col -ge $startCol -and $col -lt $endCol
         }
@@ -292,8 +299,8 @@ class TextAreaEditor : PmcWidget {
 
         # Save state for undo before modifications
         if (-not ($key.Key -in @([System.ConsoleKey]::LeftArrow, [System.ConsoleKey]::RightArrow,
-                                  [System.ConsoleKey]::UpArrow, [System.ConsoleKey]::DownArrow,
-                                  [System.ConsoleKey]::Home, [System.ConsoleKey]::End))) {
+                    [System.ConsoleKey]::UpArrow, [System.ConsoleKey]::DownArrow,
+                    [System.ConsoleKey]::Home, [System.ConsoleKey]::End))) {
             $this.SaveUndoState()
         }
 
@@ -308,7 +315,8 @@ class TextAreaEditor : PmcWidget {
                     }
                     if ($isCtrl) { $this.MoveCursorWordLeft() } else { $this.MoveCursorLeft() }
                     $this.ExtendSelection()
-                } else {
+                }
+                else {
                     if ($this.SelectionMode -ne [SelectionMode]::None) { $this.ClearSelection() }
                     if ($isCtrl) { $this.MoveCursorWordLeft() } else { $this.MoveCursorLeft() }
                 }
@@ -321,7 +329,8 @@ class TextAreaEditor : PmcWidget {
                     }
                     if ($isCtrl) { $this.MoveCursorWordRight() } else { $this.MoveCursorRight() }
                     $this.ExtendSelection()
-                } else {
+                }
+                else {
                     if ($this.SelectionMode -ne [SelectionMode]::None) { $this.ClearSelection() }
                     if ($isCtrl) { $this.MoveCursorWordRight() } else { $this.MoveCursorRight() }
                 }
@@ -334,7 +343,8 @@ class TextAreaEditor : PmcWidget {
                     }
                     $this.MoveCursorUp()
                     $this.ExtendSelection()
-                } else {
+                }
+                else {
                     if ($this.SelectionMode -ne [SelectionMode]::None) { $this.ClearSelection() }
                     $this.MoveCursorUp()
                 }
@@ -347,7 +357,8 @@ class TextAreaEditor : PmcWidget {
                     }
                     $this.MoveCursorDown()
                     $this.ExtendSelection()
-                } else {
+                }
+                else {
                     if ($this.SelectionMode -ne [SelectionMode]::None) { $this.ClearSelection() }
                     $this.MoveCursorDown()
                 }
@@ -357,7 +368,8 @@ class TextAreaEditor : PmcWidget {
                     $this.CursorX = 0
                     $this.CursorY = 0
                     $this.EnsureCursorVisible()
-                } else {
+                }
+                else {
                     $this.CursorX = 0
                     $this.EnsureCursorVisible()
                 }
@@ -367,7 +379,8 @@ class TextAreaEditor : PmcWidget {
                     $this.CursorY = $this.GetLineCount() - 1
                     $this.CursorX = $this.GetLine($this.CursorY).Length
                     $this.EnsureCursorVisible()
-                } else {
+                }
+                else {
                     $this.CursorX = $this.GetLine($this.CursorY).Length
                     $this.EnsureCursorVisible()
                 }
@@ -391,14 +404,16 @@ class TextAreaEditor : PmcWidget {
             ([System.ConsoleKey]::Z) {
                 if ($key.Modifiers -band [System.ConsoleModifiers]::Control) {
                     $this.Undo()
-                } else {
+                }
+                else {
                     $this.InsertChar($key.KeyChar)
                 }
             }
             ([System.ConsoleKey]::Y) {
                 if ($key.Modifiers -band [System.ConsoleModifiers]::Control) {
                     $this.Redo()
-                } else {
+                }
+                else {
                     $this.InsertChar($key.KeyChar)
                 }
             }
@@ -407,7 +422,8 @@ class TextAreaEditor : PmcWidget {
             ([System.ConsoleKey]::A) {
                 if ($isCtrl) {
                     $this.SelectAll()
-                } else {
+                }
+                else {
                     $this.InsertChar($key.KeyChar)
                 }
             }
@@ -416,7 +432,8 @@ class TextAreaEditor : PmcWidget {
             ([System.ConsoleKey]::C) {
                 if ($isCtrl) {
                     $this.Copy()
-                } else {
+                }
+                else {
                     $this.InsertChar($key.KeyChar)
                 }
             }
@@ -425,7 +442,8 @@ class TextAreaEditor : PmcWidget {
             ([System.ConsoleKey]::X) {
                 if ($isCtrl) {
                     $this.Cut()
-                } else {
+                }
+                else {
                     $this.InsertChar($key.KeyChar)
                 }
             }
@@ -434,7 +452,8 @@ class TextAreaEditor : PmcWidget {
             ([System.ConsoleKey]::V) {
                 if ($isCtrl) {
                     $this.Paste()
-                } else {
+                }
+                else {
                     $this.InsertChar($key.KeyChar)
                 }
             }
@@ -445,7 +464,8 @@ class TextAreaEditor : PmcWidget {
                     # Future feature: Implement find dialog with search highlighting
                     # Reserved: Ctrl+F keybinding for future find functionality
                     $handled = $false  # Let parent handle for now
-                } else {
+                }
+                else {
                     $this.InsertChar($key.KeyChar)
                 }
             }
@@ -456,7 +476,8 @@ class TextAreaEditor : PmcWidget {
                     # Future feature: Implement find/replace dialog with preview
                     # Reserved: Ctrl+H keybinding for future replace functionality
                     $handled = $false  # Let parent handle for now
-                } else {
+                }
+                else {
                     $this.InsertChar($key.KeyChar)
                 }
             }
@@ -465,7 +486,8 @@ class TextAreaEditor : PmcWidget {
             ([System.ConsoleKey]::Escape) {
                 if ($this.SelectionMode -ne [SelectionMode]::None) {
                     $this.ClearSelection()
-                } else {
+                }
+                else {
                     $handled = $false
                 }
             }
@@ -473,7 +495,8 @@ class TextAreaEditor : PmcWidget {
             default {
                 if ($key.KeyChar -and -not [char]::IsControl($key.KeyChar)) {
                     $this.InsertChar($key.KeyChar)
-                } else {
+                }
+                else {
                     $handled = $false
                 }
             }
@@ -486,7 +509,8 @@ class TextAreaEditor : PmcWidget {
     [void] MoveCursorLeft() {
         if ($this.CursorX -gt 0) {
             $this.CursorX--
-        } elseif ($this.CursorY -gt 0) {
+        }
+        elseif ($this.CursorY -gt 0) {
             $this.CursorY--
             $this.CursorX = $this.GetLine($this.CursorY).Length
         }
@@ -497,7 +521,8 @@ class TextAreaEditor : PmcWidget {
         $lineLength = $this.GetLine($this.CursorY).Length
         if ($this.CursorX -lt $lineLength) {
             $this.CursorX++
-        } elseif ($this.CursorY -lt ($this.GetLineCount() - 1)) {
+        }
+        elseif ($this.CursorY -lt ($this.GetLineCount() - 1)) {
             $this.CursorY++
             $this.CursorX = 0
         }
@@ -538,7 +563,8 @@ class TextAreaEditor : PmcWidget {
             while ($this.CursorX -gt 0 -and $line[$this.CursorX - 1] -match '\w') {
                 $this.CursorX--
             }
-        } elseif ($this.CursorY -gt 0) {
+        }
+        elseif ($this.CursorY -gt 0) {
             $this.MoveCursorLeft()
         }
         $this.EnsureCursorVisible()
@@ -556,7 +582,8 @@ class TextAreaEditor : PmcWidget {
             while ($this.CursorX -lt $line.Length -and $line[$this.CursorX] -match '\s') {
                 $this.CursorX++
             }
-        } elseif ($this.CursorY -lt ($this.GetLineCount() - 1)) {
+        }
+        elseif ($this.CursorY -lt ($this.GetLineCount() - 1)) {
             $this.MoveCursorRight()
         }
         $this.EnsureCursorVisible()
@@ -620,7 +647,8 @@ class TextAreaEditor : PmcWidget {
             $this._lineIndexDirty = $true
             $this.CursorX--
             $this.Modified = $true
-        } elseif ($this.CursorY -gt 0) {
+        }
+        elseif ($this.CursorY -gt 0) {
             # Join with previous line
             $this.CursorY--
             $this.CursorX = $this.GetLine($this.CursorY).Length
@@ -645,7 +673,8 @@ class TextAreaEditor : PmcWidget {
             $this._gapBuffer.Delete($position, 1)
             $this._lineIndexDirty = $true
             $this.Modified = $true
-        } elseif ($this.CursorY -lt ($this.GetLineCount() - 1)) {
+        }
+        elseif ($this.CursorY -lt ($this.GetLineCount() - 1)) {
             # Join with next line
             $position = $this.GetPositionFromLineCol($this.CursorY, $this.CursorX)
             $this._gapBuffer.Delete($position, 1)  # Delete the newline
@@ -708,21 +737,26 @@ class TextAreaEditor : PmcWidget {
                         $length = [Math]::Min($endCol - $startCol, $lineText.Length - $startCol)
                         $text += $lineText.Substring($startCol, $length)
                     }
-                } elseif ($line -eq $startLine) {
+                }
+                elseif ($line -eq $startLine) {
                     # First line
                     if ($startCol -lt $lineText.Length) {
                         $text += $lineText.Substring($startCol) + "`n"
-                    } else {
+                    }
+                    else {
                         $text += "`n"
                     }
-                } elseif ($line -eq $endLine) {
+                }
+                elseif ($line -eq $endLine) {
                     # Last line
                     if ($endCol -gt 0 -and $endCol -le $lineText.Length) {
                         $text += $lineText.Substring(0, $endCol)
-                    } elseif ($endCol -gt $lineText.Length) {
+                    }
+                    elseif ($endCol -gt $lineText.Length) {
                         $text += $lineText
                     }
-                } else {
+                }
+                else {
                     # Middle lines
                     $text += $lineText + "`n"
                 }
@@ -737,7 +771,8 @@ class TextAreaEditor : PmcWidget {
                 if ($startCol -lt $lineText.Length) {
                     $extractEnd = [Math]::Min($endCol, $lineText.Length)
                     $lines += $lineText.Substring($startCol, $extractEnd - $startCol)
-                } else {
+                }
+                else {
                     $lines += ""
                 }
             }
@@ -799,7 +834,8 @@ class TextAreaEditor : PmcWidget {
         if (-not [string]::IsNullOrEmpty($selectedText)) {
             try {
                 Set-Clipboard -Value $selectedText
-            } catch {
+            }
+            catch {
                 # Clipboard access may fail - silently ignore
             }
         }
@@ -811,7 +847,8 @@ class TextAreaEditor : PmcWidget {
             try {
                 Set-Clipboard -Value $selectedText
                 $this.DeleteSelection()
-            } catch {
+            }
+            catch {
                 # Clipboard access may fail - silently ignore
             }
         }
@@ -838,14 +875,16 @@ class TextAreaEditor : PmcWidget {
                     if ($lines.Count -gt 1) {
                         $this.CursorY += $lines.Count - 1
                         $this.CursorX = $lines[-1].Length
-                    } else {
+                    }
+                    else {
                         $this.CursorX += $clipboardText.Length
                     }
 
                     $this.EnsureCursorVisible()
                 }
             }
-        } catch {
+        }
+        catch {
             # Clipboard access may fail - silently ignore
         }
     }
@@ -858,7 +897,7 @@ class TextAreaEditor : PmcWidget {
         }
 
         $state = @{
-            Text = $this._gapBuffer.GetText()
+            Text    = $this._gapBuffer.GetText()
             CursorX = $this.CursorX
             CursorY = $this.CursorY
         }
@@ -880,7 +919,7 @@ class TextAreaEditor : PmcWidget {
         if ($this._undoStack.Count -gt 0) {
             # Save current state to redo stack
             $currentState = @{
-                Text = $this._gapBuffer.GetText()
+                Text    = $this._gapBuffer.GetText()
                 CursorX = $this.CursorX
                 CursorY = $this.CursorY
             }
@@ -902,7 +941,7 @@ class TextAreaEditor : PmcWidget {
         if ($this._redoStack.Count -gt 0) {
             # Save current state to undo stack
             $currentState = @{
-                Text = $this._gapBuffer.GetText()
+                Text    = $this._gapBuffer.GetText()
                 CursorX = $this.CursorX
                 CursorY = $this.CursorY
             }
@@ -924,14 +963,16 @@ class TextAreaEditor : PmcWidget {
         # Vertical scrolling
         if ($this.CursorY -lt $this.ScrollOffsetY) {
             $this.ScrollOffsetY = $this.CursorY
-        } elseif ($this.CursorY -ge ($this.ScrollOffsetY + $this.Height)) {
+        }
+        elseif ($this.CursorY -ge ($this.ScrollOffsetY + $this.Height)) {
             $this.ScrollOffsetY = $this.CursorY - $this.Height + 1
         }
 
         # Horizontal scrolling
         if ($this.CursorX -lt $this.ScrollOffsetX) {
             $this.ScrollOffsetX = $this.CursorX
-        } elseif ($this.CursorX -ge ($this.ScrollOffsetX + $this.Width)) {
+        }
+        elseif ($this.CursorX -ge ($this.ScrollOffsetX + $this.Width)) {
             $this.ScrollOffsetX = $this.CursorX - $this.Width + 1
         }
     }
@@ -944,12 +985,14 @@ class TextAreaEditor : PmcWidget {
                 $this.SetText($content)
                 $this.FilePath = $path
                 $this.Modified = $false
-            } else {
+            }
+            else {
                 $this.SetText("")
                 $this.FilePath = $path
                 $this.Modified = $false
             }
-        } catch {
+        }
+        catch {
             throw "Failed to load file: $($_.Exception.Message)"
         }
     }
@@ -977,7 +1020,8 @@ class TextAreaEditor : PmcWidget {
             $this._originalText = $content
             $this.Modified = $false
             $this._lastSaveTime = [datetime]::Now
-        } catch {
+        }
+        catch {
             # Clean up temp file if it exists
             if (Test-Path "$path.tmp") {
                 Remove-Item -Path "$path.tmp" -Force -ErrorAction SilentlyContinue

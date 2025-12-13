@@ -63,10 +63,11 @@ class FocusSetFormScreen : PmcScreen {
 
             # Get current focus
             $this.CurrentFocus = $(if ($data.PSObject.Properties['currentContext']) {
-                $data.currentContext
-            } else {
-                'inbox'
-            })
+                    $data.currentContext
+                }
+                else {
+                    'inbox'
+                })
 
             # Get project list
             $this.Projects = @('inbox') + @(
@@ -84,85 +85,60 @@ class FocusSetFormScreen : PmcScreen {
 
             $this.ShowStatus("$($this.Projects.Count) projects available")
 
-        } catch {
+        }
+        catch {
             $this.ShowError("Failed to load projects: $_")
             $this.Projects = @()
         }
     }
 
-    [string] RenderContent() {
-        $sb = [System.Text.StringBuilder]::new(2048)
-
-        if (-not $this.LayoutManager) {
-            return $sb.ToString()
-        }
-
-        # Get content area
-        $contentRect = $this.LayoutManager.GetRegion('Content', $this.TermWidth, $this.TermHeight)
-
+    [void] RenderContentToEngine([object]$engine) {
         # Colors
-        $textColor = $this.Header.GetThemedFg('Foreground.Field')
-        $selectedBg = $this.Header.GetThemedBg('Background.FieldFocused', 80, 0)
-        $selectedFg = $this.Header.GetThemedFg('Foreground.Field')
-        $cursorColor = $this.Header.GetThemedFg('Foreground.FieldFocused')
-        $mutedColor = $this.Header.GetThemedFg('Foreground.Muted')
-        $reset = "`e[0m"
+        $textColor = $this.Header.GetThemedColorInt('Foreground.Field')
+        $selectedBg = $this.Header.GetThemedColorInt('Background.FieldFocused')
+        $selectedFg = $this.Header.GetThemedColorInt('Foreground.Field')
+        $cursorColor = $this.Header.GetThemedColorInt('Foreground.FieldFocused')
+        $mutedColor = $this.Header.GetThemedColorInt('Foreground.Muted')
+        $bg = $this.Header.GetThemedColorInt('Background.Primary')
+        
+        $y = 4
+        $x = 4
 
         # Title
-        $y = $contentRect.Y
-        $sb.Append($this.Header.BuildMoveTo($contentRect.X + 4, $y))
-        $sb.Append($textColor)
-        $sb.Append("Select a project to focus on:")
-        $sb.Append($reset)
+        $engine.WriteAt($x, $y, "Select a project to focus on:", $textColor, $bg)
         $y += 2
 
         # Show current focus
-        $sb.Append($this.Header.BuildMoveTo($contentRect.X + 4, $y))
-        $sb.Append($mutedColor)
-        $sb.Append("Current focus: ")
-        $sb.Append($textColor)
-        $sb.Append($this.CurrentFocus)
-        $sb.Append($reset)
+        $engine.WriteAt($x, $y, "Current focus: ", $mutedColor, $bg)
+        $engine.WriteAt($x + 15, $y, $this.CurrentFocus, $textColor, $bg)
         $y += 3
 
         # Render project list
-        $maxLines = $contentRect.Height - 6
+        $maxLines = $this.TermHeight - $y - 2
+        
         for ($i = 0; $i -lt [Math]::Min($this.Projects.Count, $maxLines); $i++) {
             $project = $this.Projects[$i]
             $isSelected = ($i -eq $this.SelectedIndex)
+            
+            $rowBg = $(if ($isSelected) { $selectedBg } else { $bg })
+            $rowFg = $(if ($isSelected) { $selectedFg } else { $textColor })
 
             # Cursor
-            $sb.Append($this.Header.BuildMoveTo($contentRect.X + 2, $y + $i))
             if ($isSelected) {
-                $sb.Append($cursorColor)
-                $sb.Append(">")
-                $sb.Append($reset)
-            } else {
-                $sb.Append(" ")
+                $engine.WriteAt($x - 2, $y + $i, ">", $cursorColor, $bg)
             }
 
             # Project name
-            $sb.Append($this.Header.BuildMoveTo($contentRect.X + 4, $y + $i))
-            if ($isSelected) {
-                $sb.Append($selectedBg)
-                $sb.Append($selectedFg)
-            } else {
-                $sb.Append($textColor)
-            }
-            $sb.Append($project)
-            $sb.Append($reset)
+            $engine.WriteAt($x, $y + $i, $project, $rowFg, $rowBg)
 
             # Mark current focus
             if ($project -eq $this.CurrentFocus) {
-                $sb.Append(" ")
-                $sb.Append($mutedColor)
-                $sb.Append("(current)")
-                $sb.Append($reset)
+                $engine.WriteAt($x + $project.Length + 1, $y + $i, "(current)", $mutedColor, $bg)
             }
         }
-
-        return $sb.ToString()
     }
+
+    [string] RenderContent() { return "" }
 
     [bool] HandleKeyPress([ConsoleKeyInfo]$keyInfo) {
         # CRITICAL: Call parent FIRST for MenuBar, F10, Alt+keys, content widgets
@@ -204,7 +180,8 @@ class FocusSetFormScreen : PmcScreen {
             # Set focus
             if (-not $data.PSObject.Properties['currentContext']) {
                 $data | Add-Member -NotePropertyName currentContext -NotePropertyValue $selectedProject -Force
-            } else {
+            }
+            else {
                 $data.currentContext = $selectedProject
             }
 
@@ -216,7 +193,8 @@ class FocusSetFormScreen : PmcScreen {
             Start-Sleep -Milliseconds 500
             $this.RequestDoExit()
 
-        } catch {
+        }
+        catch {
             $this.ShowError("Failed to set focus: $_")
         }
     }

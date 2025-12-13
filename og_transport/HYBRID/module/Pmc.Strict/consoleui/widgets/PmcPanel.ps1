@@ -128,7 +128,7 @@ class PmcPanel : PmcWidget {
         $engine.DefineRegion("$($this.RegionID)_Content", $contentX, $contentY, $contentW, $contentH)
         
         if ($this.ShowTitle -and $this.PanelTitle) {
-             $engine.DefineRegion("$($this.RegionID)_Title", $this.X + 2, $this.Y, $this.Width - 4, 1)
+            $engine.DefineRegion("$($this.RegionID)_Title", $this.X + 2, $this.Y, $this.Width - 4, 1)
         }
     }
 
@@ -147,7 +147,7 @@ class PmcPanel : PmcWidget {
         
         # Draw Border
         if ($this.ShowBorder) {
-            $engine.DrawBox($this.X, $this.Y, $this.Width, $this.Height, $this.BorderStyle)
+            $engine.DrawBox($this.X, $this.Y, $this.Width, $this.Height, $this.BorderStyle, $borderColor, $bg)
             
             # Draw Title
             if ($this.ShowTitle -and $this.PanelTitle) {
@@ -176,7 +176,8 @@ class PmcPanel : PmcWidget {
                     if ($this.ContentAlign -eq 'center') {
                         $pad = [Math]::Max(0, [Math]::Floor(($bounds.Width - $line.Length) / 2))
                         $line = (" " * $pad) + $line
-                    } elseif ($this.ContentAlign -eq 'right') {
+                    }
+                    elseif ($this.ContentAlign -eq 'right') {
                         $pad = [Math]::Max(0, $bounds.Width - $line.Length)
                         $line = (" " * $pad) + $line
                     }
@@ -194,10 +195,7 @@ class PmcPanel : PmcWidget {
         return ""
     }
 
-    hidden [string] _RenderTopBorder([string]$borderColor, [string]$titleColor, [string]$reset) { return "" }
-    hidden [string] _RenderMiddleLine([int]$row, [string]$borderColor, [string]$textColor, [string]$reset) { return "" }
-    hidden [string] _RenderBottomBorder([string]$borderColor, [string]$reset) { return "" }
-    hidden [string] _RenderContentNoBorder([string]$textColor, [string]$reset) { return "" }
+
 
     # === Helper Methods ===
 
@@ -212,9 +210,9 @@ class PmcPanel : PmcWidget {
         $borderOffset = $(if ($this.ShowBorder) { 1 } else { 0 })
 
         return @{
-            X = $this.X + $borderOffset + $this.PaddingLeft
-            Y = $this.Y + $borderOffset + $this.PaddingTop
-            Width = $this.Width - (2 * $borderOffset) - $this.PaddingLeft - $this.PaddingRight
+            X      = $this.X + $borderOffset + $this.PaddingLeft
+            Y      = $this.Y + $borderOffset + $this.PaddingTop
+            Width  = $this.Width - (2 * $borderOffset) - $this.PaddingLeft - $this.PaddingRight
             Height = $this.Height - (2 * $borderOffset) - $this.PaddingTop - $this.PaddingBottom
         }
     }

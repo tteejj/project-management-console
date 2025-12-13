@@ -53,79 +53,60 @@ class UndoViewScreen : PmcScreen {
 
             if ($this.UndoStatus.UndoAvailable) {
                 $this.ShowStatus("Press U to undo last action")
-            } else {
+            }
+            else {
                 $this.ShowStatus("No changes available to undo")
             }
-        } catch {
+        }
+        catch {
             $this.ShowError("Failed to load undo status: $_")
             $this.UndoStatus = $null
         }
     }
 
-    [string] RenderContent() {
-        $sb = [System.Text.StringBuilder]::new(2048)
-
-        if (-not $this.LayoutManager) {
-            return $sb.ToString()
-        }
-
-        # Get content area
-        $contentRect = $this.LayoutManager.GetRegion('Content', $this.TermWidth, $this.TermHeight)
-
+    [void] RenderContentToEngine([object]$engine) {
         # Colors
-        $textColor = $this.Header.GetThemedFg('Foreground.Field')
-        $highlightColor = $this.Header.GetThemedFg('Foreground.FieldFocused')
-        $successColor = $this.Header.GetThemedFg('Foreground.Success')
-        $warningColor = $this.Header.GetThemedAnsi('Warning', $false)
-        $mutedColor = $this.Header.GetThemedFg('Foreground.Muted')
-        $reset = "`e[0m"
-
-        $y = $contentRect.Y + 2
-        $x = $contentRect.X + 4
+        $textColor = $this.Header.GetThemedColorInt('Foreground.Field')
+        $highlightColor = $this.Header.GetThemedColorInt('Foreground.FieldFocused')
+        $successColor = $this.Header.GetThemedColorInt('Foreground.Success')
+        $warningColor = $this.Header.GetThemedColorInt('Foreground.Warning') 
+        $mutedColor = $this.Header.GetThemedColorInt('Foreground.Muted')
+        $bg = $this.Header.GetThemedColorInt('Background.Primary')
+        
+        $y = 4
+        $x = 4
 
         # Title
         $title = " Undo Last Change "
-        $titleX = $contentRect.X + [Math]::Floor(($contentRect.Width - $title.Length) / 2)
-        $sb.Append($this.Header.BuildMoveTo($titleX, $y))
-        $sb.Append($highlightColor)
-        $sb.Append($title)
-        $sb.Append($reset)
+        $titleX = $x + [Math]::Floor(($this.TermWidth - $x - $title.Length) / 2)
+        # Simplify centering roughly
+        $titleX = [Math]::Max($x, [Math]::Floor(($this.TermWidth - $title.Length) / 2))
+        
+        $engine.WriteAt($titleX, $y, $title, $highlightColor, $bg)
         $y += 2
 
         if ($null -eq $this.UndoStatus) {
-            $sb.Append($this.Header.BuildMoveTo($x, $y))
-            $sb.Append($warningColor)
-            $sb.Append("Error loading undo status")
-            $sb.Append($reset)
-        } elseif ($this.UndoStatus.UndoAvailable) {
+            $engine.WriteAt($x, $y, "Error loading undo status", $warningColor, $bg)
+        }
+        elseif ($this.UndoStatus.UndoAvailable) {
             # Show undo stack info
-            $sb.Append($this.Header.BuildMoveTo($x, $y))
-            $sb.Append($successColor)
-            $sb.Append("Undo stack has $($this.UndoStatus.UndoCount) change(s) available")
-            $sb.Append($reset)
+            $engine.WriteAt($x, $y, "Undo stack has $($this.UndoStatus.UndoCount) change(s) available", $successColor, $bg)
             $y += 2
 
             # Show last action
-            $sb.Append($this.Header.BuildMoveTo($x, $y++))
-            $sb.Append($textColor)
-            $sb.Append("Last action: $($this.UndoStatus.LastAction)")
-            $sb.Append($reset)
+            $engine.WriteAt($x, $y, "Last action: $($this.UndoStatus.LastAction)", $textColor, $bg)
+            $y++
 
             $y += 2
-            $sb.Append($this.Header.BuildMoveTo($x, $y))
-            $sb.Append($warningColor)
-            $sb.Append("Press 'U' to undo the last change")
-            $sb.Append($reset)
-        } else {
-            # No undo available
-            $sb.Append($this.Header.BuildMoveTo($x, $y))
-            $sb.Append($warningColor)
-            $sb.Append("No changes available to undo")
-            $sb.Append($reset)
+            $engine.WriteAt($x, $y, "Press 'U' to undo the last change", $warningColor, $bg)
         }
-
-        return $sb.ToString()
+        else {
+            # No undo available
+            $engine.WriteAt($x, $y, "No changes available to undo", $warningColor, $bg)
+        }
     }
+
+    [string] RenderContent() { return "" }
 
     [bool] HandleKeyPress([ConsoleKeyInfo]$keyInfo) {
         $keyChar = [char]::ToLower($keyInfo.KeyChar)
@@ -153,7 +134,8 @@ class UndoViewScreen : PmcScreen {
             Invoke-PmcUndo
             $this.ShowSuccess("Undo successful")
             $this.App.PopScreen()
-        } catch {
+        }
+        catch {
             $this.ShowError("Failed to undo: $_")
         }
     }

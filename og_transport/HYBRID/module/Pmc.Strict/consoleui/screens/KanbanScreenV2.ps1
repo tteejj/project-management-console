@@ -113,18 +113,20 @@ class KanbanScreenV2 : PmcScreen {
             $cfg = Get-PmcConfig
             if ($cfg.Kanban -and $cfg.Kanban.TagColors) {
                 $this.TagColors = $cfg.Kanban.TagColors
-            } else {
+            }
+            else {
                 # Default tag colors
                 $this.TagColors = @{
-                    'urgent' = '#FF0000'
+                    'urgent'    = '#FF0000'
                     'important' = '#FFA500'
-                    'work' = '#0066CC'
-                    'personal' = '#00CC66'
-                    'blocked' = '#CC0000'
-                    'waiting' = '#CCCC00'
+                    'work'      = '#0066CC'
+                    'personal'  = '#00CC66'
+                    'blocked'   = '#CC0000'
+                    'waiting'   = '#CCCC00'
                 }
             }
-        } catch {
+        }
+        catch {
             # MEDIUM FIX KSV2-M1: Add logging to catch block
             Write-PmcTuiLog "KanbanScreenV2._LoadTagColors: Failed to load tag colors: $($_.Exception.Message)" "WARNING"
             $this.TagColors = @{}
@@ -139,52 +141,51 @@ class KanbanScreenV2 : PmcScreen {
             # CRITICAL FIX KSV2-C4: Add null check on GetAllTasks()
             $allTasks = $this.Store.GetAllTasks()
             if ($null -eq $allTasks) {
-                Write-PmcTuiLog "KanbanScreenV2.LoadData: GetAllTasks() returned null" "ERROR"
-                $allTasks = @()
-                $this.ShowError("Failed to load tasks")
+                # FAIL FAST: Do not pretend we have 0 tasks.
+                throw "Store.GetAllTasks() returned null. Database access failed."
             }
 
             # In Progress column: ONLY tasks with explicit status = 'in-progress'
             $this.InProgressTasks = @($allTasks | Where-Object {
-                $taskCompleted = Get-SafeProperty $_ 'completed'
-                $taskStatus = Get-SafeProperty $_ 'status'
-                -not $taskCompleted -and $taskStatus -eq 'in-progress'
-            })
+                    $taskCompleted = Get-SafeProperty $_ 'completed'
+                    $taskStatus = Get-SafeProperty $_ 'status'
+                    -not $taskCompleted -and $taskStatus -eq 'in-progress'
+                })
 
             # Done column: status = 'done' or completed = true
             $this.DoneTasks = @($allTasks | Where-Object {
-                $taskCompleted = Get-SafeProperty $_ 'completed'
-                $taskStatus = Get-SafeProperty $_ 'status'
-                $taskCompleted -or $taskStatus -eq 'done'
-            })
+                    $taskCompleted = Get-SafeProperty $_ 'completed'
+                    $taskStatus = Get-SafeProperty $_ 'status'
+                    $taskCompleted -or $taskStatus -eq 'done'
+                })
 
             # TODO column: Everything else (not in-progress, not done)
             # This includes: no status, status='todo', status='pending', status='blocked', etc.
             $this.TodoTasks = @($allTasks | Where-Object {
-                $taskId = Get-SafeProperty $_ 'id'
-                $inProgressIds = @($this.InProgressTasks | ForEach-Object { Get-SafeProperty $_ 'id' })
-                $doneIds = @($this.DoneTasks | ForEach-Object { Get-SafeProperty $_ 'id' })
-                $taskId -notin $inProgressIds -and $taskId -notin $doneIds
-            })
+                    $taskId = Get-SafeProperty $_ 'id'
+                    $inProgressIds = @($this.InProgressTasks | ForEach-Object { Get-SafeProperty $_ 'id' })
+                    $doneIds = @($this.DoneTasks | ForEach-Object { Get-SafeProperty $_ 'id' })
+                    $taskId -notin $inProgressIds -and $taskId -notin $doneIds
+                })
 
             # Sort by order field (for manual reordering), then priority
             # CRITICAL FIX KSV2-C1: Safe [int] cast with validation
             $this.TodoTasks = @($this.TodoTasks | Sort-Object {
-                $order = Get-SafeProperty $_ 'order'
-                if ($order -and $order -match '^\d+$') { [int]$order } else { 999 }
-            }, { Get-SafeProperty $_ 'priority' } -Descending)
+                    $order = Get-SafeProperty $_ 'order'
+                    if ($order -and $order -match '^\d+$') { [int]$order } else { 999 }
+                }, { Get-SafeProperty $_ 'priority' } -Descending)
 
             # CRITICAL FIX KSV2-C2: Safe [int] cast with validation
             $this.InProgressTasks = @($this.InProgressTasks | Sort-Object {
-                $order = Get-SafeProperty $_ 'order'
-                if ($order -and $order -match '^\d+$') { [int]$order } else { 999 }
-            }, { Get-SafeProperty $_ 'priority' } -Descending)
+                    $order = Get-SafeProperty $_ 'order'
+                    if ($order -and $order -match '^\d+$') { [int]$order } else { 999 }
+                }, { Get-SafeProperty $_ 'priority' } -Descending)
 
             # CRITICAL FIX KSV2-C3: Safe [int] cast with validation
             $this.DoneTasks = @($this.DoneTasks | Sort-Object {
-                $order = Get-SafeProperty $_ 'order'
-                if ($order -and $order -match '^\d+$') { [int]$order } else { 999 }
-            }, { Get-SafeProperty $_ 'priority' } -Descending)
+                    $order = Get-SafeProperty $_ 'order'
+                    if ($order -and $order -match '^\d+$') { [int]$order } else { 999 }
+                }, { Get-SafeProperty $_ 'priority' } -Descending)
 
             # Build parent-child cache for performance optimization
             # KSV2-M1 FIX: Add count check before iterating allTasks array
@@ -216,7 +217,8 @@ class KanbanScreenV2 : PmcScreen {
             $total = $this.TodoTasks.Count + $this.InProgressTasks.Count + $this.DoneTasks.Count
             $this.ShowStatus("Kanban: $($this.TodoTasks.Count) TODO, $($this.InProgressTasks.Count) In Progress, $($this.DoneTasks.Count) Done")
 
-        } catch {
+        }
+        catch {
             $this.ShowError("Failed to load kanban board: $_")
             $this.TodoTasks = @()
             $this.InProgressTasks = @()
@@ -283,13 +285,13 @@ class KanbanScreenV2 : PmcScreen {
         $taskStartY = $startY + 2  # Below column header
         # Tasks render at column X + 2 (1 for column border + 1 for padding inside)
         $sb.Append($this._RenderColumn($col1X + 2, $taskStartY, $taskContentHeight, $columnWidth - 4,
-            $this.TodoTasks, $this.SelectedIndexTodo, $this.ScrollOffsetTodo, ($this.SelectedColumn -eq 0)))
+                $this.TodoTasks, $this.SelectedIndexTodo, $this.ScrollOffsetTodo, ($this.SelectedColumn -eq 0)))
 
         $sb.Append($this._RenderColumn($col2X + 2, $taskStartY, $taskContentHeight, $columnWidth - 4,
-            $this.InProgressTasks, $this.SelectedIndexInProgress, $this.ScrollOffsetInProgress, ($this.SelectedColumn -eq 1)))
+                $this.InProgressTasks, $this.SelectedIndexInProgress, $this.ScrollOffsetInProgress, ($this.SelectedColumn -eq 1)))
 
         $sb.Append($this._RenderColumn($col3X + 2, $taskStartY, $taskContentHeight, $columnWidth - 4,
-            $this.DoneTasks, $this.SelectedIndexDone, $this.ScrollOffsetDone, ($this.SelectedColumn -eq 2)))
+                $this.DoneTasks, $this.SelectedIndexDone, $this.ScrollOffsetDone, ($this.SelectedColumn -eq 2)))
 
         return $sb.ToString()
     }
@@ -363,7 +365,8 @@ class KanbanScreenV2 : PmcScreen {
         $remainingWidth = $width - $titleLen - 1  # -1 for right corner
         if ($remainingWidth -gt 0) {
             $sb.Append(" " + ("─" * $remainingWidth) + "┐")
-        } else {
+        }
+        else {
             $sb.Append("┐")
         }
         $sb.Append($reset)
@@ -442,10 +445,12 @@ class KanbanScreenV2 : PmcScreen {
                 $taskId = Get-SafeProperty $task 'id'
                 if ($this.ExpandedParents.Contains($taskId)) {
                     $prefix = "▼ "
-                } else {
+                }
+                else {
                     $prefix = "▸ "
                 }
-            } elseif ($depth -gt 0) {
+            }
+            elseif ($depth -gt 0) {
                 $prefix = "├─"
             }
 
@@ -573,9 +578,9 @@ class KanbanScreenV2 : PmcScreen {
         }
         $taskId = Get-SafeProperty $task 'id'
         return @($allTasks | Where-Object {
-            $parentId = Get-SafeProperty $_ 'parent_id'
-            $parentId -eq $taskId
-        })
+                $parentId = Get-SafeProperty $_ 'parent_id'
+                $parentId -eq $taskId
+            })
     }
 
     # Get task color (per-task overrides per-tag)
@@ -616,10 +621,12 @@ class KanbanScreenV2 : PmcScreen {
 
             if ($background) {
                 return "`e[48;2;${r};${g};${b}m"
-            } else {
+            }
+            else {
                 return "`e[38;2;${r};${g};${b}m"
             }
-        } catch {
+        }
+        catch {
             # MEDIUM FIX KSV2-M2: Add logging to catch block
             Write-PmcTuiLog "KanbanScreenV2._HexToAnsi: Invalid hex color '$hex': $($_.Exception.Message)" "WARNING"
             return ''
@@ -826,7 +833,8 @@ class KanbanScreenV2 : PmcScreen {
             $taskId = Get-SafeProperty $task 'id'
             if ($this.ExpandedParents.Contains($taskId)) {
                 $this.ExpandedParents.Remove($taskId)
-            } else {
+            }
+            else {
                 $this.ExpandedParents.Add($taskId)
             }
         }
@@ -891,7 +899,8 @@ class KanbanScreenV2 : PmcScreen {
         if ($newStatus -eq 'done') {
             $changes.completed = $true
             $changes.completedDate = (Get-Date).ToString('yyyy-MM-dd HH:mm:ss')
-        } else {
+        }
+        else {
             $changes.completed = $false
             $changes.completedDate = $null
         }
@@ -909,9 +918,9 @@ class KanbanScreenV2 : PmcScreen {
                 $allTasks = $this.Store.GetAllTasks()
                 if ($null -ne $allTasks -and $allTasks.Count -gt 0) {
                     $children = @($allTasks | Where-Object {
-                        $parentId = Get-SafeProperty $_ 'parent_id'
-                        $parentId -eq $taskId
-                    })
+                            $parentId = Get-SafeProperty $_ 'parent_id'
+                            $parentId -eq $taskId
+                        })
                     if ($null -ne $children -and $children.Count -gt 0) {
                         foreach ($child in $children) {
                             if ($child) {
@@ -923,7 +932,8 @@ class KanbanScreenV2 : PmcScreen {
                         }
                     }
                 }
-            } catch {
+            }
+            catch {
                 # Log error but don't fail parent update
                 Write-PmcTuiLog "Failed to update child tasks: $_" "ERROR"
             }
@@ -1070,9 +1080,11 @@ class KanbanScreenV2 : PmcScreen {
                 $this.ShowSuccess("Tags updated")
                 $this.LoadData()
             }
-        } catch {
+        }
+        catch {
             $this.ShowError("Tag editing failed: $_")
-        } finally {
+        }
+        finally {
             # Force screen refresh after tag editor closes
             $this.NeedsClear = $true
             [Console]::CursorVisible = $false
@@ -1131,13 +1143,15 @@ class KanbanScreenV2 : PmcScreen {
                     if ($color.Hex) {
                         $colorAnsi = $this._HexToAnsi($color.Hex, $false)
                         $sb.Append($colorAnsi + "███" + $reset)
-                    } else {
+                    }
+                    else {
                         $sb.Append("   ")
                     }
 
                     if ($i -eq $selected) {
                         $sb.Append(" > " + $color.Name.PadRight(25) + $reset)
-                    } else {
+                    }
+                    else {
                         $sb.Append($textColor + "   " + $color.Name + $reset)
                     }
                 }
@@ -1164,7 +1178,8 @@ class KanbanScreenV2 : PmcScreen {
                         # CRITICAL FIX KSV2-C9: Add bounds check before array access
                         if ($selected -ge 0 -and $selected -lt $colors.Count) {
                             $chosenHex = $colors[$selected].Hex
-                        } else {
+                        }
+                        else {
                             Write-PmcTuiLog "KanbanScreenV2._ShowColorPicker: selected index $selected out of bounds (0-$($colors.Count-1))" "ERROR"
                             $chosenHex = $null
                         }
@@ -1173,7 +1188,8 @@ class KanbanScreenV2 : PmcScreen {
                         if ($chosenHex) {
                             $this.Store.UpdateTask($taskId, @{ color = $chosenHex })
                             $this.ShowSuccess("Color set to $($colors[$selected].Name)")
-                        } else {
+                        }
+                        else {
                             $this.Store.UpdateTask($taskId, @{ color = $null })
                             $this.ShowSuccess("Color cleared")
                         }
@@ -1185,9 +1201,11 @@ class KanbanScreenV2 : PmcScreen {
                     }
                 }
             }
-        } catch {
+        }
+        catch {
             $this.ShowError("Color picker failed: $_")
-        } finally {
+        }
+        finally {
             # Force screen refresh after color picker closes
             $this.NeedsClear = $true
             [Console]::CursorVisible = $false
@@ -1282,7 +1300,8 @@ class KanbanScreenV2 : PmcScreen {
         $remainingWidth = $width - $titleLen - 1
         if ($remainingWidth -gt 0) {
             $topLine = $borderColor + "┌─ " + $reset + $titleColor + $title + $reset + $borderColor + " " + ("─" * $remainingWidth) + "┐" + $reset
-        } else {
+        }
+        else {
             $topLine = $borderColor + "┌─ " + $reset + $titleColor + $title + $reset + $borderColor + "┐" + $reset
         }
         $engine.WriteAt($x - 1, $y - 1, $topLine)  # Convert to 0-based
@@ -1358,10 +1377,12 @@ class KanbanScreenV2 : PmcScreen {
                 $taskId = Get-SafeProperty $task 'id'
                 if ($this.ExpandedParents.Contains($taskId)) {
                     $prefix = "▼ "
-                } else {
+                }
+                else {
                     $prefix = "▸ "
                 }
-            } elseif ($depth -gt 0) {
+            }
+            elseif ($depth -gt 0) {
                 $prefix = "├─"
             }
 

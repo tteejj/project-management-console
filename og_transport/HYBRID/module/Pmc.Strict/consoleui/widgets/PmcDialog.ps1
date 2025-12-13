@@ -46,10 +46,11 @@ class PmcDialog {
         # Let's assume layout manager or caller sets X/Y.
         
         # Colors (Ints)
-        $bg = [HybridRenderEngine]::_PackRGB(45, 55, 72)
-        $fg = [HybridRenderEngine]::_PackRGB(234, 241, 248)
-        $borderFg = [HybridRenderEngine]::_PackRGB(95, 107, 119)
-        $highlightFg = [HybridRenderEngine]::_PackRGB(136, 153, 170)
+        # Colors (Themed)
+        $bg = $this.GetThemedColorInt('Background.Widget')
+        $fg = $this.GetThemedColorInt('Foreground.Primary')
+        $borderFg = $this.GetThemedColorInt('Border.Widget')
+        $highlightFg = $this.GetThemedColorInt('Foreground.Title')
         
         # Shadow (Offset 2,1)
         $shadowBg = [HybridRenderEngine]::_PackRGB(0, 0, 0)
@@ -57,7 +58,7 @@ class PmcDialog {
         
         # Main Box
         $engine.Fill($this.X, $this.Y, $this.Width, $this.Height, ' ', $fg, $bg)
-        $engine.DrawBox($this.X, $this.Y, $this.Width, $this.Height, 'single')
+        $engine.DrawBox($this.X, $this.Y, $this.Width, $this.Height, $borderFg, $bg)
         
         # Title
         $titleX = $this.X + [Math]::Floor(($this.Width - $this.Title.Length) / 2)
@@ -85,9 +86,9 @@ class ConfirmDialog : PmcDialog {
     [void] RenderToEngine([object]$engine) {
         ([PmcDialog]$this).RenderToEngine($engine)
         
-        $bg = [HybridRenderEngine]::_PackRGB(45, 55, 72)
-        $fg = [HybridRenderEngine]::_PackRGB(234, 241, 248)
-        $highlightBg = [HybridRenderEngine]::_PackRGB(95, 107, 119)
+        $bg = $this.GetThemedColorInt('Background.Widget')
+        $fg = $this.GetThemedColorInt('Foreground.Primary')
+        $highlightBg = $this.GetThemedColorInt('Background.RowSelected')
         
         # Buttons
         $yesText = " Yes "
@@ -160,10 +161,10 @@ class TextInputDialog : PmcDialog {
     [void] RenderToEngine([object]$engine) {
         ([PmcDialog]$this).RenderToEngine($engine)
         
-        $bg = [HybridRenderEngine]::_PackRGB(45, 55, 72)
-        $fg = [HybridRenderEngine]::_PackRGB(234, 241, 248)
-        $inputBg = [HybridRenderEngine]::_PackRGB(30, 37, 48)
-        $cursorFg = [HybridRenderEngine]::_PackRGB(136, 153, 170)
+        $bg = $this.GetThemedColorInt('Background.Widget')
+        $fg = $this.GetThemedColorInt('Foreground.Primary')
+        $inputBg = $this.GetThemedColorInt('Background.Field')
+        $cursorFg = $this.GetThemedColorInt('Foreground.Muted')
         
         $inputWidth = $this.Width - 8
         $inputX = $this.X + 4
@@ -223,9 +224,9 @@ class MessageDialog : PmcDialog {
     [void] RenderToEngine([object]$engine) {
         ([PmcDialog]$this).RenderToEngine($engine)
         
-        $bg = [HybridRenderEngine]::_PackRGB(45, 55, 72)
-        $fg = [HybridRenderEngine]::_PackRGB(234, 241, 248)
-        $highlightBg = [HybridRenderEngine]::_PackRGB(95, 107, 119)
+        $bg = $this.GetThemedColorInt('Background.Widget')
+        $fg = $this.GetThemedColorInt('Foreground.Primary')
+        $highlightBg = $this.GetThemedColorInt('Background.RowSelected')
         
         $ok = " OK "
         $okX = $this.X + [Math]::Floor(($this.Width - $ok.Length) / 2)
@@ -258,18 +259,18 @@ Multi-field project form dialog
 #>
 class ProjectFormDialog : PmcDialog {
     [hashtable]$Fields = @{
-        name = ''
+        name        = ''
         description = ''
-        path = ''
-        aliases = ''
+        path        = ''
+        aliases     = ''
     }
     [string]$CurrentField = 'name'
     [array]$FieldOrder = @('name', 'description', 'path', 'aliases')
     [hashtable]$FieldLabels = @{
-        name = 'Name'
+        name        = 'Name'
         description = 'Description'
-        path = 'Path'
-        aliases = 'Aliases'
+        path        = 'Path'
+        aliases     = 'Aliases'
     }
     [bool]$IsEditMode = $false
     [string]$OriginalName = ''
@@ -293,21 +294,22 @@ class ProjectFormDialog : PmcDialog {
         $this.Fields.description = $(if ($existingProject.description) { $existingProject.description } else { '' })
         $this.Fields.path = $(if ($existingProject.path) { $existingProject.path } else { '' })
         $this.Fields.aliases = $(if ($existingProject.aliases -and $existingProject.aliases.Count -gt 0) {
-            $existingProject.aliases -join ', '
-        } else {
-            ''
-        })
+                $existingProject.aliases -join ', '
+            }
+            else {
+                ''
+            })
     }
 
     [void] RenderToEngine([object]$engine) {
         # Base renders Frame + Title
         ([PmcDialog]$this).RenderToEngine($engine)
         
-        $bg = [HybridRenderEngine]::_PackRGB(30, 30, 30)
-        $fg = [HybridRenderEngine]::_PackRGB(255, 255, 255)
-        $highlight = [HybridRenderEngine]::_PackRGB(100, 200, 255)
-        $accentBg = [HybridRenderEngine]::_PackRGB(0, 100, 180)
-        $muted = [HybridRenderEngine]::_PackRGB(180, 180, 180)
+        $bg = $this.GetThemedColorInt('Background.Widget')
+        $fg = $this.GetThemedColorInt('Foreground.Primary')
+        $highlight = $this.GetThemedColorInt('Foreground.RowSelected')
+        $accentBg = $this.GetThemedColorInt('Background.RowSelected')
+        $muted = $this.GetThemedColorInt('Foreground.Muted')
         
         # Override base BG for form? Or match it. Base uses 45,55,72. 
         # This form used 30,30,30. Let's use Base colors for consistency if possible, 
@@ -316,7 +318,7 @@ class ProjectFormDialog : PmcDialog {
         # But we need to redraw base box with these colors if we want consistency.
         # Let's re-draw background/border using Form colors.
         $engine.Fill($this.X, $this.Y, $this.Width, $this.Height, ' ', $fg, $bg)
-        $engine.DrawBox($this.X, $this.Y, $this.Width, $this.Height, 'single')
+        $engine.DrawBox($this.X, $this.Y, $this.Width, $this.Height, $fg, $bg)
         $engine.WriteAt($this.X + 2, $this.Y + 1, $this.Title, $highlight, $bg)
         
         $fieldY = $this.Y + 3
@@ -399,7 +401,8 @@ class ProjectFormDialog : PmcDialog {
                     if ($currentIndex -lt 0) {
                         $currentIndex = $this.FieldOrder.Count - 1
                     }
-                } else {
+                }
+                else {
                     # Tab: next field
                     $currentIndex++
                     if ($currentIndex -ge $this.FieldOrder.Count) {
@@ -456,10 +459,10 @@ class ProjectFormDialog : PmcDialog {
         }
 
         return @{
-            name = $this.Fields.name
+            name        = $this.Fields.name
             description = $this.Fields.description
-            path = $this.Fields.path
-            aliases = $aliasesArray
+            path        = $this.Fields.path
+            aliases     = $aliasesArray
         }
     }
 }

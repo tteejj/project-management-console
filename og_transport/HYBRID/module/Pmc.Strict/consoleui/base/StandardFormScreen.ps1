@@ -355,86 +355,40 @@ class StandardFormScreen : PmcScreen {
     .OUTPUTS
     ANSI string ready for display
     #>
-    [string] RenderContent() {
-        # Show validation errors if any
-        $sb = [StringBuilder]::new(4096)
+    <#
+    .SYNOPSIS
+    Render content area directly to engine
+    #>
+    [void] RenderContentToEngine([object]$engine) {
+        if ($null -ne $this.Editor) {
+            $this.Editor.RenderToEngine($engine)
+        }
 
-        # Render editor
-        $sb.Append($this.Editor.Render())
-
-        # Show validation errors below editor (if any)
+        # Render validation errors
         if ($this.ValidationErrors.Count -gt 0) {
             $errorY = $this.Editor.Y + $this.Editor.Height + 1
             $errorX = $this.Editor.X
-
-            # Error color
-            $errorColor = "`e[31m"  # Red
-            $reset = "`e[0m"
-
-            $sb.Append("`e[${errorY};${errorX}H")
-            $sb.Append($errorColor)
-            $sb.Append("Validation Errors:")
-            $sb.Append($reset)
-
+            
+            # Colors
+            $errorFg = $this.Header.GetThemedColorInt('Foreground.Error')
+            $bg = $this.Header.GetThemedColorInt('Background.Primary')
+            
+            $engine.WriteAt($errorX, $errorY, "Validation Errors:", $errorFg, $bg)
+            
             for ($i = 0; $i -lt [Math]::Min(3, $this.ValidationErrors.Count); $i++) {
                 $errorMsgY = $errorY + $i + 1
-                $sb.Append("`e[${errorMsgY};${errorX}H")
-                $sb.Append($errorColor)
-                $sb.Append("  - $($this.ValidationErrors[$i])")
-                $sb.Append($reset)
+                $engine.WriteAt($errorX, $errorMsgY, "  - $($this.ValidationErrors[$i])", $errorFg, $bg)
             }
-
+            
             if ($this.ValidationErrors.Count -gt 3) {
                 $moreY = $errorY + 4
-                $sb.Append("`e[${moreY};${errorX}H")
-                $sb.Append($errorColor)
-                $sb.Append("  ... and $($this.ValidationErrors.Count - 3) more errors")
-                $sb.Append($reset)
+                $engine.WriteAt($errorX, $moreY, "  ... and $($this.ValidationErrors.Count - 3) more errors", $errorFg, $bg)
             }
         }
-
-        return $sb.ToString()
     }
 
-    <#
-    .SYNOPSIS
-    Render the complete screen
-
-    .OUTPUTS
-    ANSI string ready for display
-    #>
-    [string] Render() {
-        $sb = [StringBuilder]::new(8192)
-
-        # Clear screen
-        $sb.Append("`e[2J")
-        $sb.Append("`e[H")
-
-        # Render menu bar (if exists)
-        if ($null -ne $this.MenuBar) {
-            $sb.Append($this.MenuBar.Render())
-        }
-
-        # Render header (if exists)
-        if ($null -ne $this.Header) {
-            $sb.Append($this.Header.Render())
-        }
-
-        # Render content
-        $sb.Append($this.RenderContent())
-
-        # Render footer (if exists)
-        if ($null -ne $this.Footer) {
-            $sb.Append($this.Footer.Render())
-        }
-
-        # Render status bar (if exists)
-        if ($null -ne $this.StatusBar) {
-            $sb.Append($this.StatusBar.Render())
-        }
-
-        return $sb.ToString()
-    }
+    [string] Render() { return "" }
+    [string] RenderContent() { return "" }
 
     # === Helper Methods ===
 

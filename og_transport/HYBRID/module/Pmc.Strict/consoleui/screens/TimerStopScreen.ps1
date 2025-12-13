@@ -54,105 +54,76 @@ class TimerStopScreen : PmcScreen {
 
             if ($this.TimerStatus.Running) {
                 $this.ShowStatus("Timer is running - Press S to stop and log time")
-            } else {
+            }
+            else {
                 $this.ShowStatus("Timer is not running")
             }
-        } catch {
+        }
+        catch {
             $this.ShowError("Failed to load timer status: $_")
             $this.TimerStatus = $null
         }
     }
 
-    [string] RenderContent() {
-        $sb = [System.Text.StringBuilder]::new(2048)
-
-        if (-not $this.LayoutManager) {
-            return $sb.ToString()
-        }
-
-        # Get content area
-        $contentRect = $this.LayoutManager.GetRegion('Content', $this.TermWidth, $this.TermHeight)
-
+    [void] RenderContentToEngine([object]$engine) {
         # Colors
-        $textColor = $this.Header.GetThemedFg('Foreground.Field')
-        $highlightColor = $this.Header.GetThemedFg('Foreground.FieldFocused')
-        $successColor = $this.Header.GetThemedFg('Foreground.Success')
-        $warningColor = $this.Header.GetThemedAnsi('Warning', $false)
-        $mutedColor = $this.Header.GetThemedFg('Foreground.Muted')
-        $reset = "`e[0m"
-
-        $y = $contentRect.Y + 2
-        $x = $contentRect.X + 4
+        $textColor = $this.Header.GetThemedColorInt('Foreground.Field')
+        $highlightColor = $this.Header.GetThemedColorInt('Foreground.FieldFocused')
+        $successColor = $this.Header.GetThemedColorInt('Foreground.Success')
+        $warningColor = $this.Header.GetThemedColorInt('Foreground.Warning') 
+        $mutedColor = $this.Header.GetThemedColorInt('Foreground.Muted')
+        $bg = $this.Header.GetThemedColorInt('Background.Primary')
+        
+        $y = 4
+        $x = 4
 
         # Title
         $title = " Stop Timer "
-        $titleX = $contentRect.X + [Math]::Floor(($contentRect.Width - $title.Length) / 2)
-        $sb.Append($this.Header.BuildMoveTo($titleX, $y))
-        $sb.Append($highlightColor)
-        $sb.Append($title)
-        $sb.Append($reset)
+        $titleX = $x + [Math]::Floor(($this.TermWidth - $x - $title.Length) / 2)
+        $titleX = [Math]::Max($x, [Math]::Floor(($this.TermWidth - $title.Length) / 2))
+        
+        $engine.WriteAt($titleX, $y, $title, $highlightColor, $bg)
         $y += 2
 
         if ($null -eq $this.TimerStatus) {
-            $sb.Append($this.Header.BuildMoveTo($x, $y))
-            $sb.Append($warningColor)
-            $sb.Append("Error loading timer status")
-            $sb.Append($reset)
-        } elseif ($this.TimerStatus.Running) {
+            $engine.WriteAt($x, $y, "Error loading timer status", $warningColor, $bg)
+        }
+        elseif ($this.TimerStatus.Running) {
             # Show timer is running
-            $sb.Append($this.Header.BuildMoveTo($x, $y))
-            $sb.Append($successColor)
-            $sb.Append("Timer is RUNNING")
-            $sb.Append($reset)
+            $engine.WriteAt($x, $y, "Timer is RUNNING", $successColor, $bg)
             $y += 2
 
             # Show details
-            $sb.Append($this.Header.BuildMoveTo($x, $y++))
-            $sb.Append($textColor)
-            $sb.Append("Started: $($this.TimerStatus.StartTime)")
-            $sb.Append($reset)
+            $engine.WriteAt($x, $y, "Started: $($this.TimerStatus.StartTime)", $textColor, $bg)
+            $y++
 
-            $sb.Append($this.Header.BuildMoveTo($x, $y++))
-            $sb.Append($textColor)
-            $sb.Append("Elapsed: $($this.TimerStatus.Elapsed)h")
-            $sb.Append($reset)
+            $engine.WriteAt($x, $y, "Elapsed: $($this.TimerStatus.Elapsed)h", $textColor, $bg)
+            $y++
 
             if ($this.TimerStatus.Task) {
                 $y++
-                $sb.Append($this.Header.BuildMoveTo($x, $y++))
-                $sb.Append($textColor)
-                $sb.Append("Task: $($this.TimerStatus.Task)")
-                $sb.Append($reset)
+                $engine.WriteAt($x, $y, "Task: $($this.TimerStatus.Task)", $textColor, $bg)
+                $y++
             }
 
             if ($this.TimerStatus.Project) {
-                $sb.Append($this.Header.BuildMoveTo($x, $y++))
-                $sb.Append($textColor)
-                $sb.Append("Project: $($this.TimerStatus.Project)")
-                $sb.Append($reset)
+                $engine.WriteAt($x, $y, "Project: $($this.TimerStatus.Project)", $textColor, $bg)
+                $y++
             }
 
             $y += 2
-            $sb.Append($this.Header.BuildMoveTo($x, $y))
-            $sb.Append($warningColor)
-            $sb.Append("Press 'S' to stop and log this time")
-            $sb.Append($reset)
-        } else {
+            $engine.WriteAt($x, $y, "Press 'S' to stop and log this time", $warningColor, $bg)
+        }
+        else {
             # Timer not running
-            $sb.Append($this.Header.BuildMoveTo($x, $y))
-            $sb.Append($warningColor)
-            $sb.Append("Timer is not running")
-            $sb.Append($reset)
+            $engine.WriteAt($x, $y, "Timer is not running", $warningColor, $bg)
             $y += 2
 
-            $sb.Append($this.Header.BuildMoveTo($x, $y))
-            $sb.Append($mutedColor)
-            $sb.Append("There is nothing to stop.")
-            $sb.Append($reset)
+            $engine.WriteAt($x, $y, "There is nothing to stop.", $mutedColor, $bg)
         }
-
-        return $sb.ToString()
     }
+
+    [string] RenderContent() { return "" }
 
     [bool] HandleKeyPress([ConsoleKeyInfo]$keyInfo) {
         $keyChar = [char]::ToLower($keyInfo.KeyChar)
@@ -180,7 +151,8 @@ class TimerStopScreen : PmcScreen {
             Stop-PmcTimer
             $this.ShowSuccess("Timer stopped and time logged")
             $this.App.PopScreen()
-        } catch {
+        }
+        catch {
             $this.ShowError("Failed to stop timer: $_")
         }
     }

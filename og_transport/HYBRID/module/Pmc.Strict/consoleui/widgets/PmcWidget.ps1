@@ -57,43 +57,43 @@ class PmcWidget : Component {
     # === Box Drawing Characters ===
     hidden [hashtable]$_boxChars = @{
         # Single line
-        'single_horizontal' = '─'
-        'single_vertical' = '│'
-        'single_topleft' = '┌'
-        'single_topright' = '┐'
-        'single_bottomleft' = '└'
-        'single_bottomright' = '┘'
-        'single_cross' = '┼'
-        'single_t_down' = '┬'
-        'single_t_up' = '┴'
-        'single_t_right' = '├'
-        'single_t_left' = '┤'
+        'single_horizontal'   = '─'
+        'single_vertical'     = '│'
+        'single_topleft'      = '┌'
+        'single_topright'     = '┐'
+        'single_bottomleft'   = '└'
+        'single_bottomright'  = '┘'
+        'single_cross'        = '┼'
+        'single_t_down'       = '┬'
+        'single_t_up'         = '┴'
+        'single_t_right'      = '├'
+        'single_t_left'       = '┤'
 
         # Double line
-        'double_horizontal' = '═'
-        'double_vertical' = '║'
-        'double_topleft' = '╔'
-        'double_topright' = '╗'
-        'double_bottomleft' = '╚'
-        'double_bottomright' = '╝'
-        'double_cross' = '╬'
-        'double_t_down' = '╦'
-        'double_t_up' = '╩'
-        'double_t_right' = '╠'
-        'double_t_left' = '╣'
+        'double_horizontal'   = '═'
+        'double_vertical'     = '║'
+        'double_topleft'      = '╔'
+        'double_topright'     = '╗'
+        'double_bottomleft'   = '╚'
+        'double_bottomright'  = '╝'
+        'double_cross'        = '╬'
+        'double_t_down'       = '╦'
+        'double_t_up'         = '╩'
+        'double_t_right'      = '╠'
+        'double_t_left'       = '╣'
 
         # Heavy line
-        'heavy_horizontal' = '━'
-        'heavy_vertical' = '┃'
-        'heavy_topleft' = '┏'
-        'heavy_topright' = '┓'
-        'heavy_bottomleft' = '┗'
-        'heavy_bottomright' = '┛'
+        'heavy_horizontal'    = '━'
+        'heavy_vertical'      = '┃'
+        'heavy_topleft'       = '┏'
+        'heavy_topright'      = '┓'
+        'heavy_bottomleft'    = '┗'
+        'heavy_bottomright'   = '┛'
 
         # Rounded
-        'rounded_topleft' = '╭'
-        'rounded_topright' = '╮'
-        'rounded_bottomleft' = '╰'
+        'rounded_topleft'     = '╭'
+        'rounded_topright'    = '╮'
+        'rounded_bottomleft'  = '╰'
         'rounded_bottomright' = '╯'
     }
 
@@ -145,30 +145,36 @@ class PmcWidget : Component {
             }
 
             # Fallback to defaults if state not available
-            if (-not $this._pmcTheme) {
-                $this._pmcTheme = @{
-                    PaletteName = 'default'
-                    Hex = '#33aaff'
-                    TrueColor = $true
-                }
-            }
+            # FAIL FAST
+            # if (-not $this._pmcTheme) {
+            #    $this._pmcTheme = @{
+            #        PaletteName = 'default'
+            #        Hex = '#33aaff'
+            #        TrueColor = $true
+            #    }
+            # }
 
-            if (-not $this._pmcStyleTokens) {
-                $this._pmcStyleTokens = @{
-                    Title = @{ Fg = '#33aaff' }
-                    Body = @{ Fg = '#CCCCCC' }
-                    Border = @{ Fg = '#666666' }
-                }
-            }
+            # FAIL FAST
+            # if (-not $this._pmcStyleTokens) {
+            #    $this._pmcStyleTokens = @{
+            #        Title = @{ Fg = '#33aaff' }
+            #        Body = @{ Fg = '#CCCCCC' }
+            #        Border = @{ Fg = '#666666' }
+            #    }
+            # }
 
             $this._themeInitialized = $true
-        } catch {
+        }
+        catch {
+            # FAIL FAST
+            throw
+            
             # Fallback - widget still functional with defaults
-            if (Get-Command Write-PmcTuiLog -ErrorAction SilentlyContinue) {
-                Write-PmcTuiLog "Theme initialization failed: $($_.Exception.Message)" "ERROR"
-                Write-PmcTuiLog "Stack: $($_.ScriptStackTrace)"
-            }
-            $this._themeInitialized = $true
+            # if (Get-Command Write-PmcTuiLog -ErrorAction SilentlyContinue) {
+            #     Write-PmcTuiLog "Theme initialization failed: $($_.Exception.Message)" "ERROR"
+            #     Write-PmcTuiLog "Stack: $($_.ScriptStackTrace)"
+            # }
+            # $this._themeInitialized = $true
         }
     }
 
@@ -219,6 +225,15 @@ class PmcWidget : Component {
         # CRITICAL DEBUG: Log what theme engine returns
         # PERF: Disabled - Add-Content -Path "$($env:TEMP)\pmc-theme-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') GetThemedFg($propertyName) = '$result' (len=$($result.Length))"
         return $result
+    }
+
+    <#
+    .SYNOPSIS
+    Get integer color value for HybridRenderEngine
+    #>
+    [int] GetThemedColorInt([string]$propertyName) {
+        $engine = [PmcThemeEngine]::GetInstance()
+        return $engine.GetThemeColorInt($propertyName)
     }
 
     # === Box Drawing Methods ===
@@ -305,7 +320,8 @@ class PmcWidget : Component {
                     $rightChar = $this.GetBoxChar('single_vertical')
                 }
             }
-        } else {
+        }
+        else {
             switch ($position) {
                 'top' {
                     $leftChar = $this.GetBoxChar("${style}_topleft")
@@ -360,10 +376,12 @@ class PmcWidget : Component {
                 if ($xConstraint -match '^(\d+)%$') {
                     $pct = [int]$Matches[1]
                     $newX = [Math]::Floor($termWidth * $pct / 100.0)
-                } elseif ($xConstraint -eq 'CENTER') {
+                }
+                elseif ($xConstraint -eq 'CENTER') {
                     $newX = [Math]::Floor(($termWidth - $newWidth) / 2.0)
                 }
-            } else {
+            }
+            else {
                 $newX = [int]$xConstraint
             }
         }
@@ -375,13 +393,16 @@ class PmcWidget : Component {
                 if ($yConstraint -match '^(\d+)%$') {
                     $pct = [int]$Matches[1]
                     $newY = [Math]::Floor($termHeight * $pct / 100.0)
-                } elseif ($yConstraint -match '^BOTTOM-(\d+)$') {
+                }
+                elseif ($yConstraint -match '^BOTTOM-(\d+)$') {
                     $offset = [int]$Matches[1]
                     $newY = $termHeight - $offset
-                } elseif ($yConstraint -eq 'BOTTOM') {
+                }
+                elseif ($yConstraint -eq 'BOTTOM') {
                     $newY = $termHeight - 1
                 }
-            } else {
+            }
+            else {
                 $newY = [int]$yConstraint
             }
         }
@@ -393,10 +414,12 @@ class PmcWidget : Component {
                 if ($widthConstraint -match '^(\d+)%$') {
                     $pct = [int]$Matches[1]
                     $newWidth = [Math]::Floor($termWidth * $pct / 100.0)
-                } elseif ($widthConstraint -eq 'FILL') {
+                }
+                elseif ($widthConstraint -eq 'FILL') {
                     $newWidth = $termWidth - $newX
                 }
-            } else {
+            }
+            else {
                 $newWidth = [int]$widthConstraint
             }
         }
@@ -408,10 +431,12 @@ class PmcWidget : Component {
                 if ($heightConstraint -match '^(\d+)%$') {
                     $pct = [int]$Matches[1]
                     $newHeight = [Math]::Floor($termHeight * $pct / 100.0)
-                } elseif ($heightConstraint -eq 'FILL') {
+                }
+                elseif ($heightConstraint -eq 'FILL') {
                     $newHeight = $termHeight - $newY
                 }
-            } else {
+            }
+            else {
                 $newHeight = [int]$heightConstraint
             }
         }
@@ -580,10 +605,13 @@ class PmcWidget : Component {
         if ($maxWidth -lt 0) {
             # L-POL-1: Detect terminal width and reserve space for borders
             $termWidth = $(if ([Console]::WindowWidth -gt 0) {
-                [Console]::WindowWidth
-            } else {
-                80  # Fallback to standard width
-            })
+                    [Console]::WindowWidth
+                }
+                else {
+                    # FAIL FAST
+                    throw "Terminal width not detected"
+                    # 80  # Fallback to standard width
+                })
             $maxWidth = $termWidth - 10
         }
 

@@ -118,7 +118,8 @@ class KanbanScreen : PmcScreen {
                         if ($completedDateTime -gt $sevenDaysAgo) {
                             [void]$doneList.Add($task)
                         }
-                    } catch {
+                    }
+                    catch {
                         Write-PmcTuiLog "KanbanScreen: Invalid completedDate format: $taskCompletedDate" "WARNING"
                         # Skip this task from Done column if date is invalid
                     }
@@ -145,7 +146,8 @@ class KanbanScreen : PmcScreen {
             $total = $this.TodoTasks.Count + $this.InProgressTasks.Count + $this.DoneTasks.Count
             $this.ShowStatus("Kanban: $($this.TodoTasks.Count) TODO, $($this.InProgressTasks.Count) In Progress, $($this.DoneTasks.Count) Done")
 
-        } catch {
+        }
+        catch {
             # KAN-3 FIX: Show proper error to user instead of silent failure
             $errorMsg = "Failed to load kanban board: $($_.Exception.Message)"
             $this.ShowError($errorMsg)
@@ -161,30 +163,24 @@ class KanbanScreen : PmcScreen {
         }
     }
 
-    [string] RenderContent() {
-        return $this._RenderKanbanBoard()
-    }
-
-    hidden [string] _RenderKanbanBoard() {
-        $sb = [System.Text.StringBuilder]::new(8192)
-
+    [void] RenderContentToEngine([object]$engine) {
         if (-not $this.LayoutManager) {
-            return $sb.ToString()
+            return
         }
 
         # Get content area
         $contentRect = $this.LayoutManager.GetRegion('Content', $this.TermWidth, $this.TermHeight)
 
         # Colors
-        $textColor = $this.Header.GetThemedFg('Foreground.Field')
-        $selectedBg = $this.Header.GetThemedBg('Background.FieldFocused', 80, 0)
-        $selectedFg = $this.Header.GetThemedFg('Foreground.Field')
-        $cursorColor = $this.Header.GetThemedFg('Foreground.FieldFocused')
-        $priorityColor = $this.Header.GetThemedAnsi('Warning', $false)
-        $mutedColor = $this.Header.GetThemedFg('Foreground.Muted')
-        $headerColor = $this.Header.GetThemedFg('Foreground.Muted')
-        $successColor = $this.Header.GetThemedFg('Foreground.Success')
-        $reset = "`e[0m"
+        $textColor = $this.Header.GetThemedColorInt('Foreground.Field')
+        $selectedBg = $this.Header.GetThemedColorInt('Background.FieldFocused')
+        $selectedFg = $this.Header.GetThemedColorInt('Foreground.Field')
+        $cursorColor = $this.Header.GetThemedColorInt('Foreground.FieldFocused')
+        $priorityColor = $this.Header.GetThemedColorInt('Warning')
+        $mutedColor = $this.Header.GetThemedColorInt('Foreground.Muted')
+        $headerColor = $this.Header.GetThemedColorInt('Foreground.Muted')
+        $successColor = $this.Header.GetThemedColorInt('Foreground.Success')
+        $defaultBg = $this.Header.GetThemedColorInt('Background.Default')
 
         # Calculate column widths (3 equal columns with borders)
         $columnWidth = [Math]::Floor(($contentRect.Width - 6) / 3)
@@ -196,54 +192,41 @@ class KanbanScreen : PmcScreen {
         $startY = $contentRect.Y + 1
 
         # Render column headers
-        $sb.Append($this.Header.BuildMoveTo($col1X, $startY))
-        if ($this.SelectedColumn -eq 0) { $sb.Append($cursorColor) } else { $sb.Append($headerColor) }
-        $sb.Append("TODO ($($this.TodoTasks.Count))")
-        $sb.Append($reset)
-
-        $sb.Append($this.Header.BuildMoveTo($col2X, $startY))
-        if ($this.SelectedColumn -eq 1) { $sb.Append($cursorColor) } else { $sb.Append($headerColor) }
-        $sb.Append("IN PROGRESS ($($this.InProgressTasks.Count))")
-        $sb.Append($reset)
-
-        $sb.Append($this.Header.BuildMoveTo($col3X, $startY))
-        if ($this.SelectedColumn -eq 2) { $sb.Append($cursorColor) } else { $sb.Append($headerColor) }
-        $sb.Append("DONE ($($this.DoneTasks.Count))")
-        $sb.Append($reset)
+        $this._RenderHeader($engine, $col1X, $startY, "TODO ($($this.TodoTasks.Count))", ($this.SelectedColumn -eq 0), $cursorColor, $headerColor, $defaultBg)
+        $this._RenderHeader($engine, $col2X, $startY, "IN PROGRESS ($($this.InProgressTasks.Count))", ($this.SelectedColumn -eq 1), $cursorColor, $headerColor, $defaultBg)
+        $this._RenderHeader($engine, $col3X, $startY, "DONE ($($this.DoneTasks.Count))", ($this.SelectedColumn -eq 2), $cursorColor, $headerColor, $defaultBg)
 
         # Render separator line
         $separatorY = $startY + 1
-        $sb.Append($this.Header.BuildMoveTo($contentRect.X, $separatorY))
-        $sb.Append($mutedColor)
-        $sb.Append("-" * $contentRect.Width)
-        $sb.Append($reset)
+        $separatorLine = "-" * $contentRect.Width
+        $engine.WriteAt($contentRect.X, $separatorY, $separatorLine, $mutedColor, $defaultBg)
 
         # Render task items in columns
         $maxLines = $contentRect.Height - 4
         $taskStartY = $separatorY + 1
 
         # Render TODO column
-        $sb.Append($this._RenderColumn($col1X, $taskStartY, $maxLines, $columnWidth, $this.TodoTasks, $this.SelectedIndexTodo, ($this.SelectedColumn -eq 0)))
+        $this._RenderColumnToEngine($engine, $col1X, $taskStartY, $maxLines, $columnWidth, $this.TodoTasks, $this.SelectedIndexTodo, ($this.SelectedColumn -eq 0), $defaultBg)
 
         # Render In Progress column
-        $sb.Append($this._RenderColumn($col2X, $taskStartY, $maxLines, $columnWidth, $this.InProgressTasks, $this.SelectedIndexInProgress, ($this.SelectedColumn -eq 1)))
+        $this._RenderColumnToEngine($engine, $col2X, $taskStartY, $maxLines, $columnWidth, $this.InProgressTasks, $this.SelectedIndexInProgress, ($this.SelectedColumn -eq 1), $defaultBg)
 
         # Render Done column
-        $sb.Append($this._RenderColumn($col3X, $taskStartY, $maxLines, $columnWidth, $this.DoneTasks, $this.SelectedIndexDone, ($this.SelectedColumn -eq 2)))
-
-        return $sb.ToString()
+        $this._RenderColumnToEngine($engine, $col3X, $taskStartY, $maxLines, $columnWidth, $this.DoneTasks, $this.SelectedIndexDone, ($this.SelectedColumn -eq 2), $defaultBg)
     }
 
-    hidden [string] _RenderColumn([int]$x, [int]$y, [int]$maxLines, [int]$width, [array]$tasks, [int]$selectedIndex, [bool]$isActiveColumn) {
-        $sb = [System.Text.StringBuilder]::new(2048)
+    hidden [void] _RenderHeader([object]$engine, [int]$x, [int]$y, [string]$text, [bool]$isSelected, [int]$selectedColor, [int]$normalColor, [int]$bg) {
+        $color = if ($isSelected) { $selectedColor } else { $normalColor }
+        $engine.WriteAt($x, $y, $text, $color, $bg)
+    }
 
-        $textColor = $this.Header.GetThemedFg('Foreground.Field')
-        $selectedBg = $this.Header.GetThemedBg('Background.FieldFocused', 80, 0)
-        $selectedFg = $this.Header.GetThemedFg('Foreground.Field')
-        $cursorColor = $this.Header.GetThemedFg('Foreground.FieldFocused')
-        $priorityColor = $this.Header.GetThemedAnsi('Warning', $false)
-        $mutedColor = $this.Header.GetThemedFg('Foreground.Muted')
-        $reset = "`e[0m"
+    hidden [void] _RenderColumnToEngine([object]$engine, [int]$x, [int]$y, [int]$maxLines, [int]$width, [array]$tasks, [int]$selectedIndex, [bool]$isActiveColumn, [int]$defaultBg) {
+        $textColor = $this.Header.GetThemedColorInt('Foreground.Field')
+        $selectedBg = $this.Header.GetThemedColorInt('Background.FieldFocused')
+        $selectedFg = $this.Header.GetThemedColorInt('Foreground.Field')
+        $cursorColor = $this.Header.GetThemedColorInt('Foreground.FieldFocused')
+        $priorityColor = $this.Header.GetThemedColorInt('Warning')
+        $mutedColor = $this.Header.GetThemedColorInt('Foreground.Muted')
 
         for ($i = 0; $i -lt [Math]::Min($tasks.Count, $maxLines); $i++) {
             $task = $tasks[$i]
@@ -251,20 +234,11 @@ class KanbanScreen : PmcScreen {
             $isSelected = ($i -eq $selectedIndex) -and $isActiveColumn
 
             # Cursor
-            $sb.Append($this.Header.BuildMoveTo($x - 1, $lineY))
             if ($isSelected) {
-                $sb.Append($cursorColor)
-                $sb.Append(">")
-                $sb.Append($reset)
-            } else {
-                $sb.Append(" ")
+                $engine.WriteAt($x - 1, $lineY, ">", $cursorColor, $defaultBg)
             }
 
-            # Task text
-            $sb.Append($this.Header.BuildMoveTo($x, $lineY))
-
-            # Priority prefix if present
-            # HIGH FIX KAN-H4 & MEDIUM FIX KAN-M1: Safe string handling with null checks
+            # Task text logic
             $taskPriority = Get-SafeProperty $task 'priority'
             $taskTextValue = Get-SafeProperty $task 'text'
             if ($null -eq $taskTextValue) { $taskTextValue = "" }
@@ -275,34 +249,42 @@ class KanbanScreen : PmcScreen {
             }
             $taskText += $taskTextValue
 
-            # Truncate if needed
+            # Truncate
             $maxWidth = $width - 2
             if ($null -ne $taskText -and $taskText.Length -gt $maxWidth) {
                 $taskText = $taskText.Substring(0, $maxWidth - 3) + "..."
             }
 
+            $fg = $textColor
+            $bg = $defaultBg
+
             if ($isSelected) {
-                $sb.Append($selectedBg)
-                $sb.Append($selectedFg)
-                $sb.Append($taskText.PadRight($maxWidth))
-                $sb.Append($reset)
-            } else {
+                $fg = $selectedFg
+                $bg = $selectedBg
+                # Draw full background for selected item
+                $paddedText = $taskText.PadRight($maxWidth)
+                $engine.WriteAt($x, $lineY, $paddedText, $fg, $bg)
+            }
+            else {
+                # Normal item rendering
+                # If priority, we need multi-color writing or just simplify
+                # Simplify to single color for now to match engine API cleanliness or use multiple WriteAt
+                
                 if ($taskPriority -gt 0) {
-                    $sb.Append($priorityColor)
-                    $sb.Append("P$taskPriority ")
-                    $sb.Append($reset)
-                    $sb.Append($textColor)
-                    # HIGH FIX KAN-H4: Safe string length check
-                    $displayText = $taskTextValue
-                    if ($null -ne $displayText -and $displayText.Length -gt ($maxWidth - 4)) {
-                        $displayText = $displayText.Substring(0, $maxWidth - 7) + "..."
+                    $prioText = "P$taskPriority "
+                    $engine.WriteAt($x, $lineY, $prioText, $priorityColor, $defaultBg)
+                    
+                    # Remaining text
+                    $remText = $taskTextValue
+                    $remWidth = $maxWidth - $prioText.Length
+                    if ($remText.Length -gt $remWidth) {
+                        $remText = $remText.Substring(0, $remWidth - 3) + "..."
                     }
-                    $sb.Append($displayText)
-                } else {
-                    $sb.Append($textColor)
-                    $sb.Append($taskText)
+                    $engine.WriteAt($x + $prioText.Length, $lineY, $remText, $textColor, $defaultBg)
                 }
-                $sb.Append($reset)
+                else {
+                    $engine.WriteAt($x, $lineY, $taskText, $textColor, $defaultBg)
+                }
             }
         }
 
@@ -310,13 +292,8 @@ class KanbanScreen : PmcScreen {
         if ($tasks.Count -gt $maxLines) {
             $lineY = $y + $maxLines
             $remaining = $tasks.Count - $maxLines
-            $sb.Append($this.Header.BuildMoveTo($x, $lineY))
-            $sb.Append($mutedColor)
-            $sb.Append("... +$remaining more")
-            $sb.Append($reset)
+            $engine.WriteAt($x, $lineY, "... +$remaining more", $mutedColor, $defaultBg)
         }
-
-        return $sb.ToString()
     }
 
     [bool] HandleKeyPress([ConsoleKeyInfo]$keyInfo) {
@@ -429,7 +406,8 @@ class KanbanScreen : PmcScreen {
             if ($newStatus -eq 'done') {
                 $changes.completed = $true
                 $changes.completedDate = $completedDate
-            } elseif ($newStatus -eq 'pending') {
+            }
+            elseif ($newStatus -eq 'pending') {
                 $changes.completed = $false
                 $changes.completedDate = $null
             }
@@ -439,7 +417,8 @@ class KanbanScreen : PmcScreen {
             foreach ($key in $changes.Keys) {
                 if ($task -is [hashtable]) {
                     $task[$key] = $changes[$key]
-                } else {
+                }
+                else {
                     $task.$key = $changes[$key]
                 }
             }
@@ -451,7 +430,8 @@ class KanbanScreen : PmcScreen {
             if ($success) {
                 $this.ShowSuccess("Moved task #$taskId to $newStatus")
                 # Data already refreshed optimistically above
-            } else {
+            }
+            else {
                 $this.ShowError("Failed to move task: $($this.Store.LastError)")
                 # Rollback: Reload from store to revert optimistic changes
                 $this.LoadData()
@@ -498,7 +478,8 @@ class KanbanScreen : PmcScreen {
             . "$PSScriptRoot/TaskDetailScreen.ps1"
             $detailScreen = New-Object TaskDetailScreen -ArgumentList $taskId
             $global:PmcApp.PushScreen($detailScreen)
-        } else {
+        }
+        else {
             $this.ShowError("Selected task has no ID")
         }
     }

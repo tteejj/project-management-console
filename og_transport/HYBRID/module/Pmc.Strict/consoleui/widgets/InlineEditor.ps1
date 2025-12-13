@@ -117,6 +117,14 @@ class InlineEditor : PmcWidget {
         $this.CanFocus = $true
     }
 
+    # === Layout System ===
+
+    [void] Resize([int]$width, [int]$height) {
+        $this.Width = $width
+        $this.Height = $height
+        # Re-calculate layout if needed
+    }
+
     # === Public API Methods ===
 
     <#
@@ -177,9 +185,9 @@ class InlineEditor : PmcWidget {
         # In horizontal mode, Enter key saves directly, no button needed
         if ($this.LayoutMode -eq 'vertical') {
             $saveButton = @{
-                Name = '__save_button__'
-                Label = ''
-                Type = 'button'
+                Name       = '__save_button__'
+                Label      = ''
+                Type       = 'button'
                 ButtonText = 'Save'
             }
             $this._fields.Add($saveButton)
@@ -290,7 +298,8 @@ class InlineEditor : PmcWidget {
             if ($field.Type -eq 'date' -and $this._datePickerMode) {
                 # Use DatePicker when in DatePicker mode
                 $widget = $this._datePickerWidgets[$this._expandedFieldName]
-            } else {
+            }
+            else {
                 # Use normal widget
                 $widget = $this._fieldWidgets[$this._expandedFieldName]
             }
@@ -306,7 +315,8 @@ class InlineEditor : PmcWidget {
             if ($widget.PSObject.Properties['IsComplete']) {
                 $isComplete = $widget.IsComplete
                 # Add-Content -Path "$($env:TEMP)\pmc-widget-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [InlineEditor.HandleInput] Widget has IsComplete property: $isComplete"
-            } elseif ($widget.PSObject.Properties['IsConfirmed']) {
+            }
+            elseif ($widget.PSObject.Properties['IsConfirmed']) {
                 $isComplete = $widget.IsConfirmed -or $widget.IsCancelled
                 # Add-Content -Path "$($env:TEMP)\pmc-widget-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [InlineEditor.HandleInput] Widget has IsConfirmed property: IsConfirmed=$($widget.IsConfirmed) IsCancelled=$($widget.IsCancelled) isComplete=$isComplete"
             }
@@ -401,7 +411,8 @@ class InlineEditor : PmcWidget {
                         $values = $this.GetValues()
                         $this._InvokeCallback($this.OnConfirmed, $values)
                         return $true
-                    } else {
+                    }
+                    else {
                         # Write-PmcTuiLog "InlineEditor: Validation FAILED - Errors: $($this._validationErrors -join ', ')" "ERROR"
                         $this._InvokeCallback($this.OnValidationFailed, $this._validationErrors)
                         return $true
@@ -422,7 +433,8 @@ class InlineEditor : PmcWidget {
                     $values = $this.GetValues()
                     $this._InvokeCallback($this.OnConfirmed, $values)
                     return $true
-                } else {
+                }
+                else {
                     # Validation failed - show errors and stay open
                     # Write-PmcTuiLog "InlineEditor: Validation FAILED - Errors: $($this._validationErrors -join ', ')" "ERROR"
                     $this._InvokeCallback($this.OnValidationFailed, $this._validationErrors)
@@ -452,7 +464,8 @@ class InlineEditor : PmcWidget {
             if ($keyInfo.Modifiers -band [ConsoleModifiers]::Shift) {
                 # Shift+Tab - navigate to previous field
                 $this._MoveToPreviousField()
-            } else {
+            }
+            else {
                 # Tab - navigate to next field (in horizontal mode, Tab ALWAYS navigates, never expands)
                 # In vertical mode, Tab could expand widgets, but in horizontal mode we keep it simple
                 $this._MoveToNextField()
@@ -536,7 +549,8 @@ class InlineEditor : PmcWidget {
                             $values = $this.GetValues()
                             $this._InvokeCallback($this.OnConfirmed, $values)
                             return $true
-                        } else {
+                        }
+                        else {
                             # Validation failed - show errors, reset TextInput confirmation, stay open
                             $widget.IsConfirmed = $false
                             $this._InvokeCallback($this.OnValidationFailed, $this._validationErrors)
@@ -578,89 +592,148 @@ class InlineEditor : PmcWidget {
             $engine.BeginLayer(10)
         }
 
-        # LAYOUT SYSTEM: Use target region if available (Perfect Alignment Mode)
-        if (-not [string]::IsNullOrEmpty($this.TargetRegionID) -and $this.LayoutMode -eq 'horizontal') {
-            # Get grid regions from engine
-            $colRegions = $engine.GetChildRegions($this.TargetRegionID)
-            
-            # Colors
-            $focusBg = [HybridRenderEngine]::AnsiColorToInt($this.GetThemedBg('Background.FieldFocused', 10, 0))
-            $focusFg = [HybridRenderEngine]::AnsiColorToInt($this.GetThemedFg('Foreground.FieldFocused'))
-            $normalBg = [HybridRenderEngine]::AnsiColorToInt($this.GetThemedBg('Background.Field', 10, 0))
-            $normalFg = [HybridRenderEngine]::AnsiColorToInt($this.GetThemedFg('Foreground.Field'))
-            
-            # Fallbacks
-            if ($focusBg -eq -1) { $focusBg = [HybridRenderEngine]::_PackRGB(0, 100, 180) } # Blue
-            if ($focusFg -eq -1) { $focusFg = [HybridRenderEngine]::_PackRGB(255, 255, 255) }
-            if ($normalBg -eq -1) { $normalBg = -1 } # Default
-            if ($normalFg -eq -1) { $normalFg = [HybridRenderEngine]::_PackRGB(200, 200, 200) }
-
-            # Render fields into regions
-            for ($i = 0; $i -lt [Math]::Min($this._fields.Count, $colRegions.Count); $i++) {
-                $field = $this._fields[$i]
-                $regionId = $colRegions[$i]
-                $isFocused = ($i -eq $this._currentFieldIndex)
-                
-                $fg = $(if ($isFocused) { $focusFg } else { $normalFg })
-                $bg = $(if ($isFocused) { $focusBg } else { $normalBg })
-                
-                # Get display value
-                $val = $this._GetFieldValuePreview($field)
-                
-                # If TextInput widget active, use its value (shows cursor logic if we implemented cursor in WriteToRegion)
-                # For now, just show text value. Cursor implementation would require region-relative cursor support.
-                if ($isFocused -and $this._fieldWidgets.ContainsKey($field.Name)) {
+        # Handle Expanded Widget Mode (DatePicker, ProjectPicker, etc.)
+        if ($this._showFieldWidgets -and -not [string]::IsNullOrWhiteSpace($this._expandedFieldName)) {
+            $field = $this._fields | Where-Object { $_.Name -eq $this._expandedFieldName } | Select-Object -First 1
+            if ($null -ne $field) {
+                # Find the correct widget
+                $widget = $null
+                # Check for DatePicker in date mode
+                if ($field.Type -eq 'date' -and $this._datePickerMode -and $this._datePickerWidgets.ContainsKey($field.Name)) {
+                    $widget = $this._datePickerWidgets[$field.Name]
+                }
+                elseif ($this._fieldWidgets.ContainsKey($field.Name)) {
                     $widget = $this._fieldWidgets[$field.Name]
-                    if ($widget -is [TextInput]) {
-                        $val = $widget.GetText()
-                    }
                 }
-                
-                # Write to region (Engine handles clipping/padding)
-                # Clear region background first if focused
-                if ($isFocused) {
-                    $bounds = $engine.GetRegionBounds($regionId)
-                    if ($bounds) {
-                        $engine.Fill($bounds.X, $bounds.Y, $bounds.Width, $bounds.Height, ' ', $fg, $bg)
+
+                if ($null -ne $widget) {
+                    # Update widget position to match editor position
+                    # This ensures popup widgets render at the correct location even if editor moved
+                    # We position it slightly indented
+                    $widget.X = $this.X + 2
+                    $widget.Y = $this.Y
+                    # Ensure widget width fits
+                    if ($widget.PSObject.Properties['Width']) {
+                        $widget.Width = [Math]::Max(20, $this.Width - 4)
                     }
+
+                    # Render the widget directly to engine
+                    if ($widget.PSObject.Methods['RenderToEngine']) {
+                        $widget.RenderToEngine($engine)
+                    }
+                    else {
+                        # Fallback for widgets without RenderToEngine (though user said they have it)
+                        # We use WriteAt manually if strictly needed, or just log error
+                        # Write-PmcTuiLog "InlineEditor: Widget $($widget.GetType().Name) missing RenderToEngine" "ERROR"
+                        
+                        # Last resort: Legacy render call + WriteAt
+                        $out = $widget.Render()
+                        if ($out) { $engine.WriteAt($widget.X, $widget.Y, $out) }
+                    }
+                    
+                    if ($engine.PSObject.Methods['EndLayer']) {
+                        $engine.EndLayer()
+                    }
+                    return
                 }
-                
-                $engine.WriteToRegion($regionId, $val, $fg, $bg)
             }
-        } else {
-            # Standard Manual Rendering (Fallback)
-            $ansiOutput = $this.Render()
+        }
+
+        # LAYOUT SYSTEM: Use target region if available (Perfect Alignment Mode)
+        # Standard native rendering logic (replaces _RenderHorizontal)
+        
+        $currentX = $this.X
+        
+        # Colors (Int)
+        $focusBg = $this.GetThemedColorInt('Background.FieldFocused')
+        $focusFg = $this.GetThemedColorInt('Foreground.FieldFocused')
+        $normalBg = $this.GetThemedColorInt('Background.Field')
+        $normalFg = $this.GetThemedColorInt('Foreground.Field')
+        
+        for ($i = 0; $i -lt $this._fields.Count; $i++) {
+            $field = $this._fields[$i]
+            $isFocused = ($i -eq $this._currentFieldIndex)
+            $fieldWidth = $(if ($field.ContainsKey('Width')) { $field.Width } else { 20 })
             
-            # Write to engine
-            $pattern = "`e\[(\d+);(\d+)H"
-            $matches = [regex]::Matches($ansiOutput, $pattern)
-
-            if ($matches.Count -eq 0) {
-                if ($ansiOutput) {
-                    # Fallback: write at widget position if no positioning in output
-                    $engine.WriteAt($this.X, $this.Y, $ansiOutput)
+            # Determine colors
+            $fg = $(if ($isFocused) { $focusFg } else { $normalFg })
+            $bg = $(if ($isFocused) { $focusBg } else { $normalBg })
+            
+            # Get display value
+            $val = $this._GetFieldValuePreview($field)
+            $displayText = $val
+            
+            # Text Input Handling (Cursor logic)
+            if ($isFocused -and ($field.Type -eq 'text' -or $field.Type -eq 'textarea' -or $field.Type -eq 'date' -or $field.Type -eq 'tags' -or $field.Type -eq 'project') -and $this._fieldWidgets.ContainsKey($field.Name)) {
+                $widget = $this._fieldWidgets[$field.Name]
+                if ($widget.GetType().Name -eq 'TextInput') {
+                    $text = $widget.GetText()
+                    
+                    # Ensure widget width logic from _RenderHorizontal is matched for scrolling
+                    $widget.Width = $fieldWidth + 4
+                    # Recalc scroll logic (simplified here, TextInput usually handles this if we call it)
+                    # But since we are drawing manually, we need visible text.
+                    # We can reuse the logic from _RenderHorizontal or trust TextInput.GetVisibleText()?
+                    # TextInput doesn't expose GetVisibleText publically usually.
+                    
+                    # We will implement simplified visible window logic here or rely on widget being rendered?
+                    # Ideally we invoke $widget.RenderToEngine()!
+                    # BUT TextInput.RenderToEngine draws a Box. We want inline text.
+                    # So manual drawing is appropriate here.
+                    
+                    $cursorPos = $widget._cursorPosition
+                    $scrollOffset = $widget._scrollOffset
+                     
+                    # Scroll logic (copied from _RenderHorizontal)
+                    if ($cursorPos -lt $scrollOffset) { $scrollOffset = $cursorPos }
+                    if ($cursorPos -gt ($scrollOffset + $fieldWidth - 1)) { $scrollOffset = $cursorPos - $fieldWidth + 1 }
+                    if ($scrollOffset -lt 0) { $scrollOffset = 0 }
+                    $widget._scrollOffset = $scrollOffset # Update widget state
+                    
+                    $visibleText = ""
+                    if ($scrollOffset -lt $text.Length) {
+                        $visibleText = $text.Substring($scrollOffset)
+                    }
+                    if ($visibleText.Length -gt $fieldWidth) {
+                        $visibleText = $visibleText.Substring(0, $fieldWidth)
+                    }
+                    $displayText = $visibleText
+                    
+                    # Render Field Background
+                    $engine.Fill($currentX, $this.Y, $fieldWidth + 2, 1, ' ', $fg, $bg)
+                    
+                    # Render Text
+                    $engine.WriteAt($currentX, $this.Y, $displayText, $fg, $bg)
+                    
+                    # Render Cursor
+                    $relCursor = $cursorPos - $scrollOffset
+                    if ($relCursor -ge 0 -and $relCursor -le $fieldWidth) {
+                        # Allow cursor at end
+                        # Invert colors for cursor
+                        $cursorChar = " "
+                        if ($relCursor -lt $displayText.Length) {
+                            $cursorChar = $displayText[$relCursor]
+                        }
+                        # Draw cursor (Inverted BG/FG usually, or specific cursor color)
+                        # HybridRenderEngine doesn't support 'Invert' flag directly on WriteAt easily
+                        # Swap FG/BG
+                        $engine.WriteAt($currentX + $relCursor, $this.Y, $cursorChar, $bg, $fg)
+                    }
                 }
-            } else {
-                for ($i = 0; $i -lt $matches.Count; $i++) {
-                    $match = $matches[$i]
-                    $row = [int]$match.Groups[1].Value
-                    $col = [int]$match.Groups[2].Value
-                    $x = $col - 1
-                    $y = $row - 1
-
-                    $startIndex = $match.Index + $match.Length
-                    if ($i + 1 -lt $matches.Count) {
-                        $endIndex = $matches[$i + 1].Index
-                    } else {
-                        $endIndex = $ansiOutput.Length
-                    }
-
-                    $content = $ansiOutput.Substring($startIndex, $endIndex - $startIndex)
-                    if ($content) {
-                        $engine.WriteAt($x, $y, $content)
-                    }
+                else {
+                    # Non-TextInput widget focused
+                    $engine.Fill($currentX, $this.Y, $fieldWidth + 2, 1, ' ', $fg, $bg)
+                    $engine.WriteAt($currentX, $this.Y, $displayText, $fg, $bg)
                 }
             }
+            else {
+                # Normal Field
+                $engine.Fill($currentX, $this.Y, $fieldWidth + 2, 1, ' ', $fg, $bg)
+                $engine.WriteAt($currentX, $this.Y, $displayText, $fg, $bg)
+            }
+            
+            # Advance X position
+            $currentX += $fieldWidth + 6
         }
 
         if ($engine.PSObject.Methods['EndLayer']) {
@@ -683,7 +756,8 @@ class InlineEditor : PmcWidget {
         # Write-PmcTuiLog "InlineEditor.Render: LayoutMode='$($this.LayoutMode)'" "DEBUG"
         if ($this.LayoutMode -eq 'horizontal') {
             return $this._RenderHorizontal()
-        } else {
+        }
+        else {
             # Write-PmcTuiLog "InlineEditor.Render: Calling _RenderVertical because LayoutMode is not 'horizontal'" "ERROR"
             return $this._RenderVertical()
         }
@@ -733,14 +807,14 @@ class InlineEditor : PmcWidget {
         }
 
         # PERF: Disabled - if ($global:PmcTuiLogFile) {
-            # Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [EDIT] InlineEditor._RenderHorizontal() called"
-            # Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [EDIT] _showFieldWidgets=$($this._showFieldWidgets) _expandedFieldName='$($this._expandedFieldName)'"
+        # Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [EDIT] InlineEditor._RenderHorizontal() called"
+        # Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [EDIT] _showFieldWidgets=$($this._showFieldWidgets) _expandedFieldName='$($this._expandedFieldName)'"
         # }
 
         # If a widget is expanded, render it instead
         if ($this._showFieldWidgets -and -not [string]::IsNullOrWhiteSpace($this._expandedFieldName)) {
             # PERF: Disabled - if ($global:PmcTuiLogFile) {
-                # Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [EDIT] WIDGET EXPANDED - field='$($this._expandedFieldName)'"
+            # Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [EDIT] WIDGET EXPANDED - field='$($this._expandedFieldName)'"
             # }
             $field = $this._fields | Where-Object { $_.Name -eq $this._expandedFieldName } | Select-Object -First 1
             if ($null -ne $field) {
@@ -749,12 +823,13 @@ class InlineEditor : PmcWidget {
                 if ($field.Type -eq 'date' -and $this._datePickerMode -and $this._datePickerWidgets.ContainsKey($field.Name)) {
                     $widget = $this._datePickerWidgets[$field.Name]
                     # PERF: Disabled - if ($global:PmcTuiLogFile) {
-                        # Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [EDIT] Found DatePicker in _datePickerWidgets: $($widget.GetType().Name)"
+                    # Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [EDIT] Found DatePicker in _datePickerWidgets: $($widget.GetType().Name)"
                     # }
-                } elseif ($this._fieldWidgets.ContainsKey($field.Name)) {
+                }
+                elseif ($this._fieldWidgets.ContainsKey($field.Name)) {
                     $widget = $this._fieldWidgets[$field.Name]
                     # PERF: Disabled - if ($global:PmcTuiLogFile) {
-                        # Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [EDIT] Found widget in _fieldWidgets: $($widget.GetType().Name)"
+                    # Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [EDIT] Found widget in _fieldWidgets: $($widget.GetType().Name)"
                     # }
                 }
 
@@ -762,12 +837,12 @@ class InlineEditor : PmcWidget {
                     # Widget types that render themselves
                     if ($widget.GetType().Name -in @('DatePicker', 'ProjectPicker', 'TagEditor')) {
                         # PERF: Disabled - if ($global:PmcTuiLogFile) {
-                            # Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [EDIT] Rendering expanded widget: $($widget.GetType().Name)"
+                        # Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [EDIT] Rendering expanded widget: $($widget.GetType().Name)"
                         # }
                         # NOTE: NeedsClear NOT set - widgets render as overlays without clearing screen
                         $widgetOutput = $widget.Render()
                         # PERF: Disabled - if ($global:PmcTuiLogFile) {
-                            # Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [EDIT] Widget rendered, output length=$($widgetOutput.Length)"
+                        # Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [EDIT] Widget rendered, output length=$($widgetOutput.Length)"
                         # }
                         return $widgetOutput
                     }
@@ -856,14 +931,16 @@ class InlineEditor : PmcWidget {
                             if ($charIdx -lt ($renderWidth - 1)) {
                                 $sb.Append($focusBg + $focusFg)
                             }
-                        } else {
+                        }
+                        else {
                             $sb.Append($focusBg + $focusFg + $paddedText[$charIdx])
                         }
                     }
 
                     # Reset after focused field
                     $sb.Append($reset)
-                } else {
+                }
+                else {
                     # Widget field (date/project/tags) that isn't TextInput - show preview with focus
                     $renderWidth = $fieldWidth + 2
                     $displayValue = $value.PadRight($renderWidth)
@@ -878,7 +955,8 @@ class InlineEditor : PmcWidget {
                     # Reset after focused field
                     $sb.Append($reset)
                 }
-            } else {
+            }
+            else {
                 # Non-focused field - show value without special highlighting
                 # For date/project fields, show TextInput content if available
                 $displayValue = $value
@@ -945,7 +1023,8 @@ class InlineEditor : PmcWidget {
                 if ($this._datePickerWidgets.ContainsKey($this._expandedFieldName)) {
                     $widget = $this._datePickerWidgets[$this._expandedFieldName]
                 }
-            } else {
+            }
+            else {
                 # Render normal widget
                 if ($this._fieldWidgets.ContainsKey($this._expandedFieldName)) {
                     $widget = $this._fieldWidgets[$this._expandedFieldName]
@@ -959,7 +1038,8 @@ class InlineEditor : PmcWidget {
                     try {
                         $termWidth = [Console]::WindowWidth
                         $termHeight = [Console]::WindowHeight
-                    } catch {
+                    }
+                    catch {
                         $termWidth = 120
                         $termHeight = 40
                     }
@@ -978,7 +1058,8 @@ class InlineEditor : PmcWidget {
                     # }
 
                     return $output
-                } else {
+                }
+                else {
                     return $widget.Render()
                 }
             }
@@ -1022,7 +1103,8 @@ class InlineEditor : PmcWidget {
             $hasError = $this._fieldErrors.ContainsKey($field.Name)
             if ($hasError) {
                 $sb.Append($errorColor)
-            } else {
+            }
+            else {
                 $sb.Append($borderColor)
             }
             $sb.Append($this.GetBoxChar('single_vertical'))
@@ -1038,9 +1120,11 @@ class InlineEditor : PmcWidget {
             if ($hasError) {
                 # H-UI-3: Red text for invalid field label
                 $sb.Append($errorColor)
-            } elseif ($isFocused) {
+            }
+            elseif ($isFocused) {
                 $sb.Append($primaryColor)
-            } else {
+            }
+            else {
                 $sb.Append($mutedColor)
             }
             $sb.Append($this.PadText($label + ":", 20, 'left'))
@@ -1069,16 +1153,19 @@ class InlineEditor : PmcWidget {
                         $sb.Append($reset)
                         $sb.Append($textColor)
                         $sb.Append($afterCursor)
-                    } else {
+                    }
+                    else {
                         $sb.Append($text)
                     }
                     $sb.Append($reset)
-                } else {
+                }
+                else {
                     # Not a TextInput, show preview
                     if ($isFocused) {
                         $sb.Append($highlightBg)
                         $sb.Append($textColor)  # Use Body text color, not hardcoded black
-                    } else {
+                    }
+                    else {
                         $sb.Append($textColor)
                     }
                     $valuePreview = $this._GetFieldValuePreview($field)
@@ -1087,12 +1174,14 @@ class InlineEditor : PmcWidget {
                         $sb.Append($reset)
                     }
                 }
-            } else {
+            }
+            else {
                 # Not focused or not text/date field - show preview
                 if ($isFocused) {
                     $sb.Append($highlightBg)
                     $sb.Append($textColor)  # Use Body text color, not hardcoded black
-                } else {
+                }
+                else {
                     $sb.Append($textColor)
                 }
 
@@ -1108,7 +1197,8 @@ class InlineEditor : PmcWidget {
             $sb.Append($this.BuildMoveTo($this.X + $this.Width - 1, $rowY))
             if ($hasError) {
                 $sb.Append($errorColor)
-            } else {
+            }
+            else {
                 $sb.Append($borderColor)
             }
             $sb.Append($this.GetBoxChar('single_vertical'))
@@ -1119,7 +1209,8 @@ class InlineEditor : PmcWidget {
             $sb.Append($this.BuildMoveTo($this.X, $this.Y + $currentRow))
             if ($hasError) {
                 $sb.Append($errorColor)
-            } else {
+            }
+            else {
                 $sb.Append($borderColor)
             }
             $sb.Append($this.GetBoxChar('single_vertical'))
@@ -1130,14 +1221,16 @@ class InlineEditor : PmcWidget {
                 $sb.Append($this.BuildMoveTo($this.X + 2, $this.Y + $currentRow))
                 $sb.Append($errorColor)
                 $sb.Append($this.TruncateText($errorMsg, $this.Width - 4))
-            } else {
+            }
+            else {
                 $sb.Append(" " * ($this.Width - 2))
             }
 
             $sb.Append($this.BuildMoveTo($this.X + $this.Width - 1, $this.Y + $currentRow))
             if ($hasError) {
                 $sb.Append($errorColor)
-            } else {
+            }
+            else {
                 $sb.Append($borderColor)
             }
             $sb.Append($this.GetBoxChar('single_vertical'))
@@ -1173,7 +1266,8 @@ class InlineEditor : PmcWidget {
             $sb.Append($errorColor)
             $errorMsg = $this._validationErrors[0]  # Show first error
             $sb.Append($this.TruncateText($errorMsg, $this.Width - 4))
-        } else {
+        }
+        else {
             $sb.Append(" " * ($this.Width - 2))
         }
 
@@ -1249,7 +1343,8 @@ class InlineEditor : PmcWidget {
 
                 if ($fieldDef.ContainsKey('MaxLength')) {
                     $widget.MaxLength = $fieldDef.MaxLength
-                } else {
+                }
+                else {
                     $widget.MaxLength = 5000  # Default larger limit for textarea
                 }
 
@@ -1265,10 +1360,12 @@ class InlineEditor : PmcWidget {
                 if ($value) {
                     if ($value -is [DateTime]) {
                         $widget.SetText($value.ToString('yyyy-MM-dd'))
-                    } else {
+                    }
+                    else {
                         $widget.SetText($value.ToString())
                     }
-                } else {
+                }
+                else {
                     $widget.SetText('')
                 }
 
@@ -1293,10 +1390,12 @@ class InlineEditor : PmcWidget {
                     $widget.Placeholder = 'Project name'
                     if ($value) {
                         $widget.SetText($value.ToString())
-                    } else {
+                    }
+                    else {
                         $widget.SetText('')
                     }
-                } else {
+                }
+                else {
                     $widget = [ProjectPicker]::new()
                     # Use properties, not methods
                     $widget.X = $this.X + 5
@@ -1319,9 +1418,11 @@ class InlineEditor : PmcWidget {
                 if ($value -and $value -is [array]) {
                     # Convert array to comma-separated string
                     $widget.SetText($value -join ', ')
-                } elseif ($value) {
+                }
+                elseif ($value) {
                     $widget.SetText($value.ToString())
-                } else {
+                }
+                else {
                     $widget.SetText('')
                 }
 
@@ -1342,7 +1443,8 @@ class InlineEditor : PmcWidget {
 
                 if ($value) {
                     $widget.SetText($value.ToString())
-                } else {
+                }
+                else {
                     $widget.SetText('')
                 }
 
@@ -1363,7 +1465,8 @@ class InlineEditor : PmcWidget {
 
                 if ($value) {
                     $widget.SetText($value.ToString())
-                } else {
+                }
+                else {
                     $widget.SetText('')
                 }
 
@@ -1439,7 +1542,8 @@ class InlineEditor : PmcWidget {
                         $days = [int]$matches[2]
                         if ($sign -eq '+') {
                             return [DateTime]::Now.AddDays($days)
-                        } else {
+                        }
+                        else {
                             return [DateTime]::Now.AddDays(-$days)
                         }
                     }
@@ -1476,7 +1580,8 @@ class InlineEditor : PmcWidget {
                             $month = [int]$dateText.Substring(4, 2)
                             $day = [int]$dateText.Substring(6, 2)
                             return [DateTime]::new($year, $month, $day)
-                        } catch {
+                        }
+                        catch {
                             # Invalid date, fall through
                         }
                     }
@@ -1488,7 +1593,8 @@ class InlineEditor : PmcWidget {
                             $month = [int]$dateText.Substring(2, 2)
                             $day = [int]$dateText.Substring(4, 2)
                             return [DateTime]::new($year, $month, $day)
-                        } catch {
+                        }
+                        catch {
                             # Invalid date, fall through
                         }
                     }
@@ -1496,10 +1602,12 @@ class InlineEditor : PmcWidget {
                     # Parse absolute dates (standard formats)
                     try {
                         return [DateTime]::Parse($dateText)
-                    } catch {
+                    }
+                    catch {
                         return $null
                     }
-                } else {
+                }
+                else {
                     # DatePicker (if still using old approach)
                     return $widget.GetSelectedDate()
                 }
@@ -1510,7 +1618,8 @@ class InlineEditor : PmcWidget {
                 # In horizontal mode, project uses TextInput for inline typing
                 if ($widget.GetType().Name -eq 'TextInput') {
                     return $widget.GetText()
-                } else {
+                }
+                else {
                     return $widget.GetSelectedProject()
                 }
             }
@@ -1547,7 +1656,8 @@ class InlineEditor : PmcWidget {
                 if ($widget.GetType().Name -eq 'PmcFilePicker') {
                     # Still showing picker - return current path
                     return $widget.CurrentPath
-                } else {
+                }
+                else {
                     # TextInput - return text
                     return $widget.GetText()
                 }
@@ -1559,7 +1669,8 @@ class InlineEditor : PmcWidget {
                 if ($widget.GetType().Name -eq 'PmcFilePicker') {
                     # Still showing picker - return current path
                     return $widget.CurrentPath
-                } else {
+                }
+                else {
                     # TextInput - return text
                     return $widget.GetText()
                 }
@@ -1569,7 +1680,8 @@ class InlineEditor : PmcWidget {
                 $field = $this._fields | Where-Object { $_.Name -eq $fieldName } | Select-Object -First 1
                 if ($field.ContainsKey('Value')) {
                     return $field.Value
-                } else {
+                }
+                else {
                     return 0
                 }
             }
@@ -1689,7 +1801,8 @@ class InlineEditor : PmcWidget {
         if ($this._currentFieldIndex -lt ($this._fields.Count - 1)) {
             $this._currentFieldIndex++
             $this._validationErrors = @()
-        } else {
+        }
+        else {
             # Wrap to first field
             $this._currentFieldIndex = 0
         }
@@ -1703,7 +1816,8 @@ class InlineEditor : PmcWidget {
         if ($this._currentFieldIndex -gt 0) {
             $this._currentFieldIndex--
             $this._validationErrors = @()
-        } else {
+        }
+        else {
             # Wrap to last field
             $this._currentFieldIndex = $this._fields.Count - 1
         }
@@ -1778,11 +1892,13 @@ class InlineEditor : PmcWidget {
                     try {
                         $parsedDate = [DateTime]::Parse($currentText)
                         $datePicker.SetDate($parsedDate)
-                    } catch {
+                    }
+                    catch {
                         # Invalid date, use today
                         $datePicker.SetDate([DateTime]::Now)
                     }
-                } else {
+                }
+                else {
                     # No text, use today
                     $datePicker.SetDate([DateTime]::Now)
                 }
@@ -1990,14 +2106,16 @@ class InlineEditor : PmcWidget {
             try {
                 if ($null -ne $arg) {
                     # Use Invoke-Command with -ArgumentList to pass single arg without array wrapping
-                    Invoke-Command -ScriptBlock $callback -ArgumentList (,$arg)
-                } else {
+                    Invoke-Command -ScriptBlock $callback -ArgumentList (, $arg)
+                }
+                else {
                     & $callback
                 }
                 if ($global:PmcTuiLogFile -and $global:PmcTuiLogLevel -ge 3) {
                     Write-PmcTuiLog "InlineEditor._InvokeCallback: Callback completed successfully" "DEBUG"
                 }
-            } catch {
+            }
+            catch {
                 # Log callback errors but DON'T rethrow - callbacks must never crash the app
                 if (Get-Command Write-PmcTuiLog -ErrorAction SilentlyContinue) {
                     Write-PmcTuiLog "InlineEditor callback error: $($_.Exception.Message)" "ERROR"

@@ -89,120 +89,77 @@ class ClearBackupsScreen : PmcScreen {
             $totalCount = $this.AutoBackupCount + $this.ManualBackupCount
             $this.ShowStatus("$totalCount total backups found")
 
-        } catch {
+        }
+        catch {
             $this.ShowError("Failed to load backup information: $_")
         }
     }
 
-    [string] RenderContent() {
-        $sb = [System.Text.StringBuilder]::new(2048)
-
-        if (-not $this.LayoutManager) {
-            return $sb.ToString()
-        }
-
-        # Get content area
-        $contentRect = $this.LayoutManager.GetRegion('Content', $this.TermWidth, $this.TermHeight)
-
+    [void] RenderContentToEngine([object]$engine) {
         # Colors
-        $textColor = $this.Header.GetThemedFg('Foreground.Field')
-        $highlightColor = $this.Header.GetThemedFg('Foreground.FieldFocused')
-        $warningColor = $this.Header.GetThemedAnsi('Warning', $false)
-        $mutedColor = $this.Header.GetThemedFg('Foreground.Muted')
-        $errorColor = $this.Header.GetThemedFg('Foreground.Error')
-        $reset = "`e[0m"
-
-        $y = $contentRect.Y + 2
+        $textColor = $this.Header.GetThemedColorInt('Foreground.Field')
+        $highlightColor = $this.Header.GetThemedColorInt('Foreground.FieldFocused')
+        $warningColor = $this.Header.GetThemedColorInt('Foreground.Warning') 
+        $mutedColor = $this.Header.GetThemedColorInt('Foreground.Muted')
+        $errorColor = $this.Header.GetThemedColorInt('Foreground.Error')
+        $bg = $this.Header.GetThemedColorInt('Background.Primary')
+        
+        $y = 4
+        $x = 4
 
         # Title
-        $sb.Append($this.Header.BuildMoveTo($contentRect.X + 4, $y))
-        $sb.Append($highlightColor)
-        $sb.Append("Clear Backup Files")
-        $sb.Append($reset)
+        $engine.WriteAt($x, $y, "Clear Backup Files", $highlightColor, $bg)
         $y += 2
 
         # Automatic backups section
-        $sb.Append($this.Header.BuildMoveTo($contentRect.X + 4, $y))
-        $sb.Append($mutedColor)
-        $sb.Append("Automatic backups (.bak1 - .bak9):")
-        $sb.Append($reset)
+        $engine.WriteAt($x, $y, "Automatic backups (.bak1 - .bak9):", $mutedColor, $bg)
         $y++
 
-        $sb.Append($this.Header.BuildMoveTo($contentRect.X + 6, $y))
-        $sb.Append($textColor)
-        $sb.Append("Count: $($this.AutoBackupCount) files")
-        $sb.Append($reset)
+        $engine.WriteAt($x + 2, $y, "Count: $($this.AutoBackupCount) files", $textColor, $bg)
         $y++
 
         $autoSizeMB = [math]::Round($this.AutoTotalSize / 1MB, 2)
-        $sb.Append($this.Header.BuildMoveTo($contentRect.X + 6, $y))
-        $sb.Append($textColor)
-        $sb.Append("Total size: $autoSizeMB MB")
-        $sb.Append($reset)
+        $engine.WriteAt($x + 2, $y, "Total size: $autoSizeMB MB", $textColor, $bg)
         $y += 2
 
         # Manual backups section
-        $sb.Append($this.Header.BuildMoveTo($contentRect.X + 4, $y))
-        $sb.Append($mutedColor)
-        $sb.Append("Manual backups (backups directory):")
-        $sb.Append($reset)
+        $engine.WriteAt($x, $y, "Manual backups (backups directory):", $mutedColor, $bg)
         $y++
 
-        $sb.Append($this.Header.BuildMoveTo($contentRect.X + 6, $y))
-        $sb.Append($textColor)
-        $sb.Append("Count: $($this.ManualBackupCount) files")
-        $sb.Append($reset)
+        $engine.WriteAt($x + 2, $y, "Count: $($this.ManualBackupCount) files", $textColor, $bg)
         $y++
 
         $manualSizeMB = [math]::Round($this.ManualTotalSize / 1MB, 2)
-        $sb.Append($this.Header.BuildMoveTo($contentRect.X + 6, $y))
-        $sb.Append($textColor)
-        $sb.Append("Total size: $manualSizeMB MB")
-        $sb.Append($reset)
+        $engine.WriteAt($x + 2, $y, "Total size: $manualSizeMB MB", $textColor, $bg)
         $y += 2
 
         # Warning
-        $sb.Append($this.Header.BuildMoveTo($contentRect.X + 4, $y))
-        $sb.Append($errorColor)
-        $sb.Append("WARNING: This action cannot be undone!")
-        $sb.Append($reset)
+        $engine.WriteAt($x, $y, "WARNING: This action cannot be undone!", $errorColor, $bg)
         $y += 2
 
         # Options
         if ($this.AutoBackupCount -gt 0) {
-            $sb.Append($this.Header.BuildMoveTo($contentRect.X + 4, $y))
-            $sb.Append($warningColor)
-            $sb.Append("Press 'A' to clear automatic backups (.bak files)")
-            $sb.Append($reset)
+            $engine.WriteAt($x, $y, "Press 'A' to clear automatic backups (.bak files)", $warningColor, $bg)
             $y++
         }
 
         if ($this.ManualBackupCount -gt 0) {
-            $sb.Append($this.Header.BuildMoveTo($contentRect.X + 4, $y))
-            $sb.Append($warningColor)
-            $sb.Append("Press 'M' to clear manual backups (backups directory)")
-            $sb.Append($reset)
+            $engine.WriteAt($x, $y, "Press 'M' to clear manual backups (backups directory)", $warningColor, $bg)
             $y++
         }
 
         if ($this.AutoBackupCount -gt 0 -and $this.ManualBackupCount -gt 0) {
-            $sb.Append($this.Header.BuildMoveTo($contentRect.X + 4, $y))
-            $sb.Append($errorColor)
-            $sb.Append("Press 'B' to clear BOTH")
-            $sb.Append($reset)
+            $engine.WriteAt($x, $y, "Press 'B' to clear BOTH", $errorColor, $bg)
             $y++
         }
 
         if ($this.AutoBackupCount -eq 0 -and $this.ManualBackupCount -eq 0) {
             $y++
-            $sb.Append($this.Header.BuildMoveTo($contentRect.X + 4, $y))
-            $sb.Append($mutedColor)
-            $sb.Append("No backups to clear")
-            $sb.Append($reset)
+            $engine.WriteAt($x, $y, "No backups to clear", $mutedColor, $bg)
         }
-
-        return $sb.ToString()
     }
+
+    [string] RenderContent() { return "" }
 
     [bool] HandleKeyPress([ConsoleKeyInfo]$keyInfo) {
         $keyChar = [char]::ToLower($keyInfo.KeyChar)
@@ -246,7 +203,8 @@ class ClearBackupsScreen : PmcScreen {
 
             $this.ShowSuccess("Deleted $deleted automatic backup files")
             $this.LoadData()
-        } catch {
+        }
+        catch {
             $this.ShowError("Error clearing automatic backups: $_")
         }
     }
@@ -269,7 +227,8 @@ class ClearBackupsScreen : PmcScreen {
                 $this.ShowSuccess("Deleted $deleted manual backup files")
                 $this.LoadData()
             }
-        } catch {
+        }
+        catch {
             $this.ShowError("Error clearing manual backups: $_")
         }
     }
@@ -303,7 +262,8 @@ class ClearBackupsScreen : PmcScreen {
 
             $this.ShowSuccess("Deleted $totalDeleted backup files")
             $this.LoadData()
-        } catch {
+        }
+        catch {
             $this.ShowError("Error clearing backups: $_")
         }
     }

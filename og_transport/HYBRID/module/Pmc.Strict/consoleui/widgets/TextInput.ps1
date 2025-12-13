@@ -169,7 +169,8 @@ class TextInput : PmcWidget {
                 $this.IsConfirmed = $true
                 $this._InvokeCallback($this.OnConfirmed, $this.Text)
                 return $true
-            } else {
+            }
+            else {
                 # Validation failed, don't confirm
                 $this._InvokeCallback($this.OnValidationFailed, @($this.Text, $this._validationError))
                 return $true
@@ -248,7 +249,8 @@ class TextInput : PmcWidget {
             if ($null -ne $psVersion -and $psVersion.PSVersion.Major -ge 7 -and -not [string]::IsNullOrEmpty($this.Text)) {
                 try {
                     Set-Clipboard -Value $this.Text
-                } catch {
+                }
+                catch {
                     # Clipboard access may fail - silently ignore
                 }
             }
@@ -282,7 +284,8 @@ class TextInput : PmcWidget {
                         $this._ValidateText()
                         $this._InvokeCallback($this.OnTextChanged, $this.Text)
                     }
-                } catch {
+                }
+                catch {
                     # Clipboard access may fail - silently ignore
                 }
             }
@@ -341,7 +344,7 @@ class TextInput : PmcWidget {
 
         # Draw Box
         $engine.Fill($this.X, $this.Y, $this.Width, $this.Height, ' ', $fg, $bg)
-        $engine.DrawBox($this.X, $this.Y, $this.Width, $this.Height, 'single')
+        $engine.DrawBox($this.X, $this.Y, $this.Width, $this.Height, $activeBorderFg, $bg)
         # Redraw border with active color? DrawBox uses default colors?
         # My DrawBox doesn't take color. I should probably add color support or manually draw it.
         # But wait, DrawBox uses WriteAt. If I set colors in engine state...
@@ -372,7 +375,8 @@ class TextInput : PmcWidget {
                 if (-not $this.HasFocus) {
                     $displayText = $this.Placeholder
                     $engine.WriteToRegion("$($this.RegionID)_Input", $displayText, $mutedFg, $bg)
-                } else {
+                }
+                else {
                     # Focused but empty - show cursor at 0
                     if ($this._showCursor) {
                         $engine.WriteAt($bounds.X, $bounds.Y, " ", $bg, $fg) # Inverse space
@@ -383,7 +387,8 @@ class TextInput : PmcWidget {
                         $engine.WriteAt($bounds.X + 1, $bounds.Y, $this.Placeholder, $mutedFg, $bg)
                     }
                 }
-            } else {
+            }
+            else {
                 # Visible Text
                 $innerWidth = $bounds.Width
                 $visibleText = $this.Text.Substring($this._scrollOffset)
@@ -403,7 +408,8 @@ class TextInput : PmcWidget {
                     
                     $finalStr = "$pre`e[7m$char`e[27m$post"
                     $engine.WriteToRegion("$($this.RegionID)_Input", $finalStr, $fg, $bg)
-                } else {
+                }
+                else {
                     $engine.WriteToRegion("$($this.RegionID)_Input", $visibleText, $fg, $bg)
                 }
             }
@@ -480,7 +486,8 @@ class TextInput : PmcWidget {
             if ($this.HasFocus -and $this._showCursor) {
                 $cursorDisplayPos = 0
             }
-        } else {
+        }
+        else {
             # Show actual text with scroll offset
             $visibleText = $this.Text.Substring($this._scrollOffset)
             if ($visibleText.Length -gt $innerWidth) {
@@ -503,10 +510,11 @@ class TextInput : PmcWidget {
 
                 # Cursor character (inverted)
                 $cursorChar = $(if ($cursorOffsetPos -lt $displayText.Length) {
-                    $displayText[$cursorOffsetPos]
-                } else {
-                    ' '
-                })
+                        $displayText[$cursorOffsetPos]
+                    }
+                    else {
+                        ' '
+                    })
                 $sb.Append("`e[7m")  # Invert colors
                 $sb.Append($cursorChar)
                 $sb.Append("`e[27m")  # Normal colors
@@ -515,7 +523,8 @@ class TextInput : PmcWidget {
                 if ($cursorOffsetPos + 1 -lt $displayText.Length) {
                     $sb.Append($displayText.Substring($cursorOffsetPos + 1))
                 }
-            } else {
+            }
+            else {
                 # No cursor, just render text
                 $sb.Append($displayText)
             }
@@ -587,13 +596,16 @@ class TextInput : PmcWidget {
 
         # Basic input sanitization - reject control characters and null bytes
         $charCode = [int]$ch
-        if ($charCode -lt 32 -and $charCode -ne 9) {  # Allow tab (9) but reject other control chars
+        if ($charCode -lt 32 -and $charCode -ne 9) {
+            # Allow tab (9) but reject other control chars
             return
         }
-        if ($charCode -eq 0) {  # Null byte
+        if ($charCode -eq 0) {
+            # Null byte
             return
         }
-        if ($charCode -eq 127) {  # DEL control char
+        if ($charCode -eq 127) {
+            # DEL control char
             return
         }
 
@@ -601,7 +613,8 @@ class TextInput : PmcWidget {
         if ($this._cursorPosition -eq $this.Text.Length) {
             # Append
             $this.Text += $ch
-        } else {
+        }
+        else {
             # Insert in middle
             $before = $this.Text.Substring(0, $this._cursorPosition)
             $after = $this.Text.Substring($this._cursorPosition)
@@ -627,7 +640,8 @@ class TextInput : PmcWidget {
         if ($this._cursorPosition -eq $this.Text.Length) {
             # Delete last char
             $this.Text = $this.Text.Substring(0, $this.Text.Length - 1)
-        } else {
+        }
+        else {
             # Delete in middle
             $before = $this.Text.Substring(0, $this._cursorPosition - 1)
             $after = $this.Text.Substring($this._cursorPosition)
@@ -652,13 +666,15 @@ class TextInput : PmcWidget {
         # Delete character at cursor
         if ($this._cursorPosition -eq 0 -and $this.Text.Length -eq 1) {
             $this.Text = ""
-        } else {
+        }
+        else {
             $before = $this.Text.Substring(0, $this._cursorPosition)
             $after = $(if ($this._cursorPosition + 1 -lt $this.Text.Length) {
-                $this.Text.Substring($this._cursorPosition + 1)
-            } else {
-                ""
-            })
+                    $this.Text.Substring($this._cursorPosition + 1)
+                }
+                else {
+                    ""
+                })
             $this.Text = $before + $after
         }
 
@@ -710,21 +726,25 @@ class TextInput : PmcWidget {
                 $this.IsValid = $result
                 if (-not $result) {
                     $this._validationError = "Invalid input"
-                } else {
+                }
+                else {
                     $this._validationError = ""
                 }
                 return $result
-            } elseif ($result -is [hashtable] -and $result.ContainsKey('Valid')) {
+            }
+            elseif ($result -is [hashtable] -and $result.ContainsKey('Valid')) {
                 $this.IsValid = $result.Valid
                 $this._validationError = $(if ($result.ContainsKey('Message')) { $result.Message } else { "" })
                 return $result.Valid
-            } else {
+            }
+            else {
                 # Assume valid if validator returns non-bool
                 $this.IsValid = $true
                 $this._validationError = ""
                 return $true
             }
-        } catch {
+        }
+        catch {
             # Validator threw exception - treat as invalid
             $this.IsValid = $false
             $this._validationError = "Validation error: $_"
@@ -747,10 +767,12 @@ class TextInput : PmcWidget {
             try {
                 if ($null -ne $args) {
                     & $callback $args
-                } else {
+                }
+                else {
                     & $callback
                 }
-            } catch {
+            }
+            catch {
                 # Callback failed - log but don't crash widget
             }
         }

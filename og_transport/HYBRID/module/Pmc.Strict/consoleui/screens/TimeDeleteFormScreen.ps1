@@ -77,133 +77,95 @@ class TimeDeleteFormScreen : PmcScreen {
         $this.ShowStatus("Ready to delete time entry")
     }
 
-    [string] RenderContent() {
-        $sb = [System.Text.StringBuilder]::new(2048)
-
-        if (-not $this.LayoutManager) {
-            return $sb.ToString()
-        }
-
-        # Get content area
-        $contentRect = $this.LayoutManager.GetRegion('Content', $this.TermWidth, $this.TermHeight)
-
+    [void] RenderContentToEngine([object]$engine) {
         # Colors
-        $textColor = $this.Header.GetThemedFg('Foreground.Field')
-        $highlightColor = $this.Header.GetThemedFg('Foreground.FieldFocused')
-        $warningColor = $this.Header.GetThemedAnsi('Warning', $false)
-        $mutedColor = $this.Header.GetThemedFg('Foreground.Muted')
-        $errorColor = $this.Header.GetThemedFg('Foreground.Error')
-        $reset = "`e[0m"
-
-        $y = $contentRect.Y + 2
+        $textColor = $this.Header.GetThemedColorInt('Foreground.Field')
+        $highlightColor = $this.Header.GetThemedColorInt('Foreground.FieldFocused')
+        $warningColor = $this.Header.GetThemedColorInt('Foreground.Warning') 
+        $mutedColor = $this.Header.GetThemedColorInt('Foreground.Muted')
+        $errorColor = $this.Header.GetThemedColorInt('Foreground.Error')
+        $bg = $this.Header.GetThemedColorInt('Background.Primary')
+        
+        $startX = 4
+        $y = 4 # Start Y (Header is top)
 
         if (-not $this.TimeEntry) {
             # No entry selected
-            $sb.Append($this.Header.BuildMoveTo($contentRect.X + 4, $y))
-            $sb.Append($warningColor)
-            $sb.Append("No time entry selected")
-            $sb.Append($reset)
-            return $sb.ToString()
+            $engine.WriteAt($startX, $y, "No time entry selected", $warningColor, $bg)
+            return
         }
 
         # Entry details
-        $sb.Append($this.Header.BuildMoveTo($contentRect.X + 4, $y))
-        $sb.Append($highlightColor)
-        $sb.Append("Delete Time Entry:")
-        $sb.Append($reset)
+        $engine.WriteAt($startX, $y, "Delete Time Entry:", $highlightColor, $bg)
         $y += 2
+
+        $detailsX = $startX + 2
 
         # ID
         $entryId = $this.TimeEntry.id
-        $sb.Append($this.Header.BuildMoveTo($contentRect.X + 6, $y))
-        $sb.Append($mutedColor)
-        $sb.Append("ID: ")
-        $sb.Append($reset)
-        $sb.Append($textColor)
-        $sb.Append($entryId)
-        $sb.Append($reset)
+        $engine.WriteAt($detailsX, $y, "ID: ", $mutedColor, $bg)
+        $engine.WriteAt($detailsX + 4, $y, "$entryId", $textColor, $bg)
         $y++
 
         # Date
         $entryDate = $this.TimeEntry.date
         $rawDate = $(if ($entryDate) { $entryDate.ToString() } else { "" })
         $dateStr = $(if ($rawDate -eq 'today') {
-            (Get-Date).ToString('yyyy-MM-dd')
-        } elseif ($rawDate -eq 'tomorrow') {
-            (Get-Date).AddDays(1).ToString('yyyy-MM-dd')
-        } else {
-            $rawDate
-        })
+                (Get-Date).ToString('yyyy-MM-dd')
+            }
+            elseif ($rawDate -eq 'tomorrow') {
+                (Get-Date).AddDays(1).ToString('yyyy-MM-dd')
+            }
+            else {
+                $rawDate
+            })
 
-        $sb.Append($this.Header.BuildMoveTo($contentRect.X + 6, $y))
-        $sb.Append($mutedColor)
-        $sb.Append("Date: ")
-        $sb.Append($reset)
-        $sb.Append($textColor)
-        $sb.Append($dateStr)
-        $sb.Append($reset)
+        $engine.WriteAt($detailsX, $y, "Date: ", $mutedColor, $bg)
+        $engine.WriteAt($detailsX + 6, $y, "$dateStr", $textColor, $bg)
         $y++
 
         # Project
         $entryProject = $this.TimeEntry.project
         $entryId1 = $this.TimeEntry.id1
         $projectStr = $(if ($entryProject) { $entryProject.ToString() } else { if ($entryId1) { "#$entryId1" } else { "" } })
-        $sb.Append($this.Header.BuildMoveTo($contentRect.X + 6, $y))
-        $sb.Append($mutedColor)
-        $sb.Append("Project: ")
-        $sb.Append($reset)
-        $sb.Append($textColor)
-        $sb.Append($projectStr)
-        $sb.Append($reset)
+        
+        $engine.WriteAt($detailsX, $y, "Project: ", $mutedColor, $bg)
+        $engine.WriteAt($detailsX + 9, $y, "$projectStr", $textColor, $bg)
         $y++
 
         # Hours
         $entryMinutes = $this.TimeEntry.minutes
         $hours = $(if ($entryMinutes) { [math]::Round($entryMinutes / 60.0, 2) } else { 0 })
-        $sb.Append($this.Header.BuildMoveTo($contentRect.X + 6, $y))
-        $sb.Append($mutedColor)
-        $sb.Append("Hours: ")
-        $sb.Append($reset)
-        $sb.Append($highlightColor)
-        $sb.Append($hours.ToString("0.00"))
-        $sb.Append($reset)
+        
+        $engine.WriteAt($detailsX, $y, "Hours: ", $mutedColor, $bg)
+        $engine.WriteAt($detailsX + 7, $y, $hours.ToString("0.00"), $highlightColor, $bg)
         $y++
 
         # Description
         $entryDescription = $this.TimeEntry.description
         if ($entryDescription) {
-            $sb.Append($this.Header.BuildMoveTo($contentRect.X + 6, $y))
-            $sb.Append($mutedColor)
-            $sb.Append("Description: ")
-            $sb.Append($reset)
-            $sb.Append($textColor)
+            $engine.WriteAt($detailsX, $y, "Description: ", $mutedColor, $bg)
+            
             $descStr = $entryDescription.ToString()
-            $maxDescWidth = $contentRect.Width - 20
+            $maxDescWidth = $this.TermWidth - $detailsX - 15  # Avoid overflow
             if ($descStr.Length -gt $maxDescWidth) {
                 $descStr = $descStr.Substring(0, $maxDescWidth - 3) + "..."
             }
-            $sb.Append($descStr)
-            $sb.Append($reset)
+            $engine.WriteAt($detailsX + 13, $y, "$descStr", $textColor, $bg)
             $y++
         }
 
         $y += 2
 
         # Warning
-        $sb.Append($this.Header.BuildMoveTo($contentRect.X + 4, $y))
-        $sb.Append($errorColor)
-        $sb.Append("WARNING: This action cannot be undone!")
-        $sb.Append($reset)
+        $engine.WriteAt($startX, $y, "WARNING: This action cannot be undone!", $errorColor, $bg)
         $y += 2
 
         # Confirmation prompt
-        $sb.Append($this.Header.BuildMoveTo($contentRect.X + 4, $y))
-        $sb.Append($highlightColor)
-        $sb.Append("Press Y to confirm delete, N or Esc to cancel")
-        $sb.Append($reset)
-
-        return $sb.ToString()
+        $engine.WriteAt($startX, $y, "Press Y to confirm delete, N or Esc to cancel", $highlightColor, $bg)
     }
+
+    [string] RenderContent() { return "" }
 
     [bool] HandleKeyPress([ConsoleKeyInfo]$keyInfo) {
         $keyChar = [char]::ToLower($keyInfo.KeyChar)
@@ -243,7 +205,8 @@ class TimeDeleteFormScreen : PmcScreen {
 
             # Return to time list
             $global:PmcApp.PopScreen()
-        } catch {
+        }
+        catch {
             $this.ShowError("Error deleting time entry: $_")
         }
     }

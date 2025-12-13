@@ -49,9 +49,9 @@ class ProjectListScreen : StandardListScreen {
     # Static: Register menu items
     static [void] RegisterMenuItems([object]$registry) {
         $registry.AddMenuItem('Projects', 'Project List', 'L', {
-            . "$PSScriptRoot/ProjectListScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object -TypeName ProjectListScreen))
-        }, 10)
+                . "$PSScriptRoot/ProjectListScreen.ps1"
+                $global:PmcApp.PushScreen((New-Object -TypeName ProjectListScreen))
+            }, 10)
     }
 
     # LOW FIX PLS-L3: Extract common initialization to helper method
@@ -73,7 +73,8 @@ class ProjectListScreen : StandardListScreen {
         try {
             $this._ConfigureListActions()
             # Write-PmcTuiLog "!!! _ConfigureListActions completed successfully !!!" "INFO"
-        } catch {
+        }
+        catch {
             Write-PmcTuiLog "!!! ERROR in _ConfigureListActions: $_" "ERROR"
             Write-PmcTuiLog "!!! Stack: $($_.ScriptStackTrace)" "ERROR"
         }
@@ -160,8 +161,9 @@ class ProjectListScreen : StandardListScreen {
             # Count tasks in this project using hashtable lookup
             $projName = Get-SafeProperty $project 'name'
             $project['task_count'] = $(if ($tasksByProject.ContainsKey($projName)) {
-                $tasksByProject[$projName]
-            } else { 0 })
+                    $tasksByProject[$projName]
+                }
+                else { 0 })
 
             # PS-M3 FIX: Don't always default status to 'active' for existing projects
             # Only add status if it's missing (preserve archived, etc.)
@@ -178,10 +180,10 @@ class ProjectListScreen : StandardListScreen {
     [array] GetColumns() {
         # Use fixed widths that match the visual layout
         return @(
-            @{ Name='name'; Label='Project'; Width=41; Align='left' }
-            @{ Name='status'; Label='Status'; Width=19; Align='left' }
-            @{ Name='task_count'; Label='Tasks'; Width=10; Align='center' }
-            @{ Name='description'; Label='Description'; Width=62; Align='left' }
+            @{ Name = 'name'; Label = 'Project'; Width = 41; Align = 'left' }
+            @{ Name = 'status'; Label = 'Status'; Width = 19; Align = 'left' }
+            @{ Name = 'task_count'; Label = 'Tasks'; Width = 10; Align = 'center' }
+            @{ Name = 'description'; Label = 'Description'; Width = 62; Align = 'left' }
         )
     }
 
@@ -199,19 +201,20 @@ class ProjectListScreen : StandardListScreen {
             # New project - include all columns to match layout
             # task_count is a spacer field (not editable)
             return @(
-                @{ Name='name'; Type='text'; Label=''; Required=$true; Value=''; Width=$nameWidth }
-                @{ Name='status'; Type='text'; Label=''; Value=$global:DEFAULT_STATUS; Width=$statusWidth }
-                @{ Name='task_count'; Type='text'; Label=''; Value=''; Width=$taskCountWidth; Readonly=$true }
-                @{ Name='description'; Type='text'; Label=''; Value=''; Width=$descWidth }
+                @{ Name = 'name'; Type = 'text'; Label = ''; Required = $true; Value = ''; Width = $nameWidth }
+                @{ Name = 'status'; Type = 'text'; Label = ''; Value = $global:DEFAULT_STATUS; Width = $statusWidth }
+                @{ Name = 'task_count'; Type = 'text'; Label = ''; Value = ''; Width = $taskCountWidth; Readonly = $true }
+                @{ Name = 'description'; Type = 'text'; Label = ''; Value = ''; Width = $descWidth }
             )
-        } else {
+        }
+        else {
             # Existing project - include all columns to match layout
             $taskCount = $(if ($item.ContainsKey('task_count')) { $item.task_count } else { '' })
             return @(
-                @{ Name='name'; Type='text'; Label=''; Required=$true; Value=(Get-SafeProperty $item 'name'); Width=$nameWidth }
-                @{ Name='status'; Type='text'; Label=''; Value=(Get-SafeProperty $item 'status'); Width=$statusWidth }
-                @{ Name='task_count'; Type='text'; Label=''; Value=$taskCount; Width=$taskCountWidth; Readonly=$true }
-                @{ Name='description'; Type='text'; Label=''; Value=(Get-SafeProperty $item 'description'); Width=$descWidth }
+                @{ Name = 'name'; Type = 'text'; Label = ''; Required = $true; Value = (Get-SafeProperty $item 'name'); Width = $nameWidth }
+                @{ Name = 'status'; Type = 'text'; Label = ''; Value = (Get-SafeProperty $item 'status'); Width = $statusWidth }
+                @{ Name = 'task_count'; Type = 'text'; Label = ''; Value = $taskCount; Width = $taskCountWidth; Readonly = $true }
+                @{ Name = 'description'; Type = 'text'; Label = ''; Value = (Get-SafeProperty $item 'description'); Width = $descWidth }
             )
         }
     }
@@ -263,89 +266,89 @@ class ProjectListScreen : StandardListScreen {
 
             Write-PmcTuiLog "ProjectListScreen.OnItemCreated: Building projectData..." "DEBUG"
             $projectData = @{
-                id = [guid]::NewGuid().ToString()
-                name = $values.name
-                description = $(if ($values.ContainsKey('description')) { $values.description } else { '' })
+                id                       = [guid]::NewGuid().ToString()
+                name                     = $values.name
+                description              = $(if ($values.ContainsKey('description')) { $values.description } else { '' })
                 # CRITICAL FIX: Use datetime object, not string (validation expects datetime type)
-                created = Get-Date
+                created                  = Get-Date
                 # MEDIUM FIX PLS-M3: Use script-level constant for default status
-                status = $(if ($values.ContainsKey('status')) { $values.status } else { $global:DEFAULT_STATUS })
-                tags = $tags
+                status                   = $(if ($values.ContainsKey('status')) { $values.status } else { $global:DEFAULT_STATUS })
+                tags                     = $tags
 
                 # ID fields
-                ID1 = $(if ($values.ContainsKey('ID1')) { $values.ID1 } else { '' })
-                ID2 = $(if ($values.ContainsKey('ID2')) { $values.ID2 } else { '' })
+                ID1                      = $(if ($values.ContainsKey('ID1')) { $values.ID1 } else { '' })
+                ID2                      = $(if ($values.ContainsKey('ID2')) { $values.ID2 } else { '' })
 
                 # Path fields
-                ProjFolder = $(if ($values.ContainsKey('ProjFolder')) { $values.ProjFolder } else { '' })
-                CAAName = $(if ($values.ContainsKey('CAAName')) { $values.CAAName } else { '' })
-                RequestName = $(if ($values.ContainsKey('RequestName')) { $values.RequestName } else { '' })
-                T2020 = $(if ($values.ContainsKey('T2020')) { $values.T2020 } else { '' })
+                ProjFolder               = $(if ($values.ContainsKey('ProjFolder')) { $values.ProjFolder } else { '' })
+                CAAName                  = $(if ($values.ContainsKey('CAAName')) { $values.CAAName } else { '' })
+                RequestName              = $(if ($values.ContainsKey('RequestName')) { $values.RequestName } else { '' })
+                T2020                    = $(if ($values.ContainsKey('T2020')) { $values.T2020 } else { '' })
 
                 # Date fields
-                AssignedDate = $this.FormatDateField($values, 'AssignedDate')
-                DueDate = $this.FormatDateField($values, 'DueDate')
-                BFDate = $this.FormatDateField($values, 'BFDate')
+                AssignedDate             = $this.FormatDateField($values, 'AssignedDate')
+                DueDate                  = $this.FormatDateField($values, 'DueDate')
+                BFDate                   = $this.FormatDateField($values, 'BFDate')
 
                 # Project Info (9 fields)
-                RequestDate = $this.FormatDateField($values, 'RequestDate')
-                AuditType = $(if ($values.ContainsKey('AuditType')) { $values.AuditType } else { '' })
-                AuditorName = $(if ($values.ContainsKey('AuditorName')) { $values.AuditorName } else { '' })
-                AuditorPhone = $(if ($values.ContainsKey('AuditorPhone')) { $values.AuditorPhone } else { '' })
-                AuditorTL = $(if ($values.ContainsKey('AuditorTL')) { $values.AuditorTL } else { '' })
-                AuditorTLPhone = $(if ($values.ContainsKey('AuditorTLPhone')) { $values.AuditorTLPhone } else { '' })
-                AuditCase = $(if ($values.ContainsKey('AuditCase')) { $values.AuditCase } else { '' })
-                CASCase = $(if ($values.ContainsKey('CASCase')) { $values.CASCase } else { '' })
-                AuditStartDate = $this.FormatDateField($values, 'AuditStartDate')
+                RequestDate              = $this.FormatDateField($values, 'RequestDate')
+                AuditType                = $(if ($values.ContainsKey('AuditType')) { $values.AuditType } else { '' })
+                AuditorName              = $(if ($values.ContainsKey('AuditorName')) { $values.AuditorName } else { '' })
+                AuditorPhone             = $(if ($values.ContainsKey('AuditorPhone')) { $values.AuditorPhone } else { '' })
+                AuditorTL                = $(if ($values.ContainsKey('AuditorTL')) { $values.AuditorTL } else { '' })
+                AuditorTLPhone           = $(if ($values.ContainsKey('AuditorTLPhone')) { $values.AuditorTLPhone } else { '' })
+                AuditCase                = $(if ($values.ContainsKey('AuditCase')) { $values.AuditCase } else { '' })
+                CASCase                  = $(if ($values.ContainsKey('CASCase')) { $values.CASCase } else { '' })
+                AuditStartDate           = $this.FormatDateField($values, 'AuditStartDate')
 
                 # Contact Details (10 fields)
-                TPName = $(if ($values.ContainsKey('TPName')) { $values.TPName } else { '' })
-                TPNum = $(if ($values.ContainsKey('TPNum')) { $values.TPNum } else { '' })
-                Address = $(if ($values.ContainsKey('Address')) { $values.Address } else { '' })
-                City = $(if ($values.ContainsKey('City')) { $values.City } else { '' })
-                Province = $(if ($values.ContainsKey('Province')) { $values.Province } else { '' })
-                PostalCode = $(if ($values.ContainsKey('PostalCode')) { $values.PostalCode } else { '' })
-                Country = $(if ($values.ContainsKey('Country')) { $values.Country } else { '' })
+                TPName                   = $(if ($values.ContainsKey('TPName')) { $values.TPName } else { '' })
+                TPNum                    = $(if ($values.ContainsKey('TPNum')) { $values.TPNum } else { '' })
+                Address                  = $(if ($values.ContainsKey('Address')) { $values.Address } else { '' })
+                City                     = $(if ($values.ContainsKey('City')) { $values.City } else { '' })
+                Province                 = $(if ($values.ContainsKey('Province')) { $values.Province } else { '' })
+                PostalCode               = $(if ($values.ContainsKey('PostalCode')) { $values.PostalCode } else { '' })
+                Country                  = $(if ($values.ContainsKey('Country')) { $values.Country } else { '' })
 
                 # Audit Periods (10 fields)
-                AuditPeriodFrom = $this.FormatDateField($values, 'AuditPeriodFrom')
-                AuditPeriodTo = $this.FormatDateField($values, 'AuditPeriodTo')
-                AuditPeriod1Start = $this.FormatDateField($values, 'AuditPeriod1Start')
-                AuditPeriod1End = $this.FormatDateField($values, 'AuditPeriod1End')
-                AuditPeriod2Start = $this.FormatDateField($values, 'AuditPeriod2Start')
-                AuditPeriod2End = $this.FormatDateField($values, 'AuditPeriod2End')
-                AuditPeriod3Start = $this.FormatDateField($values, 'AuditPeriod3Start')
-                AuditPeriod3End = $this.FormatDateField($values, 'AuditPeriod3End')
-                AuditPeriod4Start = $this.FormatDateField($values, 'AuditPeriod4Start')
-                AuditPeriod4End = $this.FormatDateField($values, 'AuditPeriod4End')
-                AuditPeriod5Start = $this.FormatDateField($values, 'AuditPeriod5Start')
-                AuditPeriod5End = $this.FormatDateField($values, 'AuditPeriod5End')
+                AuditPeriodFrom          = $this.FormatDateField($values, 'AuditPeriodFrom')
+                AuditPeriodTo            = $this.FormatDateField($values, 'AuditPeriodTo')
+                AuditPeriod1Start        = $this.FormatDateField($values, 'AuditPeriod1Start')
+                AuditPeriod1End          = $this.FormatDateField($values, 'AuditPeriod1End')
+                AuditPeriod2Start        = $this.FormatDateField($values, 'AuditPeriod2Start')
+                AuditPeriod2End          = $this.FormatDateField($values, 'AuditPeriod2End')
+                AuditPeriod3Start        = $this.FormatDateField($values, 'AuditPeriod3Start')
+                AuditPeriod3End          = $this.FormatDateField($values, 'AuditPeriod3End')
+                AuditPeriod4Start        = $this.FormatDateField($values, 'AuditPeriod4Start')
+                AuditPeriod4End          = $this.FormatDateField($values, 'AuditPeriod4End')
+                AuditPeriod5Start        = $this.FormatDateField($values, 'AuditPeriod5Start')
+                AuditPeriod5End          = $this.FormatDateField($values, 'AuditPeriod5End')
 
                 # Contacts (10 fields)
-                Contact1Name = $(if ($values.ContainsKey('Contact1Name')) { $values.Contact1Name } else { '' })
-                Contact1Phone = $(if ($values.ContainsKey('Contact1Phone')) { $values.Contact1Phone } else { '' })
-                Contact1Ext = $(if ($values.ContainsKey('Contact1Ext')) { $values.Contact1Ext } else { '' })
-                Contact1Address = $(if ($values.ContainsKey('Contact1Address')) { $values.Contact1Address } else { '' })
-                Contact1Title = $(if ($values.ContainsKey('Contact1Title')) { $values.Contact1Title } else { '' })
-                Contact2Name = $(if ($values.ContainsKey('Contact2Name')) { $values.Contact2Name } else { '' })
-                Contact2Phone = $(if ($values.ContainsKey('Contact2Phone')) { $values.Contact2Phone } else { '' })
-                Contact2Ext = $(if ($values.ContainsKey('Contact2Ext')) { $values.Contact2Ext } else { '' })
-                Contact2Address = $(if ($values.ContainsKey('Contact2Address')) { $values.Contact2Address } else { '' })
-                Contact2Title = $(if ($values.ContainsKey('Contact2Title')) { $values.Contact2Title } else { '' })
+                Contact1Name             = $(if ($values.ContainsKey('Contact1Name')) { $values.Contact1Name } else { '' })
+                Contact1Phone            = $(if ($values.ContainsKey('Contact1Phone')) { $values.Contact1Phone } else { '' })
+                Contact1Ext              = $(if ($values.ContainsKey('Contact1Ext')) { $values.Contact1Ext } else { '' })
+                Contact1Address          = $(if ($values.ContainsKey('Contact1Address')) { $values.Contact1Address } else { '' })
+                Contact1Title            = $(if ($values.ContainsKey('Contact1Title')) { $values.Contact1Title } else { '' })
+                Contact2Name             = $(if ($values.ContainsKey('Contact2Name')) { $values.Contact2Name } else { '' })
+                Contact2Phone            = $(if ($values.ContainsKey('Contact2Phone')) { $values.Contact2Phone } else { '' })
+                Contact2Ext              = $(if ($values.ContainsKey('Contact2Ext')) { $values.Contact2Ext } else { '' })
+                Contact2Address          = $(if ($values.ContainsKey('Contact2Address')) { $values.Contact2Address } else { '' })
+                Contact2Title            = $(if ($values.ContainsKey('Contact2Title')) { $values.Contact2Title } else { '' })
 
                 # System Info (7 fields)
-                AuditProgram = $(if ($values.ContainsKey('AuditProgram')) { $values.AuditProgram } else { '' })
-                AccountingSoftware1 = $(if ($values.ContainsKey('AccountingSoftware1')) { $values.AccountingSoftware1 } else { '' })
+                AuditProgram             = $(if ($values.ContainsKey('AuditProgram')) { $values.AuditProgram } else { '' })
+                AccountingSoftware1      = $(if ($values.ContainsKey('AccountingSoftware1')) { $values.AccountingSoftware1 } else { '' })
                 AccountingSoftware1Other = $(if ($values.ContainsKey('AccountingSoftware1Other')) { $values.AccountingSoftware1Other } else { '' })
-                AccountingSoftware1Type = $(if ($values.ContainsKey('AccountingSoftware1Type')) { $values.AccountingSoftware1Type } else { '' })
-                AccountingSoftware2 = $(if ($values.ContainsKey('AccountingSoftware2')) { $values.AccountingSoftware2 } else { '' })
+                AccountingSoftware1Type  = $(if ($values.ContainsKey('AccountingSoftware1Type')) { $values.AccountingSoftware1Type } else { '' })
+                AccountingSoftware2      = $(if ($values.ContainsKey('AccountingSoftware2')) { $values.AccountingSoftware2 } else { '' })
                 AccountingSoftware2Other = $(if ($values.ContainsKey('AccountingSoftware2Other')) { $values.AccountingSoftware2Other } else { '' })
-                AccountingSoftware2Type = $(if ($values.ContainsKey('AccountingSoftware2Type')) { $values.AccountingSoftware2Type } else { '' })
-                Comments = $(if ($values.ContainsKey('Comments')) { $values.Comments } else { '' })
+                AccountingSoftware2Type  = $(if ($values.ContainsKey('AccountingSoftware2Type')) { $values.AccountingSoftware2Type } else { '' })
+                Comments                 = $(if ($values.ContainsKey('Comments')) { $values.Comments } else { '' })
 
                 # Additional (2 fields)
-                FXInfo = $(if ($values.ContainsKey('FXInfo')) { $values.FXInfo } else { '' })
-                ShipToAddress = $(if ($values.ContainsKey('ShipToAddress')) { $values.ShipToAddress } else { '' })
+                FXInfo                   = $(if ($values.ContainsKey('FXInfo')) { $values.FXInfo } else { '' })
+                ShipToAddress            = $(if ($values.ContainsKey('ShipToAddress')) { $values.ShipToAddress } else { '' })
             }
 
             # Use ValidationHelper for comprehensive validation (already loaded by ClassLoader)
@@ -356,10 +359,11 @@ class ProjectListScreen : StandardListScreen {
             if (-not $validationResult.IsValid) {
                 # Show ALL validation errors
                 $errorMsg = $(if ($validationResult.Errors.Count -gt 0) {
-                    $validationResult.Errors -join '; '
-                } else {
-                    "Validation failed"
-                })
+                        $validationResult.Errors -join '; '
+                    }
+                    else {
+                        "Validation failed"
+                    })
                 $this.SetStatusMessage($errorMsg, "error")
                 Write-PmcTuiLog "Project validation failed: $($validationResult.Errors -join ', ')" "ERROR"
                 return
@@ -370,10 +374,12 @@ class ProjectListScreen : StandardListScreen {
             Write-PmcTuiLog "ProjectListScreen.OnItemCreated: AddProject returned success=$success" "DEBUG"
             if ($success) {
                 $this.SetStatusMessage("Project created: $($projectData.name)", "success")
-            } else {
+            }
+            else {
                 $this.SetStatusMessage("Failed to create project: $($this.Store.LastError)", "error")
             }
-        } catch {
+        }
+        catch {
             Write-PmcTuiLog "OnItemCreated exception: $_" "ERROR"
             $this.SetStatusMessage("Unexpected error: $($_.Exception.Message)", "error")
         }
@@ -394,92 +400,93 @@ class ProjectListScreen : StandardListScreen {
 
             # PS-M3 FIX: Preserve existing status if not being changed
             $statusValue = $(if ($values.ContainsKey('status') -and -not [string]::IsNullOrWhiteSpace($values.status)) {
-                $values.status
-            } else {
-                # Preserve existing status from item
-                Get-SafeProperty $item 'status'
-            })
+                    $values.status
+                }
+                else {
+                    # Preserve existing status from item
+                    Get-SafeProperty $item 'status'
+                })
 
             $changes = @{
-                name = $values.name
-                description = $(if ($values.ContainsKey('description')) { $values.description } else { '' })
-                status = $statusValue
-                tags = $tags
+                name                     = $values.name
+                description              = $(if ($values.ContainsKey('description')) { $values.description } else { '' })
+                status                   = $statusValue
+                tags                     = $tags
 
                 # ID fields
-                ID1 = $(if ($values.ContainsKey('ID1')) { $values.ID1 } else { '' })
-                ID2 = $(if ($values.ContainsKey('ID2')) { $values.ID2 } else { '' })
+                ID1                      = $(if ($values.ContainsKey('ID1')) { $values.ID1 } else { '' })
+                ID2                      = $(if ($values.ContainsKey('ID2')) { $values.ID2 } else { '' })
 
                 # Path fields
-                ProjFolder = $(if ($values.ContainsKey('ProjFolder')) { $values.ProjFolder } else { '' })
-                CAAName = $(if ($values.ContainsKey('CAAName')) { $values.CAAName } else { '' })
-                RequestName = $(if ($values.ContainsKey('RequestName')) { $values.RequestName } else { '' })
-                T2020 = $(if ($values.ContainsKey('T2020')) { $values.T2020 } else { '' })
+                ProjFolder               = $(if ($values.ContainsKey('ProjFolder')) { $values.ProjFolder } else { '' })
+                CAAName                  = $(if ($values.ContainsKey('CAAName')) { $values.CAAName } else { '' })
+                RequestName              = $(if ($values.ContainsKey('RequestName')) { $values.RequestName } else { '' })
+                T2020                    = $(if ($values.ContainsKey('T2020')) { $values.T2020 } else { '' })
 
                 # Date fields
-                AssignedDate = $this.FormatDateField($values, 'AssignedDate')
-                DueDate = $this.FormatDateField($values, 'DueDate')
-                BFDate = $this.FormatDateField($values, 'BFDate')
+                AssignedDate             = $this.FormatDateField($values, 'AssignedDate')
+                DueDate                  = $this.FormatDateField($values, 'DueDate')
+                BFDate                   = $this.FormatDateField($values, 'BFDate')
 
                 # Project Info (9 fields)
-                RequestDate = $this.FormatDateField($values, 'RequestDate')
-                AuditType = $(if ($values.ContainsKey('AuditType')) { $values.AuditType } else { '' })
-                AuditorName = $(if ($values.ContainsKey('AuditorName')) { $values.AuditorName } else { '' })
-                AuditorPhone = $(if ($values.ContainsKey('AuditorPhone')) { $values.AuditorPhone } else { '' })
-                AuditorTL = $(if ($values.ContainsKey('AuditorTL')) { $values.AuditorTL } else { '' })
-                AuditorTLPhone = $(if ($values.ContainsKey('AuditorTLPhone')) { $values.AuditorTLPhone } else { '' })
-                AuditCase = $(if ($values.ContainsKey('AuditCase')) { $values.AuditCase } else { '' })
-                CASCase = $(if ($values.ContainsKey('CASCase')) { $values.CASCase } else { '' })
-                AuditStartDate = $this.FormatDateField($values, 'AuditStartDate')
+                RequestDate              = $this.FormatDateField($values, 'RequestDate')
+                AuditType                = $(if ($values.ContainsKey('AuditType')) { $values.AuditType } else { '' })
+                AuditorName              = $(if ($values.ContainsKey('AuditorName')) { $values.AuditorName } else { '' })
+                AuditorPhone             = $(if ($values.ContainsKey('AuditorPhone')) { $values.AuditorPhone } else { '' })
+                AuditorTL                = $(if ($values.ContainsKey('AuditorTL')) { $values.AuditorTL } else { '' })
+                AuditorTLPhone           = $(if ($values.ContainsKey('AuditorTLPhone')) { $values.AuditorTLPhone } else { '' })
+                AuditCase                = $(if ($values.ContainsKey('AuditCase')) { $values.AuditCase } else { '' })
+                CASCase                  = $(if ($values.ContainsKey('CASCase')) { $values.CASCase } else { '' })
+                AuditStartDate           = $this.FormatDateField($values, 'AuditStartDate')
 
                 # Contact Details (10 fields)
-                TPName = $(if ($values.ContainsKey('TPName')) { $values.TPName } else { '' })
-                TPNum = $(if ($values.ContainsKey('TPNum')) { $values.TPNum } else { '' })
-                Address = $(if ($values.ContainsKey('Address')) { $values.Address } else { '' })
-                City = $(if ($values.ContainsKey('City')) { $values.City } else { '' })
-                Province = $(if ($values.ContainsKey('Province')) { $values.Province } else { '' })
-                PostalCode = $(if ($values.ContainsKey('PostalCode')) { $values.PostalCode } else { '' })
-                Country = $(if ($values.ContainsKey('Country')) { $values.Country } else { '' })
+                TPName                   = $(if ($values.ContainsKey('TPName')) { $values.TPName } else { '' })
+                TPNum                    = $(if ($values.ContainsKey('TPNum')) { $values.TPNum } else { '' })
+                Address                  = $(if ($values.ContainsKey('Address')) { $values.Address } else { '' })
+                City                     = $(if ($values.ContainsKey('City')) { $values.City } else { '' })
+                Province                 = $(if ($values.ContainsKey('Province')) { $values.Province } else { '' })
+                PostalCode               = $(if ($values.ContainsKey('PostalCode')) { $values.PostalCode } else { '' })
+                Country                  = $(if ($values.ContainsKey('Country')) { $values.Country } else { '' })
 
                 # Audit Periods (10 fields)
-                AuditPeriodFrom = $this.FormatDateField($values, 'AuditPeriodFrom')
-                AuditPeriodTo = $this.FormatDateField($values, 'AuditPeriodTo')
-                AuditPeriod1Start = $this.FormatDateField($values, 'AuditPeriod1Start')
-                AuditPeriod1End = $this.FormatDateField($values, 'AuditPeriod1End')
-                AuditPeriod2Start = $this.FormatDateField($values, 'AuditPeriod2Start')
-                AuditPeriod2End = $this.FormatDateField($values, 'AuditPeriod2End')
-                AuditPeriod3Start = $this.FormatDateField($values, 'AuditPeriod3Start')
-                AuditPeriod3End = $this.FormatDateField($values, 'AuditPeriod3End')
-                AuditPeriod4Start = $this.FormatDateField($values, 'AuditPeriod4Start')
-                AuditPeriod4End = $this.FormatDateField($values, 'AuditPeriod4End')
-                AuditPeriod5Start = $this.FormatDateField($values, 'AuditPeriod5Start')
-                AuditPeriod5End = $this.FormatDateField($values, 'AuditPeriod5End')
+                AuditPeriodFrom          = $this.FormatDateField($values, 'AuditPeriodFrom')
+                AuditPeriodTo            = $this.FormatDateField($values, 'AuditPeriodTo')
+                AuditPeriod1Start        = $this.FormatDateField($values, 'AuditPeriod1Start')
+                AuditPeriod1End          = $this.FormatDateField($values, 'AuditPeriod1End')
+                AuditPeriod2Start        = $this.FormatDateField($values, 'AuditPeriod2Start')
+                AuditPeriod2End          = $this.FormatDateField($values, 'AuditPeriod2End')
+                AuditPeriod3Start        = $this.FormatDateField($values, 'AuditPeriod3Start')
+                AuditPeriod3End          = $this.FormatDateField($values, 'AuditPeriod3End')
+                AuditPeriod4Start        = $this.FormatDateField($values, 'AuditPeriod4Start')
+                AuditPeriod4End          = $this.FormatDateField($values, 'AuditPeriod4End')
+                AuditPeriod5Start        = $this.FormatDateField($values, 'AuditPeriod5Start')
+                AuditPeriod5End          = $this.FormatDateField($values, 'AuditPeriod5End')
 
                 # Contacts (10 fields)
-                Contact1Name = $(if ($values.ContainsKey('Contact1Name')) { $values.Contact1Name } else { '' })
-                Contact1Phone = $(if ($values.ContainsKey('Contact1Phone')) { $values.Contact1Phone } else { '' })
-                Contact1Ext = $(if ($values.ContainsKey('Contact1Ext')) { $values.Contact1Ext } else { '' })
-                Contact1Address = $(if ($values.ContainsKey('Contact1Address')) { $values.Contact1Address } else { '' })
-                Contact1Title = $(if ($values.ContainsKey('Contact1Title')) { $values.Contact1Title } else { '' })
-                Contact2Name = $(if ($values.ContainsKey('Contact2Name')) { $values.Contact2Name } else { '' })
-                Contact2Phone = $(if ($values.ContainsKey('Contact2Phone')) { $values.Contact2Phone } else { '' })
-                Contact2Ext = $(if ($values.ContainsKey('Contact2Ext')) { $values.Contact2Ext } else { '' })
-                Contact2Address = $(if ($values.ContainsKey('Contact2Address')) { $values.Contact2Address } else { '' })
-                Contact2Title = $(if ($values.ContainsKey('Contact2Title')) { $values.Contact2Title } else { '' })
+                Contact1Name             = $(if ($values.ContainsKey('Contact1Name')) { $values.Contact1Name } else { '' })
+                Contact1Phone            = $(if ($values.ContainsKey('Contact1Phone')) { $values.Contact1Phone } else { '' })
+                Contact1Ext              = $(if ($values.ContainsKey('Contact1Ext')) { $values.Contact1Ext } else { '' })
+                Contact1Address          = $(if ($values.ContainsKey('Contact1Address')) { $values.Contact1Address } else { '' })
+                Contact1Title            = $(if ($values.ContainsKey('Contact1Title')) { $values.Contact1Title } else { '' })
+                Contact2Name             = $(if ($values.ContainsKey('Contact2Name')) { $values.Contact2Name } else { '' })
+                Contact2Phone            = $(if ($values.ContainsKey('Contact2Phone')) { $values.Contact2Phone } else { '' })
+                Contact2Ext              = $(if ($values.ContainsKey('Contact2Ext')) { $values.Contact2Ext } else { '' })
+                Contact2Address          = $(if ($values.ContainsKey('Contact2Address')) { $values.Contact2Address } else { '' })
+                Contact2Title            = $(if ($values.ContainsKey('Contact2Title')) { $values.Contact2Title } else { '' })
 
                 # System Info (7 fields)
-                AuditProgram = $(if ($values.ContainsKey('AuditProgram')) { $values.AuditProgram } else { '' })
-                AccountingSoftware1 = $(if ($values.ContainsKey('AccountingSoftware1')) { $values.AccountingSoftware1 } else { '' })
+                AuditProgram             = $(if ($values.ContainsKey('AuditProgram')) { $values.AuditProgram } else { '' })
+                AccountingSoftware1      = $(if ($values.ContainsKey('AccountingSoftware1')) { $values.AccountingSoftware1 } else { '' })
                 AccountingSoftware1Other = $(if ($values.ContainsKey('AccountingSoftware1Other')) { $values.AccountingSoftware1Other } else { '' })
-                AccountingSoftware1Type = $(if ($values.ContainsKey('AccountingSoftware1Type')) { $values.AccountingSoftware1Type } else { '' })
-                AccountingSoftware2 = $(if ($values.ContainsKey('AccountingSoftware2')) { $values.AccountingSoftware2 } else { '' })
+                AccountingSoftware1Type  = $(if ($values.ContainsKey('AccountingSoftware1Type')) { $values.AccountingSoftware1Type } else { '' })
+                AccountingSoftware2      = $(if ($values.ContainsKey('AccountingSoftware2')) { $values.AccountingSoftware2 } else { '' })
                 AccountingSoftware2Other = $(if ($values.ContainsKey('AccountingSoftware2Other')) { $values.AccountingSoftware2Other } else { '' })
-                AccountingSoftware2Type = $(if ($values.ContainsKey('AccountingSoftware2Type')) { $values.AccountingSoftware2Type } else { '' })
-                Comments = $(if ($values.ContainsKey('Comments')) { $values.Comments } else { '' })
+                AccountingSoftware2Type  = $(if ($values.ContainsKey('AccountingSoftware2Type')) { $values.AccountingSoftware2Type } else { '' })
+                Comments                 = $(if ($values.ContainsKey('Comments')) { $values.Comments } else { '' })
 
                 # Additional (2 fields)
-                FXInfo = $(if ($values.ContainsKey('FXInfo')) { $values.FXInfo } else { '' })
-                ShipToAddress = $(if ($values.ContainsKey('ShipToAddress')) { $values.ShipToAddress } else { '' })
+                FXInfo                   = $(if ($values.ContainsKey('FXInfo')) { $values.FXInfo } else { '' })
+                ShipToAddress            = $(if ($values.ContainsKey('ShipToAddress')) { $values.ShipToAddress } else { '' })
             }
 
             # PS-M1 FIX: Add validation before Store.UpdateProject()
@@ -524,10 +531,12 @@ class ProjectListScreen : StandardListScreen {
             $success = $this.Store.UpdateProject($originalName, $changes)
             if ($success) {
                 $this.SetStatusMessage("Project updated: $($values.name)", "success")
-            } else {
+            }
+            else {
                 $this.SetStatusMessage("Failed to update project: $($this.Store.LastError)", "error")
             }
-        } catch {
+        }
+        catch {
             Write-PmcTuiLog "OnItemUpdated exception: $_" "ERROR"
             $this.SetStatusMessage("Unexpected error: $($_.Exception.Message)", "error")
         }
@@ -554,8 +563,9 @@ class ProjectListScreen : StandardListScreen {
         }
 
         $taskCount = $(if ($tasksByProject.ContainsKey($itemName)) {
-            $tasksByProject[$itemName]
-        } else { 0 })
+                $tasksByProject[$itemName]
+            }
+            else { 0 })
 
         if ($taskCount -gt 0) {
             # H-UI-8: Better error message with actionable guidance
@@ -566,7 +576,8 @@ class ProjectListScreen : StandardListScreen {
         $success = $this.Store.DeleteProject($itemName)
         if ($success) {
             $this.SetStatusMessage("Project deleted: $itemName", "success")
-        } else {
+        }
+        else {
             $this.SetStatusMessage("Failed to delete project: $($this.Store.LastError)", "error")
         }
     }
@@ -589,7 +600,8 @@ class ProjectListScreen : StandardListScreen {
             . "$PSScriptRoot/ExcelImportScreen.ps1"
             $importScreen = New-Object ExcelImportScreen
             $this.App.PushScreen($importScreen)
-        } catch {
+        }
+        catch {
             $this.SetStatusMessage("Failed to launch Excel import wizard: $($_.Exception.Message)", "error")
             Write-PmcTuiLog "ImportFromExcel failed: $_" "ERROR"
         }
@@ -635,7 +647,8 @@ class ProjectListScreen : StandardListScreen {
             # HIGH FIX PLS-H4: Check read permissions before accessing
             try {
                 $null = Get-ChildItem -Path $resolvedPath -ErrorAction Stop | Select-Object -First 1
-            } catch [System.UnauthorizedAccessException] {
+            }
+            catch [System.UnauthorizedAccessException] {
                 $this.SetStatusMessage("Access denied to folder: $folderPath", "error")
                 return
             }
@@ -652,7 +665,8 @@ class ProjectListScreen : StandardListScreen {
             $this.FilePicker = [PmcFilePicker]::new($folderPath, $true)
             $this.ShowFilePicker = $true
             $this.SetStatusMessage("Browsing folder: $folderPath", "info")
-        } catch {
+        }
+        catch {
             $this.SetStatusMessage("Failed to open file picker: $($_.Exception.Message)", "error")
         }
     }
@@ -661,79 +675,90 @@ class ProjectListScreen : StandardListScreen {
     [array] GetCustomActions() {
         $self = $this
         return @(
-            @{ Key='r'; Label='Archive'; Callback={
-                $selected = $self.List.GetSelectedItem()
-                $self.ToggleProjectArchive($selected)
-            }.GetNewClosure() },
-            @{ Key='v'; Label='View'; Callback={
-                # Write-PmcTuiLog "!!! GetCustomActions V KEY CALLBACK FIRED !!!" "INFO"
-                $selected = $self.List.GetSelectedItem()
-                # Write-PmcTuiLog "Selected: $($selected | ConvertTo-Json -Compress)" "INFO"
-                if ($selected) {
-                    $projectName = Get-SafeProperty $selected 'name'
-                    # Write-PmcTuiLog "Project name: $projectName" "INFO"
-                    # Use container to resolve screen (avoids type resolution at parse time)
-                    if (-not $global:PmcContainer.IsRegistered('ProjectInfoScreenV4')) {
-                        # Write-PmcTuiLog "Registering ProjectInfoScreenV4" "INFO"
-                        $screenPath = "$PSScriptRoot/ProjectInfoScreenV4.ps1"
-                        $global:PmcContainer.Register('ProjectInfoScreenV4', {
-                            param($c)
-                            . $screenPath
-                            return New-Object ProjectInfoScreenV4 -ArgumentList $c
-                        }.GetNewClosure(), $false)
-                    }
-                    # Write-PmcTuiLog "Resolving screen" "INFO"
-                    $screen = $global:PmcContainer.Resolve('ProjectInfoScreenV4')
-                    # Write-PmcTuiLog "Setting project: $projectName" "INFO"
-                    $screen.SetProject($projectName)
-                    # Write-PmcTuiLog "Pushing screen" "INFO"
-                    $global:PmcApp.PushScreen($screen)
-                    # Write-PmcTuiLog "Screen pushed!" "INFO"
-                } else {
-                    Write-PmcTuiLog "NO SELECTED ITEM" "ERROR"
-                }
-            }.GetNewClosure() },
-            @{ Key='o'; Label='Open Folder'; Callback={
-                $selected = $self.List.GetSelectedItem()
-                $self.OpenProjectFolder($selected)
-            }.GetNewClosure() },
-            @{ Key='i'; Label='Import Excel'; Callback={
-                # Check if Excel is available before attempting import
-                $excelAvailable = $false
-                try {
-                    if ($PSVersionTable.PSVersion.Major -ge 6) {
-                        # PowerShell Core - check for Excel COM object on Windows
-                        if ($IsWindows) {
-                            $excelAvailable = $null -ne (Get-Command excel.exe -ErrorAction SilentlyContinue)
+            @{ Key = 'r'; Label = 'Archive'; Callback = {
+                    $selected = $self.List.GetSelectedItem()
+                    $self.ToggleProjectArchive($selected)
+                }.GetNewClosure() 
+            },
+            @{ Key = 'v'; Label = 'View'; Callback = {
+                    # Write-PmcTuiLog "!!! GetCustomActions V KEY CALLBACK FIRED !!!" "INFO"
+                    $selected = $self.List.GetSelectedItem()
+                    # Write-PmcTuiLog "Selected: $($selected | ConvertTo-Json -Compress)" "INFO"
+                    if ($selected) {
+                        $projectName = Get-SafeProperty $selected 'name'
+                        # Write-PmcTuiLog "Project name: $projectName" "INFO"
+                        # Use container to resolve screen (avoids type resolution at parse time)
+                        if (-not $global:PmcContainer.IsRegistered('ProjectInfoScreenV4')) {
+                            # Write-PmcTuiLog "Registering ProjectInfoScreenV4" "INFO"
+                            $screenPath = "$PSScriptRoot/ProjectInfoScreenV4.ps1"
+                            $global:PmcContainer.Register('ProjectInfoScreenV4', {
+                                    param($c)
+                                    . $screenPath
+                                    return New-Object ProjectInfoScreenV4 -ArgumentList $c
+                                }.GetNewClosure(), $false)
                         }
-                    } else {
-                        # Windows PowerShell - check for Excel COM
-                        $excelAvailable = $null -ne (New-Object -ComObject Excel.Application -ErrorAction SilentlyContinue)
+                        # Write-PmcTuiLog "Resolving screen" "INFO"
+                        $screen = $global:PmcContainer.Resolve('ProjectInfoScreenV4')
+                        # Write-PmcTuiLog "Setting project: $projectName" "INFO"
+                        $screen.SetProject($projectName)
+                        # Write-PmcTuiLog "Pushing screen" "INFO"
+                        $global:PmcApp.PushScreen($screen)
+                        # Write-PmcTuiLog "Screen pushed!" "INFO"
                     }
-                } catch {
+                    else {
+                        Write-PmcTuiLog "NO SELECTED ITEM" "ERROR"
+                    }
+                }.GetNewClosure() 
+            },
+            @{ Key = 'o'; Label = 'Open Folder'; Callback = {
+                    $selected = $self.List.GetSelectedItem()
+                    $self.OpenProjectFolder($selected)
+                }.GetNewClosure() 
+            },
+            @{ Key = 'i'; Label = 'Import Excel'; Callback = {
+                    # Check if Excel is available before attempting import
                     $excelAvailable = $false
-                }
+                    try {
+                        if ($PSVersionTable.PSVersion.Major -ge 6) {
+                            # PowerShell Core - check for Excel COM object on Windows
+                            if ($IsWindows) {
+                                $excelAvailable = $null -ne (Get-Command excel.exe -ErrorAction SilentlyContinue)
+                            }
+                        }
+                        else {
+                            # Windows PowerShell - check for Excel COM
+                            $excelAvailable = $null -ne (New-Object -ComObject Excel.Application -ErrorAction SilentlyContinue)
+                        }
+                    }
+                    catch {
+                        $excelAvailable = $false
+                    }
 
-                if ($excelAvailable) {
-                    $self.ImportFromExcel()
-                } else {
-                    $self.SetStatusMessage("Excel is not installed or not available", "error")
-                }
-            }.GetNewClosure() }
+                    if ($excelAvailable) {
+                        $self.ImportFromExcel()
+                    }
+                    else {
+                        $self.SetStatusMessage("Excel is not installed or not available", "error")
+                    }
+                }.GetNewClosure() 
+            }
         )
     }
 
     # Override Render to show file picker overlay
-    [string] RenderContent() {
-        $output = ([StandardListScreen]$this).RenderContent()
+    # Override RenderContentToEngine to show file picker overlay
+    [void] RenderContentToEngine([object]$engine) {
+        # Base render (List + standard overlays)
+        ([StandardListScreen]$this).RenderContentToEngine($engine)
 
         # Render file picker overlay if showing
         if ($this.ShowFilePicker -and $null -ne $this.FilePicker) {
-            $output += $this.FilePicker.Render($this.TermWidth, $this.TermHeight)
+            # FilePicker has RenderToEngine
+            $this.FilePicker.RenderToEngine($engine)
         }
-
-        return $output
     }
+
+    [string] RenderContent() { return "" }
 
     [bool] HandleKeyPress([ConsoleKeyInfo]$keyInfo) {
         # Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') ProjectListScreen.HandleKeyPress: Key=$($keyInfo.Key) Char='$($keyInfo.KeyChar)' Modifiers=$($keyInfo.Modifiers)"
@@ -765,64 +790,65 @@ class ProjectListScreen : StandardListScreen {
             }
             # Custom key: V = View project details/stats
             if ($keyInfo.KeyChar -eq 'v' -or $keyInfo.KeyChar -eq 'V') {
-            # Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') *** V KEY PRESSED IN ProjectListScreen.HandleKeyPress ***"
+                # Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') *** V KEY PRESSED IN ProjectListScreen.HandleKeyPress ***"
 
-            # Defensive check: ensure List exists
-            if ($null -eq $this.List) {
-                Write-PmcTuiLog "ERROR: List is null when V pressed" "ERROR"
-                $this.SetStatusMessage("Internal error: List not initialized", "error")
+                # Defensive check: ensure List exists
+                if ($null -eq $this.List) {
+                    Write-PmcTuiLog "ERROR: List is null when V pressed" "ERROR"
+                    $this.SetStatusMessage("Internal error: List not initialized", "error")
+                    return $true
+                }
+
+                $selected = $this.List.GetSelectedItem()
+                # Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Selected item: $($selected -ne $null)"
+
+                if ($null -eq $selected) {
+                    Write-PmcTuiLog "No project selected when V pressed" "WARNING"
+                    $this.SetStatusMessage("No project selected", "warning")
+                    return $true
+                }
+
+                try {
+                    $projectName = Get-SafeProperty $selected 'name'
+                    # Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Opening ProjectInfoScreenV4 for: $projectName"
+
+                    # Create instance directly - ProjectInfoScreenV4 should already be loaded by the application
+                    $screen = New-Object ProjectInfoScreenV4 -ArgumentList $this.Container
+                    # Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Screen instance created"
+
+                    $screen.SetProject($projectName)
+                    # Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Project set to: $projectName"
+
+                    # Push to app
+                    # Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Pushing ProjectInfoScreenV4 to app..."
+                    $global:PmcApp.PushScreen($screen)
+                    # Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Screen pushed successfully!"
+
+                    $this.SetStatusMessage("Viewing project: $projectName", "success")
+                }
+                catch {
+                    $errorMsg = "Failed to open project view: $($_.Exception.Message)"
+                    Write-PmcTuiLog "!!! EXCEPTION: $errorMsg" "ERROR"
+                    Write-PmcTuiLog "!!! Stack trace: $($_.ScriptStackTrace)" "ERROR"
+                    # Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') ERROR: $errorMsg"
+                    $this.SetStatusMessage($errorMsg, "error")
+                }
                 return $true
             }
 
-            $selected = $this.List.GetSelectedItem()
-            # Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Selected item: $($selected -ne $null)"
-
-            if ($null -eq $selected) {
-                Write-PmcTuiLog "No project selected when V pressed" "WARNING"
-                $this.SetStatusMessage("No project selected", "warning")
+            # Custom key: R = Archive/Unarchive
+            if ($keyInfo.KeyChar -eq 'r' -or $keyInfo.KeyChar -eq 'R') {
+                $selected = $this.List.GetSelectedItem()
+                $this.ToggleProjectArchive($selected)
                 return $true
             }
 
-            try {
-                $projectName = Get-SafeProperty $selected 'name'
-                # Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Opening ProjectInfoScreenV4 for: $projectName"
-
-                # Create instance directly - ProjectInfoScreenV4 should already be loaded by the application
-                $screen = New-Object ProjectInfoScreenV4 -ArgumentList $this.Container
-                # Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Screen instance created"
-
-                $screen.SetProject($projectName)
-                # Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Project set to: $projectName"
-
-                # Push to app
-                # Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Pushing ProjectInfoScreenV4 to app..."
-                $global:PmcApp.PushScreen($screen)
-                # Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Screen pushed successfully!"
-
-                $this.SetStatusMessage("Viewing project: $projectName", "success")
-            } catch {
-                $errorMsg = "Failed to open project view: $($_.Exception.Message)"
-                Write-PmcTuiLog "!!! EXCEPTION: $errorMsg" "ERROR"
-                Write-PmcTuiLog "!!! Stack trace: $($_.ScriptStackTrace)" "ERROR"
-                # Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') ERROR: $errorMsg"
-                $this.SetStatusMessage($errorMsg, "error")
+            # Custom key: O = Open project folder
+            if ($keyInfo.KeyChar -eq 'o' -or $keyInfo.KeyChar -eq 'O') {
+                $selected = $this.List.GetSelectedItem()
+                $this.OpenProjectFolder($selected)
+                return $true
             }
-            return $true
-        }
-
-        # Custom key: R = Archive/Unarchive
-        if ($keyInfo.KeyChar -eq 'r' -or $keyInfo.KeyChar -eq 'R') {
-            $selected = $this.List.GetSelectedItem()
-            $this.ToggleProjectArchive($selected)
-            return $true
-        }
-
-        # Custom key: O = Open project folder
-        if ($keyInfo.KeyChar -eq 'o' -or $keyInfo.KeyChar -eq 'O') {
-            $selected = $this.List.GetSelectedItem()
-            $this.OpenProjectFolder($selected)
-            return $true
-        }
 
             # Custom key: I = Import from Excel
             if ($keyInfo.KeyChar -eq 'i' -or $keyInfo.KeyChar -eq 'I') {
@@ -843,7 +869,8 @@ class ProjectListScreen : StandardListScreen {
                     $this.SetStatusMessage("Selected: $selectedPath", "success")
                     # Could potentially open the selected folder in system file manager
                     # Or just show the selected path
-                } else {
+                }
+                else {
                     $this.SetStatusMessage("Folder browsing cancelled", "info")
                 }
                 # Close file picker

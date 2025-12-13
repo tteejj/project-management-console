@@ -163,7 +163,8 @@ class PmcStatusBar : PmcWidget {
         $fg = [HybridRenderEngine]::AnsiColorToInt($this.GetThemedFg('Foreground.Row'))
         $muted = [HybridRenderEngine]::AnsiColorToInt($this.GetThemedFg('Foreground.Muted'))
         
-        if ($bg -eq -1) { $bg = [HybridRenderEngine]::_PackRGB(30, 30, 30) } # Dark grey fallback
+        # FAIL FAST
+        # if ($bg -eq -1) { $bg = [HybridRenderEngine]::_PackRGB(30, 30, 30) } # Dark grey fallback
 
         # Fill background
         $engine.Fill($this.X, $this.Y, $this.Width, 1, ' ', $fg, $bg)
@@ -174,17 +175,17 @@ class PmcStatusBar : PmcWidget {
         # Center section (Centered)
         $boundsC = $engine.GetRegionBounds("$($this.RegionID)_Center")
         if ($boundsC) {
-             $pad = [Math]::Max(0, [Math]::Floor(($boundsC.Width - $this.CenterText.Length) / 2))
-             $cText = (" " * $pad) + $this.CenterText
-             $engine.WriteToRegion("$($this.RegionID)_Center", $cText, $muted, $bg)
+            $pad = [Math]::Max(0, [Math]::Floor(($boundsC.Width - $this.CenterText.Length) / 2))
+            $cText = (" " * $pad) + $this.CenterText
+            $engine.WriteToRegion("$($this.RegionID)_Center", $cText, $muted, $bg)
         }
 
         # Right section (Right-aligned)
         $boundsR = $engine.GetRegionBounds("$($this.RegionID)_Right")
         if ($boundsR) {
-             $pad = [Math]::Max(0, $boundsR.Width - $this.RightText.Length)
-             $rText = (" " * $pad) + $this.RightText
-             $engine.WriteToRegion("$($this.RegionID)_Right", $rText, $fg, $bg)
+            $pad = [Math]::Max(0, $boundsR.Width - $this.RightText.Length)
+            $rText = (" " * $pad) + $this.RightText
+            $engine.WriteToRegion("$($this.RegionID)_Right", $rText, $fg, $bg)
         }
     }
 

@@ -173,6 +173,92 @@ class StandardListScreen : PmcScreen {
 
     # === Abstract Methods (MUST override) ===
 
+    # === Layout Methods ===
+
+    [void] Resize([int]$width, [int]$height) {
+        # Call base implementation first (handles Header, Footer, MenuBar)
+        ([PmcScreen]$this).Resize($width, $height)
+
+        # Resize List to fit content area
+        if ($this.List) {
+            # Header with Breadcrumbs uses ~5 lines:
+            # Y   : Title
+            # Y+1 : Blank
+            # Y+2 : Breadcrumb
+            # Y+3 : Blank
+            # Y+4 : Separator
+            # So List should start at Y+5 or Y+6?
+            # Header is at Y=1. So Ends at 1+4=5.
+            # List should start at 6.
+            $listY = 6
+            $listHeight = [Math]::Max(5, $height - $listY - 1)
+            
+            $this.List.SetPosition(0, $listY)
+            $this.List.SetSize($width, $listHeight)
+        }
+        
+        # Resize overlays
+        if ($this.FilterPanel) {
+            $this.FilterPanel.SetPosition([Math]::Floor(($width - 80) / 2), 5)
+        }
+        
+        # InlineEditor resizes itself based on active row usually, but strictly:
+        if ($this.InlineEditor) {
+            # Default bounds (will be overridden by list row logic)
+        }
+    }
+
+    # === Rendering ===
+
+    <#
+    .SYNOPSIS
+    Render screen components to the engine
+    #>
+    [void] RenderToEngine([object]$engine) {
+        # 1. Render base chrome (Menu, Header, Footer, etc.)
+        ([PmcScreen]$this).RenderToEngine($engine)
+
+        # 2. Render List (Main Content)
+        if ($this.List) {
+            # Ensure render mode is correct
+            $this.List.RenderToEngine($engine)
+        }
+
+        # 3. Render Overlays (Z-ordered on top)
+        if ($this.ShowFilterPanel -and $this.FilterPanel) {
+            $this.FilterPanel.RenderToEngine($engine)
+        }
+
+        if ($this.ShowInlineEditor -and $this.InlineEditor) {
+            # CRITICAL FIX: Position editor over the current row
+            if ($this.List) {
+                $selIndex = $this.List.GetSelectedIndex()
+                $scrollOffset = $this.List.GetScrollOffset()
+                $relativeIndex = $selIndex - $scrollOffset
+                
+                # Check if visible
+                if ($relativeIndex -ge 0 -and $relativeIndex -lt ($this.List.Height - 4)) {
+                    # List Y + TopBorder(1) + Header(1) + Separator(1) = Y+3 ??
+                    # UniversalList render: Header=Y, Sep=Y+1, Row0=Y+2.
+                    # So Y + 2 + relativeIndex
+                    $editY = $this.List.Y + 2 + $relativeIndex
+                    
+                    # Update Editor Geometry to match row
+                    $this.InlineEditor.X = $this.List.X + 1  # Inside border
+                    $this.InlineEditor.Y = $editY
+                    $this.InlineEditor.Width = $this.List.Width - 2 # Inside borders
+                    $this.InlineEditor.Height = 1 # Single row mode
+                    
+                    # Force layout recalc
+                    # $this.InlineEditor.Resize(...) isn't needed if we set props directly 
+                }
+            }
+            $this.InlineEditor.RenderToEngine($engine)
+        }
+    }
+
+    # === Abstract Methods (MUST override) ===
+
     <#
     .SYNOPSIS
     Load data into the list (ABSTRACT - must override)
@@ -233,7 +319,8 @@ class StandardListScreen : PmcScreen {
             try {
                 $text = $(if ($null -ne $item.text) { $item.text } elseif ($null -ne $item.name) { $item.name } else { "Item selected" })
                 $this.StatusBar.SetLeftText($text)
-            } catch {
+            }
+            catch {
                 Write-PmcTuiLog "OnItemSelected: Error accessing item properties: $_" "ERROR"
             }
         }
@@ -253,7 +340,8 @@ class StandardListScreen : PmcScreen {
             # Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [StandardListScreen.OnItemActivated] About to call EditItem"
             $this.EditItem($item)
             # Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [StandardListScreen.OnItemActivated] EditItem completed"
-        } catch {
+        }
+        catch {
             # Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [StandardListScreen.OnItemActivated] ERROR calling EditItem: $($_.Exception.Message) at line $($_.InvocationInfo.ScriptLineNumber)"
         }
     }
@@ -278,7 +366,7 @@ class StandardListScreen : PmcScreen {
     hidden [void] _InitializeComponents() {
         # DEBUG
         # PERF: Disabled - if ($global:PmcTuiLogFile) {
-            # Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] StandardListScreen._InitializeComponents: Starting (MenuBar=$($null -ne $this.MenuBar))"
+        # Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] StandardListScreen._InitializeComponents: Starting (MenuBar=$($null -ne $this.MenuBar))"
         # }
 
         # Get terminal size
@@ -305,7 +393,7 @@ class StandardListScreen : PmcScreen {
         }
 
         # PERF: Disabled - if ($global:PmcTuiLogFile) {
-            # Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] StandardListScreen._InitializeComponents: List created"
+        # Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] StandardListScreen._InitializeComponents: List created"
         # }
 
         # Wire up list events using GetNewClosure()
@@ -320,7 +408,8 @@ class StandardListScreen : PmcScreen {
             # Data is hashtable with Item and Values keys from inline editing
             if ($data -is [hashtable] -and $data.ContainsKey('Values')) {
                 $self.OnItemUpdated($data.Item, $data.Values)
-            } else {
+            }
+            else {
                 # Legacy callback - just open editor
                 $self.EditItem($data)
             }
@@ -429,7 +518,7 @@ class StandardListScreen : PmcScreen {
                 # Find the screen that owns this List by walking up
                 $currentScreen = $global:PmcApp.CurrentScreen
                 # PERF: Disabled - if ($global:PmcTuiLogFile) {
-                    # Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] Action 'a' callback: currentScreen type=$($currentScreen.GetType().Name) key=$($currentScreen.ScreenKey)"
+                # Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] Action 'a' callback: currentScreen type=$($currentScreen.GetType().Name) key=$($currentScreen.ScreenKey)"
                 # }
                 $currentScreen.AddItem()
             }.GetNewClosure()
@@ -483,7 +572,8 @@ class StandardListScreen : PmcScreen {
                 }
             }
             # Write-PmcTuiLog "_ConfigureListActions: Custom actions added successfully" "DEBUG"
-        } catch {
+        }
+        catch {
             Write-PmcTuiLog "_ConfigureListActions: Error adding custom actions: $_" "ERROR"
             Write-PmcTuiLog "_ConfigureListActions: Error stack: $($_.ScriptStackTrace)" "ERROR"
         }
@@ -500,6 +590,11 @@ class StandardListScreen : PmcScreen {
         # Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') ===== StandardListScreen.OnEnter: START for screen=$($this.ScreenKey) ====="
         $this.IsActive = $true
 
+        # CRITICAL FIX: Force layout update on enter to ensure correct sizing
+        # This fixes invisible MenuBar/Footer issues caused by 0x0 size
+        $termSize = $this._GetTerminalSize()
+        $this.Resize($termSize.Width, $termSize.Height)
+
         # Configure list actions (ensures custom actions are registered even for singleton screens)
         # Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') StandardListScreen.OnEnter: Calling _ConfigureListActions()"
         $this._ConfigureListActions()
@@ -513,7 +608,8 @@ class StandardListScreen : PmcScreen {
             # Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') StandardListScreen.OnEnter: Calling List.SetColumns()"
             $this.List.SetColumns($columns)
             # Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') StandardListScreen.OnEnter: SetColumns complete"
-        } catch {
+        }
+        catch {
             # Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') StandardListScreen.OnEnter: EXCEPTION in GetColumns/SetColumns - $($_.Exception.Message)"
             throw
         }
@@ -523,7 +619,8 @@ class StandardListScreen : PmcScreen {
         try {
             $this.LoadData()
             # Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') StandardListScreen.OnEnter: LoadData complete"
-        } catch {
+        }
+        catch {
             # Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') StandardListScreen.OnEnter: EXCEPTION in LoadData - $($_.Exception.Message)"
             # Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') StandardListScreen.OnEnter: STACK - $($_.ScriptStackTrace)"
             throw
@@ -574,7 +671,7 @@ class StandardListScreen : PmcScreen {
     [void] AddItem() {
         # DEBUG logging
         # PERF: Disabled - if ($global:PmcTuiLogFile) {
-            # Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] StandardListScreen.AddItem() called on type=$($this.GetType().Name) key=$($this.ScreenKey)"
+        # Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] StandardListScreen.AddItem() called on type=$($this.GetType().Name) key=$($this.ScreenKey)"
         # }
 
         $this.EditorMode = 'add'
@@ -582,7 +679,7 @@ class StandardListScreen : PmcScreen {
         $fields = $this.GetEditFields($this.CurrentEditItem)
 
         # PERF: Disabled - if ($global:PmcTuiLogFile) {
-            # Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] Got $($fields.Count) edit fields"
+        # Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] Got $($fields.Count) edit fields"
         # }
 
         $this.InlineEditor.LayoutMode = "horizontal"
@@ -594,21 +691,21 @@ class StandardListScreen : PmcScreen {
         $this.List._selectedIndex = $itemCount  # Select the "new row" position
 
         # PERF: Disabled - if ($global:PmcTuiLogFile) {
-            # Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] AddItem: Set selectedIndex=$itemCount for add mode"
+        # Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] AddItem: Set selectedIndex=$itemCount for add mode"
         # }
 
         # PERF: Disabled - if ($global:PmcTuiLogFile) {
-            # Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] AddItem: About to set ShowInlineEditor=true (currently: $($this.ShowInlineEditor))"
+        # Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] AddItem: About to set ShowInlineEditor=true (currently: $($this.ShowInlineEditor))"
         # }
 
         $this.ShowInlineEditor = $true
 
         # PERF: Disabled - if ($global:PmcTuiLogFile) {
-            # Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] AddItem: ShowInlineEditor set to: $($this.ShowInlineEditor)"
+        # Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] AddItem: ShowInlineEditor set to: $($this.ShowInlineEditor)"
         # }
 
         # PERF: Disabled - if ($global:PmcTuiLogFile) {
-            # Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] AddItem: Exiting (ShowInlineEditor=$($this.ShowInlineEditor))"
+        # Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] AddItem: Exiting (ShowInlineEditor=$($this.ShowInlineEditor))"
         # }
     }
 
@@ -664,13 +761,17 @@ class StandardListScreen : PmcScreen {
         $itemDesc = ""
         if ($item.text) {
             $itemDesc = $item.text
-        } elseif ($item.name) {
+        }
+        elseif ($item.name) {
             $itemDesc = $item.name
-        } elseif ($item.title) {
+        }
+        elseif ($item.title) {
             $itemDesc = $item.title
-        } elseif ($item.id) {
+        }
+        elseif ($item.id) {
             $itemDesc = "ID $($item.id)"
-        } else {
+        }
+        else {
             $itemDesc = "this item"
         }
 
@@ -694,7 +795,8 @@ class StandardListScreen : PmcScreen {
                 $this.StatusBar.SetLeftText("Item deleted: $itemDesc")
             }
             return
-        } catch {
+        }
+        catch {
             # If OnItemDeleted throws "must be implemented" or similar, fall through to default behavior
             if ($_.Exception.Message -notmatch "must be implemented") {
                 # Real error - report it
@@ -731,7 +833,8 @@ class StandardListScreen : PmcScreen {
             if ($this.StatusBar) {
                 $this.StatusBar.SetLeftText("Item deleted: $itemDesc")
             }
-        } else {
+        }
+        else {
             if ($this.StatusBar) {
                 $this.StatusBar.SetLeftText("Failed to delete: $($this.Store.LastError)")
             }
@@ -919,14 +1022,16 @@ class StandardListScreen : PmcScreen {
                             if ($this.InlineEditor.IsCancelled) {
                                 # Cancelled - go back to last existing item
                                 $this.List._selectedIndex = $itemCount - 1
-                            } else {
+                            }
+                            else {
                                 # Confirmed - select the newly added item (if it was added)
                                 # Keep current selectedIndex if within bounds, otherwise select last
                                 if ($this.List._selectedIndex -ge $itemCount) {
                                     $this.List._selectedIndex = $itemCount - 1
                                 }
                             }
-                        } else {
+                        }
+                        else {
                             # No items - select none (will be 0 when items are added)
                             $this.List._selectedIndex = 0
                         }
@@ -1019,7 +1124,8 @@ class StandardListScreen : PmcScreen {
                 # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [StandardListScreen.HandleInput] ENTER blocked - editor or filter showing, returning false"
             }
             return $false
-        } finally {
+        }
+        finally {
             $this._isHandlingInput = $false
         }
     }
@@ -1040,7 +1146,8 @@ class StandardListScreen : PmcScreen {
         if ($this.ShowInlineEditor -and $this.InlineEditor) {
             $this.List._showInlineEditor = $true
             $this.List._inlineEditor = $this.InlineEditor
-        } else {
+        }
+        else {
             $this.List._showInlineEditor = $false
         }
         
@@ -1053,11 +1160,11 @@ class StandardListScreen : PmcScreen {
         
         # Render filter panel overlay if needed
         if ($this.ShowFilterPanel) {
-             $output = $this.FilterPanel.Render()
-             if ($output) {
-                 # HybridRenderEngine.WriteAt handles ANSI parsing
-                 $engine.WriteAt(0, 0, $output)
-             }
+            $output = $this.FilterPanel.Render()
+            if ($output) {
+                # HybridRenderEngine.WriteAt handles ANSI parsing
+                $engine.WriteAt(0, 0, $output)
+            }
         }
     }
 
@@ -1068,83 +1175,86 @@ class StandardListScreen : PmcScreen {
     .OUTPUTS
     ANSI string ready for display
     #>
-    [string] RenderContent() {
-        # Priority rendering order: editor INLINE with list > filter panel > list
-        $editItemId = $(if ($null -ne $this.CurrentEditItem -and $this.CurrentEditItem.PSObject.Properties['id']) { $this.CurrentEditItem.id } else { "null" })
-        # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [RenderContent] START ShowInlineEditor=$($this.ShowInlineEditor) EditorMode=$($this.EditorMode) CurrentEditItem=$editItemId"
+    [string] RenderContent() { return "" }
+    [string] Render() { return "" }
+    # Priority rendering order: editor INLINE with list > filter panel > list
+    $editItemId = $(if ($null -ne $this.CurrentEditItem -and $this.CurrentEditItem.PSObject.Properties['id']) { $this.CurrentEditItem.id } else { "null" })
+    # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [RenderContent] START ShowInlineEditor=$($this.ShowInlineEditor) EditorMode=$($this.EditorMode) CurrentEditItem=$editItemId"
 
+    # PERF: Disabled - if ($global:PmcTuiLogFile) {
+
+    # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] RenderContent: ENTRY - type=$($this.GetType().Name) key=$($this.ScreenKey) ShowInlineEditor=$($this.ShowInlineEditor) EditorMode=$($this.EditorMode)"
+    # }
+
+    # HIGH FIX #8: Throw error instead of silent failure to make debugging easier
+    if ($null -eq $this.List) {
+        $errorMsg = "CRITICAL ERROR: StandardListScreen.List is null - screen was not properly initialized"
         # PERF: Disabled - if ($global:PmcTuiLogFile) {
-
-        # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] RenderContent: ENTRY - type=$($this.GetType().Name) key=$($this.ScreenKey) ShowInlineEditor=$($this.ShowInlineEditor) EditorMode=$($this.EditorMode)"
+        # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] RenderContent: $errorMsg"
         # }
-
-        # HIGH FIX #8: Throw error instead of silent failure to make debugging easier
-        if ($null -eq $this.List) {
-            $errorMsg = "CRITICAL ERROR: StandardListScreen.List is null - screen was not properly initialized"
-            # PERF: Disabled - if ($global:PmcTuiLogFile) {
-            # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] RenderContent: $errorMsg"
-            # }
-            throw $errorMsg
-        }
-
-        # If showing inline editor, pass it to the list for inline rendering BEFORE calling Render()
-        if ($this.ShowInlineEditor -and $this.InlineEditor) {
-            # Set inline editor mode on list
-            # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [RenderContent] Setting List._showInlineEditor=true and _inlineEditor"
-            $this.List._showInlineEditor = $true
-            $this.List._inlineEditor = $this.InlineEditor
-        } else {
-            # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [RenderContent] NOT showing editor"
-            $this.List._showInlineEditor = $false
-        }
-
-        # Render list (it will handle inline editor internally)
-        try {
-            # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [RenderContent] Calling List.Render()"
-            $listOutput = $this.List.Render()
-            # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [RenderContent] List.Render() returned $($listOutput.Length) chars"
-        } catch {
-            # PERF: Disabled - Add-Content -Path "$($env:TEMP)\pmc-list-render-error.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') ERROR in List.Render(): $($_.Exception.Message)"
-            # PERF: Disabled - Add-Content -Path "$($env:TEMP)\pmc-list-render-error.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Line: $($_.InvocationInfo.ScriptLineNumber)"
-            # PERF: Disabled - Add-Content -Path "$($env:TEMP)\pmc-list-render-error.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') StackTrace: $($_.ScriptStackTrace)"
-            throw
-        }
-
-        if ($this.ShowFilterPanel) {
-            # PERF: Disabled - if ($global:PmcTuiLogFile) {
-            # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] RenderContent: Rendering FilterPanel"
-            # }
-            # Render list with filter panel as overlay
-            $filterContent = $this.FilterPanel.Render()
-            return $listOutput + "`n" + $filterContent
-        }
-
-        # PERF: Disabled - if ($global:PmcTuiLogFile) {
-
-        # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] RenderContent: List.Render() returned length=$($listOutput.Length)"
-        # }
-        return $listOutput
+        throw $errorMsg
     }
 
+    # If showing inline editor, pass it to the list for inline rendering BEFORE calling Render()
+    if ($this.ShowInlineEditor -and $this.InlineEditor) {
+        # Set inline editor mode on list
+        # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [RenderContent] Setting List._showInlineEditor=true and _inlineEditor"
+        $this.List._showInlineEditor = $true
+        $this.List._inlineEditor = $this.InlineEditor
+    }
+    else {
+        # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [RenderContent] NOT showing editor"
+        $this.List._showInlineEditor = $false
+    }
 
-    # === Helper Methods ===
+    # Render list (it will handle inline editor internally)
+    try {
+        # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [RenderContent] Calling List.Render()"
+        $listOutput = $this.List.Render()
+        # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [RenderContent] List.Render() returned $($listOutput.Length) chars"
+    }
+    catch {
+        # PERF: Disabled - Add-Content -Path "$($env:TEMP)\pmc-list-render-error.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') ERROR in List.Render(): $($_.Exception.Message)"
+        # PERF: Disabled - Add-Content -Path "$($env:TEMP)\pmc-list-render-error.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Line: $($_.InvocationInfo.ScriptLineNumber)"
+        # PERF: Disabled - Add-Content -Path "$($env:TEMP)\pmc-list-render-error.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') StackTrace: $($_.ScriptStackTrace)"
+        throw
+    }
 
-    <#
+    if ($this.ShowFilterPanel) {
+        # PERF: Disabled - if ($global:PmcTuiLogFile) {
+        # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] RenderContent: Rendering FilterPanel"
+        # }
+        # Render list with filter panel as overlay
+        $filterContent = $this.FilterPanel.Render()
+        return $listOutput + "`n" + $filterContent
+    }
+
+    # PERF: Disabled - if ($global:PmcTuiLogFile) {
+
+    # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] RenderContent: List.Render() returned length=$($listOutput.Length)"
+    # }
+    return $listOutput
+}
+
+
+# === Helper Methods ===
+
+<#
     .SYNOPSIS
     Get terminal size
 
     .OUTPUTS
     Hashtable with Width and Height properties
     #>
-    hidden [hashtable] _GetTerminalSize() {
-        try {
-            $width = [Console]::WindowWidth
-            $height = [Console]::WindowHeight
-            return @{ Width = $width; Height = $height }
-        }
-        catch {
-            # Default size if console not available
-            return @{ Width = 120; Height = 40 }
-        }
+hidden [hashtable] _GetTerminalSize() {
+    try {
+        $width = [Console]::WindowWidth
+        $height = [Console]::WindowHeight
+        return @{ Width = $width; Height = $height }
     }
+    catch {
+        # Default size if console not available
+        return @{ Width = 120; Height = 40 }
+    }
+}
 }

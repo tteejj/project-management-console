@@ -61,13 +61,14 @@ class TimerStartScreen : PmcScreen {
             # Get timer status
             try {
                 $this.TimerStatus = Get-PmcTimerStatus
-            } catch {
+            }
+            catch {
                 $this.TimerStatus = [PSCustomObject]@{
-                    Running = $false
+                    Running   = $false
                     StartTime = $null
-                    Elapsed = 0
-                    Task = $null
-                    Project = $null
+                    Elapsed   = 0
+                    Task      = $null
+                    Project   = $null
                 }
             }
 
@@ -83,11 +84,11 @@ class TimerStartScreen : PmcScreen {
 
             # Filter active tasks
             $this.Tasks = @($data.tasks | Where-Object {
-                -not $_.completed -and $_.status -ne 'completed'
-            })
+                    -not $_.completed -and $_.status -ne 'completed'
+                })
 
             # Sort by priority (descending), then id
-            $this.Tasks = @($this.Tasks | Sort-Object -Property @{Expression={$_.priority}; Descending=$true}, id)
+            $this.Tasks = @($this.Tasks | Sort-Object -Property @{Expression = { $_.priority }; Descending = $true }, id)
 
             # Reset selection if out of bounds
             if ($this.SelectedIndex -ge $this.Tasks.Count) {
@@ -97,193 +98,126 @@ class TimerStartScreen : PmcScreen {
             # Update status
             if ($this.Tasks.Count -eq 0) {
                 $this.ShowStatus("No active tasks to track")
-            } else {
+            }
+            else {
                 $this.ShowStatus("Select a task to start timer")
             }
 
-        } catch {
+        }
+        catch {
             $this.ShowError("Failed to load tasks: $_")
             $this.Tasks = @()
         }
     }
 
-    [string] RenderContent() {
-        $sb = [System.Text.StringBuilder]::new(4096)
-
-        if (-not $this.LayoutManager) {
-            return $sb.ToString()
-        }
-
-        # Get content area
-        $contentRect = $this.LayoutManager.GetRegion('Content', $this.TermWidth, $this.TermHeight)
-
+    [void] RenderContentToEngine([object]$engine) {
         # Colors
-        $textColor = $this.Header.GetThemedFg('Foreground.Field')
-        $highlightColor = $this.Header.GetThemedFg('Foreground.FieldFocused')
-        $warningColor = $this.Header.GetThemedAnsi('Warning', $false)
-        $mutedColor = $this.Header.GetThemedFg('Foreground.Muted')
-        $selectedBg = $this.Header.GetThemedBg('Background.FieldFocused', 80, 0)
-        $selectedFg = $this.Header.GetThemedFg('Foreground.Field')
-        $cursorColor = $this.Header.GetThemedFg('Foreground.FieldFocused')
-        $priorityColor = $this.Header.GetThemedAnsi('Warning', $false)
-        $successColor = $this.Header.GetThemedFg('Foreground.Success')
-        $reset = "`e[0m"
-
-        $y = $contentRect.Y + 1
+        $textColor = $this.Header.GetThemedColorInt('Foreground.Field')
+        $highlightColor = $this.Header.GetThemedColorInt('Foreground.FieldFocused')
+        $warningColor = $this.Header.GetThemedColorInt('Foreground.Warning') 
+        $mutedColor = $this.Header.GetThemedColorInt('Foreground.Muted')
+        $successColor = $this.Header.GetThemedColorInt('Foreground.Success')
+        $priorityColor = $this.Header.GetThemedColorInt('Foreground.Warning') # Approximate for now
+        
+        $selectedBg = $this.Header.GetThemedColorInt('Background.FieldFocused')
+        $selectedFg = $this.Header.GetThemedColorInt('Foreground.Field')
+        $cursorColor = $this.Header.GetThemedColorInt('Foreground.FieldFocused')
+        $bg = $this.Header.GetThemedColorInt('Background.Primary')
+        
+        $y = 4
+        $x = 4
 
         # Check if timer is already running
         if ($this.TimerStatus -and $this.TimerStatus.Running) {
-            $sb.Append($this.Header.BuildMoveTo($contentRect.X + 4, $y))
-            $sb.Append($warningColor)
-            $sb.Append("Timer is already running!")
-            $sb.Append($reset)
+            $engine.WriteAt($x, $y, "Timer is already running!", $warningColor, $bg)
             $y += 2
 
-            $sb.Append($this.Header.BuildMoveTo($contentRect.X + 6, $y))
-            $sb.Append($textColor)
-            $sb.Append("Started: ")
-            $sb.Append($this.TimerStatus.StartTime)
-            $sb.Append($reset)
+            $engine.WriteAt($x + 2, $y, "Started: $($this.TimerStatus.StartTime)", $textColor, $bg)
             $y++
 
-            $sb.Append($this.Header.BuildMoveTo($contentRect.X + 6, $y))
-            $sb.Append($textColor)
-            $sb.Append("Elapsed: ")
-            $sb.Append($highlightColor)
-            $sb.Append("$($this.TimerStatus.Elapsed)h")
-            $sb.Append($reset)
+            $engine.WriteAt($x + 2, $y, "Elapsed: ", $textColor, $bg)
+            $engine.WriteAt($x + 11, $y, "$($this.TimerStatus.Elapsed)h", $highlightColor, $bg)
             $y++
 
             if ($this.TimerStatus.Task) {
                 $y++
-                $sb.Append($this.Header.BuildMoveTo($contentRect.X + 6, $y))
-                $sb.Append($textColor)
-                $sb.Append("Task: ")
-                $sb.Append($this.TimerStatus.Task)
-                $sb.Append($reset)
+                $engine.WriteAt($x + 2, $y, "Task: $($this.TimerStatus.Task)", $textColor, $bg)
                 $y++
             }
 
             if ($this.TimerStatus.Project) {
-                $sb.Append($this.Header.BuildMoveTo($contentRect.X + 6, $y))
-                $sb.Append($textColor)
-                $sb.Append("Project: ")
-                $sb.Append($this.TimerStatus.Project)
-                $sb.Append($reset)
+                $engine.WriteAt($x + 2, $y, "Project: $($this.TimerStatus.Project)", $textColor, $bg)
                 $y++
             }
 
             $y += 2
-            $sb.Append($this.Header.BuildMoveTo($contentRect.X + 4, $y))
-            $sb.Append($mutedColor)
-            $sb.Append("Stop the timer first before starting a new one.")
-            $sb.Append($reset)
-
-            return $sb.ToString()
+            $engine.WriteAt($x, $y, "Stop the timer first before starting a new one.", $mutedColor, $bg)
+            return
         }
 
         # Show task list if no timer running
         if ($this.Tasks.Count -eq 0) {
-            $sb.Append($this.Header.BuildMoveTo($contentRect.X + 4, $y))
-            $sb.Append($mutedColor)
-            $sb.Append("No active tasks available")
-            $sb.Append($reset)
-            return $sb.ToString()
+            $engine.WriteAt($x, $y, "No active tasks available", $mutedColor, $bg)
+            return
         }
 
         # Title
-        $sb.Append($this.Header.BuildMoveTo($contentRect.X + 4, $y))
-        $sb.Append($successColor)
-        $sb.Append("Select a task to start timer:")
-        $sb.Append($reset)
+        $engine.WriteAt($x, $y, "Select a task to start timer:", $successColor, $bg)
         $y += 2
 
         # Column headers
         $headerY = $y
-        $sb.Append($this.Header.BuildMoveTo($contentRect.X + 4, $headerY))
-        $sb.Append($mutedColor)
-        $sb.Append("PRI ")
-        $sb.Append("ID   ")
-        $sb.Append("TASK")
-        $sb.Append($reset)
+        $engine.WriteAt($x, $headerY, "PRI ", $mutedColor, $bg)
+        $engine.WriteAt($x + 4, $headerY, "ID   ", $mutedColor, $bg)
+        $engine.WriteAt($x + 9, $headerY, "TASK", $mutedColor, $bg)
         $y++
 
         # Render task rows
         $startY = $y
-        $maxLines = $contentRect.Height - 6
+        $maxLines = $this.TermHeight - $startY - 2 # Footer allowance
 
         for ($i = 0; $i -lt [Math]::Min($this.Tasks.Count, $maxLines); $i++) {
             $task = $this.Tasks[$i]
             $y = $startY + $i
             $isSelected = ($i -eq $this.SelectedIndex)
+            
+            $rowBg = $(if ($isSelected) { $selectedBg } else { $bg })
+            $rowFg = $(if ($isSelected) { $selectedFg } else { $textColor })
+            $prioFg = $(if ($isSelected) { $selectedFg } else { $priorityColor })
+            $idFg = $(if ($isSelected) { $selectedFg } else { $mutedColor })
 
             # Cursor
-            $sb.Append($this.Header.BuildMoveTo($contentRect.X + 2, $y))
             if ($isSelected) {
-                $sb.Append($cursorColor)
-                $sb.Append(">")
-                $sb.Append($reset)
-            } else {
-                $sb.Append(" ")
+                $engine.WriteAt($x - 2, $y, ">", $cursorColor, $bg)
             }
 
-            $x = $contentRect.X + 4
+            $currentX = $x
 
             # Priority column
-            $sb.Append($this.Header.BuildMoveTo($x, $y))
             if ($task.priority -gt 0) {
-                if ($isSelected) {
-                    $sb.Append($selectedBg)
-                    $sb.Append($priorityColor)
-                } else {
-                    $sb.Append($priorityColor)
-                }
-                $sb.Append("P$($task.priority)".PadRight(4))
-                $sb.Append($reset)
-            } else {
-                if ($isSelected) {
-                    $sb.Append($selectedBg)
-                    $sb.Append($selectedFg)
-                }
-                $sb.Append("    ")
-                if ($isSelected) {
-                    $sb.Append($reset)
-                }
+                $engine.WriteAt($currentX, $y, "P$($task.priority)".PadRight(4), $prioFg, $rowBg)
             }
-            $x += 4
+            else {
+                $engine.WriteAt($currentX, $y, "    ", $rowFg, $rowBg)
+            }
+            $currentX += 4
 
             # ID column
-            $sb.Append($this.Header.BuildMoveTo($x, $y))
-            if ($isSelected) {
-                $sb.Append($selectedBg)
-                $sb.Append($selectedFg)
-            } else {
-                $sb.Append($mutedColor)
-            }
-            $sb.Append("#$($task.id)".PadRight(5))
-            $sb.Append($reset)
-            $x += 5
+            $engine.WriteAt($currentX, $y, "#$($task.id)".PadRight(5), $idFg, $rowBg)
+            $currentX += 5
 
             # Task text
-            $sb.Append($this.Header.BuildMoveTo($x, $y))
-            $textWidth = $contentRect.Width - 15
+            $textWidth = $this.TermWidth - $currentX - 2
             $taskText = $task.text
             if ($taskText.Length -gt $textWidth) {
-                $taskText = $taskText.Substring(0, $textWidth - 3) + "..."
+                $taskText = $taskText.Substring(0, [Math]::Max(0, $textWidth - 3)) + "..."
             }
-
-            if ($isSelected) {
-                $sb.Append($selectedBg)
-                $sb.Append($selectedFg)
-            } else {
-                $sb.Append($textColor)
-            }
-            $sb.Append($taskText)
-            $sb.Append($reset)
+            
+            $engine.WriteAt($currentX, $y, $taskText, $rowFg, $rowBg)
         }
-
-        return $sb.ToString()
     }
+
+    [string] RenderContent() { return "" }
 
     [bool] HandleKeyPress([ConsoleKeyInfo]$keyInfo) {
         # Check if timer is running
@@ -344,7 +278,8 @@ class TimerStartScreen : PmcScreen {
 
             # Return to previous screen
             $global:PmcApp.PopScreen()
-        } catch {
+        }
+        catch {
             $this.ShowError("Error starting timer: $_")
         }
     }

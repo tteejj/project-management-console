@@ -28,11 +28,13 @@ class SimpleFilePicker : PmcWidget {
         # Validate and set start path
         if ([string]::IsNullOrWhiteSpace($startPath) -or -not (Test-Path $startPath)) {
             $this.CurrentPath = [Environment]::GetFolderPath('UserProfile')
-        } else {
+        }
+        else {
             if (Test-Path -Path $startPath -PathType Leaf) {
                 # If it's a file, use parent directory
                 $this.CurrentPath = Split-Path -Parent $startPath
-            } else {
+            }
+            else {
                 $this.CurrentPath = $startPath
             }
         }
@@ -50,20 +52,20 @@ class SimpleFilePicker : PmcWidget {
             $parent = Split-Path -Parent $this.CurrentPath
             if ($parent) {
                 $this.Items.Add(@{
-                    Name = '..'
-                    Path = $parent
-                    IsDirectory = $true
-                })
+                        Name        = '..'
+                        Path        = $parent
+                        IsDirectory = $true
+                    })
             }
 
             # Get directories
             $dirs = Get-ChildItem -Path $this.CurrentPath -Directory -ErrorAction SilentlyContinue | Sort-Object Name
             foreach ($dir in $dirs) {
                 $this.Items.Add(@{
-                    Name = $dir.Name
-                    Path = $dir.FullName
-                    IsDirectory = $true
-                })
+                        Name        = $dir.Name
+                        Path        = $dir.FullName
+                        IsDirectory = $true
+                    })
             }
 
             # Get files if not directories-only
@@ -71,13 +73,14 @@ class SimpleFilePicker : PmcWidget {
                 $files = Get-ChildItem -Path $this.CurrentPath -File -ErrorAction SilentlyContinue | Sort-Object Name
                 foreach ($file in $files) {
                     $this.Items.Add(@{
-                        Name = $file.Name
-                        Path = $file.FullName
-                        IsDirectory = $false
-                    })
+                            Name        = $file.Name
+                            Path        = $file.FullName
+                            IsDirectory = $false
+                        })
                 }
             }
-        } catch {
+        }
+        catch {
             # On error, go to home
             $this.CurrentPath = [Environment]::GetFolderPath('UserProfile')
             $this.LoadItems()
@@ -117,7 +120,8 @@ class SimpleFilePicker : PmcWidget {
                     # Navigate into directory
                     $this.CurrentPath = $selected.Path
                     $this.LoadItems()
-                } else {
+                }
+                else {
                     # Select file
                     $this.SelectedPath = $selected.Path
                     $this.Result = $true
@@ -172,7 +176,7 @@ class SimpleFilePicker : PmcWidget {
         
         # Draw Box
         $engine.Fill($this.X, $this.Y, $this.Width, $this.Height, ' ', $fg, $bg)
-        $engine.DrawBox($this.X, $this.Y, $this.Width, $this.Height, 'single')
+        $engine.DrawBox($this.X, $this.Y, $this.Width, $this.Height, $fg, $bg)
         
         # Title
         $title = if ($this.DirectoriesOnly) { "Select Folder" } else { "Select File" }

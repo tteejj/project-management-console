@@ -85,110 +85,67 @@ class RestoreBackupScreen : PmcScreen {
         $this.ShowStatus("Ready to restore backup")
     }
 
-    [string] RenderContent() {
-        $sb = [System.Text.StringBuilder]::new(2048)
-
-        if (-not $this.LayoutManager) {
-            return $sb.ToString()
-        }
-
-        # Get content area
-        $contentRect = $this.LayoutManager.GetRegion('Content', $this.TermWidth, $this.TermHeight)
-
+    [void] RenderContentToEngine([object]$engine) {
         # Colors
-        $textColor = $this.Header.GetThemedFg('Foreground.Field')
-        $highlightColor = $this.Header.GetThemedFg('Foreground.FieldFocused')
-        $warningColor = $this.Header.GetThemedAnsi('Warning', $false)
-        $mutedColor = $this.Header.GetThemedFg('Foreground.Muted')
-        $reset = "`e[0m"
-
-        $y = $contentRect.Y + 2
+        $textColor = $this.Header.GetThemedColorInt('Foreground.Field')
+        $highlightColor = $this.Header.GetThemedColorInt('Foreground.FieldFocused')
+        $warningColor = $this.Header.GetThemedColorInt('Foreground.Warning') 
+        $mutedColor = $this.Header.GetThemedColorInt('Foreground.Muted')
+        $bg = $this.Header.GetThemedColorInt('Background.Primary')
+        
+        $y = 4
+        $x = 4
 
         if (-not $this.Backup) {
             # No backup selected
-            $sb.Append($this.Header.BuildMoveTo($contentRect.X + 4, $y))
-            $sb.Append($warningColor)
-            $sb.Append("No backup selected")
-            $sb.Append($reset)
-            return $sb.ToString()
+            $engine.WriteAt($x, $y, "No backup selected", $warningColor, $bg)
+            return
         }
 
         # Backup details
-        $sb.Append($this.Header.BuildMoveTo($contentRect.X + 4, $y))
-        $sb.Append($highlightColor)
-        $sb.Append("Restore Backup Details:")
-        $sb.Append($reset)
+        $engine.WriteAt($x, $y, "Restore Backup Details:", $highlightColor, $bg)
         $y += 2
 
+        $detailsX = $x + 2
+
         # Name
-        $sb.Append($this.Header.BuildMoveTo($contentRect.X + 6, $y))
-        $sb.Append($mutedColor)
-        $sb.Append("Name: ")
-        $sb.Append($reset)
-        $sb.Append($textColor)
-        $sb.Append($this.Backup.Name)
-        $sb.Append($reset)
+        $engine.WriteAt($detailsX, $y, "Name: ", $mutedColor, $bg)
+        $engine.WriteAt($detailsX + 6, $y, $this.Backup.Name, $textColor, $bg)
         $y++
 
         # Type
-        $sb.Append($this.Header.BuildMoveTo($contentRect.X + 6, $y))
-        $sb.Append($mutedColor)
-        $sb.Append("Type: ")
-        $sb.Append($reset)
-        $sb.Append($textColor)
+        $engine.WriteAt($detailsX, $y, "Type: ", $mutedColor, $bg)
         $typeLabel = $(if ($this.Backup.Type -eq "auto") { "Automatic" } else { "Manual" })
-        $sb.Append($typeLabel)
-        $sb.Append($reset)
+        $engine.WriteAt($detailsX + 6, $y, $typeLabel, $textColor, $bg)
         $y++
 
         # Modified
-        $sb.Append($this.Header.BuildMoveTo($contentRect.X + 6, $y))
-        $sb.Append($mutedColor)
-        $sb.Append("Date: ")
-        $sb.Append($reset)
-        $sb.Append($textColor)
-        $sb.Append($this.Backup.Modified.ToString('yyyy-MM-dd HH:mm:ss'))
-        $sb.Append($reset)
+        $engine.WriteAt($detailsX, $y, "Date: ", $mutedColor, $bg)
+        $engine.WriteAt($detailsX + 6, $y, $this.Backup.Modified.ToString('yyyy-MM-dd HH:mm:ss'), $textColor, $bg)
         $y++
 
         # Size
-        $sb.Append($this.Header.BuildMoveTo($contentRect.X + 6, $y))
-        $sb.Append($mutedColor)
-        $sb.Append("Size: ")
-        $sb.Append($reset)
-        $sb.Append($textColor)
+        $engine.WriteAt($detailsX, $y, "Size: ", $mutedColor, $bg)
         $sizeKB = [math]::Round($this.Backup.Size / 1KB, 2)
-        $sb.Append("$sizeKB KB")
-        $sb.Append($reset)
+        $engine.WriteAt($detailsX + 6, $y, "$sizeKB KB", $textColor, $bg)
         $y++
 
         # Path
-        $sb.Append($this.Header.BuildMoveTo($contentRect.X + 6, $y))
-        $sb.Append($mutedColor)
-        $sb.Append("Path: ")
-        $sb.Append($reset)
-        $sb.Append($mutedColor)
-        $sb.Append($this.Backup.Path)
-        $sb.Append($reset)
+        $engine.WriteAt($detailsX, $y, "Path: ", $mutedColor, $bg)
+        $engine.WriteAt($detailsX + 6, $y, $this.Backup.Path, $mutedColor, $bg)
         $y += 2
 
         # Warning
-        $sb.Append($this.Header.BuildMoveTo($contentRect.X + 4, $y))
-        $sb.Append($warningColor)
-        $sb.Append("WARNING: This will overwrite your current data!")
-        $sb.Append($reset)
+        $engine.WriteAt($x, $y, "WARNING: This will overwrite your current data!", $warningColor, $bg)
         $y += 2
 
         # Confirmation prompt
         if ($this.ShowConfirm) {
-            $sb.Append($this.Header.BuildMoveTo($contentRect.X + 4, $y))
-            $sb.Append($highlightColor)
-            $sb.Append("Press Y to confirm restore, N or Esc to cancel")
-            $sb.Append($reset)
+            $engine.WriteAt($x, $y, "Press Y to confirm restore, N or Esc to cancel", $highlightColor, $bg)
         }
-
-        return $sb.ToString()
     }
+
+    [string] RenderContent() { return "" }
 
     [bool] HandleKeyPress([ConsoleKeyInfo]$keyInfo) {
         $keyChar = [char]::ToLower($keyInfo.KeyChar)
@@ -224,7 +181,8 @@ class RestoreBackupScreen : PmcScreen {
 
             # Return to backup list
             $global:PmcApp.PopScreen()
-        } catch {
+        }
+        catch {
             $this.ShowError("Error restoring backup: $_")
         }
     }

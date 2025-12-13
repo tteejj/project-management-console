@@ -141,7 +141,8 @@ class HybridRenderEngine {
                 $this.Height = $newHeight
                 $this._InitializeBuffers()
             }
-        } catch {
+        }
+        catch {
             # Safe fallbacks if running in non-interactive environment
             $this.Width = 80
             $this.Height = 24
@@ -238,7 +239,7 @@ class HybridRenderEngine {
     # Restricts rendering to a specific rectangle. Useful for scrolling lists.
     [void] PushClip([int]$x, [int]$y, [int]$width, [int]$height) {
         # Calculate intersection with current clip (if any)
-        $newClip = @{ X=$x; Y=$y; R=($x+$width); B=($y+$height) }
+        $newClip = @{ X = $x; Y = $y; R = ($x + $width); B = ($y + $height) }
 
         if ($this._clipStack.Count -gt 0) {
             $parent = $this._clipStack.Peek()
@@ -261,7 +262,7 @@ class HybridRenderEngine {
     # PushOffset(10, 5) means WriteAt(0,0) will actually draw at Screen(10,5).
     # Useful for reusable components that draw relative to their container.
     [void] PushOffset([int]$x, [int]$y) {
-        $current = @{ X=0; Y=0 }
+        $current = @{ X = 0; Y = 0 }
         if ($this._offsetStack.Count -gt 0) {
             $current = $this._offsetStack.Peek()
         }
@@ -335,7 +336,7 @@ class HybridRenderEngine {
 
         while ($i -lt $len) {
             # Check for ANSI escape sequence start
-            if ($content[$i] -eq "`e" -and ($i + 1) -lt $len -and $content[$i+1] -eq '[') {
+            if ($content[$i] -eq "`e" -and ($i + 1) -lt $len -and $content[$i + 1] -eq '[') {
                 # -- ANSI PARSING BLOCK --
                 # (Ideally abstracted, but inline here for performance/portability)
                 $seqEnd = $i + 2
@@ -343,7 +344,7 @@ class HybridRenderEngine {
                 
                 if ($seqEnd -lt $len) {
                     $cmd = $content[$seqEnd]
-                    $paramStr = $content.Substring($i+2, $seqEnd - ($i+2))
+                    $paramStr = $content.Substring($i + 2, $seqEnd - ($i + 2))
                     
                     # Update current color/attr state based on params
                     # (Simplified logic: Calls a helper to update state vars)
@@ -444,6 +445,20 @@ class HybridRenderEngine {
         }
     }
 
+    [void] Fill([int]$x, [int]$y, [int]$width, [int]$height, [string]$char, [int]$fg, [int]$bg) {
+        if ($width -le 0 -or $height -le 0) { return }
+        if ([string]::IsNullOrEmpty($char)) { $char = " " }
+        
+        # Create the fill string once
+        # If char is multi-character, we take the first char
+        $fillChar = $char[0]
+        $line = [string]$fillChar * $width
+        
+        for ($r = 0; $r -lt $height; $r++) {
+            $this.WriteAt($x, $y + $r, $line, $fg, $bg)
+        }
+    }
+
     [void] RequestClear() {
         # Force full redraw on next frame
         $this.InvalidateCachedRegion(0, $this.Height - 1)
@@ -451,38 +466,46 @@ class HybridRenderEngine {
         [Console]::Clear()
     }
 
-    [void] DrawBox([int]$x, [int]$y, [int]$width, [int]$height, [string]$style="Single") {
+    [void] DrawBox([int]$x, [int]$y, [int]$width, [int]$height, [int]$fg, [int]$bg) {
+        # Overload 2: Colors only (Default Style) - This fixes the 6-arg call
+        $this.DrawBox($x, $y, $width, $height, $fg, $bg, "Single")
+    }
+
+    [void] DrawBox([int]$x, [int]$y, [int]$width, [int]$height, [int]$fg, [int]$bg, [string]$style) {
         if ($width -lt 2 -or $height -lt 2) { return }
 
         # Get box characters from cache or define them
         $chars = switch ($style) {
-            "Double" { @{
-                TL = "╔"; TR = "╗"; BL = "╚"; BR = "╝"
-                H = "═"; V = "║"
-            }}
-            "Rounded" { @{
-                TL = "╭"; TR = "╮"; BL = "╰"; BR = "╯"
-                H = "─"; V = "│"
-            }}
-            default { @{
-                TL = "┌"; TR = "┐"; BL = "└"; BR = "┘"
-                H = "─"; V = "│"
-            }}
+            "Double" {
+                @{
+                    TL = "╔"; TR = "╗"; BL = "╚"; BR = "╝"
+                    V = "║"; H = "═"
+                }
+            }
+            "Rounded" {
+                @{
+                    TL = "╭"; TR = "╮"; BL = "╰"; BR = "╯"
+                    V = "│"; H = "─"
+                }
+            }
+            Default {
+                # Single
+                @{
+                    TL = "┌"; TR = "┐"; BL = "└"; BR = "┘"
+                    V = "│"; H = "─"
+                }
+            }
         }
 
         # Draw top border
         $topLine = $chars.TL + ($chars.H * ($width - 2)) + $chars.TR
-        $this.WriteAt($x, $y, $topLine)
+        $this.WriteAt($x, $y, $topLine, $fg, $bg)
 
-        # Draw side borders
-        # We construct vertical segments. 
-        # Note: We don't draw the center as spaces here to allow transparency if desired,
-        # BUT usually boxes are opaque. To make it opaque (cover content behind), 
-        # we should fill the middle with spaces.
+        # Draw sides
         $middleLine = $chars.V + (" " * ($width - 2)) + $chars.V
         
         for ($i = 1; $i -lt ($height - 1); $i++) {
-            $this.WriteAt($x, $y + $i, $middleLine)
+            $this.WriteAt($x, $y + $i, $middleLine, $fg, $bg)
         }
 
         # Draw bottom border
@@ -516,7 +539,8 @@ class HybridRenderEngine {
             }
             [Console]::Write($sb.ToString())
             [InternalStringBuilderPool]::Recycle($sb)
-        } catch {
+        }
+        catch {
             # Ignore errors if console is not available
         }
 
@@ -531,10 +555,11 @@ class HybridRenderEngine {
 
     hidden [void] _ResetDirtyBounds([bool]$fullScreen) {
         if ($fullScreen) {
-            $this._dirtyBounds = @{ MinX=0; MinY=0; MaxX=$this.Width; MaxY=$this.Height }
-        } else {
+            $this._dirtyBounds = @{ MinX = 0; MinY = 0; MaxX = $this.Width; MaxY = $this.Height }
+        }
+        else {
             # Inverted bounds to start
-            $this._dirtyBounds = @{ MinX=$this.Width; MinY=$this.Height; MaxX=-1; MaxY=-1 }
+            $this._dirtyBounds = @{ MinX = $this.Width; MinY = $this.Height; MaxX = -1; MaxY = -1 }
         }
     }
 
@@ -599,8 +624,8 @@ class HybridRenderEngine {
                     
                     # Stop if colors/attrs change
                     if (-not ($nextBack.ForegroundRgb -eq $back.ForegroundRgb -and 
-                              $nextBack.BackgroundRgb -eq $back.BackgroundRgb -and 
-                              $nextBack.Attributes -eq $back.Attributes)) {
+                            $nextBack.BackgroundRgb -eq $back.BackgroundRgb -and 
+                            $nextBack.Attributes -eq $back.Attributes)) {
                         break
                     }
                     
@@ -645,7 +670,7 @@ class HybridRenderEngine {
 
                 # 4. Write Characters
                 for ($k = 0; $k -lt $runLen; $k++) {
-                     [void]$sb.Append($this._backBuffer.GetCell($x + $k, $y).Char)
+                    [void]$sb.Append($this._backBuffer.GetCell($x + $k, $y).Char)
                 }
 
                 $x += $runLen
@@ -683,7 +708,7 @@ class HybridRenderEngine {
             
             # For now, let's implement a simple cache for the most common single-code params
             # which avoids splitting and looping.
-             if ($cached -is [hashtable]) {
+            if ($cached -is [hashtable]) {
                 if ($cached.ContainsKey('Fg')) { $fg.Value = $cached.Fg }
                 if ($cached.ContainsKey('Bg')) { $bg.Value = $cached.Bg }
                 if ($cached.ContainsKey('Attr')) { $attr.Value = $attr.Value -bor $cached.Attr }
@@ -717,16 +742,16 @@ class HybridRenderEngine {
                 38 { 
                     # FG RGB: 38;2;R;G;B
                     $cacheable = $false # Don't cache complex RGB for now
-                    if ($i+4 -lt $parts.Length -and $parts[$i+1] -eq 2) {
-                        $fg.Value = [HybridRenderEngine]::_PackRGB($parts[$i+2], $parts[$i+3], $parts[$i+4])
+                    if ($i + 4 -lt $parts.Length -and $parts[$i + 1] -eq 2) {
+                        $fg.Value = [HybridRenderEngine]::_PackRGB($parts[$i + 2], $parts[$i + 3], $parts[$i + 4])
                         $i += 4
                     }
                 }
                 48 { 
                     # BG RGB: 48;2;R;G;B
                     $cacheable = $false
-                    if ($i+4 -lt $parts.Length -and $parts[$i+1] -eq 2) {
-                        $bg.Value = [HybridRenderEngine]::_PackRGB($parts[$i+2], $parts[$i+3], $parts[$i+4])
+                    if ($i + 4 -lt $parts.Length -and $parts[$i + 1] -eq 2) {
+                        $bg.Value = [HybridRenderEngine]::_PackRGB($parts[$i + 2], $parts[$i + 3], $parts[$i + 4])
                         $i += 4
                     }
                 }
@@ -815,7 +840,7 @@ class HybridRenderEngine {
         if (-not $this._regions.ContainsKey($id)) { return $null }
         
         $region = $this._regions[$id]
-        $bounds = @{ X=$region.X; Y=$region.Y; Width=$region.Width; Height=$region.Height; ZIndex=$region.ZIndex }
+        $bounds = @{ X = $region.X; Y = $region.Y; Width = $region.Width; Height = $region.Height; ZIndex = $region.ZIndex }
         
         # Resolve parent offsets recursively
         $current = $region
@@ -826,7 +851,8 @@ class HybridRenderEngine {
                 $bounds.Y += $parent.Y
                 $bounds.ZIndex += $parent.ZIndex
                 $current = $parent
-            } else {
+            }
+            else {
                 break
             }
         }
@@ -857,7 +883,8 @@ class HybridRenderEngine {
         # Note: WriteAt handles clipping logic
         if ($fg -ne -1 -or $bg -ne -1) {
             $this.WriteAt($bounds.X, $bounds.Y, $content, $fg, $bg)
-        } else {
+        }
+        else {
             $this.WriteAt($bounds.X, $bounds.Y, $content)
         }
         
@@ -880,13 +907,15 @@ class HybridRenderEngine {
             if ($col -is [hashtable]) {
                 if ($col.ContainsKey('Width')) { $colWidth = $col.Width }
                 if ($col.ContainsKey('Name')) { $colName = $col.Name }
-            } elseif ($col -is [int]) {
+            }
+            elseif ($col -is [int]) {
                 $colWidth = $col
             }
             
             # Create region for column content
             $regionId = "${baseId}_${colName}"
-            $this.DefineRegion($regionId, $currentX, $y, $colWidth, $height)
+            # CRITICAL FIX: Set ParentID to baseId so GetChildRegions works!
+            $this.DefineRegion($regionId, $currentX, $y, $colWidth, $height, 0, $baseId)
             $generatedIds += $regionId
             
             # Advance X (including 4-space gap which is NOT part of the region)

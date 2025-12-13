@@ -40,7 +40,7 @@ class DepRemoveFormScreen : PmcScreen {
 
         # Initialize form data
         $this.FormData = @{
-            taskId = ""
+            taskId    = ""
             dependsId = ""
         }
     }
@@ -59,7 +59,7 @@ class DepRemoveFormScreen : PmcScreen {
 
         # Initialize form data
         $this.FormData = @{
-            taskId = ""
+            taskId    = ""
             dependsId = ""
         }
     }
@@ -68,78 +68,43 @@ class DepRemoveFormScreen : PmcScreen {
         $this.ShowStatus("Enter task IDs to remove dependency")
     }
 
-    [string] RenderContent() {
-        $sb = [System.Text.StringBuilder]::new(2048)
-
-        if (-not $this.LayoutManager) {
-            return $sb.ToString()
-        }
-
-        # Get content area
-        $contentRect = $this.LayoutManager.GetRegion('Content', $this.TermWidth, $this.TermHeight)
-
+    [void] RenderContentToEngine([object]$engine) {
         # Colors
-        $textColor = $this.Header.GetThemedFg('Foreground.Field')
-        $highlightColor = $this.Header.GetThemedFg('Foreground.FieldFocused')
-        $mutedColor = $this.Header.GetThemedFg('Foreground.Muted')
-        $inputColor = $this.Header.GetThemedFg('Foreground.FieldFocused')
-        $reset = "`e[0m"
-
-        $y = $contentRect.Y + 2
-        $x = $contentRect.X + 4
+        $textColor = $this.Header.GetThemedColorInt('Foreground.Field')
+        $highlightColor = $this.Header.GetThemedColorInt('Foreground.FieldFocused')
+        $mutedColor = $this.Header.GetThemedColorInt('Foreground.Muted')
+        $inputColor = $this.Header.GetThemedColorInt('Foreground.FieldFocused')
+        $bg = $this.Header.GetThemedColorInt('Background.Primary')
+        
+        $y = 4
+        $x = 4
 
         # Title
         $title = " Remove Dependency "
-        $titleX = $contentRect.X + [Math]::Floor(($contentRect.Width - $title.Length) / 2)
-        $sb.Append($this.Header.BuildMoveTo($titleX, $y))
-        $sb.Append($highlightColor)
-        $sb.Append($title)
-        $sb.Append($reset)
+        $titleX = $x + [Math]::Floor(($this.TermWidth - $x - $title.Length) / 2)
+        $titleX = [Math]::Max($x, [Math]::Floor(($this.TermWidth - $title.Length) / 2))
+        
+        $engine.WriteAt($titleX, $y, $title, $highlightColor, $bg)
         $y += 2
 
         # Task ID field
-        $sb.Append($this.Header.BuildMoveTo($x, $y))
-        if ($this.InputField -eq 'taskId') {
-            $sb.Append($highlightColor)
-        } else {
-            $sb.Append($textColor)
-        }
-        $sb.Append("Task ID:")
-        $sb.Append($reset)
+        $labelColor = $(if ($this.InputField -eq 'taskId') { $highlightColor } else { $textColor })
+        $engine.WriteAt($x, $y, "Task ID:", $labelColor, $bg)
 
-        $sb.Append($this.Header.BuildMoveTo($x + 13, $y))
-        $sb.Append($inputColor)
-        if ($this.InputField -eq 'taskId') {
-            $sb.Append($this.InputBuffer)
-            $sb.Append("_")
-        } else {
-            $sb.Append($this.FormData['taskId'])
-        }
-        $sb.Append($reset)
+        $valColor = $inputColor
+        $valText = $(if ($this.InputField -eq 'taskId') { $this.InputBuffer + "_" } else { $this.FormData['taskId'] })
+        $engine.WriteAt($x + 13, $y, $valText, $valColor, $bg)
         $y += 2
 
         # Remove dependency on Task ID field
-        $sb.Append($this.Header.BuildMoveTo($x, $y))
-        if ($this.InputField -eq 'dependsId') {
-            $sb.Append($highlightColor)
-        } else {
-            $sb.Append($textColor)
-        }
-        $sb.Append("Remove dependency on Task ID:")
-        $sb.Append($reset)
+        $labelColor = $(if ($this.InputField -eq 'dependsId') { $highlightColor } else { $textColor })
+        $engine.WriteAt($x, $y, "Remove dependency on Task ID:", $labelColor, $bg)
 
-        $sb.Append($this.Header.BuildMoveTo($x + 31, $y))
-        $sb.Append($inputColor)
-        if ($this.InputField -eq 'dependsId') {
-            $sb.Append($this.InputBuffer)
-            $sb.Append("_")
-        } else {
-            $sb.Append($this.FormData['dependsId'])
-        }
-        $sb.Append($reset)
-
-        return $sb.ToString()
+        $valText = $(if ($this.InputField -eq 'dependsId') { $this.InputBuffer + "_" } else { $this.FormData['dependsId'] })
+        $engine.WriteAt($x + 31, $y, $valText, $valColor, $bg)
     }
+
+    [string] RenderContent() { return "" }
 
     [bool] HandleKeyPress([ConsoleKeyInfo]$keyInfo) {
         switch ($keyInfo.Key) {
@@ -150,7 +115,8 @@ class DepRemoveFormScreen : PmcScreen {
                     $this.InputBuffer = $this.FormData['dependsId']
                     $this.InputField = 'dependsId'
                     $this.ShowStatus("Now enter dependency task ID to remove")
-                } else {
+                }
+                else {
                     # Submit form
                     $this.FormData['dependsId'] = $this.InputBuffer
                     $this._SubmitForm()
@@ -164,7 +130,8 @@ class DepRemoveFormScreen : PmcScreen {
                 if ($this.InputField -eq 'taskId') {
                     $this.InputField = 'dependsId'
                     $this.InputBuffer = $this.FormData['dependsId']
-                } else {
+                }
+                else {
                     $this.InputField = 'taskId'
                     $this.InputBuffer = $this.FormData['taskId']
                 }
@@ -229,7 +196,8 @@ class DepRemoveFormScreen : PmcScreen {
             $this.ShowSuccess("Dependency removed successfully!")
 
             $this.App.PopScreen()
-        } catch {
+        }
+        catch {
             $this.ShowError("Failed to remove dependency: $_")
         }
     }

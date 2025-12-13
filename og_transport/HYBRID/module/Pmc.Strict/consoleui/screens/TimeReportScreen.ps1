@@ -30,9 +30,9 @@ class TimeReportScreen : PmcScreen {
     # Static: Register menu items
     static [void] RegisterMenuItems([object]$registry) {
         $registry.AddMenuItem('Time', 'Time Report', 'R', {
-            . "$PSScriptRoot/TimeReportScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object -TypeName TimeReportScreen))
-        }, 20)
+                . "$PSScriptRoot/TimeReportScreen.ps1"
+                $global:PmcApp.PushScreen((New-Object -TypeName TimeReportScreen))
+            }, 20)
     }
 
     # Constructor
@@ -105,7 +105,8 @@ class TimeReportScreen : PmcScreen {
                 if ($log.ContainsKey('id1') -and $log.id1) {
                     $groupKey = "ID:$($log.id1)"
                     $projectDisplay = $(if ($log.ContainsKey('project') -and $log.project) { "$($log.project) [#$($log.id1)]" } else { "#$($log.id1)" })
-                } else {
+                }
+                else {
                     $projectVal = $(if ($log.ContainsKey('project')) { $log.project } else { 'Unknown' })
                     $groupKey = "NAME:$projectVal"
                     $projectDisplay = $projectVal
@@ -115,7 +116,7 @@ class TimeReportScreen : PmcScreen {
                 if (-not $groupedData.ContainsKey($groupKey)) {
                     $groupedData[$groupKey] = @{
                         DisplayName = $projectDisplay
-                        Entries = @()
+                        Entries     = @()
                     }
                 }
 
@@ -135,10 +136,10 @@ class TimeReportScreen : PmcScreen {
                 $totalHoursAccumulated += $hours
 
                 $this.ProjectSummaries += [PSCustomObject]@{
-                    Project = $group.DisplayName
+                    Project    = $group.DisplayName
                     EntryCount = $group.Entries.Count
-                    Minutes = $minutes
-                    Hours = $hours
+                    Minutes    = $minutes
+                    Hours      = $hours
                 }
             }
 
@@ -147,7 +148,8 @@ class TimeReportScreen : PmcScreen {
 
             $this.ShowStatus("Report generated: $($this.ProjectSummaries.Count) projects, $($this.TotalHours) hours total")
 
-        } catch {
+        }
+        catch {
             $this.ShowError("Failed to load time report: $_")
             $this.ProjectSummaries = @()
             $this.TotalMinutes = 0
@@ -155,94 +157,66 @@ class TimeReportScreen : PmcScreen {
         }
     }
 
-    [string] RenderContent() {
+    [void] RenderContentToEngine([object]$engine) {
+        if (-not $this.LayoutManager) { return }
+
         if ($this.ProjectSummaries.Count -eq 0) {
-            return $this._RenderEmptyState()
+            $this._RenderEmptyStateToEngine($engine)
         }
-
-        return $this._RenderReport()
+        else {
+            $this._RenderReportToEngine($engine)
+        }
     }
+    
+    [string] RenderContent() { return "" }
 
-    hidden [string] _RenderEmptyState() {
-        $sb = [System.Text.StringBuilder]::new(512)
-
-        # Get content area
-        if ($this.LayoutManager) {
-            $contentRect = $this.LayoutManager.GetRegion('Content', $this.TermWidth, $this.TermHeight)
-
-            # TS-M8 FIX: Enhanced empty state feedback with actionable guidance
-            $textColor = $this.Header.GetThemedFg('Foreground.Field')
-            $mutedColor = $this.Header.GetThemedFg('Foreground.Muted')
-            $reset = "`e[0m"
-
-            # Main message
-            $message = "No time entries to report"
-            $x = $contentRect.X + [Math]::Floor(($contentRect.Width - $message.Length) / 2)
-            $y = $contentRect.Y + [Math]::Floor($contentRect.Height / 2) - 1
-
-            $sb.Append($this.Header.BuildMoveTo($x, $y))
-            $sb.Append($textColor)
-            $sb.Append($message)
-            $sb.Append($reset)
-
-            # Helpful guidance
-            $hint = "Press 'T' to add time entries in Time Tracking screen"
-            $hintX = $contentRect.X + [Math]::Floor(($contentRect.Width - $hint.Length) / 2)
-            $sb.Append($this.Header.BuildMoveTo($hintX, $y + 2))
-            $sb.Append($mutedColor)
-            $sb.Append($hint)
-            $sb.Append($reset)
-        }
-
-        return $sb.ToString()
-    }
-
-    hidden [string] _RenderReport() {
-        $sb = [System.Text.StringBuilder]::new(4096)
-
-        if (-not $this.LayoutManager) {
-            return $sb.ToString()
-        }
-
-        # Get content area
+    hidden [void] _RenderEmptyStateToEngine([object]$engine) {
         $contentRect = $this.LayoutManager.GetRegion('Content', $this.TermWidth, $this.TermHeight)
 
         # Colors
-        $textColor = $this.Header.GetThemedFg('Foreground.Field')
-        $highlightColor = $this.Header.GetThemedFg('Foreground.FieldFocused')
-        $mutedColor = $this.Header.GetThemedFg('Foreground.Muted')
-        $headerColor = $this.Header.GetThemedFg('Foreground.Muted')
-        $successColor = $this.Header.GetThemedFg('Foreground.Success')
-        $warningColor = $this.Header.GetThemedAnsi('Warning', $false)
-        $reset = "`e[0m"
+        $textColor = $this.Header.GetThemedColorInt('Foreground.Field')
+        $mutedColor = $this.Header.GetThemedColorInt('Foreground.Muted')
+        $bg = $this.Header.GetThemedColorInt('Background.Primary')
 
+        # Main message
+        $message = "No time entries to report"
+        $x = $contentRect.X + [Math]::Floor(($contentRect.Width - $message.Length) / 2)
+        $y = $contentRect.Y + [Math]::Floor($contentRect.Height / 2) - 1
+        $engine.WriteAt($x, $y, $message, $textColor, $bg)
+
+        # Helpful guidance
+        $hint = "Press 'T' to add time entries in Time Tracking screen"
+        $hintX = $contentRect.X + [Math]::Floor(($contentRect.Width - $hint.Length) / 2)
+        $engine.WriteAt($hintX, $y + 2, $hint, $mutedColor, $bg)
+    }
+
+    hidden [void] _RenderReportToEngine([object]$engine) {
+        $contentRect = $this.LayoutManager.GetRegion('Content', $this.TermWidth, $this.TermHeight)
+
+        # Colors
+        $textColor = $this.Header.GetThemedColorInt('Foreground.Field')
+        $highlightColor = $this.Header.GetThemedColorInt('Foreground.FieldFocused')
+        $mutedColor = $this.Header.GetThemedColorInt('Foreground.Muted')
+        $headerColor = $this.Header.GetThemedColorInt('Foreground.Muted')
+        $successColor = $this.Header.GetThemedColorInt('Foreground.Success')
+        $warningColor = $this.Header.GetThemedColorInt('Warning')
+        $bg = $this.Header.GetThemedColorInt('Background.Primary')
+        
         $y = $contentRect.Y + 1
 
         # Title
-        $sb.Append($this.Header.BuildMoveTo($contentRect.X + 4, $y))
-        $sb.Append($highlightColor)
-        $sb.Append("Time Summary by Project")
-        $sb.Append($reset)
+        $engine.WriteAt($contentRect.X + 4, $y, "Time Summary by Project", $highlightColor, $bg)
         $y += 2
 
         # Column headers
         $headerY = $y
-        $sb.Append($this.Header.BuildMoveTo($contentRect.X + 4, $headerY))
-        $sb.Append($headerColor)
-        $sb.Append("PROJECT                     ")
-        $sb.Append("ENTRIES  ")
-        $sb.Append("MINUTES      ")
-        $sb.Append("HOURS")
-        $sb.Append($reset)
+        $headers = "PROJECT                     ENTRIES  MINUTES      HOURS"
+        $engine.WriteAt($contentRect.X + 4, $headerY, $headers, $headerColor, $bg)
         $y++
 
         # Separator line
-        $sb.Append($this.Header.BuildMoveTo($contentRect.X + 2, $y))
-        $sb.Append($mutedColor)
-        for ($i = 0; $i -lt ($contentRect.Width - 4); $i++) {
-            $sb.Append("-")
-        }
-        $sb.Append($reset)
+        $sepLen = $contentRect.Width - 4
+        $engine.WriteAt($contentRect.X + 2, $y, "-" * $sepLen, $mutedColor, $bg)
         $y++
 
         # Project rows
@@ -255,80 +229,49 @@ class TimeReportScreen : PmcScreen {
             $x = $contentRect.X + 4
 
             # Project name
-            $sb.Append($this.Header.BuildMoveTo($x, $y))
-            $sb.Append($textColor)
             $projectName = $summary.Project
             if ($projectName.Length -gt 26) {
                 $projectName = $projectName.Substring(0, 23) + "..."
             }
-            $sb.Append($projectName.PadRight(28))
-            $sb.Append($reset)
+            $engine.WriteAt($x, $y, $projectName.PadRight(28), $textColor, $bg)
             $x += 28
 
             # Entry count
-            $sb.Append($this.Header.BuildMoveTo($x, $y))
-            $sb.Append($mutedColor)
-            $sb.Append($summary.EntryCount.ToString().PadRight(9))
-            $sb.Append($reset)
+            $engine.WriteAt($x, $y, $summary.EntryCount.ToString().PadRight(9), $mutedColor, $bg)
             $x += 9
 
             # Minutes
-            $sb.Append($this.Header.BuildMoveTo($x, $y))
-            $sb.Append($warningColor)
-            $sb.Append($summary.Minutes.ToString().PadRight(13))
-            $sb.Append($reset)
+            $engine.WriteAt($x, $y, $summary.Minutes.ToString().PadRight(13), $warningColor, $bg)
             $x += 13
 
             # Hours
-            $sb.Append($this.Header.BuildMoveTo($x, $y))
-            $sb.Append($successColor)
-            $sb.Append($summary.Hours.ToString("0.00"))
-            $sb.Append($reset)
+            $engine.WriteAt($x, $y, $summary.Hours.ToString("0.00"), $successColor, $bg)
 
             $y++
         }
 
         # Separator line
         $y++
-        $sb.Append($this.Header.BuildMoveTo($contentRect.X + 2, $y))
-        $sb.Append($mutedColor)
-        for ($i = 0; $i -lt ($contentRect.Width - 4); $i++) {
-            $sb.Append("-")
-        }
-        $sb.Append($reset)
+        $engine.WriteAt($contentRect.X + 2, $y, "-" * $sepLen, $mutedColor, $bg)
         $y++
 
         # Total row
         $x = $contentRect.X + 4
-
-        $sb.Append($this.Header.BuildMoveTo($x, $y))
-        $sb.Append($highlightColor)
-        $sb.Append("TOTAL:".PadRight(28))
-        $sb.Append($reset)
+        
+        $engine.WriteAt($x, $y, "TOTAL:".PadRight(28), $highlightColor, $bg)
         $x += 28
 
         # Total entries
         $totalEntries = ($this.ProjectSummaries | Measure-Object -Property EntryCount -Sum).Sum
-        $sb.Append($this.Header.BuildMoveTo($x, $y))
-        $sb.Append($mutedColor)
-        $sb.Append($totalEntries.ToString().PadRight(9))
-        $sb.Append($reset)
+        $engine.WriteAt($x, $y, $totalEntries.ToString().PadRight(9), $mutedColor, $bg)
         $x += 9
 
         # Total minutes
-        $sb.Append($this.Header.BuildMoveTo($x, $y))
-        $sb.Append($warningColor)
-        $sb.Append($this.TotalMinutes.ToString().PadRight(13))
-        $sb.Append($reset)
+        $engine.WriteAt($x, $y, $this.TotalMinutes.ToString().PadRight(13), $warningColor, $bg)
         $x += 13
 
         # Total hours
-        $sb.Append($this.Header.BuildMoveTo($x, $y))
-        $sb.Append($successColor)
-        $sb.Append($this.TotalHours.ToString("0.00"))
-        $sb.Append($reset)
-
-        return $sb.ToString()
+        $engine.WriteAt($x, $y, $this.TotalHours.ToString("0.00"), $successColor, $bg)
     }
 
     [bool] HandleKeyPress([ConsoleKeyInfo]$keyInfo) {

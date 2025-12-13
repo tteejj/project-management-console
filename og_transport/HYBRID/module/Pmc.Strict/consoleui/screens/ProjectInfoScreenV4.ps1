@@ -124,7 +124,8 @@ class ProjectInfoScreenV4 : TabbedScreen {
             if ($this.ProjectData.ContainsKey($key)) {
                 return $this.ProjectData[$key]
             }
-        } elseif ($this.ProjectData.PSObject.Properties[$key]) {
+        }
+        elseif ($this.ProjectData.PSObject.Properties[$key]) {
             return $this.ProjectData.$key
         }
         return $null
@@ -136,109 +137,109 @@ class ProjectInfoScreenV4 : TabbedScreen {
 
         # Tab 1: Identity (removed ProjFolder and CAAName - they're in Files tab)
         $this.TabPanel.AddTab('Identity', @(
-            @{Name='ID1'; Label='ID1'; Value=$this._GetValue('ID1'); Type='text'}
-            @{Name='ID2'; Label='ID2'; Value=$this._GetValue('ID2'); Type='text'}
-        ))
+                @{Name = 'ID1'; Label = 'ID1'; Value = $this._GetValue('ID1'); Type = 'text' }
+                @{Name = 'ID2'; Label = 'ID2'; Value = $this._GetValue('ID2'); Type = 'text' }
+            ))
 
         # Tab 2: Request (removed RequestName and T2020 - they're in Files tab)
         $this.TabPanel.AddTab('Request', @(
-            @{Name='AssignedDate'; Label='Assigned Date'; Value=$this._GetValue('AssignedDate'); Type='date'}
-            @{Name='DueDate'; Label='Due Date'; Value=$this._GetValue('DueDate'); Type='date'}
-            @{Name='BFDate'; Label='BF Date'; Value=$this._GetValue('BFDate'); Type='date'}
-            @{Name='RequestDate'; Label='Request Date'; Value=$this._GetValue('RequestDate'); Type='date'}
-        ))
+                @{Name = 'AssignedDate'; Label = 'Assigned Date'; Value = $this._GetValue('AssignedDate'); Type = 'date' }
+                @{Name = 'DueDate'; Label = 'Due Date'; Value = $this._GetValue('DueDate'); Type = 'date' }
+                @{Name = 'BFDate'; Label = 'BF Date'; Value = $this._GetValue('BFDate'); Type = 'date' }
+                @{Name = 'RequestDate'; Label = 'Request Date'; Value = $this._GetValue('RequestDate'); Type = 'date' }
+            ))
 
         # Tab 3: Audit
         $this.TabPanel.AddTab('Audit', @(
-            @{Name='AuditType'; Label='Audit Type'; Value=$this._GetValue('AuditType'); Type='text'}
-            @{Name='AuditorName'; Label='Auditor Name'; Value=$this._GetValue('AuditorName'); Type='text'}
-            @{Name='AuditorPhone'; Label='Auditor Phone'; Value=$this._GetValue('AuditorPhone'); Type='text'}
-            @{Name='AuditorTL'; Label='Auditor Team Lead'; Value=$this._GetValue('AuditorTL'); Type='text'}
-            @{Name='AuditorTLPhone'; Label='TL Phone'; Value=$this._GetValue('AuditorTLPhone'); Type='text'}
-            @{Name='AuditCase'; Label='Audit Case'; Value=$this._GetValue('AuditCase'); Type='text'}
-            @{Name='CASCase'; Label='CAS Case'; Value=$this._GetValue('CASCase'); Type='text'}
-            @{Name='AuditStartDate'; Label='Audit Start Date'; Value=$this._GetValue('AuditStartDate'); Type='date'}
-        ))
+                @{Name = 'AuditType'; Label = 'Audit Type'; Value = $this._GetValue('AuditType'); Type = 'text' }
+                @{Name = 'AuditorName'; Label = 'Auditor Name'; Value = $this._GetValue('AuditorName'); Type = 'text' }
+                @{Name = 'AuditorPhone'; Label = 'Auditor Phone'; Value = $this._GetValue('AuditorPhone'); Type = 'text' }
+                @{Name = 'AuditorTL'; Label = 'Auditor Team Lead'; Value = $this._GetValue('AuditorTL'); Type = 'text' }
+                @{Name = 'AuditorTLPhone'; Label = 'TL Phone'; Value = $this._GetValue('AuditorTLPhone'); Type = 'text' }
+                @{Name = 'AuditCase'; Label = 'Audit Case'; Value = $this._GetValue('AuditCase'); Type = 'text' }
+                @{Name = 'CASCase'; Label = 'CAS Case'; Value = $this._GetValue('CASCase'); Type = 'text' }
+                @{Name = 'AuditStartDate'; Label = 'Audit Start Date'; Value = $this._GetValue('AuditStartDate'); Type = 'date' }
+            ))
 
         # Tab 4: Location
         $this.TabPanel.AddTab('Location', @(
-            @{Name='TPName'; Label='Third Party Name'; Value=$this._GetValue('TPName'); Type='text'}
-            @{Name='TPNum'; Label='Third Party Number'; Value=$this._GetValue('TPNum'); Type='text'}
-            @{Name='Address'; Label='Address'; Value=$this._GetValue('Address'); Type='text'}
-            @{Name='City'; Label='City'; Value=$this._GetValue('City'); Type='text'}
-            @{Name='Province'; Label='Province'; Value=$this._GetValue('Province'); Type='text'}
-            @{Name='PostalCode'; Label='Postal Code'; Value=$this._GetValue('PostalCode'); Type='text'}
-            @{Name='Country'; Label='Country'; Value=$this._GetValue('Country'); Type='text'}
-        ))
+                @{Name = 'TPName'; Label = 'Third Party Name'; Value = $this._GetValue('TPName'); Type = 'text' }
+                @{Name = 'TPNum'; Label = 'Third Party Number'; Value = $this._GetValue('TPNum'); Type = 'text' }
+                @{Name = 'Address'; Label = 'Address'; Value = $this._GetValue('Address'); Type = 'text' }
+                @{Name = 'City'; Label = 'City'; Value = $this._GetValue('City'); Type = 'text' }
+                @{Name = 'Province'; Label = 'Province'; Value = $this._GetValue('Province'); Type = 'text' }
+                @{Name = 'PostalCode'; Label = 'Postal Code'; Value = $this._GetValue('PostalCode'); Type = 'text' }
+                @{Name = 'Country'; Label = 'Country'; Value = $this._GetValue('Country'); Type = 'text' }
+            ))
 
         # Tab 5: Periods
         $this.TabPanel.AddTab('Periods', @(
-            @{Name='AuditPeriodFrom'; Label='Audit Period From'; Value=$this._GetValue('AuditPeriodFrom'); Type='date'}
-            @{Name='AuditPeriodTo'; Label='Audit Period To'; Value=$this._GetValue('AuditPeriodTo'); Type='date'}
-            @{Name='Period1Start'; Label='Period 1 Start'; Value=$this._GetValue('Period1Start'); Type='date'}
-            @{Name='Period1End'; Label='Period 1 End'; Value=$this._GetValue('Period1End'); Type='date'}
-            @{Name='Period2Start'; Label='Period 2 Start'; Value=$this._GetValue('Period2Start'); Type='date'}
-            @{Name='Period2End'; Label='Period 2 End'; Value=$this._GetValue('Period2End'); Type='date'}
-            @{Name='Period3Start'; Label='Period 3 Start'; Value=$this._GetValue('Period3Start'); Type='date'}
-            @{Name='Period3End'; Label='Period 3 End'; Value=$this._GetValue('Period3End'); Type='date'}
-            @{Name='Period4Start'; Label='Period 4 Start'; Value=$this._GetValue('Period4Start'); Type='date'}
-            @{Name='Period4End'; Label='Period 4 End'; Value=$this._GetValue('Period4End'); Type='date'}
-            @{Name='Period5Start'; Label='Period 5 Start'; Value=$this._GetValue('Period5Start'); Type='date'}
-            @{Name='Period5End'; Label='Period 5 End'; Value=$this._GetValue('Period5End'); Type='date'}
-        ))
+                @{Name = 'AuditPeriodFrom'; Label = 'Audit Period From'; Value = $this._GetValue('AuditPeriodFrom'); Type = 'date' }
+                @{Name = 'AuditPeriodTo'; Label = 'Audit Period To'; Value = $this._GetValue('AuditPeriodTo'); Type = 'date' }
+                @{Name = 'Period1Start'; Label = 'Period 1 Start'; Value = $this._GetValue('Period1Start'); Type = 'date' }
+                @{Name = 'Period1End'; Label = 'Period 1 End'; Value = $this._GetValue('Period1End'); Type = 'date' }
+                @{Name = 'Period2Start'; Label = 'Period 2 Start'; Value = $this._GetValue('Period2Start'); Type = 'date' }
+                @{Name = 'Period2End'; Label = 'Period 2 End'; Value = $this._GetValue('Period2End'); Type = 'date' }
+                @{Name = 'Period3Start'; Label = 'Period 3 Start'; Value = $this._GetValue('Period3Start'); Type = 'date' }
+                @{Name = 'Period3End'; Label = 'Period 3 End'; Value = $this._GetValue('Period3End'); Type = 'date' }
+                @{Name = 'Period4Start'; Label = 'Period 4 Start'; Value = $this._GetValue('Period4Start'); Type = 'date' }
+                @{Name = 'Period4End'; Label = 'Period 4 End'; Value = $this._GetValue('Period4End'); Type = 'date' }
+                @{Name = 'Period5Start'; Label = 'Period 5 Start'; Value = $this._GetValue('Period5Start'); Type = 'date' }
+                @{Name = 'Period5End'; Label = 'Period 5 End'; Value = $this._GetValue('Period5End'); Type = 'date' }
+            ))
 
         # Tab 6: More (Contacts, Software, Misc)
         $this.TabPanel.AddTab('More', @(
-            # Contact 1
-            @{Name='Contact1Name'; Label='Contact 1 Name'; Value=$this._GetValue('Contact1Name'); Type='text'}
-            @{Name='Contact1Title'; Label='Contact 1 Title'; Value=$this._GetValue('Contact1Title'); Type='text'}
-            @{Name='Contact1Phone'; Label='Contact 1 Phone'; Value=$this._GetValue('Contact1Phone'); Type='text'}
-            @{Name='Contact1Email'; Label='Contact 1 Email'; Value=$this._GetValue('Contact1Email'); Type='text'}
-            @{Name='Contact1Fax'; Label='Contact 1 Fax'; Value=$this._GetValue('Contact1Fax'); Type='text'}
-            # Contact 2
-            @{Name='Contact2Name'; Label='Contact 2 Name'; Value=$this._GetValue('Contact2Name'); Type='text'}
-            @{Name='Contact2Title'; Label='Contact 2 Title'; Value=$this._GetValue('Contact2Title'); Type='text'}
-            @{Name='Contact2Phone'; Label='Contact 2 Phone'; Value=$this._GetValue('Contact2Phone'); Type='text'}
-            @{Name='Contact2Email'; Label='Contact 2 Email'; Value=$this._GetValue('Contact2Email'); Type='text'}
-            @{Name='Contact2Fax'; Label='Contact 2 Fax'; Value=$this._GetValue('Contact2Fax'); Type='text'}
-            # Software 1
-            @{Name='Software1Name'; Label='Software 1 Name'; Value=$this._GetValue('Software1Name'); Type='text'}
-            @{Name='Software1Version'; Label='Software 1 Version'; Value=$this._GetValue('Software1Version'); Type='text'}
-            @{Name='Software1Vendor'; Label='Software 1 Vendor'; Value=$this._GetValue('Software1Vendor'); Type='text'}
-            # Software 2
-            @{Name='Software2Name'; Label='Software 2 Name'; Value=$this._GetValue('Software2Name'); Type='text'}
-            @{Name='Software2Version'; Label='Software 2 Version'; Value=$this._GetValue('Software2Version'); Type='text'}
-            @{Name='Software2Vendor'; Label='Software 2 Vendor'; Value=$this._GetValue('Software2Vendor'); Type='text'}
-            # Misc
-            @{Name='AuditProgram'; Label='Audit Program'; Value=$this._GetValue('AuditProgram'); Type='text'}
-            @{Name='Comments'; Label='Comments'; Value=$this._GetValue('Comments'); Type='text'}
-            @{Name='FXInfo'; Label='FX Info'; Value=$this._GetValue('FXInfo'); Type='text'}
-            @{Name='ShipToAddress'; Label='Ship To Address'; Value=$this._GetValue('ShipToAddress'); Type='text'}
-        ))
+                # Contact 1
+                @{Name = 'Contact1Name'; Label = 'Contact 1 Name'; Value = $this._GetValue('Contact1Name'); Type = 'text' }
+                @{Name = 'Contact1Title'; Label = 'Contact 1 Title'; Value = $this._GetValue('Contact1Title'); Type = 'text' }
+                @{Name = 'Contact1Phone'; Label = 'Contact 1 Phone'; Value = $this._GetValue('Contact1Phone'); Type = 'text' }
+                @{Name = 'Contact1Email'; Label = 'Contact 1 Email'; Value = $this._GetValue('Contact1Email'); Type = 'text' }
+                @{Name = 'Contact1Fax'; Label = 'Contact 1 Fax'; Value = $this._GetValue('Contact1Fax'); Type = 'text' }
+                # Contact 2
+                @{Name = 'Contact2Name'; Label = 'Contact 2 Name'; Value = $this._GetValue('Contact2Name'); Type = 'text' }
+                @{Name = 'Contact2Title'; Label = 'Contact 2 Title'; Value = $this._GetValue('Contact2Title'); Type = 'text' }
+                @{Name = 'Contact2Phone'; Label = 'Contact 2 Phone'; Value = $this._GetValue('Contact2Phone'); Type = 'text' }
+                @{Name = 'Contact2Email'; Label = 'Contact 2 Email'; Value = $this._GetValue('Contact2Email'); Type = 'text' }
+                @{Name = 'Contact2Fax'; Label = 'Contact 2 Fax'; Value = $this._GetValue('Contact2Fax'); Type = 'text' }
+                # Software 1
+                @{Name = 'Software1Name'; Label = 'Software 1 Name'; Value = $this._GetValue('Software1Name'); Type = 'text' }
+                @{Name = 'Software1Version'; Label = 'Software 1 Version'; Value = $this._GetValue('Software1Version'); Type = 'text' }
+                @{Name = 'Software1Vendor'; Label = 'Software 1 Vendor'; Value = $this._GetValue('Software1Vendor'); Type = 'text' }
+                # Software 2
+                @{Name = 'Software2Name'; Label = 'Software 2 Name'; Value = $this._GetValue('Software2Name'); Type = 'text' }
+                @{Name = 'Software2Version'; Label = 'Software 2 Version'; Value = $this._GetValue('Software2Version'); Type = 'text' }
+                @{Name = 'Software2Vendor'; Label = 'Software 2 Vendor'; Value = $this._GetValue('Software2Vendor'); Type = 'text' }
+                # Misc
+                @{Name = 'AuditProgram'; Label = 'Audit Program'; Value = $this._GetValue('AuditProgram'); Type = 'text' }
+                @{Name = 'Comments'; Label = 'Comments'; Value = $this._GetValue('Comments'); Type = 'text' }
+                @{Name = 'FXInfo'; Label = 'FX Info'; Value = $this._GetValue('FXInfo'); Type = 'text' }
+                @{Name = 'ShipToAddress'; Label = 'Ship To Address'; Value = $this._GetValue('ShipToAddress'); Type = 'text' }
+            ))
 
         # Tab 7: Files (Notes, Checklists, Project Files)
         $this.TabPanel.AddTab('Files', @(
-            @{Name='_action_notes'; Label='> Notes'; Value='View and manage project notes'; Type='readonly'; IsAction=$true}
-            @{Name='_action_assign_note'; Label='> Assign Note'; Value='Assign existing note to project'; Type='readonly'; IsAction=$true}
-            @{Name='_action_checklists'; Label='> Checklists'; Value='View and manage project checklists'; Type='readonly'; IsAction=$true}
-            @{Name='_action_assign_checklist'; Label='> Assign Checklist'; Value='Assign existing checklist to project'; Type='readonly'; IsAction=$true}
-            @{Name='_separator1'; Label='--- Project Files ---'; Value=''; Type='readonly'}
-            @{Name='T2020'; Label='T2020 File'; Value=$this._GetValue('T2020'); Type='text'; Hint='Path to T2020 file (press B to browse)'}
-            @{Name='_action_t2020_browse'; Label='> Browse T2020'; Value='Select file'; Type='readonly'; IsAction=$true}
-            @{Name='_action_t2020_open'; Label='> Open T2020'; Value='Open in Notepad'; Type='readonly'; IsAction=$true}
-            @{Name='_separator2'; Label=''; Value=''; Type='readonly'}
-            @{Name='CAAName'; Label='CAA File'; Value=$this._GetValue('CAAName'); Type='text'; Hint='Path to CAA file (press B to browse)'}
-            @{Name='_action_caa_browse'; Label='> Browse CAA'; Value='Select file'; Type='readonly'; IsAction=$true}
-            @{Name='_action_caa_open'; Label='> Open CAA'; Value='Open in Excel'; Type='readonly'; IsAction=$true}
-            @{Name='_separator3'; Label=''; Value=''; Type='readonly'}
-            @{Name='RequestName'; Label='Request File'; Value=$this._GetValue('RequestName'); Type='text'; Hint='Path to Request file (press B to browse)'}
-            @{Name='_action_request_browse'; Label='> Browse Request'; Value='Select file'; Type='readonly'; IsAction=$true}
-            @{Name='_action_request_open'; Label='> Open Request'; Value='Open in Excel'; Type='readonly'; IsAction=$true}
-            @{Name='_separator4'; Label=''; Value=''; Type='readonly'}
-            @{Name='ProjFolder'; Label='Project Folder'; Value=$this._GetValue('ProjFolder'); Type='text'; Hint='Path to project folder (press B to browse)'}
-            @{Name='_action_folder_browse'; Label='> Browse Folder'; Value='Select folder'; Type='readonly'; IsAction=$true}
-            @{Name='_action_folder_open'; Label='> Open Folder'; Value='Open in File Explorer'; Type='readonly'; IsAction=$true}
-        ))
+                @{Name = '_action_notes'; Label = '> Notes'; Value = 'View and manage project notes'; Type = 'readonly'; IsAction = $true }
+                @{Name = '_action_assign_note'; Label = '> Assign Note'; Value = 'Assign existing note to project'; Type = 'readonly'; IsAction = $true }
+                @{Name = '_action_checklists'; Label = '> Checklists'; Value = 'View and manage project checklists'; Type = 'readonly'; IsAction = $true }
+                @{Name = '_action_assign_checklist'; Label = '> Assign Checklist'; Value = 'Assign existing checklist to project'; Type = 'readonly'; IsAction = $true }
+                @{Name = '_separator1'; Label = '--- Project Files ---'; Value = ''; Type = 'readonly' }
+                @{Name = 'T2020'; Label = 'T2020 File'; Value = $this._GetValue('T2020'); Type = 'text'; Hint = 'Path to T2020 file (press B to browse)' }
+                @{Name = '_action_t2020_browse'; Label = '> Browse T2020'; Value = 'Select file'; Type = 'readonly'; IsAction = $true }
+                @{Name = '_action_t2020_open'; Label = '> Open T2020'; Value = 'Open in Notepad'; Type = 'readonly'; IsAction = $true }
+                @{Name = '_separator2'; Label = ''; Value = ''; Type = 'readonly' }
+                @{Name = 'CAAName'; Label = 'CAA File'; Value = $this._GetValue('CAAName'); Type = 'text'; Hint = 'Path to CAA file (press B to browse)' }
+                @{Name = '_action_caa_browse'; Label = '> Browse CAA'; Value = 'Select file'; Type = 'readonly'; IsAction = $true }
+                @{Name = '_action_caa_open'; Label = '> Open CAA'; Value = 'Open in Excel'; Type = 'readonly'; IsAction = $true }
+                @{Name = '_separator3'; Label = ''; Value = ''; Type = 'readonly' }
+                @{Name = 'RequestName'; Label = 'Request File'; Value = $this._GetValue('RequestName'); Type = 'text'; Hint = 'Path to Request file (press B to browse)' }
+                @{Name = '_action_request_browse'; Label = '> Browse Request'; Value = 'Select file'; Type = 'readonly'; IsAction = $true }
+                @{Name = '_action_request_open'; Label = '> Open Request'; Value = 'Open in Excel'; Type = 'readonly'; IsAction = $true }
+                @{Name = '_separator4'; Label = ''; Value = ''; Type = 'readonly' }
+                @{Name = 'ProjFolder'; Label = 'Project Folder'; Value = $this._GetValue('ProjFolder'); Type = 'text'; Hint = 'Path to project folder (press B to browse)' }
+                @{Name = '_action_folder_browse'; Label = '> Browse Folder'; Value = 'Select folder'; Type = 'readonly'; IsAction = $true }
+                @{Name = '_action_folder_open'; Label = '> Open Folder'; Value = 'Open in File Explorer'; Type = 'readonly'; IsAction = $true }
+            ))
     }
 
     # === Saving ===
@@ -293,13 +294,16 @@ class ProjectInfoScreenV4 : TabbedScreen {
                         $savedProject = $fileContent.projects | Where-Object { $_.name -eq $this.ProjectName } | Select-Object -First 1
                         if ($savedProject) {
                             # Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ProjectInfoScreenV4.SaveChanges: File verification SUCCESS - project found, ID1='$($savedProject.ID1)'"
-                        } else {
+                        }
+                        else {
                             # Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ProjectInfoScreenV4.SaveChanges: File verification FAILED - PROJECT NOT FOUND (projects count=$($fileContent.projects.Count))"
                         }
-                    } catch {
+                    }
+                    catch {
                         # Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ProjectInfoScreenV4.SaveChanges: File verification ERROR - $_"
                     }
-                } else {
+                }
+                else {
                     # Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ProjectInfoScreenV4.SaveChanges: File verification FAILED - FILE DOES NOT EXIST at $taskFile"
                 }
             }
@@ -311,7 +315,8 @@ class ProjectInfoScreenV4 : TabbedScreen {
             if ($global:PmcTuiLogFile) {
                 # Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ProjectInfoScreenV4.SaveChanges: SUCCESS - persisted to disk"
             }
-        } else {
+        }
+        else {
             if ($this.StatusBar) {
                 $this.StatusBar.SetRightText("Save failed: $($this.Store.LastError)")
             }
@@ -440,27 +445,33 @@ class ProjectInfoScreenV4 : TabbedScreen {
             if ($app -eq 'notepad') {
                 if ($isWin) {
                     Start-Process notepad.exe -ArgumentList $path
-                } else {
+                }
+                else {
                     Start-Process xdg-open -ArgumentList $path
                 }
-            } elseif ($app -eq 'excel') {
+            }
+            elseif ($app -eq 'excel') {
                 if ($isWin) {
                     # Try to find Excel
                     if (Get-Command excel.exe -ErrorAction SilentlyContinue) {
                         Start-Process excel.exe -ArgumentList $path
-                    } else {
+                    }
+                    else {
                         # Fallback to default handler
                         Start-Process $path
                     }
-                } else {
+                }
+                else {
                     # Try LibreOffice Calc or default handler
                     if (Get-Command libreoffice -ErrorAction SilentlyContinue) {
                         Start-Process libreoffice -ArgumentList "--calc", $path
-                    } else {
+                    }
+                    else {
                         Start-Process xdg-open -ArgumentList $path
                     }
                 }
-            } else {
+            }
+            else {
                 # Default handler
                 Start-Process $path
             }
@@ -468,7 +479,8 @@ class ProjectInfoScreenV4 : TabbedScreen {
             if ($this.StatusBar) {
                 $this.StatusBar.SetRightText("Opened: $path")
             }
-        } catch {
+        }
+        catch {
             if ($this.StatusBar) {
                 $this.StatusBar.SetRightText("Error opening file: $($_.Exception.Message)")
             }
@@ -495,14 +507,16 @@ class ProjectInfoScreenV4 : TabbedScreen {
 
             if ($isWin) {
                 Start-Process explorer.exe -ArgumentList $path
-            } else {
+            }
+            else {
                 Start-Process xdg-open -ArgumentList $path
             }
 
             if ($this.StatusBar) {
                 $this.StatusBar.SetRightText("Opened folder: $path")
             }
-        } catch {
+        }
+        catch {
             if ($this.StatusBar) {
                 $this.StatusBar.SetRightText("Error opening folder: $($_.Exception.Message)")
             }
@@ -534,9 +548,9 @@ class ProjectInfoScreenV4 : TabbedScreen {
             param($noteId)
             # Reassign the note to this project
             $noteService.UpdateNoteMetadata($noteId, @{
-                owner_type = "project"
-                owner_id = $self.ProjectName
-            })
+                    owner_type = "project"
+                    owner_id   = $self.ProjectName
+                })
 
             if ($self.StatusBar) {
                 $self.StatusBar.SetRightText("Note assigned to project: $($self.ProjectName)")
@@ -582,16 +596,30 @@ class ProjectInfoScreenV4 : TabbedScreen {
     }
 
     # === Rendering Override ===
-    [string] RenderContent() {
+    [void] RenderContentToEngine([object]$engine) {
         # Render base tabbed screen
-        $output = ([TabbedScreen]$this).RenderContent()
+        # This renders tabs and potentially the inline editor (Layer 10)
+        ([TabbedScreen]$this).RenderContentToEngine($engine)
 
         # Overlay file picker if showing
         if ($this.ShowFilePicker -and $null -ne $this.FilePicker) {
-            $output += $this.FilePicker.Render($this.TermWidth, $this.TermHeight)
+            # Use Layer 20 to ensure it's on top of everything (tabs + inline editor)
+            if ($engine.PSObject.Methods['BeginLayer']) {
+                $engine.BeginLayer(20)
+            }
+            
+            # Position picker centered or as configured
+            # SimpleFilePicker has its own X/Y/Width/Height
+            
+            # Ensure it has RenderToEngine
+            if ($this.FilePicker.PSObject.Methods['RenderToEngine']) {
+                $this.FilePicker.RenderToEngine($engine)
+            }
+            
+            if ($engine.PSObject.Methods['EndLayer']) {
+                $engine.EndLayer()
+            }
         }
-
-        return $output
     }
 
     # === Input Override ===
@@ -635,7 +663,8 @@ class ProjectInfoScreenV4 : TabbedScreen {
                         if ($this.StatusBar) {
                             $this.StatusBar.SetRightText("Selected and saved: $selectedPath")
                         }
-                    } catch {
+                    }
+                    catch {
                         if ($this.StatusBar) {
                             $this.StatusBar.SetRightText("Selected but save failed: $_")
                         }
@@ -643,7 +672,8 @@ class ProjectInfoScreenV4 : TabbedScreen {
                             # Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ProjectInfoScreenV4: SaveChanges failed - $_"
                         }
                     }
-                } else {
+                }
+                else {
                     if ($global:PmcTuiLogFile) {
                         # Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ProjectInfoScreenV4: File picker cancelled"
                     }

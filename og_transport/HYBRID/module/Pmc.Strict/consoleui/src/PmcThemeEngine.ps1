@@ -53,16 +53,19 @@ class PmcThemeEngine {
         if ($themeConfig.ContainsKey('Palette')) {
             $this._palette = $themeConfig.Palette
             # PERF: Disabled - Add-Content -Path "$($env:TEMP)\pmc-theme-engine-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') LoadFromConfig: Loaded Palette with $($this._palette.Count) colors"
-        } else {
+        }
+        else {
             # PERF: Disabled - Add-Content -Path "$($env:TEMP)\pmc-theme-engine-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') LoadFromConfig: NO Palette in config"
         }
 
         if ($themeConfig.ContainsKey('Properties')) {
             $this._properties = $themeConfig.Properties
-            # PERF: Disabled - Add-Content -Path "$($env:TEMP)\pmc-theme-engine-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') LoadFromConfig: Loaded Properties with $($this._properties.Count) items"
+            # DEBUG ENABLED
+            Write-PmcTuiLog "LoadFromConfig: Loaded Properties with $($this._properties.Count) items" "INFO"
             $propKeys = ($this._properties.Keys | Sort-Object) -join ', '
             # PERF: Disabled - Add-Content -Path "$($env:TEMP)\pmc-theme-engine-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') LoadFromConfig: Property keys: [$propKeys]"
-        } else {
+        }
+        else {
             # Default properties if not defined
             # PERF: Disabled - Add-Content -Path "$($env:TEMP)\pmc-theme-engine-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') LoadFromConfig: NO Properties in config, initializing defaults"
             $this._InitializeDefaultProperties()
@@ -79,12 +82,14 @@ class PmcThemeEngine {
     [string] GetBackgroundAnsi([string]$propertyName, [int]$width, [int]$charIndex) {
         # CRITICAL DEBUG: Log property lookup
         $debugMsg = "GetBackgroundAnsi: propertyName='$propertyName' _properties.Count=$($this._properties.Count) ContainsKey=$($this._properties.ContainsKey($propertyName))"
-        # PERF: Disabled - Add-Content -Path "$($env:TEMP)\pmc-theme-engine-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') $debugMsg"
+        # DEBUG ENABLED
+        if (-not $this._properties.ContainsKey($propertyName)) {
+            Write-PmcTuiLog "GetBackgroundAnsi: MISSING '$propertyName'. Keys: $(($this._properties.Keys | Select-Object -First 5) -join ',')" "WARN"
+        }
 
         if ($this._properties.Count -eq 0) {
-            # PERF: Disabled - Add-Content -Path "$($env:TEMP)\pmc-theme-engine-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') ERROR: _properties is EMPTY! Initializing defaults..."
-            $this._InitializeDefaultProperties()
-            # PERF: Disabled - Add-Content -Path "$($env:TEMP)\pmc-theme-engine-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Defaults initialized, _properties.Count=$($this._properties.Count)"
+            # FAIL FAST: Do not load defaults
+            # $this._InitializeDefaultProperties()
         }
 
         if (-not $this._properties.ContainsKey($propertyName)) {
@@ -112,30 +117,68 @@ class PmcThemeEngine {
 
     # Get foreground ANSI - usually solid
     [string] GetForegroundAnsi([string]$propertyName) {
-        # CRITICAL DEBUG: Log property lookup
-        $debugMsg = "GetForegroundAnsi: propertyName='$propertyName' _properties.Count=$($this._properties.Count) ContainsKey=$($this._properties.ContainsKey($propertyName))"
-        # PERF: Disabled - Add-Content -Path "$($env:TEMP)\pmc-theme-engine-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') $debugMsg"
-
         if ($this._properties.Count -eq 0) {
-            # PERF: Disabled - Add-Content -Path "$($env:TEMP)\pmc-theme-engine-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') ERROR: _properties is EMPTY! Initializing defaults..."
-            $this._InitializeDefaultProperties()
-            # PERF: Disabled - Add-Content -Path "$($env:TEMP)\pmc-theme-engine-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') Defaults initialized, _properties.Count=$($this._properties.Count)"
+            # FAIL FAST
+            # $this._InitializeDefaultProperties()
         }
 
         if (-not $this._properties.ContainsKey($propertyName)) {
-            # Log all available keys for debugging
-            $availableKeys = ($this._properties.Keys | Sort-Object) -join ', '
-            # PERF: Disabled - Add-Content -Path "$($env:TEMP)\pmc-theme-engine-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') PROPERTY NOT FOUND: '$propertyName' - Available: [$availableKeys]"
+            # DEBUG: Log missing property
+            Write-PmcTuiLog "MISSING THEME PROPERTY: $propertyName" "ERROR"
             return ''
         }
 
         $prop = $this._properties[$propertyName]
 
         if ($prop.Type -eq 'Solid') {
-            return $this._GetSolidAnsiCached($prop.Color, $false)
+            $ansi = $this._GetSolidAnsiCached($prop.Color, $false)
+            # DEBUG
+            if ([string]::IsNullOrEmpty($ansi)) {
+                # Write-Host "THEME SOLID FAILED: $propertyName -> $($prop.Color)" -ForegroundColor Red
+            }
+            return $ansi
         }
 
         return ''
+    }
+
+    # Get integer color value for HybridRenderEngine
+    # Returns packed RGB int (0x00RRGGBB)
+    [int] GetThemeColorInt([string]$propertyName) {
+        if (-not $this._properties.ContainsKey($propertyName)) {
+            Write-PmcTuiLog "GetThemeColorInt: Property '$propertyName' not found" "ERROR"
+            return 0
+        }
+
+        $prop = $this._properties[$propertyName]
+        $hex = ""
+        
+        if ($prop.Type -eq 'Solid') {
+            $hex = $prop.Color
+        }
+        elseif ($prop.Type -eq 'Gradient') {
+            # Use first stop color for gradient fallback
+            if ($prop.Stops -and $prop.Stops.Count -gt 0) {
+                $hex = $prop.Stops[0].Color
+            }
+        }
+
+        if ([string]::IsNullOrEmpty($hex)) { return 0 }
+
+        $hex = $hex.TrimStart('#')
+        if ($hex.Length -ne 6) { return 0 }
+
+        try {
+            $r = [Convert]::ToInt32($hex.Substring(0, 2), 16)
+            $g = [Convert]::ToInt32($hex.Substring(2, 2), 16)
+            $b = [Convert]::ToInt32($hex.Substring(4, 2), 16)
+            
+            # Pack RGB: (R << 16) | (G << 8) | B
+            return ($r -shl 16) -bor ($g -shl 8) -bor $b
+        }
+        catch {
+            return 0
+        }
     }
 
     # Cached solid color ANSI
@@ -186,10 +229,11 @@ class PmcThemeEngine {
 
             # Local interpolation between the two stops
             $localRatio = $(if ($afterStop.Position -eq $beforeStop.Position) {
-                0.0
-            } else {
-                ($ratio - $beforeStop.Position) / ($afterStop.Position - $beforeStop.Position)
-            })
+                    0.0
+                }
+                else {
+                    ($ratio - $beforeStop.Position) / ($afterStop.Position - $beforeStop.Position)
+                })
 
             $color = $this._InterpolateColor($beforeStop.Color, $afterStop.Color, $localRatio)
             $result.Add($this._ColorToAnsi($color, $background))
@@ -233,10 +277,14 @@ class PmcThemeEngine {
 
             if ($background) {
                 return "`e[48;2;${r};${g};${b}m"
-            } else {
+            }
+            else {
                 return "`e[38;2;${r};${g};${b}m"
             }
-        } catch {
+        }
+        catch {
+            # DEBUG
+            Write-Host "ANSI CONVERSION FAILED: '$hex' - $_" -ForegroundColor Red
             return ''
         }
     }
@@ -245,64 +293,71 @@ class PmcThemeEngine {
     hidden [void] _InitializeDefaultProperties() {
         # Get theme hex from palette or use default
         $primaryHex = $(if ($this._palette.ContainsKey('Primary')) {
-            $this._palette.Primary
-        } else {
-            '#ff8833'
-        })
+                $this._palette.Primary
+            }
+            else {
+                '#ff8833'
+            })
 
         $textHex = $(if ($this._palette.ContainsKey('Text')) {
-            $this._palette.Text
-        } else {
-            '#ffe8c8'
-        })
+                $this._palette.Text
+            }
+            else {
+                '#ffe8c8'
+            })
 
         $mutedHex = $(if ($this._palette.ContainsKey('TextDim')) {
-            $this._palette.TextDim
-        } else {
-            '#888888'
-        })
+                $this._palette.TextDim
+            }
+            else {
+                '#888888'
+            })
 
         $warningHex = $(if ($this._palette.ContainsKey('Warning')) {
-            $this._palette.Warning
-        } else {
-            '#ffaa00'
-        })
+                $this._palette.Warning
+            }
+            else {
+                '#ffaa00'
+            })
 
         $errorHex = $(if ($this._palette.ContainsKey('Error')) {
-            $this._palette.Error
-        } else {
-            '#ff3333'
-        })
+                $this._palette.Error
+            }
+            else {
+                '#ff3333'
+            })
 
         $successHex = $(if ($this._palette.ContainsKey('Success')) {
-            $this._palette.Success
-        } else {
-            '#33ff33'
-        })
+                $this._palette.Success
+            }
+            else {
+                '#33ff33'
+            })
 
         $borderHex = $(if ($this._palette.ContainsKey('Border')) {
-            $this._palette.Border
-        } else {
-            '#b25f24'
-        })
+                $this._palette.Border
+            }
+            else {
+                '#b25f24'
+            })
 
         $this._properties = @{
-            'Background.Field'          = @{ Type = 'Solid'; Color = '#000000' }
-            'Background.FieldFocused'   = @{ Type = 'Solid'; Color = $primaryHex }
-            'Background.Row'            = @{ Type = 'Solid'; Color = '#000000' }
-            'Background.RowSelected'    = @{ Type = 'Solid'; Color = $primaryHex }
-            'Background.Warning'        = @{ Type = 'Solid'; Color = $warningHex }
-            'Background.MenuBar'        = @{ Type = 'Solid'; Color = $borderHex }
-            'Foreground.Field'          = @{ Type = 'Solid'; Color = $textHex }
-            'Foreground.FieldFocused'   = @{ Type = 'Solid'; Color = '#FFFFFF' }
-            'Foreground.Row'            = @{ Type = 'Solid'; Color = $textHex }
-            'Foreground.RowSelected'    = @{ Type = 'Solid'; Color = '#FFFFFF' }
-            'Foreground.Title'          = @{ Type = 'Solid'; Color = $primaryHex }
-            'Foreground.Muted'          = @{ Type = 'Solid'; Color = $mutedHex }
-            'Foreground.Warning'        = @{ Type = 'Solid'; Color = $warningHex }
-            'Foreground.Error'          = @{ Type = 'Solid'; Color = $errorHex }
-            'Foreground.Success'        = @{ Type = 'Solid'; Color = $successHex }
-            'Border.Widget'             = @{ Type = 'Solid'; Color = $borderHex }
+            'Background.Field'        = @{ Type = 'Solid'; Color = '#000000' }
+            'Background.FieldFocused' = @{ Type = 'Solid'; Color = $primaryHex }
+            'Background.Row'          = @{ Type = 'Solid'; Color = '#000000' }
+            'Background.RowSelected'  = @{ Type = 'Solid'; Color = $primaryHex }
+            'Background.Warning'      = @{ Type = 'Solid'; Color = $warningHex }
+            'Background.MenuBar'      = @{ Type = 'Solid'; Color = $borderHex }
+            'Foreground.Field'        = @{ Type = 'Solid'; Color = $textHex }
+            'Foreground.FieldFocused' = @{ Type = 'Solid'; Color = '#FFFFFF' }
+            'Foreground.Row'          = @{ Type = 'Solid'; Color = $textHex }
+            'Foreground.RowSelected'  = @{ Type = 'Solid'; Color = '#FFFFFF' }
+            'Foreground.Title'        = @{ Type = 'Solid'; Color = $primaryHex }
+            'Foreground.Muted'        = @{ Type = 'Solid'; Color = $mutedHex }
+            'Foreground.Warning'      = @{ Type = 'Solid'; Color = $warningHex }
+            'Foreground.Error'        = @{ Type = 'Solid'; Color = $errorHex }
+            'Foreground.Success'      = @{ Type = 'Solid'; Color = $successHex }
+            'Border.Widget'           = @{ Type = 'Solid'; Color = $borderHex }
         }
     }
 

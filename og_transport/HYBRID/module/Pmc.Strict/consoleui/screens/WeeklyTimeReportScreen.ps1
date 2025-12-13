@@ -42,9 +42,9 @@ class WeeklyTimeReportScreen : PmcScreen {
     # Static: Register menu items
     static [void] RegisterMenuItems([object]$registry) {
         $registry.AddMenuItem('Time', 'Weekly Report', 'W', {
-            . "$PSScriptRoot/WeeklyTimeReportScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object -TypeName WeeklyTimeReportScreen))
-        }, 10)
+                . "$PSScriptRoot/WeeklyTimeReportScreen.ps1"
+                $global:PmcApp.PushScreen((New-Object -TypeName WeeklyTimeReportScreen))
+            }, 10)
     }
 
     # Constructor
@@ -111,11 +111,13 @@ class WeeklyTimeReportScreen : PmcScreen {
             # Add indicator for current/past/future week
             if ($this.WeekOffset -eq 0) {
                 $this.WeekIndicator = ' (This Week)'
-            } elseif ($this.WeekOffset -lt 0) {
+            }
+            elseif ($this.WeekOffset -lt 0) {
                 $weeks = [Math]::Abs($this.WeekOffset)
                 $plural = $(if ($weeks -gt 1) { 's' } else { '' })
                 $this.WeekIndicator = " ($weeks week$plural ago)"
-            } else {
+            }
+            else {
                 $plural = $(if ($this.WeekOffset -gt 1) { 's' } else { '' })
                 $this.WeekIndicator = " ($($this.WeekOffset) week$plural from now)"
             }
@@ -129,10 +131,11 @@ class WeeklyTimeReportScreen : PmcScreen {
                 $dayDate = $this.WeekStart.AddDays($d).ToString('yyyy-MM-dd')
                 $dayLogs = $logs | Where-Object {
                     $dateStr = $(if ($_.date -is [DateTime]) {
-                        $_.date.ToString('yyyy-MM-dd')
-                    } else {
-                        $_.date
-                    })
+                            $_.date.ToString('yyyy-MM-dd')
+                        }
+                        else {
+                            $_.date
+                        })
                     $dateStr -eq $dayDate
                 }
                 $weekLogs += $dayLogs
@@ -147,7 +150,8 @@ class WeeklyTimeReportScreen : PmcScreen {
                 $key = ''
                 if ($log.ContainsKey('id1') -and $log.id1) {
                     $key = "#$($log.id1)"
-                } else {
+                }
+                else {
                     $name = $(if ($log.ContainsKey('project')) { $log.project } else { '' })
                     if (-not $name) { $name = 'Unknown' }
                     $key = $name
@@ -161,22 +165,23 @@ class WeeklyTimeReportScreen : PmcScreen {
                         $id1 = $log.id1
                         $name = $(if ($log.ContainsKey('project')) { $log.project } else { '' })
                         if (-not $name) { $name = '' }
-                    } else {
+                    }
+                    else {
                         $name = $(if ($log.ContainsKey('project')) { $log.project } else { '' })
                         if (-not $name) { $name = 'Unknown' }
                     }
 
                     # TS-M4/TS-M5 FIX: Include Sat/Sun columns
                     $this.ProjectSummaries[$key] = @{
-                        Name = $name
-                        ID1 = $id1
-                        Mon = 0.0
-                        Tue = 0.0
-                        Wed = 0.0
-                        Thu = 0.0
-                        Fri = 0.0
-                        Sat = 0.0
-                        Sun = 0.0
+                        Name  = $name
+                        ID1   = $id1
+                        Mon   = 0.0
+                        Tue   = 0.0
+                        Wed   = 0.0
+                        Thu   = 0.0
+                        Fri   = 0.0
+                        Sat   = 0.0
+                        Sun   = 0.0
                         Total = 0.0
                     }
                 }
@@ -190,11 +195,13 @@ class WeeklyTimeReportScreen : PmcScreen {
                 $logDate = $null
                 try {
                     $logDate = $(if ($log.date -is [DateTime]) {
-                        $log.date
-                    } else {
-                        [datetime]::Parse($log.date)
-                    })
-                } catch {
+                            $log.date
+                        }
+                        else {
+                            [datetime]::Parse($log.date)
+                        })
+                }
+                catch {
                     Write-PmcTuiLog "WeeklyTimeReportScreen: Failed to parse date '$($log.date)': $_" "WARNING"
                     continue  # Skip this log entry
                 }
@@ -226,108 +233,86 @@ class WeeklyTimeReportScreen : PmcScreen {
             # Update status
             if ($weekLogs.Count -eq 0) {
                 $this.ShowStatus("No time entries for this week")
-            } else {
+            }
+            else {
                 $this.ShowStatus("$($this.ProjectSummaries.Count) projects, $($this.GrandTotal.ToString('0.0')) hours total")
             }
 
-        } catch {
+        }
+        catch {
             $this.ShowError("Failed to load weekly time report: $_")
             $this.ProjectSummaries = @{}
             $this.GrandTotal = 0
         }
     }
 
-    [string] RenderContent() {
+    [void] RenderContentToEngine([object]$engine) {
+        if (-not $this.LayoutManager) { return }
+
         if ($this.ProjectSummaries.Count -eq 0) {
-            return $this._RenderEmptyState()
+            $this._RenderEmptyStateToEngine($engine)
         }
-
-        return $this._RenderReport()
+        else {
+            $this._RenderReportToEngine($engine)
+        }
     }
+    
+    [string] RenderContent() { return "" }
 
-    hidden [string] _RenderEmptyState() {
-        $sb = [System.Text.StringBuilder]::new(512)
-
-        # Get content area
-        if ($this.LayoutManager) {
-            $contentRect = $this.LayoutManager.GetRegion('Content', $this.TermWidth, $this.TermHeight)
-
-            # Colors
-            $textColor = $this.Header.GetThemedFg('Foreground.Field')
-            $highlightColor = $this.Header.GetThemedFg('Foreground.FieldFocused')
-            $reset = "`e[0m"
-
-            # Week header
-            $y = $contentRect.Y + 2
-            $sb.Append($this.Header.BuildMoveTo($contentRect.X + 4, $y))
-            $sb.Append($highlightColor)
-            $sb.Append($this.WeekHeader)
-            $sb.Append($this.WeekIndicator)
-            $sb.Append($reset)
-            $y += 2
-
-            # No entries message
-            $message = "No time entries for this week"
-            $x = $contentRect.X + 4
-            $sb.Append($this.Header.BuildMoveTo($x, $y))
-            $sb.Append($textColor)
-            $sb.Append($message)
-            $sb.Append($reset)
-        }
-
-        return $sb.ToString()
-    }
-
-    hidden [string] _RenderReport() {
-        $sb = [System.Text.StringBuilder]::new(4096)
-
-        if (-not $this.LayoutManager) {
-            return $sb.ToString()
-        }
-
-        # Get content area
+    hidden [void] _RenderEmptyStateToEngine([object]$engine) {
         $contentRect = $this.LayoutManager.GetRegion('Content', $this.TermWidth, $this.TermHeight)
 
         # Colors
-        $textColor = $this.Header.GetThemedFg('Foreground.Field')
-        $highlightColor = $this.Header.GetThemedFg('Foreground.FieldFocused')
-        $mutedColor = $this.Header.GetThemedFg('Foreground.Muted')
-        $headerColor = $this.Header.GetThemedFg('Foreground.Muted')
-        $successColor = $this.Header.GetThemedFg('Foreground.Success')
-        $warningColor = $this.Header.GetThemedFg('Foreground.Error')
-        $reset = "`e[0m"
+        $textColor = $this.Header.GetThemedColorInt('Foreground.Field')
+        $highlightColor = $this.Header.GetThemedColorInt('Foreground.FieldFocused')
+        $bg = $this.Header.GetThemedColorInt('Background.Primary')
 
+        # Week header
+        $y = $contentRect.Y + 2
+        
+        $headerText = "$($this.WeekHeader)$($this.WeekIndicator)"
+        $engine.WriteAt($contentRect.X + 4, $y, $headerText, $highlightColor, $bg)
+        $y += 2
+
+        # No entries message
+        $message = "No time entries for this week"
+        $engine.WriteAt($contentRect.X + 4, $y, $message, $textColor, $bg)
+    }
+
+    hidden [void] _RenderReportToEngine([object]$engine) {
+        $contentRect = $this.LayoutManager.GetRegion('Content', $this.TermWidth, $this.TermHeight)
+
+        # Colors
+        $textColor = $this.Header.GetThemedColorInt('Foreground.Field')
+        $highlightColor = $this.Header.GetThemedColorInt('Foreground.FieldFocused')
+        $mutedColor = $this.Header.GetThemedColorInt('Foreground.Muted')
+        $headerColor = $this.Header.GetThemedColorInt('Foreground.Muted')
+        $successColor = $this.Header.GetThemedColorInt('Foreground.Success')
+        $warningColor = $this.Header.GetThemedColorInt('Warning')
+        $bg = $this.Header.GetThemedColorInt('Background.Primary')
+        
         $y = $contentRect.Y + 1
 
         # Week header
-        $sb.Append($this.Header.BuildMoveTo($contentRect.X + 4, $y))
-        $sb.Append($highlightColor)
-        $sb.Append($this.WeekHeader)
-        $sb.Append($this.WeekIndicator)
-        $sb.Append($reset)
+        $headerText = "$($this.WeekHeader)$($this.WeekIndicator)"
+        $engine.WriteAt($contentRect.X + 4, $y, $headerText, $highlightColor, $bg)
         $y += 2
 
-        # TS-M4/TS-M5 FIX: Column headers - include Sat/Sun if configured
+        # Column headers
         $headerY = $y
-        $sb.Append($this.Header.BuildMoveTo($contentRect.X + 4, $headerY))
-        $sb.Append($headerColor)
+        $headers = ""
         if ($this.IncludeWeekends) {
-            $sb.Append("Name                 ID1   Mon    Tue    Wed    Thu    Fri    Sat    Sun    Total")
-        } else {
-            $sb.Append("Name                 ID1   Mon    Tue    Wed    Thu    Fri    Total")
+            $headers = "Name                 ID1   Mon    Tue    Wed    Thu    Fri    Sat    Sun    Total"
         }
-        $sb.Append($reset)
+        else {
+            $headers = "Name                 ID1   Mon    Tue    Wed    Thu    Fri    Total"
+        }
+        $engine.WriteAt($contentRect.X + 4, $headerY, $headers, $headerColor, $bg)
         $y++
 
         # Separator line
-        $sb.Append($this.Header.BuildMoveTo($contentRect.X + 4, $y))
-        $sb.Append($mutedColor)
-        if ($this.IncludeWeekends) {
-            $sb.Append([string]::new([char]0x2500, 89))  # Unicode line character (longer for weekends)
-        } else {
-            $sb.Append([string]::new([char]0x2500, 75))  # Unicode line character
-        }
-        $sb.Append($reset)
+        $sepLen = if ($this.IncludeWeekends) { 89 } else { 75 }
+        $engine.WriteAt($contentRect.X + 4, $y, "-" * $sepLen, $mutedColor, $bg)
         $y++
 
         # Project rows - sorted by key
@@ -335,81 +320,57 @@ class WeeklyTimeReportScreen : PmcScreen {
 
         foreach ($entry in $sortedProjects) {
             $d = $entry.Value
-
-            # Format: "{0,-20} {1,-5} {2,6:F1} {3,6:F1} {4,6:F1} {5,6:F1} {6,6:F1} {7,8:F1}"
-            $sb.Append($this.Header.BuildMoveTo($contentRect.X + 4, $y))
-            $sb.Append($textColor)
+            
+            $x = $contentRect.X + 4
 
             # Name (20 chars, left-aligned)
             $name = $d.Name
             if ($name.Length -gt 20) {
                 $name = $name.Substring(0, 17) + "..."
             }
-            $sb.Append($name.PadRight(20))
-            $sb.Append(" ")
+            $engine.WriteAt($x, $y, $name.PadRight(20), $textColor, $bg)
+            $x += 21 # 20 + 1 space
 
             # ID1 (5 chars, left-aligned)
-            $id1Display = $d.ID1
+            $id1Display = "$($d.ID1)"
             if ($id1Display.Length -gt 5) {
                 $id1Display = $id1Display.Substring(0, 5)
             }
-            $sb.Append($id1Display.PadRight(5))
-            $sb.Append(" ")
+            $engine.WriteAt($x, $y, $id1Display.PadRight(5), $textColor, $bg)
+            $x += 6 # 5 + 1 space
 
-            # TS-M4/TS-M5 FIX: Day columns (6 chars each, right-aligned with 1 decimal)
-            $sb.Append($successColor)
-            $sb.Append($d.Mon.ToString("0.0").PadLeft(6))
-            $sb.Append(" ")
-            $sb.Append($d.Tue.ToString("0.0").PadLeft(6))
-            $sb.Append(" ")
-            $sb.Append($d.Wed.ToString("0.0").PadLeft(6))
-            $sb.Append(" ")
-            $sb.Append($d.Thu.ToString("0.0").PadLeft(6))
-            $sb.Append(" ")
-            $sb.Append($d.Fri.ToString("0.0").PadLeft(6))
-            $sb.Append(" ")
-
-            # Include Sat/Sun if configured
-            if ($this.IncludeWeekends) {
-                $sb.Append($d.Sat.ToString("0.0").PadLeft(6))
-                $sb.Append(" ")
-                $sb.Append($d.Sun.ToString("0.0").PadLeft(6))
-                $sb.Append(" ")
+            # Day columns (6 chars each, right-aligned with 1 decimal)
+            $days = @($d.Mon, $d.Tue, $d.Wed, $d.Thu, $d.Fri)
+            if ($this.IncludeWeekends) { 
+                $days += $d.Sat
+                $days += $d.Sun 
+            }
+            
+            foreach ($dayVal in $days) {
+                $engine.WriteAt($x, $y, $dayVal.ToString("0.0").PadLeft(6), $successColor, $bg)
+                $x += 7 # 6 + 1 space
             }
 
             # Total (8 chars, right-aligned with 1 decimal)
-            $sb.Append($warningColor)
-            $sb.Append($d.Total.ToString("0.0").PadLeft(8))
-            $sb.Append($reset)
-
+            $engine.WriteAt($x, $y, $d.Total.ToString("0.0").PadLeft(8), $warningColor, $bg)
+            
             $y++
         }
 
         # Footer separator
         $y++
-        $sb.Append($this.Header.BuildMoveTo($contentRect.X + 4, $y))
-        $sb.Append($mutedColor)
-        if ($this.IncludeWeekends) {
-            $sb.Append([string]::new([char]0x2500, 89))
-        } else {
-            $sb.Append([string]::new([char]0x2500, 75))
-        }
-        $sb.Append($reset)
+        $engine.WriteAt($contentRect.X + 4, $y, "-" * $sepLen, $mutedColor, $bg)
         $y++
 
-        # Total row - matching old format but adjusted for weekend columns
-        $sb.Append($this.Header.BuildMoveTo($contentRect.X + 4, $y))
-        $sb.Append($highlightColor)
-        if ($this.IncludeWeekends) {
-            $sb.Append(" " * 72)  # More padding for weekend columns
-        } else {
-            $sb.Append(" " * 58)
-        }
-        $sb.Append("Total: ")
-        $sb.Append($this.GrandTotal.ToString("0.0").PadLeft(8))
-        $sb.Append($reset)
-
-        return $sb.ToString()
+        # Total row
+        $x = $contentRect.X + 4
+        $padding = if ($this.IncludeWeekends) { 72 } else { 58 }
+        $x += $padding
+        
+        $engine.WriteAt($x, $y, "Total: ", $highlightColor, $bg)
+        $x += 7
+        
+        $engine.WriteAt($x, $y, $this.GrandTotal.ToString("0.0").PadLeft(8), $highlightColor, $bg)
     }
 
     [bool] HandleKeyPress([ConsoleKeyInfo]$keyInfo) {

@@ -316,7 +316,7 @@ class ProjectPicker : PmcWidget {
 
         # Draw Box
         $engine.Fill($this.X, $this.Y, $this.Width, $this.Height, ' ', $fg, $bg)
-        $engine.DrawBox($this.X, $this.Y, $this.Width, $this.Height, 'single')
+        $engine.DrawBox($this.X, $this.Y, $this.Width, $this.Height, $borderFg, $bg)
         
         # Title
         $title = if ($this._isCreateMode) { "Create New Project" } else { $this.Label }
@@ -353,7 +353,8 @@ class ProjectPicker : PmcWidget {
             # Help
             $engine.WriteToRegion("$($this.RegionID)_CreateHelp", "Enter=Create | Esc=Cancel", $mutedFg, $bg)
             
-        } else {
+        }
+        else {
             # Count
             $countText = "($($this._filteredProjects.Count))"
             $engine.WriteToRegion("$($this.RegionID)_Count", $countText, $mutedFg, $bg)
@@ -467,7 +468,8 @@ class ProjectPicker : PmcWidget {
             if ([string]::IsNullOrEmpty($this._createText)) {
                 $sb.Append($mutedColor)
                 $sb.Append($this.TruncateText("Enter project name...", $innerWidth))
-            } else {
+            }
+            else {
                 $displayText = $this._createText
                 if ($displayText.Length -gt $innerWidth) {
                     $displayText = $displayText.Substring(0, $innerWidth)
@@ -487,7 +489,8 @@ class ProjectPicker : PmcWidget {
                     if ($this._createCursorPos + 1 -lt $displayText.Length) {
                         $sb.Append($displayText.Substring($this._createCursorPos + 1))
                     }
-                } elseif ($this._createCursorPos -eq $displayText.Length) {
+                }
+                elseif ($this._createCursorPos -eq $displayText.Length) {
                     $sb.Append($displayText)
                     $sb.Append("`e[7m `e[27m")
                 }
@@ -529,7 +532,8 @@ class ProjectPicker : PmcWidget {
                 $sb.Append(" " * ($this.Width - 2))
                 $sb.Append($this.GetBoxChar('single_vertical'))
             }
-        } else {
+        }
+        else {
             # Search filter row
             $sb.Append($this.BuildMoveTo($this.X, $this.Y + $currentRow))
             $sb.Append($borderColor)
@@ -539,7 +543,8 @@ class ProjectPicker : PmcWidget {
             if ([string]::IsNullOrWhiteSpace($this._searchText)) {
                 $sb.Append($mutedColor)
                 $sb.Append($this.TruncateText("Type to filter...", $this.Width - 4))
-            } else {
+            }
+            else {
                 $sb.Append($primaryColor)
                 $sb.Append($this.TruncateText($this._searchText, $this.Width - 4))
             }
@@ -582,17 +587,19 @@ class ProjectPicker : PmcWidget {
                     if ($isSelected) {
                         $sb.Append($highlightBg)
                         $sb.Append($highlightFg)
-                    } else {
+                    }
+                    else {
                         $sb.Append($textColor)
                     }
 
                     # L-POL-8: Show task count after project name
                     $taskCount = $this._GetTaskCountForProject($projectName)
                     $displayName = $(if ($taskCount -ge 0) {
-                        "$projectName ($taskCount)"
-                    } else {
-                        $projectName
-                    })
+                            "$projectName ($taskCount)"
+                        }
+                        else {
+                            $projectName
+                        })
 
                     $sb.Append(" ")
                     $truncatedName = $this.TruncateText($displayName, $this.Width - 4)
@@ -606,7 +613,8 @@ class ProjectPicker : PmcWidget {
                     }
                     # Reset after entire row (text + padding)
                     $sb.Append($reset)
-                } else {
+                }
+                else {
                     # Empty row
                     $sb.Append(" " * ($this.Width - 2))
                 }
@@ -628,7 +636,8 @@ class ProjectPicker : PmcWidget {
 
             if ($this._filteredProjects.Count -eq 0) {
                 $sb.Append($this.TruncateText("Alt+N=Create", $this.Width - 4))
-            } else {
+            }
+            else {
                 $sb.Append($this.TruncateText("Enter=Select | Alt+N=Create", $this.Width - 4))
             }
 
@@ -681,7 +690,8 @@ class ProjectPicker : PmcWidget {
 
             $this._allProjects = $projects
             $this._lastRefresh = [DateTime]::Now
-        } catch {
+        }
+        catch {
             # Failed to load projects - use "(No Project)" only
             $this._allProjects = @("(No Project)")
         }
@@ -697,7 +707,8 @@ class ProjectPicker : PmcWidget {
     hidden [void] _ApplyDoFilter() {
         if ([string]::IsNullOrWhiteSpace($this._searchText)) {
             $this._filteredProjects = $this._allProjects
-        } else {
+        }
+        else {
             $searchLower = $this._searchText.ToLower()
             $filtered = @()
 
@@ -769,7 +780,8 @@ class ProjectPicker : PmcWidget {
             $this._selectedIndex--
             $this._AdjustScrollOffset()
             # PERF: Disabled - Add-Content -Path "$($env:TEMP)\pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') _MoveSelectionUp: Changed from $oldIndex to $($this._selectedIndex)"
-        } else {
+        }
+        else {
             # PERF: Disabled - Add-Content -Path "$($env:TEMP)\pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') _MoveSelectionUp: Already at top (index=$($this._selectedIndex))"
         }
     }
@@ -784,7 +796,8 @@ class ProjectPicker : PmcWidget {
             $this._selectedIndex++
             $this._AdjustScrollOffset()
             # PERF: Disabled - Add-Content -Path "$($env:TEMP)\pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') _MoveSelectionDown: Changed from $oldIndex to $($this._selectedIndex), total=$($this._filteredProjects.Count)"
-        } else {
+        }
+        else {
             # PERF: Disabled - Add-Content -Path "$($env:TEMP)\pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') _MoveSelectionDown: Already at bottom (index=$($this._selectedIndex), total=$($this._filteredProjects.Count))"
         }
     }
@@ -870,10 +883,10 @@ class ProjectPicker : PmcWidget {
                 }
 
                 $newProject = [PSCustomObject]@{
-                    name = $projectName
+                    name        = $projectName
                     description = ""
-                    aliases = @()
-                    created = (Get-Date).ToString('yyyy-MM-dd HH:mm:ss')
+                    aliases     = @()
+                    created     = (Get-Date).ToString('yyyy-MM-dd HH:mm:ss')
                 }
 
                 $data.projects += $newProject
@@ -899,7 +912,8 @@ class ProjectPicker : PmcWidget {
                 $this._InvokeCallback($this.OnProjectSelected, $projectName)
 
                 return $true
-            } catch {
+            }
+            catch {
                 $this._errorMessage = "Failed to create project"
                 return $true
             }
@@ -919,8 +933,9 @@ class ProjectPicker : PmcWidget {
             if ($this._createCursorPos -gt 0) {
                 $before = $this._createText.Substring(0, $this._createCursorPos - 1)
                 $after = $(if ($this._createCursorPos -lt $this._createText.Length) {
-                    $this._createText.Substring($this._createCursorPos)
-                } else { "" })
+                        $this._createText.Substring($this._createCursorPos)
+                    }
+                    else { "" })
                 $this._createText = $before + $after
                 $this._createCursorPos--
             }
@@ -932,8 +947,9 @@ class ProjectPicker : PmcWidget {
             if ($this._createCursorPos -lt $this._createText.Length) {
                 $before = $this._createText.Substring(0, $this._createCursorPos)
                 $after = $(if ($this._createCursorPos + 1 -lt $this._createText.Length) {
-                    $this._createText.Substring($this._createCursorPos + 1)
-                } else { "" })
+                        $this._createText.Substring($this._createCursorPos + 1)
+                    }
+                    else { "" })
                 $this._createText = $before + $after
             }
             return $true
@@ -968,8 +984,9 @@ class ProjectPicker : PmcWidget {
         if ($keyInfo.KeyChar -ge 32 -and $keyInfo.KeyChar -le 126) {
             $before = $this._createText.Substring(0, $this._createCursorPos)
             $after = $(if ($this._createCursorPos -lt $this._createText.Length) {
-                $this._createText.Substring($this._createCursorPos)
-            } else { "" })
+                    $this._createText.Substring($this._createCursorPos)
+                }
+                else { "" })
             $this._createText = $before + $keyInfo.KeyChar + $after
             $this._createCursorPos++
             return $true
@@ -979,8 +996,9 @@ class ProjectPicker : PmcWidget {
         if ($keyInfo.Key -eq 'Spacebar') {
             $before = $this._createText.Substring(0, $this._createCursorPos)
             $after = $(if ($this._createCursorPos -lt $this._createText.Length) {
-                $this._createText.Substring($this._createCursorPos)
-            } else { "" })
+                    $this._createText.Substring($this._createCursorPos)
+                }
+                else { "" })
             $this._createText = $before + ' ' + $after
             $this._createCursorPos++
             return $true
@@ -1018,7 +1036,8 @@ class ProjectPicker : PmcWidget {
             }
 
             return $count
-        } catch {
+        }
+        catch {
             # Failed to get count - return -1 to skip displaying count
             return -1
         }
@@ -1039,10 +1058,12 @@ class ProjectPicker : PmcWidget {
             try {
                 if ($null -ne $argument) {
                     & $callback $argument
-                } else {
+                }
+                else {
                     & $callback
                 }
-            } catch {
+            }
+            catch {
                 # Callback failed - log but don't crash widget
             }
         }

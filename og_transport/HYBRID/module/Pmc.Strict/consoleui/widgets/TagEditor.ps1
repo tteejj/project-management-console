@@ -245,7 +245,8 @@ class TagEditor : PmcWidget {
                 $this._inputText = $selected
                 $this._cursorPosition = $selected.Length
                 $this._AddCurrentInputAsTag()
-            } elseif (-not [string]::IsNullOrWhiteSpace($this._inputText)) {
+            }
+            elseif (-not [string]::IsNullOrWhiteSpace($this._inputText)) {
                 # Add current input as tag
                 $this._AddCurrentInputAsTag()
             }
@@ -268,13 +269,15 @@ class TagEditor : PmcWidget {
                     $this._selectedTags.RemoveAt($this._selectedTags.Count - 1)
                     $this._InvokeCallback($this.OnTagsChanged, $this.GetTags())
                 }
-            } else {
+            }
+            else {
                 # Remove character from input
                 if ($this._cursorPosition -gt 0) {
                     $before = $this._inputText.Substring(0, $this._cursorPosition - 1)
                     $after = $(if ($this._cursorPosition -lt $this._inputText.Length) {
-                        $this._inputText.Substring($this._cursorPosition)
-                    } else { "" })
+                            $this._inputText.Substring($this._cursorPosition)
+                        }
+                        else { "" })
                     $this._inputText = $before + $after
                     $this._cursorPosition--
                     $this._UpdateAutocomplete()
@@ -288,8 +291,9 @@ class TagEditor : PmcWidget {
             if ($this._cursorPosition -lt $this._inputText.Length) {
                 $before = $this._inputText.Substring(0, $this._cursorPosition)
                 $after = $(if ($this._cursorPosition + 1 -lt $this._inputText.Length) {
-                    $this._inputText.Substring($this._cursorPosition + 1)
-                } else { "" })
+                        $this._inputText.Substring($this._cursorPosition + 1)
+                    }
+                    else { "" })
                 $this._inputText = $before + $after
                 $this._UpdateAutocomplete()
             }
@@ -345,8 +349,9 @@ class TagEditor : PmcWidget {
         if ($keyInfo.KeyChar -ge 32 -and $keyInfo.KeyChar -le 126 -and $keyInfo.KeyChar -ne ',') {
             $before = $this._inputText.Substring(0, $this._cursorPosition)
             $after = $(if ($this._cursorPosition -lt $this._inputText.Length) {
-                $this._inputText.Substring($this._cursorPosition)
-            } else { "" })
+                    $this._inputText.Substring($this._cursorPosition)
+                }
+                else { "" })
             $this._inputText = $before + $keyInfo.KeyChar + $after
             $this._cursorPosition++
             $this._UpdateAutocomplete()
@@ -392,7 +397,7 @@ class TagEditor : PmcWidget {
 
         # Draw Box
         $engine.Fill($this.X, $this.Y, $this.Width, $this.Height, ' ', $fg, $bg)
-        $engine.DrawBox($this.X, $this.Y, $this.Width, $this.Height, 'single')
+        $engine.DrawBox($this.X, $this.Y, $this.Width, $this.Height, $borderFg, $bg)
         
         # Title
         $title = " $($this.Label) "
@@ -436,7 +441,8 @@ class TagEditor : PmcWidget {
             # Draw Input
             if ($currentY -lt $maxY) {
                 $inputSpace = $maxX - $currentX
-                if ($inputSpace -lt 15) { # Need new line?
+                if ($inputSpace -lt 15) {
+                    # Need new line?
                     $currentX = $bounds.X
                     $currentY++
                 }
@@ -448,13 +454,15 @@ class TagEditor : PmcWidget {
                     # Highlight cursor
                     if ([string]::IsNullOrEmpty($this._inputText)) {
                         $engine.WriteAt($currentX, $currentY, $prefix, $pColor, $bg)
-                    } else {
+                    }
+                    else {
                         # Simple cursor: draw text, then inverse char at cursor
                         $engine.WriteAt($currentX, $currentY, $prefix, $pColor, $bg)
                         if ($this._cursorPosition -lt $prefix.Length) {
                             $char = $prefix[$this._cursorPosition]
                             $engine.WriteAt($currentX + $this._cursorPosition, $currentY, "$char", $bg, $pColor) # Invert
-                        } elseif ($this._cursorPosition -eq $prefix.Length) {
+                        }
+                        elseif ($this._cursorPosition -eq $prefix.Length) {
                             $engine.WriteAt($currentX + $this._cursorPosition, $currentY, " ", $bg, $pColor)
                         }
                     }
@@ -474,7 +482,7 @@ class TagEditor : PmcWidget {
             $engine.DefineRegion($acRegionId, $acX, $acY, $acWidth, $acHeight, 100)
             
             $engine.Fill($acX, $acY, $acWidth, $acHeight, ' ', $fg, $bg)
-            $engine.DrawBox($acX, $acY, $acWidth, $acHeight, 'single')
+            $engine.DrawBox($acX, $acY, $acWidth, $acHeight, $borderFg, $bg)
             
             for ($i = 0; $i -lt [Math]::Min(3, $this._autocompleteMatches.Count); $i++) {
                 $tag = $this._autocompleteMatches[$i]
@@ -637,7 +645,8 @@ class TagEditor : PmcWidget {
                 $sb.Append($mutedColor)
                 $sb.Append("type tag...")
                 $inputDisplayLen = 11
-            } else {
+            }
+            else {
                 $sb.Append($textColor)
 
                 # Render text with cursor
@@ -664,7 +673,8 @@ class TagEditor : PmcWidget {
                     if ($this._cursorPosition + 1 -lt $displayText.Length) {
                         $sb.Append($displayText.Substring($this._cursorPosition + 1))
                     }
-                } else {
+                }
+                else {
                     # Cursor at end - show block cursor
                     $sb.Append("`e[7m `e[27m")
                 }
@@ -710,7 +720,8 @@ class TagEditor : PmcWidget {
                 if ($i -eq $this._selectedAutocompleteIndex) {
                     $sb.Append($highlightBg)
                     $sb.Append($highlightFg)
-                } else {
+                }
+                else {
                     $sb.Append($mutedColor)
                 }
 
@@ -786,7 +797,8 @@ class TagEditor : PmcWidget {
 
             $this._allKnownTags = @($tagSet | Sort-Object)
             $this._lastTagRefresh = [DateTime]::Now
-        } catch {
+        }
+        catch {
             # Failed to load tags - use empty array
             $this._allKnownTags = @()
         }
@@ -939,10 +951,12 @@ class TagEditor : PmcWidget {
             try {
                 if ($null -ne $args) {
                     & $callback $args
-                } else {
+                }
+                else {
                     & $callback
                 }
-            } catch {
+            }
+            catch {
                 # Callback failed - log but don't crash widget
             }
         }

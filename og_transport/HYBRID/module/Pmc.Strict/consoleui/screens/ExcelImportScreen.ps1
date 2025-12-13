@@ -44,9 +44,9 @@ class ExcelImportScreen : PmcScreen {
     # Static: Register menu items
     static [void] RegisterMenuItems([object]$registry) {
         $registry.AddMenuItem('Projects', 'Import from Excel', 'I', {
-            . "$PSScriptRoot/ExcelImportScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object -TypeName ExcelImportScreen))
-        }, 40)
+                . "$PSScriptRoot/ExcelImportScreen.ps1"
+                $global:PmcApp.PushScreen((New-Object -TypeName ExcelImportScreen))
+            }, 40)
     }
 
     # Constructor
@@ -56,7 +56,8 @@ class ExcelImportScreen : PmcScreen {
         try {
             $this._reader = [ExcelComReader]::new()
             # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') EXCELIMPORTSCREEN: ExcelComReader created successfully"
-        } catch {
+        }
+        catch {
             $this._errorMessage = "Excel COM not available: $($_.Exception.Message). Excel must be installed to use this feature."
             # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') EXCELIMPORTSCREEN: FAILED to create ExcelComReader - $($_.Exception.Message)"
             Write-PmcTuiLog "ExcelImportScreen: Failed to initialize ExcelComReader - $_" "ERROR"
@@ -85,7 +86,8 @@ class ExcelImportScreen : PmcScreen {
         try {
             $this._reader = [ExcelComReader]::new()
             # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') EXCELIMPORTSCREEN: ExcelComReader created successfully"
-        } catch {
+        }
+        catch {
             $this._errorMessage = "Excel COM not available: $($_.Exception.Message). Excel must be installed to use this feature."
             # PERF: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') EXCELIMPORTSCREEN: FAILED to create ExcelComReader - $($_.Exception.Message)"
             Write-PmcTuiLog "ExcelImportScreen: Failed to initialize ExcelComReader - $_" "ERROR"
@@ -212,7 +214,8 @@ class ExcelImportScreen : PmcScreen {
         $sb.Append("`e[90m")  # Gray text
         if ($this._selectedOption -eq 0) {
             $sb.Append("(Make sure Excel is running with your workbook open)")
-        } else {
+        }
+        else {
             $sb.Append("(Browse for an Excel file to import)")
         }
         $sb.Append("`e[0m")
@@ -227,24 +230,26 @@ class ExcelImportScreen : PmcScreen {
         # HIGH FIX ES-H1: Validate GetAllProfiles() return
         $profiles = @($this._mappingService.GetAllProfiles())
         if ($null -eq $profiles) {
-            Write-PmcTuiLog "ExcelImportScreen: GetAllProfiles() returned null" "ERROR"
-            $profiles = @()
+            throw "ExcelMappingService.GetAllProfiles() returned null. Failed to load import profiles."
         }
         if ($profiles.Count -eq 0) {
             $sb.Append($this.Header.BuildMoveTo(4, $y))
             $sb.Append("No profiles found. Please create a profile first.")
-        } else {
+        }
+        else {
             # HIGH FIX ES-H2: Validate GetActiveProfile() return before property access
             $activeProfile = $this._mappingService.GetActiveProfile()
             $activeId = $(if ($null -ne $activeProfile) {
-                if ($activeProfile -is [hashtable]) {
-                    if ($activeProfile.ContainsKey('id')) { $activeProfile['id'] } else { $null }
-                } else {
-                    if ($activeProfile.PSObject.Properties['id']) { $activeProfile.id } else { $null }
+                    if ($activeProfile -is [hashtable]) {
+                        if ($activeProfile.ContainsKey('id')) { $activeProfile['id'] } else { $null }
+                    }
+                    else {
+                        if ($activeProfile.PSObject.Properties['id']) { $activeProfile.id } else { $null }
+                    }
                 }
-            } else {
-                $null
-            })
+                else {
+                    $null
+                })
 
             for ($i = 0; $i -lt $profiles.Count; $i++) {
                 $profile = $profiles[$i]
@@ -256,10 +261,11 @@ class ExcelImportScreen : PmcScreen {
 
                 # Handle both hashtables and PSCustomObjects
                 $profileId = $(if ($profile -is [hashtable]) {
-                    if ($profile.ContainsKey('id')) { $profile['id'] } else { $null }
-                } else {
-                    if ($profile.PSObject.Properties['id']) { $profile.id } else { $null }
-                })
+                        if ($profile.ContainsKey('id')) { $profile['id'] } else { $null }
+                    }
+                    else {
+                        if ($profile.PSObject.Properties['id']) { $profile.id } else { $null }
+                    })
                 $isActive = $(if ($profileId -eq $activeId) { " [ACTIVE]" } else { "" })
 
                 $sb.Append($this.Header.BuildMoveTo(4, $y + $i))
@@ -269,10 +275,11 @@ class ExcelImportScreen : PmcScreen {
 
                 # Handle both hashtables and PSCustomObjects
                 $profileName = $(if ($profile -is [hashtable]) {
-                    if ($profile.ContainsKey('name')) { $profile['name'] } else { 'Unnamed' }
-                } else {
-                    if ($profile.PSObject.Properties['name']) { $profile.name } else { 'Unnamed' }
-                })
+                        if ($profile.ContainsKey('name')) { $profile['name'] } else { 'Unnamed' }
+                    }
+                    else {
+                        if ($profile.PSObject.Properties['name']) { $profile.name } else { 'Unnamed' }
+                    })
 
                 $sb.Append("$($i + 1). $profileName$isActive")
                 if ($i -eq $this._selectedOption) {
@@ -296,14 +303,16 @@ class ExcelImportScreen : PmcScreen {
 
         # HIGH FIX ES-H4: Validate profile name before string interpolation
         $profileName = $(if ($null -ne $this._activeProfile) {
-            if ($this._activeProfile -is [hashtable]) {
-                if ($this._activeProfile.ContainsKey('name')) { $this._activeProfile['name'] } else { 'Unnamed Profile' }
-            } else {
-                if ($this._activeProfile.PSObject.Properties['name']) { $this._activeProfile.name } else { 'Unnamed Profile' }
+                if ($this._activeProfile -is [hashtable]) {
+                    if ($this._activeProfile.ContainsKey('name')) { $this._activeProfile['name'] } else { 'Unnamed Profile' }
+                }
+                else {
+                    if ($this._activeProfile.PSObject.Properties['name']) { $this._activeProfile.name } else { 'Unnamed Profile' }
+                }
             }
-        } else {
-            'Unnamed Profile'
-        })
+            else {
+                'Unnamed Profile'
+            })
         $sb.Append($this.Header.BuildMoveTo(4, $y))
         $sb.Append("Profile: $profileName")
         $y += 2
@@ -318,15 +327,17 @@ class ExcelImportScreen : PmcScreen {
 
             $fieldName = $mapping['display_name']
             $value = $(if ($this._previewData.ContainsKey($mapping['excel_cell'])) {
-                $cellValue = $this._previewData[$mapping['excel_cell']]
-                if ($null -eq $cellValue -or [string]::IsNullOrWhiteSpace($cellValue)) {
-                    "(empty)"
-                } else {
-                    $cellValue
+                    $cellValue = $this._previewData[$mapping['excel_cell']]
+                    if ($null -eq $cellValue -or [string]::IsNullOrWhiteSpace($cellValue)) {
+                        "(empty)"
+                    }
+                    else {
+                        $cellValue
+                    }
                 }
-            } else {
-                "(empty)"
-            })
+                else {
+                    "(empty)"
+                })
 
             $required = $(if ($mapping['required']) { "*" } else { " " })
 
@@ -390,7 +401,8 @@ class ExcelImportScreen : PmcScreen {
         if ($keyInfo.Key -eq ([ConsoleKey]::Escape)) {
             if ($this._step -eq 1) {
                 $global:PmcApp.PopScreen()
-            } else {
+            }
+            else {
                 $this._step--
                 $this._selectedOption = 0
             }
@@ -454,11 +466,13 @@ class ExcelImportScreen : PmcScreen {
 
                                 $attached = $true
                                 break
-                            } catch {
+                            }
+                            catch {
                                 if ($retry -lt ($maxRetries - 1)) {
                                     Write-PmcTuiLog "AttachToRunningExcel attempt $($retry + 1) failed, retrying in ${retryDelay}ms..." "WARN"
                                     Start-Sleep -Milliseconds $retryDelay
-                                } else {
+                                }
+                                else {
                                     $this._errorMessage = "Failed to attach to Excel after $maxRetries attempts: $($_.Exception.Message). Make sure Excel is running and has a workbook open."
                                     Write-PmcTuiLog "AttachToRunningExcel failed after $maxRetries attempts: $_" "ERROR"
                                 }
@@ -470,7 +484,8 @@ class ExcelImportScreen : PmcScreen {
                             $this._selectedOption = 0
                             $this._errorMessage = ""
                         }
-                    } else {
+                    }
+                    else {
                         # Option 2: Open Excel file
                         try {
                             $filePath = $this._ShowFilePicker()
@@ -484,10 +499,12 @@ class ExcelImportScreen : PmcScreen {
                                 $this._step = 2
                                 $this._selectedOption = 0
                                 $this._errorMessage = ""
-                            } else {
+                            }
+                            else {
                                 $this._errorMessage = "No file selected"
                             }
-                        } catch {
+                        }
+                        catch {
                             $this._errorMessage = "Failed to open Excel file: $($_.Exception.Message)"
                             Write-PmcTuiLog "OpenFile failed: $_" "ERROR"
                         }
@@ -537,7 +554,8 @@ class ExcelImportScreen : PmcScreen {
                     $global:PmcApp.PopScreen()
                 }
             }
-        } catch {
+        }
+        catch {
             $this._errorMessage = $_.Exception.Message
             Write-PmcTuiLog "ExcelImportScreen: Error in step $($this._step) - $_" "ERROR"
         }
@@ -558,10 +576,11 @@ class ExcelImportScreen : PmcScreen {
         foreach ($mapping in $this._activeProfile['mappings']) {
             # Get value with existence check
             $value = $(if ($this._previewData.ContainsKey($mapping['excel_cell'])) {
-                $this._previewData[$mapping['excel_cell']]
-            } else {
-                $null
-            })
+                    $this._previewData[$mapping['excel_cell']]
+                }
+                else {
+                    $null
+                })
 
             # Validate required fields based on data type
             $isEmpty = switch ($mapping['data_type']) {
@@ -585,12 +604,14 @@ class ExcelImportScreen : PmcScreen {
                     try {
                         if ($null -eq $value -or $value -eq '') {
                             0
-                        } else {
+                        }
+                        else {
                             # BUG-16 FIX: Use [long] (Int64) to handle numbers > 2,147,483,647
                             # Excel can contain large numbers that exceed Int32 max value
                             [long]$value
                         }
-                    } catch {
+                    }
+                    catch {
                         Write-PmcTuiLog "Failed to convert '$originalValue' (type: $originalType) to int for field $($mapping['display_name']): $_" "ERROR"
                         throw "Cannot convert '$originalValue' (type: $originalType) to integer for field '$($mapping['display_name'])'"
                     }
@@ -601,10 +622,12 @@ class ExcelImportScreen : PmcScreen {
                     try {
                         if ($null -eq $value -or $value -eq '') {
                             $false
-                        } else {
+                        }
+                        else {
                             [bool]$value
                         }
-                    } catch {
+                    }
+                    catch {
                         Write-PmcTuiLog "Failed to convert '$originalValue' (type: $originalType) to bool for field $($mapping['display_name']): $_" "ERROR"
                         throw "Cannot convert '$originalValue' (type: $originalType) to boolean for field '$($mapping['display_name'])'"
                     }
@@ -615,7 +638,8 @@ class ExcelImportScreen : PmcScreen {
                     try {
                         if ($null -eq $value -or $value -eq '') {
                             $null
-                        } else {
+                        }
+                        else {
                             $dateValue = [datetime]$value
                             # LOW FIX ES-L2, ES-L3, ES-L4: Use script-level constants for date range validation
                             if ($dateValue.Year -lt $global:MIN_VALID_YEAR -or $dateValue.Year -gt $global:MAX_VALID_YEAR) {
@@ -624,7 +648,8 @@ class ExcelImportScreen : PmcScreen {
                             }
                             $dateValue
                         }
-                    } catch {
+                    }
+                    catch {
                         Write-PmcTuiLog "Failed to convert '$originalValue' (type: $originalType) to date for field $($mapping['display_name']): $_" "ERROR"
                         throw "Cannot convert '$originalValue' (type: $originalType) to date for field '$($mapping['display_name'])'"
                     }
@@ -646,12 +671,13 @@ class ExcelImportScreen : PmcScreen {
         # TaskStore handles ID generation and timestamps automatically
         $success = $this.Store.AddProject($projectData)
 
-        # CRITICAL FIX ES-C1: Add explicit null check for AddProject return $(if ($null -eq $success) {
+        # CRITICAL FIX ES-C1: Add explicit null check for AddProject return 
+        if ($null -eq $success) {
             $this._errorMessage = "Failed to add project: Store.AddProject returned null"
             Write-PmcTuiLog "ExcelImportScreen: AddProject returned null for '$($projectData['name'])'" "ERROR"
             $this._step = 3  # Stay on step 3
             throw "Failed to add project: AddProject returned null"
-        })
+        }
 
         if ($success) {
             Write-PmcTuiLog "ExcelImportScreen: Imported project '$($projectData['name'])'" "INFO"
@@ -662,13 +688,15 @@ class ExcelImportScreen : PmcScreen {
                 Write-PmcTuiLog "ExcelImportScreen: CRITICAL - Flush() returned false after importing project '$($projectData['name'])'" "ERROR"
                 throw "Failed to persist project data to disk. Import cancelled."
             }
-        } else {
+        }
+        else {
             # ES-H7 FIX: Check Store is not null before accessing LastError
             $errorMsg = $(if ($null -ne $this.Store) {
-                $this.Store.LastError
-            } else {
-                "Store is null"
-            })
+                    $this.Store.LastError
+                }
+                else {
+                    "Store is null"
+                })
             Write-PmcTuiLog "ExcelImportScreen: Failed to import project: $errorMsg" "ERROR"
             throw "Failed to import project: $errorMsg"
         }
@@ -712,7 +740,8 @@ class ExcelImportScreen : PmcScreen {
                     $key = [Console]::ReadKey($true)
                     $picker.HandleInput($key)
                 }
-            } catch [System.InvalidOperationException] {
+            }
+            catch [System.InvalidOperationException] {
                 # Not in interactive mode - cancel picker
                 Write-PmcTuiLog "File picker cannot run in non-interactive mode" "ERROR"
                 $picker.IsComplete = $true
@@ -734,7 +763,8 @@ class ExcelImportScreen : PmcScreen {
                 return ''
             }
             return $picker.SelectedPath
-        } else {
+        }
+        else {
             return ''
         }
     }

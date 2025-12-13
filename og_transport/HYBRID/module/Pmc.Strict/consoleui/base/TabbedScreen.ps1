@@ -284,12 +284,12 @@ class TabbedScreen : PmcScreen {
 
         # Build field definition for InlineEditor
         $fieldDef = @{
-            Name = $field.Name
-            Label = ''  # No label for inline editing
-            Type = $fieldType
-            Value = $field.Value
+            Name     = $field.Name
+            Label    = ''  # No label for inline editing
+            Type     = $fieldType
+            Value    = $field.Value
             Required = $(if ($field.ContainsKey('Required')) { $field.Required } else { $false })
-            Width = $this.TabPanel.Width - $this.TabPanel.LabelWidth - ($this.TabPanel.ContentPadding * 2) - 2
+            Width    = $this.TabPanel.Width - $this.TabPanel.LabelWidth - ($this.TabPanel.ContentPadding * 2) - 2
         }
 
         # Add type-specific properties
@@ -429,7 +429,8 @@ class TabbedScreen : PmcScreen {
                 if ($this.StatusBar) {
                     $this.StatusBar.SetRightText("Changes saved")
                 }
-            } catch {
+            }
+            catch {
                 if ($this.StatusBar) {
                     $this.StatusBar.SetRightText("Save failed: $_")
                 }
@@ -455,41 +456,26 @@ class TabbedScreen : PmcScreen {
 
     # === Rendering ===
 
-    [string] RenderContent() {
+    # === Rendering ===
+    
+    [void] RenderContentToEngine([object]$engine) {
         if (-not $this.TabPanel) {
-            if ($global:PmcTuiLogFile) {
-                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] TabbedScreen.RenderContent: No TabPanel"
-            }
-            return ""
-        }
-
-        if ($global:PmcTuiLogFile) {
-            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ========== TabbedScreen.RenderContent START =========="
-            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] TabbedScreen: ShowEditor=$($this.ShowEditor)"
+            return
         }
 
         # Render TabPanel
-        $output = $this.TabPanel.Render()
+        # It handles its own layout and colors
+        $this.TabPanel.RenderToEngine($engine)
 
-        if ($global:PmcTuiLogFile) {
-            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] TabbedScreen: TabPanel rendered, length=$($output.Length)"
-        }
-
-        # If editor is showing, render it on top
+        # If editor is showing, render it on top (Z-Index is handled by widget or engine order)
         if ($this.ShowEditor -and $this.InlineEditor) {
-            $editorOutput = $this.InlineEditor.Render()
-            if ($global:PmcTuiLogFile) {
-                Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] TabbedScreen: InlineEditor rendered at X=$($this.InlineEditor.X) Y=$($this.InlineEditor.Y), length=$($editorOutput.Length)"
-            }
-            $output += "`n" + $editorOutput
+            # InlineEditor uses Z-layer 10 in its RenderToEngine
+            $this.InlineEditor.RenderToEngine($engine)
         }
-
-        if ($global:PmcTuiLogFile) {
-            Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] ========== TabbedScreen.RenderContent END (total=$($output.Length)) =========="
-        }
-
-        return $output
     }
+
+    # Legacy Stub
+    [string] RenderContent() { return "" }
 
     # === Helper Methods ===
 

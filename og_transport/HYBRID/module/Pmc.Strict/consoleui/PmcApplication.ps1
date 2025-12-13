@@ -68,7 +68,8 @@ class PmcApplication {
                 throw "Failed to create HybridRenderEngine instance"
             }
             $this.RenderEngine.Initialize()
-        } catch {
+        }
+        catch {
             Write-Host "FATAL: Failed to initialize RenderEngine: $($_.Exception.Message)" -ForegroundColor Red
             throw
         }
@@ -176,7 +177,8 @@ class PmcApplication {
 
             # Mark dirty for render
             $this.IsDirty = $true
-        } else {
+        }
+        else {
             $this.CurrentScreen = $null
         }
 
@@ -247,6 +249,7 @@ class PmcApplication {
             # }
 
             # Get screen output (ANSI strings with position info)
+            # Get screen output (ANSI strings with position info)
             if ($this.CurrentScreen.PSObject.Methods['RenderToEngine']) {
                 # PERF: Disabled - if ($global:PmcTuiLogFile) {
                 # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] _RenderCurrentScreen: Has RenderToEngine, calling it"
@@ -256,22 +259,10 @@ class PmcApplication {
                 # PERF: Disabled - if ($global:PmcTuiLogFile) {
                 # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] _RenderCurrentScreen: RenderToEngine completed"
                 # }
-            } else {
-                # PERF: Disabled - if ($global:PmcTuiLogFile) {
-                # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] _RenderCurrentScreen: No RenderToEngine, calling Render()"
-                # }
-                # Fallback: screen returns ANSI string, we parse and WriteAt
-                $output = $this.CurrentScreen.Render()
-                # PERF: Disabled - if ($global:PmcTuiLogFile) {
-                # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] _RenderCurrentScreen: Render() completed, output length=$($output.Length)"
-                # }
-                if ($output) {
-                    # Parse ANSI positioning and write to engine
-                    $this._WriteAnsiToEngine($output)
-                    # PERF: Disabled - if ($global:PmcTuiLogFile) {
-                    # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] _RenderCurrentScreen: _WriteAnsiToEngine completed"
-                    # }
-                }
+            }
+            else {
+                # Legacy fallback removed - all screens must support RenderToEngine
+                throw "Screen type '$($this.CurrentScreen.GetType().Name)' does not implement RenderToEngine"
             }
 
             # PERF: Disabled - if ($global:PmcTuiLogFile) {
@@ -295,7 +286,8 @@ class PmcApplication {
             # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] _RenderCurrentScreen: Render cycle complete"
             # }
 
-        } catch {
+        }
+        catch {
             # RENDER ERROR - Try to recover gracefully
             $errorMsg = "Render error: $_"
             $errorLocation = "$($_.InvocationInfo.ScriptName):$($_.InvocationInfo.ScriptLineNumber)"
@@ -359,7 +351,8 @@ class PmcApplication {
                     $this.RenderErrorCount = 0  # Reset counter after navigation
                 }
 
-            } catch {
+            }
+            catch {
                 # Can't even show the error message - now we really need to exit
                 # PERF: Disabled - if ($global:PmcTuiLogFile) {
                 # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [FATAL] Could not display error: $_"
@@ -371,7 +364,8 @@ class PmcApplication {
             if ($this.OnError) {
                 try {
                     & $this.OnError $_
-                } catch {
+                }
+                catch {
                     # Error handler failed, log it but continue
                     # PERF: Disabled - if ($global:PmcTuiLogFile) {
                     # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] [ERROR] OnError handler failed: $_"
@@ -381,48 +375,7 @@ class PmcApplication {
         }
     }
 
-    hidden [void] _WriteAnsiToEngine([string]$ansiOutput) {
-        # Parse ANSI cursor positioning and write to engine
-        # ANSI format: ESC[row;colH (1-based)
-        # WriteAt format: WriteAt(x, y) where x=col-1, y=row-1 (0-based)
-        $pattern = "`e\[(\d+);(\d+)H"
-        $matches = [regex]::Matches($ansiOutput, $pattern)
 
-        if ($matches.Count -eq 0) {
-            # No positioning - write at 0,0
-            if ($ansiOutput) {
-                $this.RenderEngine.WriteAt(0, 0, $ansiOutput)
-            }
-            return
-        }
-
-        for ($i = 0; $i -lt $matches.Count; $i++) {
-            $match = $matches[$i]
-            $row = [int]$match.Groups[1].Value
-            $col = [int]$match.Groups[2].Value
-
-            # Convert to 0-based coordinates
-            $x = $col - 1
-            $y = $row - 1
-
-            # Get content after this position marker until next position marker
-            $startIndex = $match.Index + $match.Length
-
-            if ($i + 1 -lt $matches.Count) {
-                # There's another position marker - content goes until there
-                $endIndex = $matches[$i + 1].Index
-            } else {
-                # Last marker - content goes to end
-                $endIndex = $ansiOutput.Length
-            }
-
-            $content = $ansiOutput.Substring($startIndex, $endIndex - $startIndex)
-
-            if ($content) {
-                $this.RenderEngine.WriteAt($x, $y, $content)
-            }
-        }
-    }
 
     # === Event Loop ===
 
@@ -469,7 +422,8 @@ class PmcApplication {
                         # Global keys - Ctrl+Q to exit
                         if ($key.Modifiers -eq [ConsoleModifiers]::Control -and $key.Key -eq 'Q') {
                             $this.Stop()
-                        } elseif ($this.CurrentScreen -and $this.CurrentScreen.PSObject.Methods['HandleKeyPress']) {
+                        }
+                        elseif ($this.CurrentScreen -and $this.CurrentScreen.PSObject.Methods['HandleKeyPress']) {
                             $handled = $this.CurrentScreen.HandleKeyPress($key)
                             if ($handled) {
                                 $hadInput = $true
@@ -478,7 +432,8 @@ class PmcApplication {
 
                         # Capture screen after command
                         $this._CaptureScreen()
-                    } catch {
+                    }
+                    catch {
                         # PERF: Disabled - if ($global:PmcTuiLogFile) {
                         # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] Automation: Error processing command '$cmdString': $_"
                         # }
@@ -491,32 +446,34 @@ class PmcApplication {
                     while ([Console]::KeyAvailable) {
                         $key = [Console]::ReadKey($true)
 
-                    # Global keys - Ctrl+Q to exit
-                    if ($key.Modifiers -eq [ConsoleModifiers]::Control -and $key.Key -eq 'Q') {
-                        $this.Stop()
-                        break
-                    }
+                        # Global keys - Ctrl+Q to exit
+                        if ($key.Modifiers -eq [ConsoleModifiers]::Control -and $key.Key -eq 'Q') {
+                            $this.Stop()
+                            break
+                        }
 
-                    # Pass to current screen (screen handles its own menu)
-                    if ($this.CurrentScreen) {
-                        if ($this.CurrentScreen.PSObject.Methods['HandleKeyPress']) {
-                            # PERF: Disabled - if ($global:PmcTuiLogFile) {
-                            # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcApplication: Calling HandleKeyPress on $($this.CurrentScreen.GetType().Name) Key=$($key.Key) Char='$($key.KeyChar)'"
-                            # }
-                            # PERF FIX: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcApplication: Calling HandleKeyPress on $($this.CurrentScreen.GetType().Name) Key=$($key.Key) Char='$($key.KeyChar)'"
-                            # PERF FIX: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcApplication: Methods: $($this.CurrentScreen.PSObject.Methods.Name -join ', ')"
-                            $handled = $this.CurrentScreen.HandleKeyPress($key)
-                            if ($handled) {
-                                $hadInput = $true
+                        # Pass to current screen (screen handles its own menu)
+                        if ($this.CurrentScreen) {
+                            if ($this.CurrentScreen.PSObject.Methods['HandleKeyPress']) {
+                                # PERF: Disabled - if ($global:PmcTuiLogFile) {
+                                # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcApplication: Calling HandleKeyPress on $($this.CurrentScreen.GetType().Name) Key=$($key.Key) Char='$($key.KeyChar)'"
+                                # }
+                                # PERF FIX: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcApplication: Calling HandleKeyPress on $($this.CurrentScreen.GetType().Name) Key=$($key.Key) Char='$($key.KeyChar)'"
+                                # PERF FIX: Disabled - Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcApplication: Methods: $($this.CurrentScreen.PSObject.Methods.Name -join ', ')"
+                                $handled = $this.CurrentScreen.HandleKeyPress($key)
+                                if ($handled) {
+                                    $hadInput = $true
+                                }
                             }
-                        } else {
-                            # PERF: Disabled - if ($global:PmcTuiLogFile) {
-                            # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcApplication: HandleKeyPress MISSING on $($this.CurrentScreen.GetType().Name)"
-                            # }
+                            else {
+                                # PERF: Disabled - if ($global:PmcTuiLogFile) {
+                                # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcApplication: HandleKeyPress MISSING on $($this.CurrentScreen.GetType().Name)"
+                                # }
+                            }
                         }
                     }
                 }
-                } catch {
+                catch {
                     # Console input is redirected or unavailable - skip input processing
                     # This happens when running in non-interactive mode (e.g., piped input, automated tests)
                     # PERF: Disabled - if ($global:PmcTuiLogFile) {
@@ -542,7 +499,8 @@ class PmcApplication {
                         if ($currentWidth -ne $this.TermWidth -or $currentHeight -ne $this.TermHeight) {
                             $this._HandleTerminalResize($currentWidth, $currentHeight)
                         }
-                    } catch {
+                    }
+                    catch {
                         # Console API calls can fail in some environments, ignore
                     }
                 }
@@ -566,12 +524,14 @@ class PmcApplication {
                 # Sleep longer when idle (no render) vs active
                 if ($wasActive) {
                     Start-Sleep -Milliseconds 1  # ~1000 FPS max, instant response to input
-                } else {
+                }
+                else {
                     Start-Sleep -Milliseconds 50  # ~20 FPS when idle, reduced from 100ms for better responsiveness
                 }
             }
 
-        } finally {
+        }
+        finally {
             # CRITICAL: Flush pending changes before exit
             try {
                 . "$PSScriptRoot/services/TaskStore.ps1"
@@ -580,7 +540,8 @@ class PmcApplication {
                     Write-PmcTuiLog "Flushing pending changes on exit..." "INFO"
                     $store.Flush()
                 }
-            } catch {
+            }
+            catch {
                 Write-PmcTuiLog "Failed to flush data on exit: $_" "ERROR"
                 # Continue with cleanup even if flush fails
             }
@@ -604,7 +565,8 @@ class PmcApplication {
             if ($null -ne $store -and $store.HasPendingChanges) {
                 $store.Flush()
             }
-        } catch {
+        }
+        catch {
             # TaskStore might not be available during shutdown - safe to ignore
             if (Get-Command Write-PmcTuiLog -ErrorAction SilentlyContinue) {
                 Write-PmcTuiLog "Stop: Could not flush TaskStore: $($_.Exception.Message)" "WARNING"
@@ -661,7 +623,8 @@ class PmcApplication {
                 # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] Automation: Queued $($commands.Count) commands"
                 # }
             }
-        } catch {
+        }
+        catch {
             # PERF: Disabled - if ($global:PmcTuiLogFile) {
             # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] Automation: Error reading commands: $_"
             # }
@@ -739,7 +702,8 @@ Screen Stack Depth: $($this.ScreenStack.Count)
             }
 
             Add-Content -Path $this.AutomationOutputFile -Value $screenInfo
-        } catch {
+        }
+        catch {
             # PERF: Disabled - if ($global:PmcTuiLogFile) {
             # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] Automation: Error capturing screen: $_"
             # }
@@ -752,7 +716,8 @@ Screen Stack Depth: $($this.ScreenStack.Count)
         try {
             $this.TermWidth = [Console]::WindowWidth
             $this.TermHeight = [Console]::WindowHeight
-        } catch {
+        }
+        catch {
             # Fallback to defaults
             $this.TermWidth = 80
             $this.TermHeight = 24
@@ -795,7 +760,7 @@ Screen Stack Depth: $($this.ScreenStack.Count)
     #>
     [hashtable] GetTerminalSize() {
         return @{
-            Width = $this.TermWidth
+            Width  = $this.TermWidth
             Height = $this.TermHeight
         }
     }

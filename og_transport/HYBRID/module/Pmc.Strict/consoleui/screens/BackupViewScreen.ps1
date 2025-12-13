@@ -72,12 +72,12 @@ class BackupViewScreen : PmcScreen {
                 if (Test-Path $bakFile) {
                     $info = Get-Item $bakFile
                     $this.Backups += [PSCustomObject]@{
-                        Number = $i
-                        Name = ".bak$i"
-                        Path = $bakFile
-                        Size = $info.Length
+                        Number   = $i
+                        Name     = ".bak$i"
+                        Path     = $bakFile
+                        Size     = $info.Length
                         Modified = $info.LastWriteTime
-                        Type = "auto"
+                        Type     = "auto"
                     }
                 }
             }
@@ -88,12 +88,12 @@ class BackupViewScreen : PmcScreen {
                 $manualBackups = @(Get-ChildItem $backupDir -Filter "*.json" | Sort-Object LastWriteTime -Descending | Select-Object -First 10)
                 foreach ($backup in $manualBackups) {
                     $this.Backups += [PSCustomObject]@{
-                        Number = $this.Backups.Count + 1
-                        Name = $backup.Name
-                        Path = $backup.FullName
-                        Size = $backup.Length
+                        Number   = $this.Backups.Count + 1
+                        Name     = $backup.Name
+                        Path     = $backup.FullName
+                        Size     = $backup.Length
                         Modified = $backup.LastWriteTime
-                        Type = "manual"
+                        Type     = "manual"
                     }
                 }
             }
@@ -106,150 +106,104 @@ class BackupViewScreen : PmcScreen {
             # Update status
             if ($this.Backups.Count -eq 0) {
                 $this.ShowStatus("No backups found")
-            } else {
+            }
+            else {
                 $this.ShowStatus("$($this.Backups.Count) backups available")
             }
 
-        } catch {
+        }
+        catch {
             $this.ShowError("Failed to load backups: $_")
             $this.Backups = @()
         }
     }
 
-    [string] RenderContent() {
+    [void] RenderContentToEngine([object]$engine) {
         if ($this.Backups.Count -eq 0) {
-            return $this._RenderEmptyState()
+            $this._RenderEmptyStateToEngine($engine)
+            return
         }
 
-        return $this._RenderBackupList()
+        $this._RenderBackupListToEngine($engine)
     }
 
-    hidden [string] _RenderEmptyState() {
-        $sb = [System.Text.StringBuilder]::new(512)
+    hidden [void] _RenderEmptyStateToEngine([object]$engine) {
+        # Center message
+        $message = "No backups found - Press C to create one"
+        $x = 4 + [Math]::Floor(($this.TermWidth - 4 - 4 - $message.Length) / 2)
+        $y = 4 + [Math]::Floor(($this.TermHeight - 4 - 4) / 2)
+        
+        # Clamp
+        $x = [Math]::Max(4, $x)
+        $y = [Math]::Max(4, $y)
 
-        # Get content area
-        if ($this.LayoutManager) {
-            $contentRect = $this.LayoutManager.GetRegion('Content', $this.TermWidth, $this.TermHeight)
+        $textColor = $this.Header.GetThemedColorInt('Foreground.Field')
+        $bg = $this.Header.GetThemedColorInt('Background.Primary')
 
-            # Center message
-            $message = "No backups found - Press C to create one"
-            $x = $contentRect.X + [Math]::Floor(($contentRect.Width - $message.Length) / 2)
-            $y = $contentRect.Y + [Math]::Floor($contentRect.Height / 2)
-
-            $textColor = $this.Header.GetThemedFg('Foreground.Field')
-            $reset = "`e[0m"
-
-            $sb.Append($this.Header.BuildMoveTo($x, $y))
-            $sb.Append($textColor)
-            $sb.Append($message)
-            $sb.Append($reset)
-        }
-
-        return $sb.ToString()
+        $engine.WriteAt($x, $y, $message, $textColor, $bg)
     }
 
-    hidden [string] _RenderBackupList() {
-        $sb = [System.Text.StringBuilder]::new(4096)
-
-        if (-not $this.LayoutManager) {
-            return $sb.ToString()
-        }
-
-        # Get content area
-        $contentRect = $this.LayoutManager.GetRegion('Content', $this.TermWidth, $this.TermHeight)
-
+    hidden [void] _RenderBackupListToEngine([object]$engine) {
         # Colors
-        $textColor = $this.Header.GetThemedFg('Foreground.Field')
-        $selectedBg = $this.Header.GetThemedBg('Background.FieldFocused', 80, 0)
-        $selectedFg = $this.Header.GetThemedFg('Foreground.Field')
-        $cursorColor = $this.Header.GetThemedFg('Foreground.FieldFocused')
-        $mutedColor = $this.Header.GetThemedFg('Foreground.Muted')
-        $headerColor = $this.Header.GetThemedFg('Foreground.Muted')
-        $reset = "`e[0m"
+        $textColor = $this.Header.GetThemedColorInt('Foreground.Field')
+        $selectedBg = $this.Header.GetThemedColorInt('Background.FieldFocused')
+        $selectedFg = $this.Header.GetThemedColorInt('Foreground.Field')
+        $cursorColor = $this.Header.GetThemedColorInt('Foreground.FieldFocused')
+        $mutedColor = $this.Header.GetThemedColorInt('Foreground.Muted')
+        $headerColor = $this.Header.GetThemedColorInt('Foreground.Muted')
+        $bg = $this.Header.GetThemedColorInt('Background.Primary')
+        
+        $x = 4
+        $headerY = 4 # Adjust based on header? Header is usually top 3 lines.
 
         # Render column headers
-        $headerY = $this.Header.Y + 3
-        $sb.Append($this.Header.BuildMoveTo($contentRect.X + 4, $headerY))
-        $sb.Append($headerColor)
-        $sb.Append("TYPE    ")
-        $sb.Append("NAME         ")
-        $sb.Append("MODIFIED            ")
-        $sb.Append("SIZE")
-        $sb.Append($reset)
+        $engine.WriteAt($x, $headerY, "TYPE    ", $headerColor, $bg)
+        $engine.WriteAt($x + 8, $headerY, "NAME         ", $headerColor, $bg)
+        $engine.WriteAt($x + 21, $headerY, "MODIFIED            ", $headerColor, $bg)
+        $engine.WriteAt($x + 41, $headerY, "SIZE", $headerColor, $bg)
 
         # Render backup rows
         $startY = $headerY + 2
-        $maxLines = $contentRect.Height - 4
+        $maxLines = $this.TermHeight - $startY - 4 # Footer allowance
 
         for ($i = 0; $i -lt [Math]::Min($this.Backups.Count, $maxLines); $i++) {
             $backup = $this.Backups[$i]
             $y = $startY + $i
             $isSelected = ($i -eq $this.SelectedIndex)
 
+            $rowBg = $(if ($isSelected) { $selectedBg } else { $bg })
+            $rowFg = $(if ($isSelected) { $selectedFg } else { $textColor })
+            $typeFg = $(if ($isSelected) { $selectedFg } else { $mutedColor })
+            $dateFg = $(if ($isSelected) { $selectedFg } else { $mutedColor })
+
             # Cursor
-            $sb.Append($this.Header.BuildMoveTo($contentRect.X + 2, $y))
             if ($isSelected) {
-                $sb.Append($cursorColor)
-                $sb.Append(">")
-                $sb.Append($reset)
-            } else {
-                $sb.Append(" ")
+                $engine.WriteAt($x - 2, $y, ">", $cursorColor, $bg)
             }
 
-            $x = $contentRect.X + 4
+            $currentX = $x
 
             # Type column
-            $sb.Append($this.Header.BuildMoveTo($x, $y))
             $typeLabel = $(if ($backup.Type -eq "auto") { "[Auto]" } else { "[Manual]" })
-            if ($isSelected) {
-                $sb.Append($selectedBg)
-                $sb.Append($selectedFg)
-            } else {
-                $sb.Append($mutedColor)
-            }
-            $sb.Append($typeLabel.PadRight(8))
-            $sb.Append($reset)
-            $x += 8
+            $engine.WriteAt($currentX, $y, $typeLabel.PadRight(8), $typeFg, $rowBg)
+            $currentX += 8
 
             # Name column
-            $sb.Append($this.Header.BuildMoveTo($x, $y))
-            if ($isSelected) {
-                $sb.Append($selectedBg)
-                $sb.Append($selectedFg)
-            } else {
-                $sb.Append($textColor)
-            }
-            $sb.Append($backup.Name.PadRight(13))
-            $sb.Append($reset)
-            $x += 13
+            $engine.WriteAt($currentX, $y, $backup.Name.PadRight(13), $rowFg, $rowBg)
+            $currentX += 13
 
             # Modified column
-            $sb.Append($this.Header.BuildMoveTo($x, $y))
-            if ($isSelected) {
-                $sb.Append($selectedBg)
-                $sb.Append($selectedFg)
-            } else {
-                $sb.Append($mutedColor)
-            }
-            $sb.Append($backup.Modified.ToString('yyyy-MM-dd HH:mm:ss').PadRight(20))
-            $sb.Append($reset)
-            $x += 20
+            $dateStr = $backup.Modified.ToString('yyyy-MM-dd HH:mm:ss').PadRight(20)
+            $engine.WriteAt($currentX, $y, $dateStr, $dateFg, $rowBg)
+            $currentX += 20
 
             # Size column
-            $sb.Append($this.Header.BuildMoveTo($x, $y))
             $sizeKB = [math]::Round($backup.Size / 1KB, 2)
-            if ($isSelected) {
-                $sb.Append($selectedBg)
-                $sb.Append($selectedFg)
-            } else {
-                $sb.Append($textColor)
-            }
-            $sb.Append("$sizeKB KB")
-            $sb.Append($reset)
+            $engine.WriteAt($currentX, $y, "$sizeKB KB", $rowFg, $rowBg)
         }
-
-        return $sb.ToString()
     }
+
+    [string] RenderContent() { return "" }
 
     [bool] HandleKeyPress([ConsoleKeyInfo]$keyInfo) {
         $keyChar = [char]::ToLower($keyInfo.KeyChar)
@@ -302,10 +256,12 @@ class BackupViewScreen : PmcScreen {
 
                 $this.ShowSuccess("Backup created successfully")
                 $this.LoadData()
-            } else {
+            }
+            else {
                 $this.ShowError("Data file not found")
             }
-        } catch {
+        }
+        catch {
             $this.ShowError("Error creating backup: $_")
         }
     }
@@ -338,10 +294,12 @@ class BackupViewScreen : PmcScreen {
                 Remove-Item $backup.Path -Force -ErrorAction Stop
                 $this.ShowSuccess("Backup deleted: $($backup.Name)")
                 $this.LoadData()
-            } else {
+            }
+            else {
                 $this.ShowError("Backup file not found")
             }
-        } catch {
+        }
+        catch {
             $this.ShowError("Error deleting backup: $_")
         }
     }

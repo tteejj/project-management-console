@@ -57,87 +57,57 @@ class DepShowFormScreen : PmcScreen {
         }
     }
 
-    [string] RenderContent() {
-        $sb = [System.Text.StringBuilder]::new(4096)
-
-        if (-not $this.LayoutManager) {
-            return $sb.ToString()
-        }
-
-        # Get content area
-        $contentRect = $this.LayoutManager.GetRegion('Content', $this.TermWidth, $this.TermHeight)
-
+    [void] RenderContentToEngine([object]$engine) {
         # Colors
-        $textColor = $this.Header.GetThemedFg('Foreground.Field')
-        $highlightColor = $this.Header.GetThemedFg('Foreground.FieldFocused')
-        $successColor = $this.Header.GetThemedFg('Foreground.Success')
-        $errorColor = $this.Header.GetThemedFg('Foreground.Error')
-        $warningColor = $this.Header.GetThemedAnsi('Warning', $false)
-        $mutedColor = $this.Header.GetThemedFg('Foreground.Muted')
-        $reset = "`e[0m"
-
-        $y = $contentRect.Y + 2
-        $x = $contentRect.X + 4
+        $textColor = $this.Header.GetThemedColorInt('Foreground.Field')
+        $highlightColor = $this.Header.GetThemedColorInt('Foreground.FieldFocused')
+        $successColor = $this.Header.GetThemedColorInt('Foreground.Success')
+        $errorColor = $this.Header.GetThemedColorInt('Foreground.Error')
+        $warningColor = $this.Header.GetThemedColorInt('Foreground.Warning') 
+        $mutedColor = $this.Header.GetThemedColorInt('Foreground.Muted')
+        $bg = $this.Header.GetThemedColorInt('Background.Primary')
+        
+        $y = 4
+        $x = 4
 
         # Title
         $title = " Show Task Dependencies "
-        $titleX = $contentRect.X + [Math]::Floor(($contentRect.Width - $title.Length) / 2)
-        $sb.Append($this.Header.BuildMoveTo($titleX, $y))
-        $sb.Append($highlightColor)
-        $sb.Append($title)
-        $sb.Append($reset)
+        $titleX = $x + [Math]::Floor(($this.TermWidth - $x - $title.Length) / 2)
+        $titleX = [Math]::Max($x, [Math]::Floor(($this.TermWidth - $title.Length) / 2))
+        
+        $engine.WriteAt($titleX, $y, $title, $highlightColor, $bg)
         $y += 2
 
         if ($this.IsInputMode) {
             # Input mode - ask for task ID
-            $sb.Append($this.Header.BuildMoveTo($x, $y))
-            $sb.Append($textColor)
-            $sb.Append("Task ID:")
-            $sb.Append($reset)
-
-            $sb.Append($this.Header.BuildMoveTo($x + 13, $y))
-            $sb.Append($highlightColor)
-            $sb.Append($this.InputBuffer)
-            $sb.Append("_")
-            $sb.Append($reset)
-        } else {
+            $engine.WriteAt($x, $y, "Task ID:", $textColor, $bg)
+            $engine.WriteAt($x + 13, $y, $this.InputBuffer + "_", $highlightColor, $bg)
+        }
+        else {
             # Display mode - show dependencies
             if ($null -eq $this.Task) {
-                $sb.Append($this.Header.BuildMoveTo($x, $y))
-                $sb.Append($errorColor)
-                $sb.Append("Task not found")
-                $sb.Append($reset)
-            } else {
+                $engine.WriteAt($x, $y, "Task not found", $errorColor, $bg)
+            }
+            else {
                 # Show task info
-                $sb.Append($this.Header.BuildMoveTo($x, $y))
-                $sb.Append($warningColor)
-                $sb.Append("Task:")
-                $sb.Append($reset)
-
+                $engine.WriteAt($x, $y, "Task:", $warningColor, $bg)
+                
                 $taskText = $this.Task.text
                 if ($taskText.Length -gt 60) {
                     $taskText = $taskText.Substring(0, 60) + "..."
                 }
-                $sb.Append($this.Header.BuildMoveTo($x + 6, $y))
-                $sb.Append($textColor)
-                $sb.Append($taskText)
-                $sb.Append($reset)
+                $engine.WriteAt($x + 6, $y, $taskText, $textColor, $bg)
                 $y += 2
 
                 # Show dependencies
                 if ($this.Dependencies.Count -eq 0) {
-                    $sb.Append($this.Header.BuildMoveTo($x, $y))
-                    $sb.Append($mutedColor)
-                    $sb.Append("No dependencies")
-                    $sb.Append($reset)
-                } else {
-                    $sb.Append($this.Header.BuildMoveTo($x, $y))
-                    $sb.Append($warningColor)
-                    $sb.Append("Dependencies:")
-                    $sb.Append($reset)
+                    $engine.WriteAt($x, $y, "No dependencies", $mutedColor, $bg)
+                }
+                else {
+                    $engine.WriteAt($x, $y, "Dependencies:", $warningColor, $bg)
                     $y += 2
 
-                    $maxLines = [Math]::Min($this.Dependencies.Count, $contentRect.Height - 10)
+                    $maxLines = [Math]::Min($this.Dependencies.Count, $this.TermHeight - 15)
                     for ($i = 0; $i -lt $maxLines; $i++) {
                         $dep = $this.Dependencies[$i]
 
@@ -146,27 +116,18 @@ class DepShowFormScreen : PmcScreen {
                         $statusIcon = $(if ($depStatus -eq 'completed') { 'X' } else { 'o' })
                         $statusColor = $(if ($depStatus -eq 'completed') { $successColor } else { $errorColor })
 
-                        $sb.Append($this.Header.BuildMoveTo($x + 2, $y))
-                        $sb.Append($statusColor)
-                        $sb.Append($statusIcon)
-                        $sb.Append($reset)
+                        $engine.WriteAt($x + 2, $y, $statusIcon, $statusColor, $bg)
 
                         # Task ID
                         $depId = $dep.id
-                        $sb.Append($this.Header.BuildMoveTo($x + 4, $y))
-                        $sb.Append($mutedColor)
-                        $sb.Append("#$depId")
-                        $sb.Append($reset)
+                        $engine.WriteAt($x + 4, $y, "#$depId", $mutedColor, $bg)
 
                         # Task text
                         $depText = $dep.text
                         if ($depText.Length -gt 50) {
                             $depText = $depText.Substring(0, 50) + "..."
                         }
-                        $sb.Append($this.Header.BuildMoveTo($x + 11, $y))
-                        $sb.Append($textColor)
-                        $sb.Append($depText)
-                        $sb.Append($reset)
+                        $engine.WriteAt($x + 11, $y, $depText, $textColor, $bg)
 
                         $y++
                     }
@@ -176,21 +137,16 @@ class DepShowFormScreen : PmcScreen {
                 $y += 2
                 $isBlocked = $this.Task.blocked
                 if ($isBlocked) {
-                    $sb.Append($this.Header.BuildMoveTo($x, $y))
-                    $sb.Append($errorColor)
-                    $sb.Append("WARNING: Task is BLOCKED")
-                    $sb.Append($reset)
-                } else {
-                    $sb.Append($this.Header.BuildMoveTo($x, $y))
-                    $sb.Append($successColor)
-                    $sb.Append("Task is ready")
-                    $sb.Append($reset)
+                    $engine.WriteAt($x, $y, "WARNING: Task is BLOCKED", $errorColor, $bg)
+                }
+                else {
+                    $engine.WriteAt($x, $y, "Task is ready", $successColor, $bg)
                 }
             }
         }
-
-        return $sb.ToString()
     }
+
+    [string] RenderContent() { return "" }
 
     [bool] HandleKeyPress([ConsoleKeyInfo]$keyInfo) {
         if ($this.IsInputMode) {
@@ -216,7 +172,8 @@ class DepShowFormScreen : PmcScreen {
                     }
                 }
             }
-        } else {
+        }
+        else {
             # Display mode - just wait for Esc
             if ($keyInfo.Key -eq 'Escape') {
                 $this.App.PopScreen()
@@ -259,7 +216,8 @@ class DepShowFormScreen : PmcScreen {
             $this.IsInputMode = $false
             $this.ShowStatus("Showing dependencies for task #$taskId")
 
-        } catch {
+        }
+        catch {
             $this.ShowError("Failed to load task: $_")
         }
     }

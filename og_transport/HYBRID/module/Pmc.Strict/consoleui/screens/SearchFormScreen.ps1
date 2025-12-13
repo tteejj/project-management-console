@@ -76,12 +76,12 @@ class SearchFormScreen : PmcScreen {
             # Search in task text, project, and tags
             $query = $this.SearchQuery.ToLower()
             $this.MatchingTasks = @($data.tasks | Where-Object {
-                -not $_.completed -and (
-                    $_.text.ToLower().Contains($query) -or
-                    $_.project.ToLower().Contains($query) -or
-                    ($_.tags -and ($_.tags -join ' ').ToLower().Contains($query))
-                )
-            })
+                    -not $_.completed -and (
+                        $_.text.ToLower().Contains($query) -or
+                        $_.project.ToLower().Contains($query) -or
+                        ($_.tags -and ($_.tags -join ' ').ToLower().Contains($query))
+                    )
+                })
 
             # Reset selection if out of bounds
             if ($this.SelectedIndex -ge $this.MatchingTasks.Count) {
@@ -91,156 +91,130 @@ class SearchFormScreen : PmcScreen {
             $count = $this.MatchingTasks.Count
             if ($count -eq 0) {
                 $this.ShowStatus("No matches found")
-            } elseif ($count -eq 1) {
+            }
+            elseif ($count -eq 1) {
                 $this.ShowStatus("1 match found")
-            } else {
+            }
+            else {
                 $this.ShowStatus("$count matches found")
             }
 
-        } catch {
+        }
+        catch {
             $this.ShowError("Search error: $_")
             $this.MatchingTasks = @()
         }
     }
 
-    [string] RenderContent() {
-        $sb = [System.Text.StringBuilder]::new(4096)
-
-        if (-not $this.LayoutManager) {
-            return $sb.ToString()
-        }
+    [void] RenderContentToEngine([object]$engine) {
+        if (-not $this.LayoutManager) { return }
 
         # Get content area
         $contentRect = $this.LayoutManager.GetRegion('Content', $this.TermWidth, $this.TermHeight)
 
-        # Colors
-        $textColor = $this.Header.GetThemedFg('Foreground.Field')
-        $selectedBg = $this.Header.GetThemedBg('Background.FieldFocused', 80, 0)
-        $selectedFg = $this.Header.GetThemedFg('Foreground.Field')
-        $cursorColor = $this.Header.GetThemedFg('Foreground.FieldFocused')
-        $mutedColor = $this.Header.GetThemedFg('Foreground.Muted')
-        $priorityColor = $this.Header.GetThemedAnsi('Warning', $false)
-        $reset = "`e[0m"
-
+        # Colors (Ints)
+        $textColor = $this.Header.GetThemedColorInt('Foreground.Field')
+        $selectedBg = $this.Header.GetThemedColorInt('Background.FieldFocused')
+        $selectedFg = $this.Header.GetThemedColorInt('Foreground.Field')
+        $cursorColor = $this.Header.GetThemedColorInt('Foreground.FieldFocused')
+        $mutedColor = $this.Header.GetThemedColorInt('Foreground.Muted')
+        $priorityColor = $this.Header.GetThemedColorInt('Warning')
+        $bg = $this.Header.GetThemedColorInt('Background.Primary')
+        
         $y = $contentRect.Y
-
+        
         # Search prompt
-        $sb.Append($this.Header.BuildMoveTo($contentRect.X + 4, $y))
-        $sb.Append($textColor)
-        $sb.Append("Search for:")
-        $sb.Append($reset)
+        $engine.WriteAt($contentRect.X + 4, $y, "Search for:", $textColor, $bg)
         $y += 2
-
+        
         # Search input box
-        $sb.Append($this.Header.BuildMoveTo($contentRect.X + 4, $y))
-        $sb.Append($cursorColor)
-        $sb.Append("> ")
-        $sb.Append($textColor)
-        $sb.Append($this.SearchQuery)
-        $sb.Append($cursorColor)
-        $sb.Append("_")
-        $sb.Append($reset)
+        $prompt = "> "
+        $engine.WriteAt($contentRect.X + 4, $y, $prompt, $cursorColor, $bg)
+        
+        $inputX = $contentRect.X + 4 + $prompt.Length
+        $engine.WriteAt($inputX, $y, $this.SearchQuery, $textColor, $bg)
+        $engine.WriteAt($inputX + $this.SearchQuery.Length, $y, "_", $cursorColor, $bg)
+        
         $y += 3
-
+        
         # Results header
         if ($this.MatchingTasks.Count -gt 0) {
-            $sb.Append($this.Header.BuildMoveTo($contentRect.X + 4, $y))
-            $sb.Append($mutedColor)
-            $sb.Append("Results:")
-            $sb.Append($reset)
+            $engine.WriteAt($contentRect.X + 4, $y, "Results:", $mutedColor, $bg)
             $y += 2
-
+            
             # Column headers
-            $sb.Append($this.Header.BuildMoveTo($contentRect.X + 4, $y))
-            $sb.Append($mutedColor)
-            $sb.Append("ID".PadRight(6))
-            $sb.Append("PRI".PadRight(5))
-            $sb.Append("PROJECT".PadRight(15))
-            $sb.Append("TASK")
-            $sb.Append($reset)
+            $headerText = "ID".PadRight(6) + "PRI".PadRight(5) + "PROJECT".PadRight(15) + "TASK"
+            $engine.WriteAt($contentRect.X + 4, $y, $headerText, $mutedColor, $bg)
             $y++
-
+            
             # Results list
             $maxLines = $contentRect.Height - 10
             for ($i = 0; $i -lt [Math]::Min($this.MatchingTasks.Count, $maxLines); $i++) {
                 $task = $this.MatchingTasks[$i]
                 $isSelected = ($i -eq $this.SelectedIndex)
-
+                
+                # Colors for this row
+                $rowBg = if ($isSelected) { $selectedBg } else { $bg }
+                $rowFg = if ($isSelected) { $selectedFg } else { $textColor }
+                
                 # Cursor
-                $sb.Append($this.Header.BuildMoveTo($contentRect.X + 2, $y))
                 if ($isSelected) {
-                    $sb.Append($cursorColor)
-                    $sb.Append(">")
-                    $sb.Append($reset)
-                } else {
-                    $sb.Append(" ")
+                    $engine.WriteAt($contentRect.X + 2, $y, ">", $cursorColor, $bg)
                 }
-
-                # Task row
+                
                 $x = $contentRect.X + 4
-                $sb.Append($this.Header.BuildMoveTo($x, $y))
-
-                if ($isSelected) {
-                    $sb.Append($selectedBg)
-                    $sb.Append($selectedFg)
-                }
-
+                
+                # Prepare row text parts
                 # ID
-                $sb.Append("#$($task.id)".PadRight(6))
-
+                $idText = "#$($task.id)".PadRight(6)
+                $engine.WriteAt($x, $y, $idText, $rowFg, $rowBg)
+                $x += 6
+                
                 # Priority
+                $priText = "  ".PadRight(5)
+                $priColor = $rowFg # Default
                 if ($task.priority -and $task.priority -gt 0) {
-                    if (-not $isSelected) {
-                        $sb.Append($reset)
-                        $sb.Append($priorityColor)
-                    }
-                    $sb.Append("P$($task.priority)".PadRight(5))
-                    if (-not $isSelected) {
-                        $sb.Append($reset)
-                        $sb.Append($textColor)
-                    }
-                } else {
-                    $sb.Append("  ".PadRight(5))
+                    $priText = "P$($task.priority)".PadRight(5)
+                    if (-not $isSelected) { $priColor = $priorityColor }
                 }
-
+                $engine.WriteAt($x, $y, $priText, $priColor, $rowBg)
+                $x += 5
+                
                 # Project
                 $projText = $(if ($task.project) { $task.project } else { "" })
                 if ($projText.Length -gt 14) {
                     $projText = $projText.Substring(0, 11) + "..."
                 }
-                $sb.Append($projText.PadRight(15))
-
+                $projText = $projText.PadRight(15)
+                $engine.WriteAt($x, $y, $projText, $rowFg, $rowBg)
+                $x += 15
+                
                 # Task text
                 $maxTaskWidth = $contentRect.Width - 35
                 $taskText = $(if ($task.text) { $task.text } else { "" })
                 if ($taskText.Length -gt $maxTaskWidth) {
                     $taskText = $taskText.Substring(0, $maxTaskWidth - 3) + "..."
                 }
-                $sb.Append($taskText)
-
-                $sb.Append($reset)
+                $engine.WriteAt($x, $y, $taskText, $rowFg, $rowBg)
+                
                 $y++
             }
-
-            # Show "more results" indicator
+            
+            # More results indicator
             if ($this.MatchingTasks.Count -gt $maxLines) {
-                $sb.Append($this.Header.BuildMoveTo($contentRect.X + 4, $y))
-                $sb.Append($mutedColor)
-                $sb.Append("... and $($this.MatchingTasks.Count - $maxLines) more")
-                $sb.Append($reset)
+                $engine.WriteAt($contentRect.X + 4, $y, "... and $($this.MatchingTasks.Count - $maxLines) more", $mutedColor, $bg)
             }
-        } else {
+            
+        }
+        else {
             # No results message
             if (-not [string]::IsNullOrWhiteSpace($this.SearchQuery)) {
-                $sb.Append($this.Header.BuildMoveTo($contentRect.X + 4, $y))
-                $sb.Append($mutedColor)
-                $sb.Append("No tasks match your search")
-                $sb.Append($reset)
+                $engine.WriteAt($contentRect.X + 4, $y, "No tasks match your search", $mutedColor, $bg)
             }
         }
-
-        return $sb.ToString()
     }
+
+    [string] RenderContent() { return "" }
 
     [bool] HandleKeyPress([ConsoleKeyInfo]$keyInfo) {
         # CRITICAL: Call parent FIRST for MenuBar, F10, Alt+keys, content widgets

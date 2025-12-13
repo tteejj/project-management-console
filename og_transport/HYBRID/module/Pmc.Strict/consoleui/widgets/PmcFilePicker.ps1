@@ -27,7 +27,8 @@ class PmcFilePicker : PmcWidget {
         # Start at provided path or home
         if ([string]::IsNullOrWhiteSpace($startPath) -or -not (Test-Path $startPath)) {
             $this.CurrentPath = [Environment]::GetFolderPath('UserProfile')
-        } else {
+        }
+        else {
             $this.CurrentPath = $startPath
         }
 
@@ -47,8 +48,8 @@ class PmcFilePicker : PmcWidget {
             $parent = Split-Path -Parent $this.CurrentPath
             if ($parent) {
                 $this.Items += @{
-                    Name = '..'
-                    Path = $parent
+                    Name        = '..'
+                    Path        = $parent
                     IsDirectory = $true
                 }
             }
@@ -60,8 +61,8 @@ class PmcFilePicker : PmcWidget {
             }
             foreach ($dir in $dirs) {
                 $this.Items += @{
-                    Name = $dir.Name
-                    Path = $dir.FullName
+                    Name        = $dir.Name
+                    Path        = $dir.FullName
                     IsDirectory = $true
                 }
             }
@@ -71,8 +72,8 @@ class PmcFilePicker : PmcWidget {
                 $files = @(Get-ChildItem -Path $this.CurrentPath -File -ErrorAction SilentlyContinue | Sort-Object Name)
                 foreach ($file in $files) {
                     $this.Items += @{
-                        Name = $file.Name
-                        Path = $file.FullName
+                        Name        = $file.Name
+                        Path        = $file.FullName
                         IsDirectory = $false
                     }
                 }
@@ -81,7 +82,8 @@ class PmcFilePicker : PmcWidget {
             if ($global:PmcTuiLogFile) {
                 Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcFilePicker: Total items loaded: $($this.Items.Count)"
             }
-        } catch {
+        }
+        catch {
             if ($global:PmcTuiLogFile) {
                 Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcFilePicker: ERROR loading items: $_"
             }
@@ -127,7 +129,7 @@ class PmcFilePicker : PmcWidget {
         # Fill background
         $engine.Fill($this.X, $this.Y, $this.Width, $this.Height, ' ', $fg, $bg)
         # Draw Border
-        $engine.DrawBox($this.X, $this.Y, $this.Width, $this.Height, 'single')
+        $engine.DrawBox($this.X, $this.Y, $this.Width, $this.Height, $borderFg, $bg)
         
         # Title
         $title = "Select Directory"
@@ -275,7 +277,8 @@ class PmcFilePicker : PmcWidget {
                     $sb.Append($highlightBg)
                     $sb.Append($highlightFg)
                     $sb.Append(">")
-                } else {
+                }
+                else {
                     $sb.Append($bgColor)
                     $sb.Append($dirColor)
                     $sb.Append(" ")
@@ -286,7 +289,8 @@ class PmcFilePicker : PmcWidget {
                 if ($isSelected) {
                     $sb.Append($highlightBg)  # Yellow background for selected
                     $sb.Append($highlightFg)  # Black text for selected
-                } else {
+                }
+                else {
                     $sb.Append($bgColor)      # Black background for unselected
                     $sb.Append($dirColor)     # Yellow text for unselected
                 }
@@ -317,7 +321,8 @@ class PmcFilePicker : PmcWidget {
                     $tail = $(if ($sbStr.Length -gt 200) { $sbStr.Substring($sbStr.Length - 200) } else { $sbStr })
                     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcFilePicker: Item 0 - Last 200 chars: $($tail -replace "`e", '<ESC>')"
                 }
-            } else {
+            }
+            else {
                 # Empty line - fill with background
                 $sb.Append($this.BuildMoveTo($x + 2, $itemY))
                 $sb.Append($bgColor)
@@ -370,7 +375,8 @@ class PmcFilePicker : PmcWidget {
                 $sample = $output.Substring($start, $len)
                 Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] Output around emoji:"
                 Add-Content -Path $global:PmcTuiLogFile -Value "    $($sample -replace "`e", '<ESC>')"
-            } else {
+            }
+            else {
                 Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] !!! NO EMOJI FOUND IN OUTPUT !!!"
                 # Show first 500 chars
                 $sample = $output.Substring(0, [Math]::Min(500, $output.Length))
@@ -384,7 +390,8 @@ class PmcFilePicker : PmcWidget {
                 $namePos = $output.IndexOf($firstItemName)
                 if ($namePos -gt 0) {
                     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] First item name '$firstItemName' FOUND at position $namePos"
-                } else {
+                }
+                else {
                     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] !!! First item name '$firstItemName' NOT FOUND in output !!!"
                 }
             }
@@ -423,7 +430,8 @@ class PmcFilePicker : PmcWidget {
                     # Navigate into directory
                     $this.CurrentPath = $selected.Path
                     $this._LoadItems()
-                } else {
+                }
+                else {
                     # Select file
                     $this.SelectedPath = $selected.Path
                     $this.Result = $true

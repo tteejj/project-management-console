@@ -181,7 +181,7 @@ class DatePicker : PmcWidget {
 
         # Draw Box
         $engine.Fill($this.X, $this.Y, $this.Width, $this.Height, ' ', $fg, $bg)
-        $engine.DrawBox($this.X, $this.Y, $this.Width, $this.Height, 'single')
+        $engine.DrawBox($this.X, $this.Y, $this.Width, $this.Height, $borderFg, $bg)
         
         # Title
         $title = "Select Date"
@@ -236,7 +236,8 @@ class DatePicker : PmcWidget {
                         if ($isSelected) {
                             $cBg = $highlightBg
                             $cFg = $highlightFg
-                        } elseif ($isToday) {
+                        }
+                        elseif ($isToday) {
                             $cFg = $primaryFg
                         }
                         
@@ -323,7 +324,8 @@ class DatePicker : PmcWidget {
         if ($this._errorMessage) {
             $sb.Append($errorColor)
             $sb.Append(" " + $this.TruncateText($this._errorMessage, $this.Width - 3))
-        } else {
+        }
+        else {
             $sb.Append(" " * ($this.Width - 2))
         }
         $sb.Append($borderColor)
@@ -352,7 +354,8 @@ class DatePicker : PmcWidget {
                 $this._selectedDate = $parsed
                 $this._calendarMonth = $parsed
             }
-        } else {
+        }
+        else {
             # Switching to text mode - populate with current selected date
             $this._textInput = $this._selectedDate.ToString("yyyy-MM-dd")
             $this._cursorPosition = $this._textInput.Length
@@ -466,12 +469,15 @@ class DatePicker : PmcWidget {
 
                     if ($isSelected) {
                         $line += $successColor + "[$dayStr]" + $textColor
-                    } elseif ($isToday) {
+                    }
+                    elseif ($isToday) {
                         $line += $primaryColor + " $dayStr " + $textColor
-                    } else {
+                    }
+                    else {
                         $line += " $dayStr "
                     }
-                } else {
+                }
+                else {
                     $line += "    "
                 }
             }
@@ -663,7 +669,8 @@ class DatePicker : PmcWidget {
             $parsed = [DateTime]::Parse($input, [CultureInfo]::InvariantCulture)
             return $parsed
 
-        } catch {
+        }
+        catch {
             $this._errorMessage = "Invalid date: $input"
             return $null
         }
@@ -714,10 +721,12 @@ class DatePicker : PmcWidget {
             try {
                 if ($arg -ne $null) {
                     & $callback $arg
-                } else {
+                }
+                else {
                     & $callback
                 }
-            } catch {
+            }
+            catch {
                 # Silently ignore callback errors
             }
         }

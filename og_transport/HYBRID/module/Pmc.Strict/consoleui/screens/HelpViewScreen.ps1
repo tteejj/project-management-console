@@ -24,70 +24,50 @@ No navigation needed, just Esc to exit.
 #>
 class HelpViewScreen : PmcScreen {
 
-    # Static: Register menu items
-    static [void] RegisterMenuItems([object]$registry) {
-        $registry.AddMenuItem('Help', 'Help', 'H', {
-            . "$PSScriptRoot/HelpViewScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object -TypeName HelpViewScreen))
-        }, 10)
-    }
 
-    # Constructor
-    HelpViewScreen() : base("HelpView", "PMC TUI Help") {
-        # Configure header
-        $this.Header.SetBreadcrumb(@("Home", "Help"))
 
-        # Configure footer with shortcuts
-        $this.Footer.ClearShortcuts()
-        $this.Footer.AddShortcut("Esc", "Back")
+    # === Layout System ===
 
-        # NOTE: _SetupMenus() removed - MenuRegistry handles menu population via static RegisterMenuItems()
-        # Old pattern was adding duplicate/misplaced menu items
-    }
-
-    HelpViewScreen([object]$container) : base("HelpView", "PMC TUI Help", $container) {
-        # Configure header
-        $this.Header.SetBreadcrumb(@("Home", "Help"))
-
-        # Configure footer with shortcuts
-        $this.Footer.ClearShortcuts()
-        $this.Footer.AddShortcut("Esc", "Back")
-
-        # NOTE: _SetupMenus() removed - MenuRegistry handles menu population via static RegisterMenuItems()
-        # Old pattern was adding duplicate/misplaced menu items
-    }
-
-    [void] LoadData() {
-        # Static content, no data to load
-        $this.ShowStatus("Help documentation")
-    }
-
-    [string] RenderContent() {
-        $sb = [System.Text.StringBuilder]::new(4096)
-
-        if (-not $this.LayoutManager) {
-            return $sb.ToString()
+    [void] Resize([int]$width, [int]$height) {
+        $this.TermWidth = $width
+        $this.TermHeight = $height
+        
+        # Resize standard components
+        if ($this.MenuBar) { $this.MenuBar.SetSize($width, 1) }
+        if ($this.Header) { $this.Header.SetSize($width, 3) }
+        if ($this.Footer) { 
+            $this.Footer.SetPosition(0, $height - 1)
+            $this.Footer.SetSize($width, 1)
         }
+    }
+
+    [void] RenderContentToEngine([object]$engine) {
+        if (-not $this.LayoutManager) { return }
 
         # Get content area
         $contentRect = $this.LayoutManager.GetRegion('Content', $this.TermWidth, $this.TermHeight)
+        $engine.BeginLayer([ZIndex]::Content)
 
-        # Colors
-        $textColor = $this.Header.GetThemedFg('Foreground.Field')
-        $highlightColor = $this.Header.GetThemedFg('Foreground.FieldFocused')
-        $mutedColor = $this.Header.GetThemedFg('Foreground.Muted')
-        $headerColor = $this.Header.GetThemedFg('Foreground.FieldFocused')
-        $reset = "`e[0m"
+        # Colors (Ints)
+        $textColor = $this.Header.GetThemedColorInt('Foreground.Field')
+        $highlightColor = $this.Header.GetThemedColorInt('Foreground.FieldFocused')
+        $mutedColor = $this.Header.GetThemedColorInt('Foreground.Muted')
+        $headerColor = $this.Header.GetThemedColorInt('Foreground.FieldFocused')
+        $bg = $this.Header.GetThemedColorInt('Background.Primary')
 
-        $y = $contentRect.Y + 1
+        $y = $contentRect.Y
         $indent = $contentRect.X + 4
         $subIndent = $contentRect.X + 6
 
+        # Helper to simplify writing lines
+        $writeLine = {
+            param($x, $text, $color)
+            $engine.WriteAt($x, $y, $text, $color, $bg)
+            # Access variable from parent scope using Get-Variable or assume scope inherited in scriptblock
+        }
+
         # Global Keys
-        $sb.Append($this.Header.BuildMoveTo($indent, $y++))
-        $sb.Append($headerColor)
-        $sb.Append("Global Keys:")
-        $sb.Append($reset)
+        $engine.WriteAt($indent, $y, "Global Keys:", $headerColor, $bg)
         $y++
 
         $globalKeys = @(
@@ -102,18 +82,13 @@ class HelpViewScreen : PmcScreen {
             "Alt+P     - Project list"
         )
         foreach ($line in $globalKeys) {
-            $sb.Append($this.Header.BuildMoveTo($subIndent, $y++))
-            $sb.Append($textColor)
-            $sb.Append($line)
-            $sb.Append($reset)
+            $engine.WriteAt($subIndent, $y, $line, $textColor, $bg)
+            $y++
         }
         $y++
 
         # Task List Keys
-        $sb.Append($this.Header.BuildMoveTo($indent, $y++))
-        $sb.Append($headerColor)
-        $sb.Append("Task List Keys:")
-        $sb.Append($reset)
+        $engine.WriteAt($indent, $y, "Task List Keys:", $headerColor, $bg)
         $y++
 
         $taskKeys = @(
@@ -129,27 +104,17 @@ class HelpViewScreen : PmcScreen {
             "H         - Toggle show completed"
             "Tab       - Next field (when editing)"
             "/         - Search tasks"
-            "1         - View: All tasks"
-            "2         - View: Active tasks"
-            "3         - View: Completed tasks"
-            "4         - View: Overdue tasks"
-            "5         - View: Today's tasks"
-            "6         - View: This week's tasks"
+            "1-6       - View filters (All, Active, Completed, Overdue, Today, Week)"
         )
         foreach ($line in $taskKeys) {
-            $sb.Append($this.Header.BuildMoveTo($subIndent, $y++))
-            $sb.Append($textColor)
-            $sb.Append($line)
-            $sb.Append($reset)
+            $engine.WriteAt($subIndent, $y, $line, $textColor, $bg)
+            $y++
         }
         $y++
 
         # Multi-Select Mode
         if ($y -lt $contentRect.Y + $contentRect.Height - 10) {
-            $sb.Append($this.Header.BuildMoveTo($indent, $y++))
-            $sb.Append($headerColor)
-            $sb.Append("Multi-Select Mode:")
-            $sb.Append($reset)
+            $engine.WriteAt($indent, $y, "Multi-Select Mode:", $headerColor, $bg)
             $y++
 
             $multiKeys = @(
@@ -160,20 +125,15 @@ class HelpViewScreen : PmcScreen {
                 "X         - Delete selected tasks"
             )
             foreach ($line in $multiKeys) {
-                $sb.Append($this.Header.BuildMoveTo($subIndent, $y++))
-                $sb.Append($textColor)
-                $sb.Append($line)
-                $sb.Append($reset)
+                $engine.WriteAt($subIndent, $y, $line, $textColor, $bg)
+                $y++
             }
             $y++
         }
 
         # Project List Keys
         if ($y -lt $contentRect.Y + $contentRect.Height - 12) {
-            $sb.Append($this.Header.BuildMoveTo($indent, $y++))
-            $sb.Append($headerColor)
-            $sb.Append("Project List Keys:")
-            $sb.Append($reset)
+            $engine.WriteAt($indent, $y, "Project List Keys:", $headerColor, $bg)
             $y++
 
             $projectKeys = @(
@@ -184,46 +144,36 @@ class HelpViewScreen : PmcScreen {
                 "V         - View project details"
             )
             foreach ($line in $projectKeys) {
-                $sb.Append($this.Header.BuildMoveTo($subIndent, $y++))
-                $sb.Append($textColor)
-                $sb.Append($line)
-                $sb.Append($reset)
+                $engine.WriteAt($subIndent, $y, $line, $textColor, $bg)
+                $y++
             }
             $y++
         }
 
         # Time Tracking Keys
         if ($y -lt $contentRect.Y + $contentRect.Height - 10) {
-            $sb.Append($this.Header.BuildMoveTo($indent, $y++))
-            $sb.Append($headerColor)
-            $sb.Append("Time Tracking Keys:")
-            $sb.Append($reset)
+            $engine.WriteAt($indent, $y, "Time Tracking Keys:", $headerColor, $bg)
             $y++
 
             $timeKeys = @(
                 "A         - Add time entry"
                 "E         - Edit time entry"
                 "D         - Delete time entry"
-                "Enter     - View entry details (aggregated entries)"
+                "Enter     - View entry details"
                 "W         - Weekly time report"
                 "G         - Generate time report"
-                "←/→       - Navigate weeks (in week view)"
+                "Arrows    - Navigate weeks (in week view)"
             )
             foreach ($line in $timeKeys) {
-                $sb.Append($this.Header.BuildMoveTo($subIndent, $y++))
-                $sb.Append($textColor)
-                $sb.Append($line)
-                $sb.Append($reset)
+                $engine.WriteAt($subIndent, $y, $line, $textColor, $bg)
+                $y++
             }
             $y++
         }
 
         # Quick Add Syntax
         if ($y -lt $contentRect.Y + $contentRect.Height - 8) {
-            $sb.Append($this.Header.BuildMoveTo($indent, $y++))
-            $sb.Append($headerColor)
-            $sb.Append("Quick Add Syntax:")
-            $sb.Append($reset)
+            $engine.WriteAt($indent, $y, "Quick Add Syntax:", $headerColor, $bg)
             $y++
 
             $quickAdd = @(
@@ -232,43 +182,16 @@ class HelpViewScreen : PmcScreen {
                 "!due      - Set due date: !today !tomorrow !+7 (days)"
             )
             foreach ($line in $quickAdd) {
-                $sb.Append($this.Header.BuildMoveTo($subIndent, $y++))
-                $sb.Append($mutedColor)
-                $sb.Append($line)
-                $sb.Append($reset)
+                $engine.WriteAt($subIndent, $y, $line, $mutedColor, $bg)
+                $y++
             }
             $y++
         }
-
-        # Features
-        if ($y -lt $contentRect.Y + $contentRect.Height - 5) {
-            $sb.Append($this.Header.BuildMoveTo($indent, $y++))
-            $sb.Append($headerColor)
-            $sb.Append("Features:")
-            $sb.Append($reset)
-            $y++
-
-            $features = @(
-                "Real-time PMC data integration"
-                "Quick add syntax for fast task creation"
-                "Multi-select mode for bulk operations"
-                "Color-coded priorities and overdue warnings"
-                "Project filtering and task search"
-                "Inline editing with Tab navigation"
-            )
-            foreach ($line in $features) {
-                if ($y -ge $contentRect.Y + $contentRect.Height - 2) { break }
-                $sb.Append($this.Header.BuildMoveTo($subIndent, $y++))
-                $sb.Append($mutedColor)
-                $sb.Append("• ")
-                $sb.Append($textColor)
-                $sb.Append($line)
-                $sb.Append($reset)
-            }
-        }
-
-        return $sb.ToString()
     }
+    
+    [string] RenderContent() { return "" }
+    
+    # Remove old RenderToEngine that used ParseAnsi
 
     [bool] HandleKeyPress([ConsoleKeyInfo]$keyInfo) {
         # Let MenuBar handle its keys first (F10, menu navigation, etc.)

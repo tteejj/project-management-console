@@ -81,17 +81,17 @@ class FilterPanel : PmcWidget {
 
     # Filter presets (common filter combinations)
     hidden [hashtable]$_presets = @{
-        'Today' = @(
-            @{ Type='DueDate'; Op='equals'; Value=[DateTime]::Today }
+        'Today'         = @(
+            @{ Type = 'DueDate'; Op = 'equals'; Value = [DateTime]::Today }
         )
-        'This Week' = @(
-            @{ Type='DueDate'; Op='between'; Value=@([DateTime]::Today, [DateTime]::Today.AddDays(7)) }
+        'This Week'     = @(
+            @{ Type = 'DueDate'; Op = 'between'; Value = @([DateTime]::Today, [DateTime]::Today.AddDays(7)) }
         )
         'High Priority' = @(
-            @{ Type='Priority'; Op='>='; Value=4 }
+            @{ Type = 'Priority'; Op = '>='; Value = 4 }
         )
-        'Work Project' = @(
-            @{ Type='Project'; Op='equals'; Value='work' }
+        'Work Project'  = @(
+            @{ Type = 'Project'; Op = 'equals'; Value = 'work' }
         )
     }
 
@@ -100,6 +100,13 @@ class FilterPanel : PmcWidget {
         $this.Width = 80
         $this.Height = 12
         $this.CanFocus = $true
+    }
+
+    # === Layout System ===
+
+    [void] Resize([int]$width, [int]$height) {
+        $this.Width = $width
+        $this.Height = $height
     }
 
     # === Public API Methods ===
@@ -240,7 +247,7 @@ class FilterPanel : PmcWidget {
     #>
     [hashtable] GetFilterPreset() {
         return @{
-            Filters = $this.GetFilters()
+            Filters   = $this.GetFilters()
             Timestamp = (Get-Date).ToString('yyyy-MM-dd HH:mm:ss')
         }
     }
@@ -351,7 +358,7 @@ class FilterPanel : PmcWidget {
 
         # Draw Box
         $engine.Fill($this.X, $this.Y, $this.Width, $this.Height, ' ', $fg, $bg)
-        $engine.DrawBox($this.X, $this.Y, $this.Width, $this.Height, 'single')
+        $engine.DrawBox($this.X, $this.Y, $this.Width, $this.Height, $borderFg, $bg)
         
         # Title
         $titleText = " $($this.Title) "
@@ -376,7 +383,8 @@ class FilterPanel : PmcWidget {
                 $msg = "No filters active"
                 $pad = [Math]::Max(0, [Math]::Floor(($bounds.Width - $msg.Length) / 2))
                 $engine.WriteAt($bounds.X, $currentY + 1, (" " * $pad) + $msg, $mutedFg, $bg)
-            } else {
+            }
+            else {
                 for ($i = 0; $i -lt $this._filters.Count; $i++) {
                     $filter = $this._filters[$i]
                     $chipText = "[" + $this._FormatFilterChip($filter) + "]"
@@ -413,7 +421,7 @@ class FilterPanel : PmcWidget {
             $engine.DefineRegion($menuRegionId, $menuX, $menuY, $menuWidth, $menuHeight, 100)
             
             $engine.Fill($menuX, $menuY, $menuWidth, $menuHeight, ' ', $fg, $bg)
-            $engine.DrawBox($menuX, $menuY, $menuWidth, $menuHeight, 'single')
+            $engine.DrawBox($menuX, $menuY, $menuWidth, $menuHeight, $borderFg, $bg)
             
             # Menu Title
             $engine.WriteAt($menuX + 2, $menuY, " Add Filter ", $primaryFg, $bg)
@@ -494,7 +502,8 @@ class FilterPanel : PmcWidget {
             $sb.Append($this.BuildMoveTo($this.X + $this.Width - 1, $noFiltersY))
             $sb.Append($borderColor)
             $sb.Append($this.GetBoxChar('single_vertical'))
-        } else {
+        }
+        else {
             # Render filter chips
             $this._RenderFilterChips($sb, $currentRow, $borderColor, $textColor, $primaryColor, $highlightBg, $reset)
         }
@@ -586,7 +595,8 @@ class FilterPanel : PmcWidget {
             if ($isSelected) {
                 $sb.Append($highlightBg)
                 $sb.Append("`e[30m")
-            } else {
+            }
+            else {
                 $chipColor = $this._GetFilterColor($filter.Type)
                 $sb.Append($chipColor)
             }
@@ -648,7 +658,8 @@ class FilterPanel : PmcWidget {
             if ($isSelected) {
                 $sb.Append($highlightBg)
                 $sb.Append("`e[30m")
-            } else {
+            }
+            else {
                 $sb.Append($textColor)
             }
 
@@ -723,29 +734,29 @@ class FilterPanel : PmcWidget {
     hidden [hashtable] _CreateDefaultDoFilter([string]$filterType) {
         switch ($filterType) {
             'Project' {
-                return @{ Type='Project'; Op='equals'; Value='work' }
+                return @{ Type = 'Project'; Op = 'equals'; Value = 'work' }
             }
             'Priority' {
-                return @{ Type='Priority'; Op='>='; Value=3 }
+                return @{ Type = 'Priority'; Op = '>='; Value = 3 }
             }
             'DueDate' {
-                return @{ Type='DueDate'; Op='equals'; Value=[DateTime]::Today }
+                return @{ Type = 'DueDate'; Op = 'equals'; Value = [DateTime]::Today }
             }
             'Tags' {
-                return @{ Type='Tags'; Op='has'; Value='urgent' }
+                return @{ Type = 'Tags'; Op = 'has'; Value = 'urgent' }
             }
             'Status' {
-                return @{ Type='Status'; Op='equals'; Value='pending' }
+                return @{ Type = 'Status'; Op = 'equals'; Value = 'pending' }
             }
             'Text' {
-                return @{ Type='Text'; Op='contains'; Value='' }
+                return @{ Type = 'Text'; Op = 'contains'; Value = '' }
             }
             default {
-                return @{ Type='Unknown'; Op='equals'; Value=$null }
+                return @{ Type = 'Unknown'; Op = 'equals'; Value = $null }
             }
         }
         # Fallback (should never reach here)
-        return @{ Type='Unknown'; Op='equals'; Value=$null }
+        return @{ Type = 'Unknown'; Op = 'equals'; Value = $null }
     }
 
     <#
@@ -777,9 +788,11 @@ class FilterPanel : PmcWidget {
         $valueStr = ""
         if ($value -is [DateTime]) {
             $valueStr = $value.ToString("MM/dd")
-        } elseif ($value -is [array]) {
+        }
+        elseif ($value -is [array]) {
             $valueStr = $value -join ', '
-        } else {
+        }
+        else {
             $valueStr = $value.ToString()
         }
 
@@ -792,12 +805,12 @@ class FilterPanel : PmcWidget {
     #>
     hidden [string] _GetFilterColor([string]$filterType) {
         $colorMap = @{
-            'Project' = '#3498db'
+            'Project'  = '#3498db'
             'Priority' = '#e74c3c'
-            'DueDate' = '#2ecc71'
-            'Tags' = '#9b59b6'
-            'Status' = '#f39c12'
-            'Text' = '#1abc9c'
+            'DueDate'  = '#2ecc71'
+            'Tags'     = '#9b59b6'
+            'Status'   = '#f39c12'
+            'Text'     = '#1abc9c'
         }
 
         $hex = $(if ($colorMap.ContainsKey($filterType)) { $colorMap[$filterType] } else { '#CCCCCC' })
@@ -841,7 +854,8 @@ class FilterPanel : PmcWidget {
                         try {
                             $itemDate = $(if ($item.due -is [DateTime]) { $item.due } else { [DateTime]::Parse($item.due) })
                             $match = $this._CompareDates($itemDate, $op, $value)
-                        } catch {
+                        }
+                        catch {
                             # Invalid date format - treat as non-matching
                             $match = $false
                         }
@@ -969,10 +983,12 @@ class FilterPanel : PmcWidget {
             try {
                 if ($null -ne $args) {
                     & $callback $args
-                } else {
+                }
+                else {
                     & $callback
                 }
-            } catch {
+            }
+            catch {
                 # Silently ignore callback errors
             }
         }

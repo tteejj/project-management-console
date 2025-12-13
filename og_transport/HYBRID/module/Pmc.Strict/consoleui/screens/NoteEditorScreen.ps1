@@ -140,7 +140,8 @@ class NoteEditorScreen : PmcScreen {
 
             Write-PmcTuiLog "NoteEditorScreen.LoadData: Loaded $($content.Length) characters" "DEBUG"
 
-        } catch {
+        }
+        catch {
             Write-PmcTuiLog "NoteEditorScreen.LoadData: Error - $_" "ERROR"
             $this._editor.SetText("")
         }
@@ -168,52 +169,38 @@ class NoteEditorScreen : PmcScreen {
     # === Rendering ===
 
     [void] RenderToEngine([object]$engine) {
-        Write-PmcTuiLog "NoteEditorScreen.RenderToEngine: Called - Header.Y=$($this.Header.Y)" "DEBUG"
+        # Write-PmcTuiLog "NoteEditorScreen.RenderToEngine: Called - Header.Y=$($this.Header.Y)" "DEBUG"
 
         # FORCE Header.Y back to 1 since something keeps resetting it
         $this.Header.Y = 1
-        Write-PmcTuiLog "NoteEditorScreen.RenderToEngine: Forced Header.Y to 1" "DEBUG"
-
-        # Render MenuBar
+        
+        # Render MenuBar (Layer 100)
+        $engine.BeginLayer([ZIndex]::Dropdown)
         if ($this.MenuBar) {
-            $output = $this.MenuBar.Render()
-            if ($output) {
-                $this._ParseAnsiAndWrite($engine, $output)
-            }
+            $this.MenuBar.RenderToEngine($engine)
         }
 
-        # Render Header
+        # Render Header (Layer 50)
+        $engine.BeginLayer([ZIndex]::Header)
         if ($this.Header) {
-            Write-PmcTuiLog "NoteEditorScreen.RenderToEngine: Header.Y=$($this.Header.Y) Header.X=$($this.Header.X)" "DEBUG"
-            $output = $this.Header.Render()
-            Write-PmcTuiLog "NoteEditorScreen.RenderToEngine: Header output length=$($output.Length)" "DEBUG"
-            $preview = $(if ($output.Length -gt 100) { $output.Substring(0, 100) } else { $output })
-            Write-PmcTuiLog "NoteEditorScreen.RenderToEngine: Header preview: $preview" "DEBUG"
-            if ($output) {
-                $this._ParseAnsiAndWrite($engine, $output)
-            }
+            $this.Header.RenderToEngine($engine)
         }
 
-        # Render TextAreaEditor directly to engine (cell-based)
+        # Render TextAreaEditor directly to engine (Layer 20 - Panel)
+        $engine.BeginLayer([ZIndex]::Panel)
         $this._editor.RenderToEngine($engine)
 
-        # Render Footer
+        # Render Footer (Layer 55)
+        $engine.BeginLayer([ZIndex]::Footer)
         if ($this.Footer) {
-            $output = $this.Footer.Render()
-            if ($output) {
-                $this._ParseAnsiAndWrite($engine, $output)
-            }
+            $this.Footer.RenderToEngine($engine)
         }
 
-        # Render StatusBar
+        # Render StatusBar (Layer 65)
+        $engine.BeginLayer([ZIndex]::StatusBar)
         if ($this.StatusBar) {
-            $output = $this.StatusBar.Render()
-            if ($output) {
-                $this._ParseAnsiAndWrite($engine, $output)
-            }
+            $this.StatusBar.RenderToEngine($engine)
         }
-
-        Write-PmcTuiLog "NoteEditorScreen.RenderToEngine: Complete" "DEBUG"
     }
 
     # === Input Handling ===
@@ -296,7 +283,8 @@ class NoteEditorScreen : PmcScreen {
             $this.UpdateStatusBar()
 
             Write-PmcTuiLog "NoteEditorScreen.SaveNote: Saved successfully" "INFO"
-        } catch {
+        }
+        catch {
             Write-PmcTuiLog "NoteEditorScreen.SaveNote: Error - $_" "ERROR"
             $this.SetStatusMessage("Failed to save note: $($_.Exception.Message)", "error")
         }
@@ -339,7 +327,8 @@ class NoteEditorScreen : PmcScreen {
 
             $this.SetStatusMessage("Converted to checklist with $($lines.Count) items", "success")
 
-        } catch {
+        }
+        catch {
             Write-PmcTuiLog "NoteEditorScreen.ConvertToChecklist: ERROR - $($_.Exception.Message)" "ERROR"
             $this.SetStatusMessage("Failed to convert: $($_.Exception.Message)", "error")
         }
@@ -364,7 +353,8 @@ class NoteEditorScreen : PmcScreen {
 
             $this.StatusBar.SetLeftText("$modifiedFlag$cursorPos")
             $this.StatusBar.SetRightText($stats)
-        } catch {
+        }
+        catch {
             Write-PmcTuiLog "NoteEditorScreen.UpdateStatusBar: Error - $_" "ERROR"
             # Set fallback status
             $this.StatusBar.SetLeftText("Ln 1, Col 1")

@@ -288,7 +288,8 @@ class StandardDashboard : PmcScreen {
             if ($x -ge 0 -and $y -ge 0 -and $width -gt 0 -and $height -gt 0) {
                 $widget.SetPosition($x, $y)
                 $widget.SetSize($width, $height)
-            } else {
+            }
+            else {
                 throw "Manual layout requires x, y, width, height parameters"
             }
         }
@@ -356,7 +357,8 @@ class StandardDashboard : PmcScreen {
             if ($this.FocusedWidgetIndex -eq $index) {
                 if ($this.Widgets.Count -gt 0) {
                     $this.FocusWidget(0)
-                } else {
+                }
+                else {
                     $this.FocusedWidgetIndex = -1
                 }
             }
@@ -504,7 +506,8 @@ class StandardDashboard : PmcScreen {
         if ($keyInfo.Key -eq 'Tab') {
             if ($keyInfo.Modifiers -band [ConsoleModifiers]::Shift) {
                 $this.FocusPreviousWidget()
-            } else {
+            }
+            else {
                 $this.FocusNextWidget()
             }
             return $true
@@ -547,59 +550,21 @@ class StandardDashboard : PmcScreen {
     .OUTPUTS
     ANSI string ready for display
     #>
-    [string] RenderContent() {
-        $sb = [StringBuilder]::new(16384)
-
-        # Render all widgets
-        foreach ($widget in $this.Widgets) {
-            if ($widget.PSObject.Methods['Render']) {
-                $widgetContent = $widget.Render()
-                $sb.Append($widgetContent)
-            }
-        }
-
-        return $sb.ToString()
-    }
-
     <#
     .SYNOPSIS
-    Render the complete screen
-
-    .OUTPUTS
-    ANSI string ready for display
+    Render content area directly to engine
     #>
-    [string] Render() {
-        $sb = [StringBuilder]::new(16384)
-
-        # Clear screen
-        $sb.Append("`e[2J")
-        $sb.Append("`e[H")
-
-        # Render menu bar (if exists)
-        if ($null -ne $this.MenuBar) {
-            $sb.Append($this.MenuBar.Render())
+    [void] RenderContentToEngine([object]$engine) {
+        foreach ($widget in $this.Widgets) {
+            # Check if widget supports native rendering
+            if ($widget.PSObject.Methods['RenderToEngine']) {
+                $widget.RenderToEngine($engine)
+            }
         }
-
-        # Render header (if exists)
-        if ($null -ne $this.Header) {
-            $sb.Append($this.Header.Render())
-        }
-
-        # Render content (all widgets)
-        $sb.Append($this.RenderContent())
-
-        # Render footer (if exists)
-        if ($null -ne $this.Footer) {
-            $sb.Append($this.Footer.Render())
-        }
-
-        # Render status bar (if exists)
-        if ($null -ne $this.StatusBar) {
-            $sb.Append($this.StatusBar.Render())
-        }
-
-        return $sb.ToString()
     }
+
+    [string] Render() { return "" }
+    [string] RenderContent() { return "" }
 
     # === Helper Methods ===
 
@@ -643,7 +608,8 @@ class StandardDashboard : PmcScreen {
 
         if ($content -is [array]) {
             $panel.SetContent($content)
-        } else {
+        }
+        else {
             $panel.SetContent(@($content.ToString()))
         }
 

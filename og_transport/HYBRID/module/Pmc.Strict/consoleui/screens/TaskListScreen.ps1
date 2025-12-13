@@ -238,7 +238,7 @@ class TaskListScreen : StandardListScreen {
                 $global:PmcContainer = [ServiceContainer]::new()
 
                 # PERF: Disabled - if ($global:PmcTuiLogFile) {
-                    # Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] TaskListScreen: Created new ServiceContainer"
+                # Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] TaskListScreen: Created new ServiceContainer"
                 # }
             }
 
@@ -256,12 +256,12 @@ class TaskListScreen : StandardListScreen {
     # Populate MenuBar from registry
     hidden [void] _PopulateMenusFromRegistry([object]$registry) {
         $menuMapping = @{
-            'Tasks' = 0
+            'Tasks'    = 0
             'Projects' = 1
-            'Time' = 2
-            'Tools' = 3
-            'Options' = 4
-            'Help' = 5
+            'Time'     = 2
+            'Tools'    = 3
+            'Options'  = 4
+            'Help'     = 5
         }
 
         foreach ($menuName in $menuMapping.Keys) {
@@ -284,9 +284,11 @@ class TaskListScreen : StandardListScreen {
             if ($global:PmcTuiLogFile) {
                 if ($null -eq $items) {
                     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] _PopulateMenusFromRegistry: Menu '$menuName' has 0 items from registry (null)"
-                } elseif ($items -is [array]) {
+                }
+                elseif ($items -is [array]) {
                     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] _PopulateMenusFromRegistry: Menu '$menuName' has $($items.Count) items from registry (array)"
-                } else {
+                }
+                else {
                     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] _PopulateMenusFromRegistry: Menu '$menuName' has 1 item from registry (type: $($items.GetType().Name))"
                 }
             }
@@ -390,7 +392,8 @@ class TaskListScreen : StandardListScreen {
                 $withoutDue = @($tasks | Where-Object { -not (Get-SafeProperty $_ 'due') })
                 if ($this._sortAscending) {
                     @($withDue | Sort-Object { Get-SafeProperty $_ 'due' }) + $withoutDue
-                } else {
+                }
+                else {
                     @($withDue | Sort-Object { Get-SafeProperty $_ 'due' } -Descending) + $withoutDue
                 }
             }
@@ -523,7 +526,8 @@ class TaskListScreen : StandardListScreen {
             if ($this.RenderEngine -and $this.RenderEngine.PSObject.Methods['RequestClear']) {
                 $this.RenderEngine.RequestClear()
             }
-        } finally {
+        }
+        finally {
             $this._isLoading = $false
         }
     }
@@ -554,10 +558,10 @@ class TaskListScreen : StandardListScreen {
 
         return @(
             @{
-                Name = 'title'
-                Label = 'Task'
-                Width = $titleWidth
-                Align = 'left'
+                Name             = 'title'
+                Label            = 'Task'
+                Width            = $titleWidth
+                Align            = 'left'
                 SkipRowHighlight = { param($item)
                     # Skip row highlighting ONLY for the row being edited
                     $itemId = & $getSafe $item 'id'
@@ -581,7 +585,7 @@ class TaskListScreen : StandardListScreen {
                     # Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [SkipRowHighlight]   Result: $skip"
                     return $skip
                 }.GetNewClosure()
-                Format = { param($task, $cellInfo)
+                Format           = { param($task, $cellInfo)
                     try {
                         $t = & $getSafe $task 'title'
                         if (-not $t) { $t = & $getSafe $task 'text' }
@@ -592,7 +596,8 @@ class TaskListScreen : StandardListScreen {
                         if ($hasParent) {
                             # For subtasks, add tree branch with indentation
                             $t = "  └─ $t"  # Added extra spaces for indentation
-                        } else {
+                        }
+                        else {
                             # CRITICAL FIX: Use cached children index instead of GetAllTasks() in render loop
                             $hasChildren = $self._childrenIndex.ContainsKey($taskId)
                             if ($hasChildren) {
@@ -612,13 +617,14 @@ class TaskListScreen : StandardListScreen {
                             return "$editBg$editFg$t$reset"
                         }
                         return $t
-                    } catch {
+                    }
+                    catch {
                         $taskId = $(if ($task.id) { $task.id } else { "unknown" })
                         Write-PmcTuiLog "Format title ERROR for task ${taskId}: $($_.Exception.Message)" "ERROR"
                         return "(error: ${taskId})"
                     }
                 }.GetNewClosure()
-                Color = { param($task)
+                Color            = { param($task)
                     if (& $getSafe $task 'completed') {
                         return $(if ($self._supportsStrikethrough) { "`e[90m`e[9m" } else { "`e[90m" })
                     }
@@ -632,22 +638,22 @@ class TaskListScreen : StandardListScreen {
                 }.GetNewClosure()
             }
             @{
-                Name = 'details'
-                Label = 'Details'
-                Width = $detailsWidth
-                Align = 'left'
+                Name   = 'details'
+                Label  = 'Details'
+                Width  = $detailsWidth
+                Align  = 'left'
                 Format = { param($task, $cellInfo)
                     $d = & $getSafe $task 'details'
                     if ($d -and $d.Length -gt $detailsWidth) { return $d.Substring(0, $detailsWidth - 3) + "..." }
                     return $(if ($null -ne $d) { $d } else { '' })
                 }.GetNewClosure()
-                Color = { return "`e[90m" }
+                Color  = { return "`e[90m" }
             }
             @{
-                Name = 'due'
-                Label = 'Due'
-                Width = $dueWidth
-                Align = 'left'
+                Name   = 'due'
+                Label  = 'Due'
+                Width  = $dueWidth
+                Align  = 'left'
                 Format = { param($task, $cellInfo)
                     $d = & $getSafe $task 'due'
                     if (-not $d) { return '' }
@@ -657,11 +663,12 @@ class TaskListScreen : StandardListScreen {
                         if ($date.Date -eq [DateTime]::Today.AddDays(1)) { return 'Tomorrow' }
                         if ($date.Date -lt [DateTime]::Today) { return 'OVERDUE!' }
                         return $date.ToString('MMM dd')
-                    } catch {
+                    }
+                    catch {
                         return $d
                     }
                 }.GetNewClosure()
-                Color = { param($task)
+                Color  = { param($task)
                     $d = & $getSafe $task 'due'
                     if (-not $d -or (& $getSafe $task 'completed')) { return "`e[90m" }
                     try {
@@ -671,28 +678,29 @@ class TaskListScreen : StandardListScreen {
                         if ($diff -eq 0) { return "`e[93m" }
                         if ($diff -le 3) { return "`e[33m" }
                         return "`e[92m"
-                    } catch {
+                    }
+                    catch {
                         return "`e[90m"
                     }
                 }.GetNewClosure()
             }
             @{
-                Name = 'project'
-                Label = 'Project'
-                Width = $projectWidth
-                Align = 'left'
+                Name   = 'project'
+                Label  = 'Project'
+                Width  = $projectWidth
+                Align  = 'left'
                 Format = { param($task, $cellInfo)
                     $p = & $getSafe $task 'project'
                     if ($p -and $p.Length -gt $projectWidth) { return $p.Substring(0, $projectWidth - 3) + "..." }
                     return $(if ($null -ne $p) { $p } else { '' })
                 }.GetNewClosure()
-                Color = { return "`e[96m" }
+                Color  = { return "`e[96m" }
             }
             @{
-                Name = 'tags'
-                Label = 'Tags'
-                Width = $tagsWidth
-                Align = 'left'
+                Name   = 'tags'
+                Label  = 'Tags'
+                Width  = $tagsWidth
+                Align  = 'left'
                 Format = { param($task, $cellInfo)
                     $t = & $getSafe $task 'tags'
                     # Handle nested arrays (unwrap if needed)
@@ -706,7 +714,7 @@ class TaskListScreen : StandardListScreen {
                     if ($t -and $t.Length -gt $tagsWidth) { return $t.Substring(0, $tagsWidth - 3) + "..." }
                     return $(if ($null -ne $t) { $t } else { '' })
                 }.GetNewClosure()
-                Color = { return "`e[95m" }
+                Color  = { return "`e[95m" }
             }
         )
     }
@@ -723,11 +731,11 @@ class TaskListScreen : StandardListScreen {
         $tagsWidth = [Math]::Max(10, [Math]::Floor($availableWidth * 0.18))
 
         return @(
-            @{ Name='text'; Label=''; Type='text'; Value=(Get-SafeProperty $item 'text'); Required=$true; MaxLength=200; Width=$textWidth }
-            @{ Name='details'; Label=''; Type='text'; Value=(Get-SafeProperty $item 'details'); Width=$detailsWidth }
-            @{ Name='due'; Label=''; Type='date'; Value=(Get-SafeProperty $item 'due'); Width=$dueWidth }
-            @{ Name='project'; Label=''; Type='project'; Value=(Get-SafeProperty $item 'project'); Width=$projectWidth }
-            @{ Name='tags'; Label=''; Type='tags'; Value=(Get-SafeProperty $item 'tags'); Width=$tagsWidth }
+            @{ Name = 'text'; Label = ''; Type = 'text'; Value = (Get-SafeProperty $item 'text'); Required = $true; MaxLength = 200; Width = $textWidth }
+            @{ Name = 'details'; Label = ''; Type = 'text'; Value = (Get-SafeProperty $item 'details'); Width = $detailsWidth }
+            @{ Name = 'due'; Label = ''; Type = 'date'; Value = (Get-SafeProperty $item 'due'); Width = $dueWidth }
+            @{ Name = 'project'; Label = ''; Type = 'project'; Value = (Get-SafeProperty $item 'project'); Width = $projectWidth }
+            @{ Name = 'tags'; Label = ''; Type = 'tags'; Value = (Get-SafeProperty $item 'tags'); Width = $tagsWidth }
         )
     }
 
@@ -763,30 +771,31 @@ class TaskListScreen : StandardListScreen {
 
             # Handle tags - ensure it's an array
             $tagsValue = $(if ($values.ContainsKey('tags') -and $values.tags) {
-                if ($values.tags -is [array]) {
-                    $values.tags  # Already an array
-                }
-                elseif ($values.tags -is [string]) {
-                    @($values.tags -split ',' | ForEach-Object { $_.Trim() })
+                    if ($values.tags -is [array]) {
+                        $values.tags  # Already an array
+                    }
+                    elseif ($values.tags -is [string]) {
+                        @($values.tags -split ',' | ForEach-Object { $_.Trim() })
+                    }
+                    else {
+                        @()
+                    }
                 }
                 else {
                     @()
-                }
-            } else {
-                @()
-            })
+                })
 
             $detailsValue = $(if ($values.ContainsKey('details')) { $values.details } else { '' })
 
             $taskData = @{
-                text = $taskText
-                details = $detailsValue
-                priority = 3  # Default priority when creating new tasks
-                status = 'todo'  # Default status for new tasks
-                project = $projectValue
-                tags = ,$tagsValue  # Comma prevents PowerShell from unwrapping single-element arrays
+                text      = $taskText
+                details   = $detailsValue
+                priority  = 3  # Default priority when creating new tasks
+                status    = 'todo'  # Default status for new tasks
+                project   = $projectValue
+                tags      = , $tagsValue  # Comma prevents PowerShell from unwrapping single-element arrays
                 completed = $false
-                created = [DateTime]::Now
+                created   = [DateTime]::Now
             }
 
             # Add due date if provided - NO VALIDATION, just set it
@@ -794,7 +803,8 @@ class TaskListScreen : StandardListScreen {
                 try {
                     $dueDate = [DateTime]$values.due
                     $taskData.due = $dueDate
-                } catch {
+                }
+                catch {
                     Write-PmcTuiLog "Failed to convert due date '$($values.due)', omitting" "WARNING"
                 }
             }
@@ -808,7 +818,8 @@ class TaskListScreen : StandardListScreen {
                     $parentTask = $this.Store.GetTask($parentId)
                     if ($parentTask) {
                         $taskData.parent_id = $parentId
-                    } else {
+                    }
+                    else {
                         Write-PmcTuiLog "OnItemCreated: Invalid parent_id $parentId (not found), omitting" "WARNING"
                         $this.SetStatusMessage("Warning: Parent task not found, creating without parent", "warning")
                     }
@@ -821,7 +832,8 @@ class TaskListScreen : StandardListScreen {
             $success = $this.Store.AddTask($taskData)
             if ($success) {
                 $this.SetStatusMessage("Task created: $($taskData.text)", "success")
-            } else {
+            }
+            else {
                 $this.SetStatusMessage("Failed to create task: $($this.Store.LastError)", "error")
             }
         }
@@ -862,7 +874,8 @@ class TaskListScreen : StandardListScreen {
                     if ($values.project.Count -gt 0) {
                         $projectValue = [string]$values.project[0]
                     }
-                } elseif ($values.project -is [string] -and $values.project -ne '(No Project)' -and $values.project -ne '') {
+                }
+                elseif ($values.project -is [string] -and $values.project -ne '(No Project)' -and $values.project -ne '') {
                     $projectValue = $values.project
                 }
             }
@@ -890,25 +903,26 @@ class TaskListScreen : StandardListScreen {
             $detailsValue = $(if ($values.ContainsKey('details')) { $values.details } else { '' })
             # Handle tags - ensure it's an array and use comma operator to prevent unwrapping
             $tagsValue = $(if ($values.ContainsKey('tags') -and $values.tags) {
-                if ($values.tags -is [array]) {
-                    ,$values.tags  # Comma prevents PowerShell from unwrapping single-element arrays
-                }
-                elseif ($values.tags -is [string]) {
-                    $splitResult = @($values.tags -split ',' | ForEach-Object { $_.Trim() })
-                    ,$splitResult  # Comma prevents unwrapping
+                    if ($values.tags -is [array]) {
+                        , $values.tags  # Comma prevents PowerShell from unwrapping single-element arrays
+                    }
+                    elseif ($values.tags -is [string]) {
+                        $splitResult = @($values.tags -split ',' | ForEach-Object { $_.Trim() })
+                        , $splitResult  # Comma prevents unwrapping
+                    }
+                    else {
+                        , @()
+                    }
                 }
                 else {
-                    ,@()
-                }
-            } else {
-                ,@()
-            })
+                    , @()
+                })
 
             $changes = @{
-                text = [string]$taskText
+                text    = [string]$taskText
                 details = [string]$detailsValue
                 project = [string]$projectValue
-                tags = ,$tagsValue  # Comma prevents PowerShell from unwrapping single-element arrays
+                tags    = , $tagsValue  # Comma prevents PowerShell from unwrapping single-element arrays
             }
 
             # Update due date with validation
@@ -922,18 +936,22 @@ class TaskListScreen : StandardListScreen {
                     if ($dueDate -lt $minDate) {
                         $this.SetStatusMessage("Due date too far in the past (max 7 days)", "warning")
                         # Don't return - just omit the due date update
-                    } elseif ($dueDate -gt $maxDate) {
+                    }
+                    elseif ($dueDate -gt $maxDate) {
                         $this.SetStatusMessage("Due date cannot be more than 10 years in the future", "warning")
                         # Don't return - just omit the due date update
-                    } else {
+                    }
+                    else {
                         $changes.due = $dueDate
                     }
-                } catch {
+                }
+                catch {
                     $this.SetStatusMessage("Invalid due date format", "warning")
                     Write-PmcTuiLog "Failed to convert due date '$($values.due)', omitting" "WARNING"
                     # Don't include due in changes - keep existing value
                 }
-            } else {
+            }
+            else {
                 $changes.due = $null
             }
 
@@ -958,7 +976,8 @@ class TaskListScreen : StandardListScreen {
                 }
 
                 $changes.parent_id = $newParentId
-            } elseif ($values.ContainsKey('parent_id')) {
+            }
+            elseif ($values.ContainsKey('parent_id')) {
                 # Explicitly clear parent_id if value is null/empty
                 $changes.parent_id = $null
             }
@@ -977,18 +996,21 @@ class TaskListScreen : StandardListScreen {
                 try {
                     $this.LoadData()  # Refresh the list to show updated data
                     # Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [OnItemUpdated] LoadData() completed"
-                } catch {
+                }
+                catch {
                     Write-PmcTuiLog "OnItemUpdated: LoadData failed: $_" "WARNING"
                     # Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [OnItemUpdated] LoadData() FAILED: $_"
                     $this.SetStatusMessage("Task updated but display refresh failed", "warning")
                 }
-            } else {
+            }
+            else {
                 # Add-Content -Path "$($env:TEMP)/pmc-flow-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') [OnItemUpdated] FAILED: $($this.Store.LastError)"
                 $this.SetStatusMessage("Failed to update task: $($this.Store.LastError)", "error")
                 # BUG-4 FIX: Reload data on failure to restore consistent state
                 try {
                     $this.LoadData()
-                } catch {
+                }
+                catch {
                     Write-PmcTuiLog "OnItemUpdated: LoadData after failure failed: $_" "WARNING"
                 }
             }
@@ -1043,7 +1065,8 @@ class TaskListScreen : StandardListScreen {
             $success = $this.Store.DeleteTask($taskId)
             if ($success) {
                 $this.SetStatusMessage("Task deleted: $($item.text)", "success")
-            } else {
+            }
+            else {
                 $this.SetStatusMessage("Failed to delete task: $($this.Store.LastError)", "error")
             }
         }
@@ -1069,7 +1092,8 @@ class TaskListScreen : StandardListScreen {
         $updates = @{ completed = $newStatus }
         if ($newStatus) {
             $updates.completed_at = [DateTime]::Now
-        } else {
+        }
+        else {
             $updates.completed_at = $null
         }
         $success = $this.Store.UpdateTask($taskId, $updates)
@@ -1078,13 +1102,15 @@ class TaskListScreen : StandardListScreen {
             $statusText = $(if ($newStatus) { "completed" } else { "reopened" })
             $this.SetStatusMessage("Task ${statusText}: $taskText", "success")
             # TaskStore event will invalidate cache and trigger refresh
-        } else {
+        }
+        else {
             $this.SetStatusMessage("Failed to update task: $($this.Store.LastError)", "error")
             Write-PmcTuiLog "ToggleTaskCompletion failed: $($this.Store.LastError)" "ERROR"
             # BUG-4 FIX: Reload data on failure to restore consistent state
             try {
                 $this.LoadData()
-            } catch {
+            }
+            catch {
                 Write-PmcTuiLog "ToggleTaskCompletion: LoadData after failure failed: $_" "WARNING"
             }
         }
@@ -1102,20 +1128,22 @@ class TaskListScreen : StandardListScreen {
         $taskText = Get-SafeProperty $task 'text'
 
         $success = $this.Store.UpdateTask($taskId, @{
-            completed = $true
-            completed_at = [DateTime]::Now
-        })
+                completed    = $true
+                completed_at = [DateTime]::Now
+            })
 
         if ($success) {
             $this.SetStatusMessage("Task completed: $taskText", "success")
             # TaskStore event will invalidate cache and trigger refresh
-        } else {
+        }
+        else {
             $this.SetStatusMessage("Failed to complete task: $($this.Store.LastError)", "error")
             Write-PmcTuiLog "CompleteTask failed: $($this.Store.LastError)" "ERROR"
             # BUG-4 FIX: Reload data on failure to restore consistent state
             try {
                 $this.LoadData()
-            } catch {
+            }
+            catch {
                 Write-PmcTuiLog "CompleteTask: LoadData after failure failed: $_" "WARNING"
             }
         }
@@ -1132,13 +1160,13 @@ class TaskListScreen : StandardListScreen {
         $taskDue = Get-SafeProperty $task 'due'
 
         $clonedTask = @{
-            text = "$taskText (copy)"
-            priority = $taskPriority
-            project = $taskProject
-            tags = $taskTags
-            completed = $false
+            text         = "$taskText (copy)"
+            priority     = $taskPriority
+            project      = $taskProject
+            tags         = $taskTags
+            completed    = $false
             completed_at = $null  # Explicitly clear timestamp
-            created = [DateTime]::Now
+            created      = [DateTime]::Now
         }
 
         if ($taskDue) {
@@ -1149,7 +1177,8 @@ class TaskListScreen : StandardListScreen {
         if ($success) {
             $this.SetStatusMessage("Task cloned: $($clonedTask.text)", "success")
             # TaskStore event will invalidate cache and trigger refresh
-        } else {
+        }
+        else {
             $this.SetStatusMessage("Failed to clone task: $($this.Store.LastError)", "error")
             Write-PmcTuiLog "CloneTask failed: $($this.Store.LastError)" "ERROR"
         }
@@ -1184,7 +1213,8 @@ class TaskListScreen : StandardListScreen {
         $parentId = $null
         if ($parentTask -is [hashtable] -and $parentTask.ContainsKey('id')) {
             $parentId = $parentTask['id']
-        } elseif ($parentTask.PSObject.Properties['id']) {
+        }
+        elseif ($parentTask.PSObject.Properties['id']) {
             $parentId = $parentTask.id
         }
 
@@ -1195,12 +1225,12 @@ class TaskListScreen : StandardListScreen {
 
         # Create new task with parent_id set
         $subtask = @{
-            text = ""
-            priority = 3
-            project = ""
-            tags = @()
+            text      = ""
+            priority  = 3
+            project   = ""
+            tags      = @()
             completed = $false
-            created = [DateTime]::Now
+            created   = [DateTime]::Now
             parent_id = $parentId
         }
 
@@ -1256,12 +1286,13 @@ class TaskListScreen : StandardListScreen {
         foreach ($task in $selected) {
             $taskId = Get-SafeProperty $task 'id'
             $success = $this.Store.UpdateTask($taskId, @{
-                completed = $true
-                completed_at = [DateTime]::Now
-            })
+                    completed    = $true
+                    completed_at = [DateTime]::Now
+                })
             if ($success) {
                 $successCount++
-            } else {
+            }
+            else {
                 $failCount++
                 Write-PmcTuiLog "BulkCompleteSelected failed for task ${taskId}: $($this.Store.LastError)" "ERROR"
             }
@@ -1269,7 +1300,8 @@ class TaskListScreen : StandardListScreen {
 
         if ($failCount -eq 0) {
             $this.SetStatusMessage("Completed $successCount tasks", "success")
-        } else {
+        }
+        else {
             $this.SetStatusMessage("Completed $successCount tasks, failed $failCount", "warning")
         }
         $this.List.ClearSelection()
@@ -1277,7 +1309,8 @@ class TaskListScreen : StandardListScreen {
         # BUG-12 FIX: Reload data after bulk operations to show updated state
         try {
             $this.LoadData()
-        } catch {
+        }
+        catch {
             Write-PmcTuiLog "BulkCompleteSelected: LoadData failed: $_" "WARNING"
         }
     }
@@ -1305,7 +1338,8 @@ class TaskListScreen : StandardListScreen {
             $success = $this.Store.DeleteTask($taskId)
             if ($success) {
                 $successCount++
-            } else {
+            }
+            else {
                 $failCount++
                 Write-PmcTuiLog "BulkDeleteSelected failed for task ${taskId}: $($this.Store.LastError)" "ERROR"
             }
@@ -1313,9 +1347,11 @@ class TaskListScreen : StandardListScreen {
 
         if ($failCount -eq 0 -and $skippedCount -eq 0) {
             $this.SetStatusMessage("Deleted $successCount tasks", "success")
-        } elseif ($skippedCount -gt 0) {
+        }
+        elseif ($skippedCount -gt 0) {
             $this.SetStatusMessage("Deleted $successCount, skipped $skippedCount (have subtasks), failed $failCount", "warning")
-        } else {
+        }
+        else {
             $this.SetStatusMessage("Deleted $successCount tasks, failed $failCount", "warning")
         }
         $this.List.ClearSelection()
@@ -1353,7 +1389,8 @@ class TaskListScreen : StandardListScreen {
         if ($this._sortColumn -eq $column) {
             # Toggle sort direction
             $this._sortAscending = -not $this._sortAscending
-        } else {
+        }
+        else {
             $this._sortColumn = $column
             $this._sortAscending = $true
         }
@@ -1376,45 +1413,45 @@ class TaskListScreen : StandardListScreen {
         $monthEnd = [DateTime]::Today.AddDays(30)
 
         $this._stats = @{
-            Total = $allTasks.Count
-            Active = @($allTasks | Where-Object { -not (Get-SafeProperty $_ 'completed') }).Count
-            Completed = @($allTasks | Where-Object { Get-SafeProperty $_ 'completed' }).Count
-            Overdue = @($allTasks | Where-Object {
-                $due = Get-SafeProperty $_ 'due'
-                -not (Get-SafeProperty $_ 'completed') -and $due -and $due -lt [DateTime]::Today
-            }).Count
-            Today = @($allTasks | Where-Object {
-                $due = Get-SafeProperty $_ 'due'
-                -not (Get-SafeProperty $_ 'completed') -and $due -and $due.Date -eq [DateTime]::Today
-            }).Count
-            Tomorrow = @($allTasks | Where-Object {
-                $due = Get-SafeProperty $_ 'due'
-                -not (Get-SafeProperty $_ 'completed') -and $due -and $due.Date -eq $tomorrow
-            }).Count
-            Week = @($allTasks | Where-Object {
-                $due = Get-SafeProperty $_ 'due'
-                -not (Get-SafeProperty $_ 'completed') -and $due -and
-                $due -ge [DateTime]::Today -and
-                $due -le $weekEnd
-            }).Count
-            Month = @($allTasks | Where-Object {
-                $due = Get-SafeProperty $_ 'due'
-                -not (Get-SafeProperty $_ 'completed') -and $due -and
-                $due -ge [DateTime]::Today -and
-                $due -le $monthEnd
-            }).Count
+            Total       = $allTasks.Count
+            Active      = @($allTasks | Where-Object { -not (Get-SafeProperty $_ 'completed') }).Count
+            Completed   = @($allTasks | Where-Object { Get-SafeProperty $_ 'completed' }).Count
+            Overdue     = @($allTasks | Where-Object {
+                    $due = Get-SafeProperty $_ 'due'
+                    -not (Get-SafeProperty $_ 'completed') -and $due -and $due -lt [DateTime]::Today
+                }).Count
+            Today       = @($allTasks | Where-Object {
+                    $due = Get-SafeProperty $_ 'due'
+                    -not (Get-SafeProperty $_ 'completed') -and $due -and $due.Date -eq [DateTime]::Today
+                }).Count
+            Tomorrow    = @($allTasks | Where-Object {
+                    $due = Get-SafeProperty $_ 'due'
+                    -not (Get-SafeProperty $_ 'completed') -and $due -and $due.Date -eq $tomorrow
+                }).Count
+            Week        = @($allTasks | Where-Object {
+                    $due = Get-SafeProperty $_ 'due'
+                    -not (Get-SafeProperty $_ 'completed') -and $due -and
+                    $due -ge [DateTime]::Today -and
+                    $due -le $weekEnd
+                }).Count
+            Month       = @($allTasks | Where-Object {
+                    $due = Get-SafeProperty $_ 'due'
+                    -not (Get-SafeProperty $_ 'completed') -and $due -and
+                    $due -ge [DateTime]::Today -and
+                    $due -le $monthEnd
+                }).Count
             NextActions = @($allTasks | Where-Object {
-                $dependsOn = Get-SafeProperty $_ 'depends_on'
-                -not (Get-SafeProperty $_ 'completed') -and
-                (-not $dependsOn -or (-not ($dependsOn -is [array])) -or $dependsOn.Count -eq 0)
-            }).Count
-            NoDueDate = @($allTasks | Where-Object {
-                -not (Get-SafeProperty $_ 'completed') -and -not (Get-SafeProperty $_ 'due')
-            }).Count
-            Upcoming = @($allTasks | Where-Object {
-                $due = Get-SafeProperty $_ 'due'
-                -not (Get-SafeProperty $_ 'completed') -and $due -and $due.Date -gt [DateTime]::Today
-            }).Count
+                    $dependsOn = Get-SafeProperty $_ 'depends_on'
+                    -not (Get-SafeProperty $_ 'completed') -and
+                    (-not $dependsOn -or (-not ($dependsOn -is [array])) -or $dependsOn.Count -eq 0)
+                }).Count
+            NoDueDate   = @($allTasks | Where-Object {
+                    -not (Get-SafeProperty $_ 'completed') -and -not (Get-SafeProperty $_ 'due')
+                }).Count
+            Upcoming    = @($allTasks | Where-Object {
+                    $due = Get-SafeProperty $_ 'due'
+                    -not (Get-SafeProperty $_ 'completed') -and $due -and $due.Date -gt [DateTime]::Today
+                }).Count
         }
     }
 
@@ -1422,45 +1459,56 @@ class TaskListScreen : StandardListScreen {
     [array] GetCustomActions() {
         $self = $this
         return @(
-            @{ Key='c'; Label='Complete'; Callback={
-                $selected = $self.List.GetSelectedItem()
-                $self.CompleteTask($selected)
-            }.GetNewClosure() },
-            @{ Key='x'; Label='Clone'; Callback={
-                $selected = $self.List.GetSelectedItem()
-                $self.CloneTask($selected)
-            }.GetNewClosure() },
-            @{ Key='s'; Label='Subtask'; Callback={
-                Write-PmcTuiLog "Action 's' (Subtask) triggered" "INFO"
-                $selected = $self.List.GetSelectedItem()
-                if ($selected) {
-                    $self.AddSubtask($selected)
-                } else {
-                    Write-PmcTuiLog "Action 's': No item selected" "WARNING"
-                    $self.SetStatusMessage("Select a task to add a subtask", "warning")
-                }
-            }.GetNewClosure() },
-            @{ Key='h'; Label='Hide Done'; Callback={
-                $self.ToggleShowCompleted()
-            }.GetNewClosure() },
-            @{ Key='1'; Label='All'; Callback={
-                $self.SetViewMode('all')
-            }.GetNewClosure() },
-            @{ Key='2'; Label='Active'; Callback={
-                $self.SetViewMode('active')
-            }.GetNewClosure() },
-            @{ Key='3'; Label='Done'; Callback={
-                $self.SetViewMode('completed')
-            }.GetNewClosure() },
-            @{ Key='4'; Label='Overdue'; Callback={
-                $self.SetViewMode('overdue')
-            }.GetNewClosure() },
-            @{ Key='5'; Label='Today'; Callback={
-                $self.SetViewMode('today')
-            }.GetNewClosure() },
-            @{ Key='6'; Label='Week'; Callback={
-                $self.SetViewMode('week')
-            }.GetNewClosure() }
+            @{ Key = 'c'; Label = 'Complete'; Callback = {
+                    $selected = $self.List.GetSelectedItem()
+                    $self.CompleteTask($selected)
+                }.GetNewClosure() 
+            },
+            @{ Key = 'x'; Label = 'Clone'; Callback = {
+                    $selected = $self.List.GetSelectedItem()
+                    $self.CloneTask($selected)
+                }.GetNewClosure() 
+            },
+            @{ Key = 's'; Label = 'Subtask'; Callback = {
+                    Write-PmcTuiLog "Action 's' (Subtask) triggered" "INFO"
+                    $selected = $self.List.GetSelectedItem()
+                    if ($selected) {
+                        $self.AddSubtask($selected)
+                    }
+                    else {
+                        Write-PmcTuiLog "Action 's': No item selected" "WARNING"
+                        $self.SetStatusMessage("Select a task to add a subtask", "warning")
+                    }
+                }.GetNewClosure() 
+            },
+            @{ Key = 'h'; Label = 'Hide Done'; Callback = {
+                    $self.ToggleShowCompleted()
+                }.GetNewClosure() 
+            },
+            @{ Key = '1'; Label = 'All'; Callback = {
+                    $self.SetViewMode('all')
+                }.GetNewClosure() 
+            },
+            @{ Key = '2'; Label = 'Active'; Callback = {
+                    $self.SetViewMode('active')
+                }.GetNewClosure() 
+            },
+            @{ Key = '3'; Label = 'Done'; Callback = {
+                    $self.SetViewMode('completed')
+                }.GetNewClosure() 
+            },
+            @{ Key = '4'; Label = 'Overdue'; Callback = {
+                    $self.SetViewMode('overdue')
+                }.GetNewClosure() 
+            },
+            @{ Key = '5'; Label = 'Today'; Callback = {
+                    $self.SetViewMode('today')
+                }.GetNewClosure() 
+            },
+            @{ Key = '6'; Label = 'Week'; Callback = {
+                    $self.SetViewMode('week')
+                }.GetNewClosure() 
+            }
         )
     }
 
@@ -1499,11 +1547,11 @@ class TaskListScreen : StandardListScreen {
         $tagsWidth = [Math]::Floor($availableWidth * [TaskListScreen]::COL_WIDTH_TAGS)
 
         $fields = @(
-            @{ Name='text'; Label=''; Type='text'; Value=(Get-SafeProperty $item 'text'); Required=$true; MaxLength=200; Width=$textWidth }
-            @{ Name='details'; Label=''; Type='text'; Value=(Get-SafeProperty $item 'details'); Width=$detailsWidth }
-            @{ Name='due'; Label=''; Type='date'; Value=(Get-SafeProperty $item 'due'); Width=$dueWidth }
-            @{ Name='project'; Label=''; Type='project'; Value=(Get-SafeProperty $item 'project'); Width=$projectWidth }
-            @{ Name='tags'; Label=''; Type='tags'; Value=(Get-SafeProperty $item 'tags'); Width=$tagsWidth }
+            @{ Name = 'text'; Label = ''; Type = 'text'; Value = (Get-SafeProperty $item 'text'); Required = $true; MaxLength = 200; Width = $textWidth }
+            @{ Name = 'details'; Label = ''; Type = 'text'; Value = (Get-SafeProperty $item 'details'); Width = $detailsWidth }
+            @{ Name = 'due'; Label = ''; Type = 'date'; Value = (Get-SafeProperty $item 'due'); Width = $dueWidth }
+            @{ Name = 'project'; Label = ''; Type = 'project'; Value = (Get-SafeProperty $item 'project'); Width = $projectWidth }
+            @{ Name = 'tags'; Label = ''; Type = 'tags'; Value = (Get-SafeProperty $item 'tags'); Width = $tagsWidth }
         )
 
         # Configure base class inline editor for horizontal inline editing
@@ -1524,7 +1572,8 @@ class TaskListScreen : StandardListScreen {
             $freshItem = $self.Store.GetTask($taskId)
             if ($freshItem) {
                 $self.OnItemUpdated($freshItem, $values)
-            } else {
+            }
+            else {
                 Write-PmcTuiLog "InlineEditor.OnConfirmed - task $taskId not found!" "ERROR"
             }
             $self.ShowInlineEditor = $false
@@ -1590,7 +1639,8 @@ class TaskListScreen : StandardListScreen {
                     $wasCollapsed = $this._collapsedSubtasks.ContainsKey($taskId)
                     if ($wasCollapsed) {
                         $this._collapsedSubtasks.Remove($taskId)
-                    } else {
+                    }
+                    else {
                         $this._collapsedSubtasks[$taskId] = $true
                     }
                     # Invalidate cache because collapsed state changed
@@ -1598,7 +1648,8 @@ class TaskListScreen : StandardListScreen {
                     $this._cacheKey = ""
                     $this.LoadData()
                     $this.List.InvalidateCache()  # Force re-render with new collapse state
-                } else {
+                }
+                else {
                     # No children - toggle completion
                     $this.ToggleTaskCompletion($selected)
                 }
@@ -1659,90 +1710,110 @@ class TaskListScreen : StandardListScreen {
     }
 
     # Override: Custom rendering (add header with stats and view mode)
-    [string] Render() {
-        $output = ""
+    # Override: Custom rendering (add stats and view mode)
+    [void] RenderToEngine([object]$engine) {
+        # 1. Base StandardListScreen rendering (Header, List, Footer, etc.)
+        ([StandardListScreen]$this).RenderToEngine($engine)
 
-        # Header with stats
-        $header = "=== TASK LIST ==="
-        # LOW FIX TLS-L5: Add null check before ToUpper()
+        # 2. Draw Stats in the gap between Header and List
+        # Header ends at Y=something. List starts at Y=6.
+        # Let's draw at Y=3 and Y=4.
+        
+        # Colors
+        $labelColor = $this.Header.GetThemedColorInt('Foreground.Primary')
+        $valueColor = $this.Header.GetThemedColorInt('Foreground.Success')
+        $mutedColor = $this.Header.GetThemedColorInt('Foreground.Muted')
+        $bg = $this.Header.GetThemedColorInt('Background.Primary')
+        
+        $y = 3
+        $x = 0
+        
+        # View Mode
         $viewMode = $(if ($this._viewMode) { $this._viewMode.ToUpper() } else { 'ALL' })
-        $stats = "Total: $($this._stats.Total) | Active: $($this._stats.Active) | Completed: $($this._stats.Completed) | Overdue: $($this._stats.Overdue)"
+        $engine.WriteAt(2, $y, "View: $viewMode", $labelColor, $bg)
+        
+        # Stats
+        $statsX = 20
+        $engine.WriteAt($statsX, $y, "Total: $($this._stats.Total)", $labelColor, $bg)
+        $engine.WriteAt($statsX + 15, $y, "Active: $($this._stats.Active)", $valueColor, $bg)
+        $engine.WriteAt($statsX + 30, $y, "Done: $($this._stats.Completed)", $labelColor, $bg)
+        
+        if ($this._stats.Overdue -gt 0) {
+            $errorColor = $this.Header.GetThemedColorInt('Foreground.Error')
+            $engine.WriteAt($statsX + 45, $y, "Overdue: $($this._stats.Overdue)", $errorColor, $bg)
+        }
+        else {
+            $engine.WriteAt($statsX + 45, $y, "Overdue: 0", $mutedColor, $bg)
+        }
 
-        $output += "`e[1;36m$header`e[0m   `e[90m[$viewMode]`e[0m   `e[37m$stats`e[0m`n"
-        $output += "`e[90m" + ("-" * $this.TermWidth) + "`e[0m`n"
-
-        # Keyboard shortcuts help
-        $help = "F:Filter  A:Add  E:Edit  D:Delete  Space:Toggle  C:Complete  X:Clone  1-6:Views  H:Show/Hide  S:Sort  Q:Quit"
-        $output += "`e[90m$help`e[0m`n"
-        $output += "`n"
-
-        # Render base screen (UniversalList + FilterPanel + InlineEditor)
-        $output += ([StandardListScreen]$this).Render()
-
-        return $output
+        # Keyboard shortcuts help (Y=4)
+        $help = "F:Filter A:Add E:Edit D:Delete Space:Toggle C:Complete X:Clone 1-6:Views H:Hide S:Sort Q:Quit"
+        $engine.WriteAt(2, $y + 1, $help, $mutedColor, $bg)
     }
+
+    [string] Render() { return "" }
 
     # Static: Register menu items for all view modes
     static [void] RegisterMenuItems([object]$registry) {
         # Task List (all tasks)
         $registry.AddMenuItem('Tasks', 'Task List', 'L', {
-            . "$PSScriptRoot/TaskListScreen.ps1"
-            $global:PmcApp.PushScreen((New-Object -TypeName TaskListScreen))
-        }, 5)
+                . "$PSScriptRoot/TaskListScreen.ps1"
+                $global:PmcApp.PushScreen((New-Object -TypeName TaskListScreen))
+            }, 5)
 
         # Today's tasks
         $registry.AddMenuItem('Tasks', 'Today', 'Y', {
-            . "$PSScriptRoot/TaskListScreen.ps1"
-            $global:PmcApp.PushScreen([TaskListScreen]::new('today'))
-        }, 10)
+                . "$PSScriptRoot/TaskListScreen.ps1"
+                $global:PmcApp.PushScreen([TaskListScreen]::new('today'))
+            }, 10)
 
         # Tomorrow's tasks
         $registry.AddMenuItem('Tasks', 'Tomorrow', 'T', {
-            . "$PSScriptRoot/TaskListScreen.ps1"
-            $global:PmcApp.PushScreen([TaskListScreen]::new('tomorrow'))
-        }, 15)
+                . "$PSScriptRoot/TaskListScreen.ps1"
+                $global:PmcApp.PushScreen([TaskListScreen]::new('tomorrow'))
+            }, 15)
 
         # This week
         $registry.AddMenuItem('Tasks', 'Week View', 'W', {
-            . "$PSScriptRoot/TaskListScreen.ps1"
-            $global:PmcApp.PushScreen([TaskListScreen]::new('week'))
-        }, 20)
+                . "$PSScriptRoot/TaskListScreen.ps1"
+                $global:PmcApp.PushScreen([TaskListScreen]::new('week'))
+            }, 20)
 
         # Upcoming tasks
         $registry.AddMenuItem('Tasks', 'Upcoming', 'U', {
-            . "$PSScriptRoot/TaskListScreen.ps1"
-            $global:PmcApp.PushScreen([TaskListScreen]::new('upcoming'))
-        }, 25)
+                . "$PSScriptRoot/TaskListScreen.ps1"
+                $global:PmcApp.PushScreen([TaskListScreen]::new('upcoming'))
+            }, 25)
 
         # Overdue tasks (changed from V to O to avoid conflict with ProjectList V=View)
         $registry.AddMenuItem('Tasks', 'Overdue', 'O', {
-            . "$PSScriptRoot/TaskListScreen.ps1"
-            $global:PmcApp.PushScreen([TaskListScreen]::new('overdue'))
-        }, 30)
+                . "$PSScriptRoot/TaskListScreen.ps1"
+                $global:PmcApp.PushScreen([TaskListScreen]::new('overdue'))
+            }, 30)
 
         # Next actions (no dependencies)
         $registry.AddMenuItem('Tasks', 'Next Actions', 'N', {
-            . "$PSScriptRoot/TaskListScreen.ps1"
-            $global:PmcApp.PushScreen([TaskListScreen]::new('nextactions'))
-        }, 35)
+                . "$PSScriptRoot/TaskListScreen.ps1"
+                $global:PmcApp.PushScreen([TaskListScreen]::new('nextactions'))
+            }, 35)
 
         # No due date
         $registry.AddMenuItem('Tasks', 'No Due Date', 'D', {
-            . "$PSScriptRoot/TaskListScreen.ps1"
-            $global:PmcApp.PushScreen([TaskListScreen]::new('noduedate'))
-        }, 40)
+                . "$PSScriptRoot/TaskListScreen.ps1"
+                $global:PmcApp.PushScreen([TaskListScreen]::new('noduedate'))
+            }, 40)
 
         # Month view
         $registry.AddMenuItem('Tasks', 'Month View', 'M', {
-            . "$PSScriptRoot/TaskListScreen.ps1"
-            $global:PmcApp.PushScreen([TaskListScreen]::new('month'))
-        }, 45)
+                . "$PSScriptRoot/TaskListScreen.ps1"
+                $global:PmcApp.PushScreen([TaskListScreen]::new('month'))
+            }, 45)
 
         # Agenda view
         $registry.AddMenuItem('Tasks', 'Agenda View', 'A', {
-            . "$PSScriptRoot/TaskListScreen.ps1"
-            $global:PmcApp.PushScreen([TaskListScreen]::new('agenda'))
-        }, 50)
+                . "$PSScriptRoot/TaskListScreen.ps1"
+                $global:PmcApp.PushScreen([TaskListScreen]::new('agenda'))
+            }, 50)
     }
 }
 

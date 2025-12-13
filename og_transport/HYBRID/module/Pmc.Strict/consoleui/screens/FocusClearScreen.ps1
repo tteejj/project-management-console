@@ -59,79 +59,58 @@ class FocusClearScreen : PmcScreen {
 
             # Get current focus
             $this.CurrentFocus = $(if ($data.PSObject.Properties['currentContext']) {
-                $data.currentContext
-            } else {
-                'inbox'
-            })
+                    $data.currentContext
+                }
+                else {
+                    'inbox'
+                })
 
             if ($this.CurrentFocus -eq 'inbox') {
                 $this.ShowStatus("No focus set")
-            } else {
+            }
+            else {
                 $this.ShowStatus("Focus: $($this.CurrentFocus)")
             }
 
-        } catch {
+        }
+        catch {
             $this.ShowError("Failed to load focus: $_")
             $this.CurrentFocus = ""
         }
     }
 
-    [string] RenderContent() {
-        $sb = [System.Text.StringBuilder]::new(1024)
-
-        if (-not $this.LayoutManager) {
-            return $sb.ToString()
-        }
-
-        # Get content area
-        $contentRect = $this.LayoutManager.GetRegion('Content', $this.TermWidth, $this.TermHeight)
-
+    [void] RenderContentToEngine([object]$engine) {
         # Colors
-        $textColor = $this.Header.GetThemedFg('Foreground.Field')
-        $highlightColor = $this.Header.GetThemedFg('Foreground.FieldFocused')
-        $warningColor = $this.Header.GetThemedAnsi('Warning', $false)
-        $mutedColor = $this.Header.GetThemedFg('Foreground.Muted')
-        $reset = "`e[0m"
-
+        $textColor = $this.Header.GetThemedColorInt('Foreground.Field')
+        $highlightColor = $this.Header.GetThemedColorInt('Foreground.FieldFocused')
+        $warningColor = $this.Header.GetThemedColorInt('Foreground.Warning') 
+        $mutedColor = $this.Header.GetThemedColorInt('Foreground.Muted')
+        $bg = $this.Header.GetThemedColorInt('Background.Primary')
+        
         # Center content vertically
-        $startY = $contentRect.Y + [Math]::Floor($contentRect.Height / 3)
+        $y = 4 + [Math]::Floor(($this.TermHeight - 4) / 3)
+        $x = 4
 
         # Show current focus
-        $y = $startY
-        $sb.Append($this.Header.BuildMoveTo($contentRect.X + 4, $y))
-        $sb.Append($textColor)
-        $sb.Append("Current focus: ")
-        $sb.Append($highlightColor)
-        $sb.Append($this.CurrentFocus)
-        $sb.Append($reset)
+        $engine.WriteAt($x, $y, "Current focus: ", $textColor, $bg)
+        $engine.WriteAt($x + 15, $y, $this.CurrentFocus, $highlightColor, $bg)
         $y += 3
 
         # Show confirmation prompt
         if ($this.CurrentFocus -eq 'inbox') {
-            $sb.Append($this.Header.BuildMoveTo($contentRect.X + 4, $y))
-            $sb.Append($mutedColor)
-            $sb.Append("No focus is currently set.")
-            $sb.Append($reset)
+            $engine.WriteAt($x, $y, "No focus is currently set.", $mutedColor, $bg)
             $y += 2
-            $sb.Append($this.Header.BuildMoveTo($contentRect.X + 4, $y))
-            $sb.Append($mutedColor)
-            $sb.Append("Press Esc to return")
-            $sb.Append($reset)
-        } else {
-            $sb.Append($this.Header.BuildMoveTo($contentRect.X + 4, $y))
-            $sb.Append($warningColor)
-            $sb.Append("Clear this focus and return to 'inbox'?")
-            $sb.Append($reset)
+            $engine.WriteAt($x, $y, "Press Esc to return", $mutedColor, $bg)
+        }
+        else {
+            $engine.WriteAt($x, $y, "Clear this focus and return to 'inbox'?", $warningColor, $bg)
             $y += 3
 
-            $sb.Append($this.Header.BuildMoveTo($contentRect.X + 4, $y))
-            $sb.Append($textColor)
-            $sb.Append("Press Y to confirm, N or Esc to cancel")
-            $sb.Append($reset)
+            $engine.WriteAt($x, $y, "Press Y to confirm, N or Esc to cancel", $textColor, $bg)
         }
-
-        return $sb.ToString()
     }
+
+    [string] RenderContent() { return "" }
 
     [bool] HandleKeyPress([ConsoleKeyInfo]$keyInfo) {
         $keyChar = [char]::ToLower($keyInfo.KeyChar)
@@ -160,7 +139,8 @@ class FocusClearScreen : PmcScreen {
             # Clear focus (set to inbox)
             if (-not $data.PSObject.Properties['currentContext']) {
                 $data | Add-Member -NotePropertyName currentContext -NotePropertyValue 'inbox' -Force
-            } else {
+            }
+            else {
                 $data.currentContext = 'inbox'
             }
 
@@ -172,7 +152,8 @@ class FocusClearScreen : PmcScreen {
             Start-Sleep -Milliseconds 500
             $this.RequestDoExit()
 
-        } catch {
+        }
+        catch {
             $this.ShowError("Failed to clear focus: $_")
         }
     }

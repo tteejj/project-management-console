@@ -62,14 +62,14 @@ class TaskStore {
 
     # === Data Storage ===
     hidden [hashtable]$_data = @{
-        tasks = @()
+        tasks    = @()
         projects = @()
         timelogs = @()
         settings = @{}
         metadata = @{
             lastLoaded = $null
-            lastSaved = $null
-            version = "1.0"
+            lastSaved  = $null
+            version    = "1.0"
         }
     }
 
@@ -115,72 +115,72 @@ class TaskStore {
 
     # === Validation Rules ===
     hidden [hashtable]$_validationRules = @{
-        task = @{
+        task    = @{
             required = @('text')
-            types = @{
-                id = 'string'
-                text = 'string'
-                details = 'string'
-                project = 'string'
-                priority = 'int'
-                status = 'string'
-                due = 'datetime'
-                tags = 'array'
+            types    = @{
+                id        = 'string'
+                text      = 'string'
+                details   = 'string'
+                project   = 'string'
+                priority  = 'int'
+                status    = 'string'
+                due       = 'datetime'
+                tags      = 'array'
                 completed = 'bool'
-                created = 'datetime'
+                created   = 'datetime'
                 parent_id = 'string'
             }
         }
         project = @{
             required = @('name')
-            types = @{
-                id = 'string'
-                name = 'string'
-                description = 'string'
-                created = 'datetime'
-                status = 'string'
-                tags = 'array'
-                ID1 = 'string'
-                ID2 = 'string'
-                ProjFolder = 'string'
-                CAAName = 'string'
-                RequestName = 'string'
-                T2020 = 'string'
-                AssignedDate = 'datetime'
-                DueDate = 'datetime'
-                BFDate = 'datetime'
-                RequestDate = 'datetime'
-                AuditType = 'string'
-                AuditorName = 'string'
-                AuditorPhone = 'string'
-                AuditorTL = 'string'
-                AuditorTLPhone = 'string'
-                AuditCase = 'string'
-                CASCase = 'string'
-                AuditStartDate = 'datetime'
-                TPName = 'string'
-                TPNum = 'string'
-                Address = 'string'
-                City = 'string'
-                Province = 'string'
-                PostalCode = 'string'
-                Country = 'string'
+            types    = @{
+                id              = 'string'
+                name            = 'string'
+                description     = 'string'
+                created         = 'datetime'
+                status          = 'string'
+                tags            = 'array'
+                ID1             = 'string'
+                ID2             = 'string'
+                ProjFolder      = 'string'
+                CAAName         = 'string'
+                RequestName     = 'string'
+                T2020           = 'string'
+                AssignedDate    = 'datetime'
+                DueDate         = 'datetime'
+                BFDate          = 'datetime'
+                RequestDate     = 'datetime'
+                AuditType       = 'string'
+                AuditorName     = 'string'
+                AuditorPhone    = 'string'
+                AuditorTL       = 'string'
+                AuditorTLPhone  = 'string'
+                AuditCase       = 'string'
+                CASCase         = 'string'
+                AuditStartDate  = 'datetime'
+                TPName          = 'string'
+                TPNum           = 'string'
+                Address         = 'string'
+                City            = 'string'
+                Province        = 'string'
+                PostalCode      = 'string'
+                Country         = 'string'
                 AuditPeriodFrom = 'datetime'
-                AuditPeriodTo = 'datetime'
+                AuditPeriodTo   = 'datetime'
             }
         }
         timelog = @{
             required = @('date', 'minutes')
-            types = @{
-                date = 'datetime'
-                task = 'string'
-                project = 'string'
+            types    = @{
+                date     = 'datetime'
+                task     = 'string'
+                project  = 'string'
                 timecode = 'string'
-                id1 = 'string'
-                id2 = 'string'
-                minutes = 'int'
-                notes = 'string'
-                created = 'datetime'
+                id1      = 'string'
+                id2      = 'string'
+                minutes  = 'int'
+                notes    = 'string'
+                created  = 'datetime'
             }
         }
     }
@@ -206,7 +206,12 @@ class TaskStore {
             try {
                 if ($null -eq [TaskStore]::_instance) {
                     [TaskStore]::_instance = [TaskStore]::new()
-                    [TaskStore]::_instance.LoadData()
+                    if (-not [TaskStore]::_instance.LoadData()) {
+                        # FAIL FAST: Do not allow app to start with empty/corrupted state.
+                        $err = [TaskStore]::_instance.LastError
+                        [TaskStore]::_instance = $null # Reset instance so retry is possible
+                        throw "CRITICAL: TaskStore failed to load data. Aborting to prevent data loss. Error: $err"
+                    }
                 }
             }
             finally {
@@ -280,12 +285,14 @@ class TaskStore {
                                 $taskHash[$prop.Name] = $prop.Value
                             }
                             [void]$this._data.tasks.Add($taskHash)
-                        } else {
+                        }
+                        else {
                             [void]$this._data.tasks.Add($task)
                         }
                     }
                     Write-PmcTuiLog "TaskStore.LoadData: Loaded $($this._data.tasks.Count) tasks" "DEBUG"
-                } else {
+                }
+                else {
                     $this._data.tasks = [System.Collections.ArrayList]::new()
                     Write-PmcTuiLog "TaskStore.LoadData: No tasks in data, initialized empty list" "DEBUG"
                 }
@@ -300,7 +307,8 @@ class TaskStore {
                                 $projectHash[$prop.Name] = $prop.Value
                             }
                             [void]$this._data.projects.Add($projectHash)
-                        } else {
+                        }
+                        else {
                             [void]$this._data.projects.Add($project)
                         }
                     }
@@ -309,7 +317,8 @@ class TaskStore {
                         $firstProj = $this._data.projects[0]
                         Write-PmcTuiLog "TaskStore.LoadData: First project name='$(Get-SafeProperty $firstProj 'name')' ID1='$(Get-SafeProperty $firstProj 'ID1')'" "DEBUG"
                     }
-                } else {
+                }
+                else {
                     $this._data.projects = [System.Collections.ArrayList]::new()
                     Write-PmcTuiLog "TaskStore.LoadData: No projects in data, initialized empty list" "DEBUG"
                 }
@@ -324,17 +333,20 @@ class TaskStore {
                                 $logHash[$prop.Name] = $prop.Value
                             }
                             [void]$this._data.timelogs.Add($logHash)
-                        } else {
+                        }
+                        else {
                             [void]$this._data.timelogs.Add($log)
                         }
                     }
-                } else {
+                }
+                else {
                     $this._data.timelogs = [System.Collections.ArrayList]::new()
                 }
 
                 if ($pmcData.settings) {
                     $this._data.settings = $pmcData.settings
-                } else {
+                }
+                else {
                     $this._data.settings = @{}
                 }
 
@@ -396,7 +408,7 @@ class TaskStore {
 
                 # Build data structure for Set-PmcAllData
                 $dataToSave = @{
-                    tasks = $this._data.tasks.ToArray()
+                    tasks    = $this._data.tasks.ToArray()
                     projects = $this._data.projects.ToArray()
                     timelogs = $this._data.timelogs.ToArray()
                     settings = $this._data.settings
@@ -455,7 +467,7 @@ class TaskStore {
         foreach ($log in $this._data.timelogs) { $timelogsCopy.Add($log) | Out-Null }
 
         $this._dataBackup = @{
-            tasks = $tasksCopy
+            tasks    = $tasksCopy
             projects = $projectsCopy
             timelogs = $timelogsCopy
             settings = $this._data.settings
@@ -585,7 +597,8 @@ class TaskStore {
                     if (-not $collision) {
                         $task.id = $newGuid
                         $guidGenerated = $true
-                    } else {
+                    }
+                    else {
                         Write-PmcTuiLog "GUID collision detected: $newGuid (retry $($retryCount + 1)/$maxRetries)" "WARNING"
                         $retryCount++
                     }
@@ -729,9 +742,11 @@ class TaskStore {
             # Update modified timestamp
             if ($task -is [hashtable]) {
                 $task['modified'] = Get-Date
-            } elseif ($task.PSObject.Properties.Name -contains 'modified') {
+            }
+            elseif ($task.PSObject.Properties.Name -contains 'modified') {
                 $task.modified = Get-Date
-            } else {
+            }
+            else {
                 Add-Member -InputObject $task -MemberType NoteProperty -Name 'modified' -Value (Get-Date) -Force
             }
 
@@ -1003,11 +1018,13 @@ class TaskStore {
                     if ($key -eq 'ID1') {
                         Write-PmcTuiLog "UpdateProject: Hashtable assignment - project['ID1']='$($project[$key])'" "DEBUG"
                     }
-                } else {
+                }
+                else {
                     # PSCustomObject: use PSObject.Properties or Add-Member
                     if ($project.PSObject.Properties.Name -contains $key) {
                         $project.$key = $changes[$key]
-                    } else {
+                    }
+                    else {
                         Add-Member -InputObject $project -MemberType NoteProperty -Name $key -Value $changes[$key] -Force
                     }
                 }
@@ -1018,10 +1035,12 @@ class TaskStore {
             # Update modified timestamp
             if ($project -is [hashtable]) {
                 $project['modified'] = Get-Date
-            } else {
+            }
+            else {
                 if ($project.PSObject.Properties.Name -contains 'modified') {
                     $project.modified = Get-Date
-                } else {
+                }
+                else {
                     Add-Member -InputObject $project -MemberType NoteProperty -Name 'modified' -Value (Get-Date) -Force
                 }
             }
@@ -1052,7 +1071,8 @@ class TaskStore {
                     return $false
                 }
                 Write-PmcTuiLog "UpdateProject: SaveData succeeded" "DEBUG"
-            } else {
+            }
+            else {
                 Write-PmcTuiLog "UpdateProject: AutoSave is DISABLED, skipping SaveData" "WARNING"
             }
 
@@ -1321,7 +1341,8 @@ class TaskStore {
 
             # Apply changes
             foreach ($key in $changes.Keys) {
-                if ($key -ne 'id') {  # Don't allow ID changes
+                if ($key -ne 'id') {
+                    # Don't allow ID changes
                     $timelog[$key] = $changes[$key]
                 }
             }
@@ -1512,8 +1533,9 @@ class TaskStore {
             try {
                 if ($null -ne $arg) {
                     # Use Invoke-Command with -ArgumentList to pass single arg without array wrapping
-                    Invoke-Command -ScriptBlock $callback -ArgumentList (,$arg)
-                } else {
+                    Invoke-Command -ScriptBlock $callback -ArgumentList (, $arg)
+                }
+                else {
                     & $callback
                 }
             }
@@ -1578,7 +1600,8 @@ class TaskStore {
                     # Fire events once
                     $this._InvokeCallback($this.OnTasksChanged, $this._data.tasks.ToArray())
                     $this._InvokeCallback($this.OnDataChanged, $null)
-                } else {
+                }
+                else {
                     return 0
                 }
             }
@@ -1611,19 +1634,20 @@ class TaskStore {
             foreach ($task in $this._data.tasks) {
                 if (Get-SafeProperty $task 'completed') {
                     $completedCount++
-                } else {
+                }
+                else {
                     $pendingCount++
                 }
             }
 
             $this._cachedStats = @{
-                taskCount = $this._data.tasks.Count
-                projectCount = $this._data.projects.Count
-                timeLogCount = $this._data.timelogs.Count
+                taskCount          = $this._data.tasks.Count
+                projectCount       = $this._data.projects.Count
+                timeLogCount       = $this._data.timelogs.Count
                 completedTaskCount = $completedCount
-                pendingTaskCount = $pendingCount
-                lastLoaded = $this._data.metadata.lastLoaded
-                lastSaved = $this._data.metadata.lastSaved
+                pendingTaskCount   = $pendingCount
+                lastLoaded         = $this._data.metadata.lastLoaded
+                lastSaved          = $this._data.metadata.lastSaved
             }
 
             $this._statsNeedUpdate = $false
