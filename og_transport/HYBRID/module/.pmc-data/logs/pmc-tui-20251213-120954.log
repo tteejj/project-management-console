@@ -1,0 +1,56 @@
+[2025-12-13 12:09:54.823] [INFO] Loading PMC module...
+[2025-12-13 12:09:57.071] [INFO] PMC module loaded
+[2025-12-13 12:09:57.073] [INFO] Loading dependencies (FieldSchemas, etc.)...
+[2025-12-13 12:09:57.251] [INFO] Dependencies loaded
+[2025-12-13 12:09:57.261] [INFO] Loading SpeedTUI framework...
+[2025-12-13 12:09:57.726] [ERROR] Failed to load SpeedTUI: At C:\Users\jhnhe\OneDrive\Documents\GitHub\project-management-console\og_transport\HYBRID\lib\SpeedTUI\Core\HybridRenderEngine.ps1:57 char:27
++ class HybridRenderEngine {
++                           ~
+Missing closing '}' in statement block or type definition.
+
+At C:\Users\jhnhe\OneDrive\Documents\GitHub\project-management-console\og_transport\HYBRID\lib\SpeedTUI\Core\HybridRenderEngine.ps1:469 char:3
++ <<<<<<< HEAD
++   ~
+Missing file specification after redirection operator.
+
+At C:\Users\jhnhe\OneDrive\Documents\GitHub\project-management-console\og_transport\HYBRID\lib\SpeedTUI\Core\HybridRenderEngine.ps1:469 char:2
++ <<<<<<< HEAD
++  ~
+The '<' operator is reserved for future use.
+
+At C:\Users\jhnhe\OneDrive\Documents\GitHub\project-management-console\og_transport\HYBRID\lib\SpeedTUI\Core\HybridRenderEngine.ps1:469 char:4
++ <<<<<<< HEAD
++    ~
+Missing file specification after redirection operator.
+
+At C:\Users\jhnhe\OneDrive\Documents\GitHub\project-management-console\og_transport\HYBRID\lib\SpeedTUI\Core\HybridRenderEngine.ps1:469 char:3
++ <<<<<<< HEAD
++   ~
+The '<' operator is reserved for future use.
+
+At C:\Users\jhnhe\OneDrive\Documents\GitHub\project-management-console\og_transport\HYBRID\lib\SpeedTUI\Core\HybridRenderEngine.ps1:469 char:5
++ <<<<<<< HEAD
++     ~
+Missing file specification after redirection operator.
+
+At C:\Users\jhnhe\OneDrive\Documents\GitHub\project-management-console\og_transport\HYBRID\lib\SpeedTUI\Core\HybridRenderEngine.ps1:469 char:4
++ <<<<<<< HEAD
++    ~
+The '<' operator is reserved for future use.
+
+At C:\Users\jhnhe\OneDrive\Documents\GitHub\project-management-console\og_transport\HYBRID\lib\SpeedTUI\Core\HybridRenderEngine.ps1:469 char:6
++ <<<<<<< HEAD
++      ~
+Missing file specification after redirection operator.
+
+At C:\Users\jhnhe\OneDrive\Documents\GitHub\project-management-console\og_transport\HYBRID\lib\SpeedTUI\Core\HybridRenderEngine.ps1:469 char:5
++ <<<<<<< HEAD
++     ~
+The '<' operator is reserved for future use.
+
+At C:\Users\jhnhe\OneDrive\Documents\GitHub\project-management-console\og_transport\HYBRID\lib\SpeedTUI\Core\HybridRenderEngine.ps1:469 char:7
++ <<<<<<< HEAD
++       ~
+Missing file specification after redirection operator.
+
+Not all parse errors were reported.  Correct the reported errors and try again.
