@@ -121,23 +121,30 @@ class PmcApplication {
         # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PushScreen: Screen '$($screen.ScreenKey)' pushed, stack depth now $($this.ScreenStack.Count)"
         # }
 
+        Add-Content -Path "C:\Users\jhnhe\.gemini\antigravity\brain\2e850957-f348-4b45-8f9f-2a790c833a3d\debug.txt" -Value "[$(Get-Date)] PushScreen: START '$($screen.ScreenKey)'"
+
         # Initialize screen with render engine and container
         if ($screen.PSObject.Methods['Initialize']) {
+            Add-Content -Path "C:\Users\jhnhe\.gemini\antigravity\brain\2e850957-f348-4b45-8f9f-2a790c833a3d\debug.txt" -Value "[$(Get-Date)] PushScreen: Calling Initialize"
             $screen.Initialize($this.RenderEngine, $this.Container)
         }
 
         # Apply layout if screen has widgets
         if ($screen.PSObject.Methods['ApplyLayout']) {
+            Write-Host "DEBUG: PushScreen: Calling ApplyLayout on $($screen.ScreenKey)"
             $screen.ApplyLayout($this.LayoutManager, $this.TermWidth, $this.TermHeight)
         }
 
         # Activate screen
         if ($screen.PSObject.Methods['OnEnter']) {
+            Write-Host "DEBUG: PushScreen: Calling OnEnter on $($screen.ScreenKey)"
             $screen.OnEnter()
         }
 
         # Mark dirty for render
         $this.IsDirty = $true
+        Add-Content -Path "C:\Users\jhnhe\.gemini\antigravity\brain\2e850957-f348-4b45-8f9f-2a790c833a3d\debug.txt" -Value "[$(Get-Date)] PushScreen: COMPLETE"
+
     }
 
     <#
@@ -250,7 +257,10 @@ class PmcApplication {
 
             # Get screen output (ANSI strings with position info)
             # Get screen output (ANSI strings with position info)
+            # Get screen output (ANSI strings with position info)
             if ($this.CurrentScreen.PSObject.Methods['RenderToEngine']) {
+                try { Add-Content -Path "C:\Users\jhnhe\.gemini\antigravity\brain\2e850957-f348-4b45-8f9f-2a790c833a3d\debug.txt" -Value "[$(Get-Date)] PmcApplication._RenderCurrentScreen: Rendering screen type: $($this.CurrentScreen.GetType().Name)" } catch {}
+
                 # PERF: Disabled - if ($global:PmcTuiLogFile) {
                 # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] _RenderCurrentScreen: Has RenderToEngine, calling it"
                 # }
@@ -401,7 +411,9 @@ class PmcApplication {
             # PERF: Disabled -     Add-Content -Path $global:PmcTuiLogFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff')] PmcApplication.Run: Entering event loop (IsDirty=$($this.IsDirty))"
             # }
 
+
             while ($this.Running -and $this.ScreenStack.Count -gt 0) {
+                try { Add-Content -Path "C:\Users\jhnhe\.gemini\antigravity\brain\2e850957-f348-4b45-8f9f-2a790c833a3d\debug.txt" -Value "[$(Get-Date)] PmcApplication.Run: Loop. IsDirty=$($this.IsDirty)" } catch {}
                 $hadInput = $false
 
                 # Check for automation commands

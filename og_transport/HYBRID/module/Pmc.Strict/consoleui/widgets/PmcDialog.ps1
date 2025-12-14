@@ -58,11 +58,7 @@ class PmcDialog {
         
         # Main Box
         $engine.Fill($this.X, $this.Y, $this.Width, $this.Height, ' ', $fg, $bg)
-<<<<<<< HEAD
         $engine.DrawBox($this.X, $this.Y, $this.Width, $this.Height, $borderFg, $bg)
-=======
-        $engine.DrawBox($this.X, $this.Y, $this.Width, $this.Height, 'single', $borderFg, $bg)
->>>>>>> b5bbd6c7f294581f60139c5de10bb9af977c6242
         
         # Title
         $titleX = $this.X + [Math]::Floor(($this.Width - $this.Title.Length) / 2)
@@ -322,11 +318,7 @@ class ProjectFormDialog : PmcDialog {
         # But we need to redraw base box with these colors if we want consistency.
         # Let's re-draw background/border using Form colors.
         $engine.Fill($this.X, $this.Y, $this.Width, $this.Height, ' ', $fg, $bg)
-<<<<<<< HEAD
         $engine.DrawBox($this.X, $this.Y, $this.Width, $this.Height, $fg, $bg)
-=======
-        $engine.DrawBox($this.X, $this.Y, $this.Width, $this.Height, 'single', $fg, $bg)
->>>>>>> b5bbd6c7f294581f60139c5de10bb9af977c6242
         $engine.WriteAt($this.X + 2, $this.Y + 1, $this.Title, $highlight, $bg)
         
         $fieldY = $this.Y + 3

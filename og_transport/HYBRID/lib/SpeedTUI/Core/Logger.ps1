@@ -23,8 +23,9 @@ class LogEntry {
     
     [string] ToString() {
         $ctx = $(if ($this.Context -and $this.Context.Count -gt 0) {
-            " | " + ($this.Context.GetEnumerator() | ForEach-Object { "$($_.Key)=$($_.Value)" }) -join ", "
-        } else { "" })
+                " | " + ($this.Context.GetEnumerator() | ForEach-Object { "$($_.Key)=$($_.Value)" }) -join ", "
+            }
+            else { "" })
         
         return "$($this.Timestamp.ToString('yyyy-MM-dd HH:mm:ss.fff')) [$($this.Level)] [$($this.Module)][$($this.Component)] $($this.Message)$ctx"
     }
@@ -87,7 +88,8 @@ class Logger {
         try {
             $this._fileWriter = [StreamWriter]::new($this.LogFilePath, $true)
             $this._fileWriter.AutoFlush = $false
-        } catch {
+        }
+        catch {
             Write-Warning "Failed to initialize log file writer: $_"
             $this.EnableFile = $false
         }
@@ -146,12 +148,12 @@ class Logger {
         
         # Create log entry
         $entry = [LogEntry]@{
-            Timestamp = [DateTime]::Now
-            Level = $level
-            Module = $module
-            Component = $component
-            Message = $message
-            Context = $context
+            Timestamp  = [DateTime]::Now
+            Level      = $level
+            Module     = $module
+            Component  = $component
+            Message    = $message
+            Context    = $context
             StackTrace = $(if ($level -ge [LogLevel]::Error) { (Get-PSCallStack | Out-String) } else { "" })
         }
         
@@ -253,10 +255,12 @@ class Logger {
                 $this._fileWriter.WriteLine($e.ToString())
             }
             $this._fileWriter.Flush()
-        } catch {
+        }
+        catch {
             Write-Warning "Failed to write to log file: $_"
-        } finally {
-            [System.Threading.Monitor]::DoExit($this._writeLock)
+        }
+        finally {
+            [System.Threading.Monitor]::Exit($this._writeLock)
         }
     }
     
@@ -278,10 +282,10 @@ class Logger {
     # Get statistics
     [hashtable] GetStatistics() {
         return @{
-            LogCounts = $this.LogCounts.ToArray()
+            LogCounts          = $this.LogCounts.ToArray()
             PerformanceMetrics = $this.PerformanceMetrics.ToArray()
-            QueueSize = $this._logQueue.Count
-            LogFilePath = $this.LogFilePath
+            QueueSize          = $this._logQueue.Count
+            LogFilePath        = $this.LogFilePath
         }
     }
     
@@ -318,16 +322,16 @@ class PerformanceTimer : System.IDisposable {
         $elapsed = $this._stopwatch.Elapsed
         
         $this._logger.Debug($this._module, "Performance", "Completed operation: $($this._operation)", @{
-            ElapsedMs = $elapsed.TotalMilliseconds
-            Operation = $this._operation
-        })
+                ElapsedMs = $elapsed.TotalMilliseconds
+                Operation = $this._operation
+            })
         
         # Store metric
         $key = "$($this._module).$($this._operation)"
         [void]$this._logger.PerformanceMetrics.AddOrUpdate($key, $elapsed, { 
-            param($k, $v) 
-            if ($elapsed -gt $v) { $elapsed } else { $v }
-        })
+                param($k, $v) 
+                if ($elapsed -gt $v) { $elapsed } else { $v }
+            })
     }
 }
 

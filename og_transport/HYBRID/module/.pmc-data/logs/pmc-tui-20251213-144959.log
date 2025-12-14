@@ -1,0 +1,68 @@
+[2025-12-13 14:49:59.612] [INFO] Loading PMC module...
+[2025-12-13 14:50:00.583] [INFO] PMC module loaded
+[2025-12-13 14:50:00.586] [INFO] Loading dependencies (FieldSchemas, etc.)...
+[2025-12-13 14:50:00.684] [INFO] Dependencies loaded
+[2025-12-13 14:50:00.686] [INFO] Loading SpeedTUI framework...
+[2025-12-13 14:50:00.941] [INFO] SpeedTUI framework loaded
+[2025-12-13 14:50:00.951] [INFO] Loading PraxisVT...
+[2025-12-13 14:50:00.967] [INFO] PraxisVT loaded
+[2025-12-13 14:50:00.977] [INFO] Loading core dependencies...
+[2025-12-13 14:50:01.030] [INFO] Core dependencies loaded
+[2025-12-13 14:50:01.039] [INFO] Loading widget base classes...
+[2025-12-13 14:50:01.087] [INFO] Widget base classes loaded
+[2025-12-13 14:50:01.096] [INFO] Loading services...
+[2025-12-13 14:50:01.218] [INFO] Services loaded
+[2025-12-13 14:50:01.228] [INFO] Loading helpers...
+[2025-12-13 14:50:01.648] [INFO] Helpers loaded
+[2025-12-13 14:50:01.659] [INFO] Loading widgets...
+[2025-12-13 14:50:02.033] [ERROR] Failed to load widgets: At C:\Users\jhnhe\OneDrive\Documents\GitHub\project-management-console\og_transport\HYBRID\module\Pmc.Strict\consoleui\widgets\UniversalList.ps1:360 char:8
++     try {
++        ~
+Missing '(' in class method parameter list.
+
+At C:\Users\jhnhe\OneDrive\Documents\GitHub\project-management-console\og_transport\HYBRID\module\Pmc.Strict\consoleui\widgets\UniversalList.ps1:364 char:10
++     catch {
++          ~
+Missing '(' in class method parameter list.
+
+At C:\Users\jhnhe\OneDrive\Documents\GitHub\project-management-console\og_transport\HYBRID\module\Pmc.Strict\consoleui\widgets\UniversalList.ps1:367 char:8
++     try {
++        ~
+Missing '(' in class method parameter list.
+
+At C:\Users\jhnhe\OneDrive\Documents\GitHub\project-management-console\og_transport\HYBRID\module\Pmc.Strict\consoleui\widgets\UniversalList.ps1:383 char:10
++     catch {
++          ~
+Missing '(' in class method parameter list.
+
+At C:\Users\jhnhe\OneDrive\Documents\GitHub\project-management-console\og_transport\HYBRID\module\Pmc.Strict\consoleui\widgets\UniversalList.ps1:388 char:10
++     $this._filteredData = [object[]]@($this._data)
++          ~
+Missing ';' or end-of-line in property definition.
+
+At C:\Users\jhnhe\OneDrive\Documents\GitHub\project-management-console\og_transport\HYBRID\module\Pmc.Strict\consoleui\widgets\UniversalList.ps1:137 char:34
++ class UniversalList : PmcWidget {
++                                  ~
+Missing closing '}' in statement block or type definition.
+
+At C:\Users\jhnhe\OneDrive\Documents\GitHub\project-management-console\og_transport\HYBRID\module\Pmc.Strict\consoleui\widgets\UniversalList.ps1:428 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.
+
+At C:\Users\jhnhe\OneDrive\Documents\GitHub\project-management-console\og_transport\HYBRID\module\Pmc.Strict\consoleui\widgets\UniversalList.ps1:437 char:10
++ [object] GetSelectedItem() {
++          ~~~~~~~~~~~~~~~
+Unexpected token 'GetSelectedItem' in expression or statement.
+
+At C:\Users\jhnhe\OneDrive\Documents\GitHub\project-management-console\og_transport\HYBRID\module\Pmc.Strict\consoleui\widgets\UniversalList.ps1:437 char:26
++ [object] GetSelectedItem() {
++                          ~
+An expression was expected after '('.
+
+At C:\Users\jhnhe\OneDrive\Documents\GitHub\project-management-console\og_transport\HYBRID\module\Pmc.Strict\consoleui\widgets\UniversalList.ps1:457 char:7
++ [int] GetSelectedIndex() {
++       ~~~~~~~~~~~~~~~~
+Unexpected token 'GetSelectedIndex' in expression or statement.
+
+Not all parse errors were reported.  Correct the reported errors and try again.

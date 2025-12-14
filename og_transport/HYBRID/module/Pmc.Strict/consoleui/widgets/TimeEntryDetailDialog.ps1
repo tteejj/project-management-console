@@ -32,15 +32,7 @@ class TimeEntryDetailDialog : PmcWidget {
 
     [void] RegisterLayout([object]$engine) {
         ([PmcWidget]$this).RegisterLayout($engine)
-        
-        $engine.DefineRegion("$($this.RegionID)_Title", $this.X + 2, $this.Y + 1, $this.Width - 4, 1)
-        $engine.DefineRegion("$($this.RegionID)_Header", $this.X + 2, $this.Y + 2, $this.Width - 4, 1)
-        $engine.DefineRegion("$($this.RegionID)_Separator1", $this.X, $this.Y + 3, $this.Width, 1)
-        
-        $listHeight = $this.Height - 6
-        $engine.DefineRegion("$($this.RegionID)_List", $this.X + 2, $this.Y + 4, $this.Width - 4, $listHeight)
-        
-        $engine.DefineRegion("$($this.RegionID)_Footer", $this.X + 2, $this.Y + $this.Height - 2, $this.Width - 4, 1)
+        # Regions removed - using direct WriteAt in RenderToEngine
     }
 
     <#
@@ -51,7 +43,8 @@ class TimeEntryDetailDialog : PmcWidget {
         $this.RegisterLayout($engine)
 
         # Colors
-        $bg = [HybridRenderEngine]::AnsiColorToInt($this.GetThemedBg('Background.MenuBar', 1, 0))
+        # Use Panel background
+        $bg = [HybridRenderEngine]::AnsiColorToInt($this.GetThemedBg('Background.Panel', 1, 0))
         $fg = [HybridRenderEngine]::AnsiColorToInt($this.GetThemedFg('Foreground.Row'))
         $borderFg = [HybridRenderEngine]::AnsiColorToInt($this.GetThemedFg('Border.Widget'))
         $highlightFg = [HybridRenderEngine]::AnsiColorToInt($this.GetThemedFg('Foreground.Title'))
@@ -65,49 +58,49 @@ class TimeEntryDetailDialog : PmcWidget {
         
         # Title
         $pad = [Math]::Max(0, [Math]::Floor(($this.Width - 4 - $this.Title.Length) / 2))
-        $engine.WriteToRegion("$($this.RegionID)_Title", (" " * $pad) + $this.Title, $highlightFg, $bg)
+        $engine.WriteAt($this.X + 2 + $pad, $this.Y + 1, $this.Title, $highlightFg, $bg)
         
         # Header
         $headerText = " Task".PadRight(25) + " Hours  " + " Notes"
-        $engine.WriteToRegion("$($this.RegionID)_Header", $headerText, $highlightFg, $bg)
+        # Manual clip if needed - header is fixed width usually
+        $engine.WriteAt($this.X + 2, $this.Y + 2, $headerText, $highlightFg, $bg)
         
-        # Separator (Manual draw inside region?)
-        # We defined a region for it.
-        # But DrawBox draws borders.
-        # We want a horizontal line at Y+3.
+        # Separator 1
         $engine.WriteAt($this.X, $this.Y + 3, "├" + ("─" * ($this.Width - 2)) + "┤", $borderFg, $bg)
         
-        # List
-        $listRegion = "$($this.RegionID)_List"
-        $bounds = $engine.GetRegionBounds($listRegion)
+        # List Area
+        $listX = $this.X + 2
+        $listY = $this.Y + 4
+        $listWidth = $this.Width - 4
+        $listHeight = $this.Height - 6
         
-        if ($bounds) {
-            $maxItems = $bounds.Height
-            for ($i = 0; $i -lt $maxItems; $i++) {
-                $entryIndex = $this.ScrollOffset + $i
-                if ($entryIndex -ge $this.Entries.Count) { break }
-                
-                $entry = $this.Entries[$entryIndex]
-                $isSelected = ($entryIndex -eq $this.SelectedIndex)
-                
-                $iBg = if ($isSelected) { $selectedBg } else { $bg }
-                
-                # Format
-                $task = if ($entry.ContainsKey('task')) { $entry.task } else { '' }
-                if ($task.Length -gt 24) { $task = $task.Substring(0, 21) + "..." }
-                
-                $minutes = if ($entry.ContainsKey('minutes')) { $entry.minutes } else { 0 }
-                $hours = [Math]::Round($minutes / 60.0, 2)
-                
-                $notes = if ($entry.ContainsKey('notes')) { $entry.notes } else { '' }
-                $maxNotesLen = $this.Width - 35
-                if ($notes.Length -gt $maxNotesLen) { $notes = $notes.Substring(0, $maxNotesLen - 3) + "..." }
-                
-                $line = " $($task.PadRight(24)) $($hours.ToString('0.00').PadLeft(5))  $notes"
-                
-                $engine.Fill($bounds.X, $bounds.Y + $i, $bounds.Width, 1, ' ', $fg, $iBg)
-                $engine.WriteAt($bounds.X, $bounds.Y + $i, $line, $fg, $iBg)
-            }
+        for ($i = 0; $i -lt $listHeight; $i++) {
+            $entryIndex = $this.ScrollOffset + $i
+            if ($entryIndex -ge $this.Entries.Count) { break }
+            
+            $entry = $this.Entries[$entryIndex]
+            $isSelected = ($entryIndex -eq $this.SelectedIndex)
+            
+            $iBg = if ($isSelected) { $selectedBg } else { $bg }
+            
+            # Format
+            $task = if ($entry.ContainsKey('task')) { $entry.task } else { '' }
+            if ($task.Length -gt 24) { $task = $task.Substring(0, 21) + "..." }
+            
+            $minutes = if ($entry.ContainsKey('minutes')) { $entry.minutes } else { 0 }
+            $hours = [Math]::Round($minutes / 60.0, 2)
+            
+            $notes = if ($entry.ContainsKey('notes')) { $entry.notes } else { '' }
+            $maxNotesLen = $this.Width - 35
+            if ($notes.Length -gt $maxNotesLen) { $notes = $notes.Substring(0, $maxNotesLen - 3) + "..." }
+            
+            $line = " $($task.PadRight(24)) $($hours.ToString('0.00').PadLeft(5))  $notes"
+            
+            # Ensure line fits
+            if ($line.Length -gt $listWidth) { $line = $line.Substring(0, $listWidth) }
+            
+            $engine.Fill($listX, $listY + $i, $listWidth, 1, ' ', $fg, $iBg)
+            $engine.WriteAt($listX, $listY + $i, $line, $fg, $iBg)
         }
         
         # Separator 2
@@ -115,7 +108,7 @@ class TimeEntryDetailDialog : PmcWidget {
         
         # Footer
         $footer = " ↑/↓: Navigate  Enter/Esc: Close"
-        $engine.WriteToRegion("$($this.RegionID)_Footer", $footer, $fg, $bg)
+        $engine.WriteAt($this.X + 2, $this.Y + $this.Height - 2, $footer, $fg, $bg)
     }
 
 

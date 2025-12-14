@@ -202,11 +202,13 @@ class UniversalList : PmcWidget {
 
     # === Constructor ===
     UniversalList() : base("UniversalList") {
+        Add-Content -Path "C:\Users\jhnhe\.gemini\antigravity\brain\2e850957-f348-4b45-8f9f-2a790c833a3d\debug.txt" -Value "[$(Get-Date)] UniversalList: Constructor START"
         $this.Width = 120
         $this.Height = 35
         $this.CanFocus = $true
 
         # Initialize filter panel
+        Add-Content -Path "C:\Users\jhnhe\.gemini\antigravity\brain\2e850957-f348-4b45-8f9f-2a790c833a3d\debug.txt" -Value "[$(Get-Date)] UniversalList: Creating FilterPanel"
         $this._filterPanel = [FilterPanel]::new()
         $this._filterPanel.SetPosition($this.X + 10, $this.Y + 5)
         $this._filterPanel.SetSize(60, 12)
@@ -218,6 +220,15 @@ class UniversalList : PmcWidget {
 
     # === Layout System ===
 
+    [void] SetPosition([int]$x, [int]$y) {
+        ([PmcWidget]$this).SetPosition($x, $y)
+        
+        # Update filter panel relative position
+        if ($this._filterPanel) {
+            $this._filterPanel.SetPosition($x + 10, $y + 5)
+        }
+    }
+
     <#
     .SYNOPSIS
     Register layout regions with the engine.
@@ -226,29 +237,12 @@ class UniversalList : PmcWidget {
     [void] RegisterLayout([object]$engine) {
         # Call base class to register its own region
         ([PmcWidget]$this).RegisterLayout($engine)
-
-        # Column definitions (for DefineGrid)
-        $colDefs = @()
-        foreach ($col in $this._columns) {
-            $w = $(if ($this._columnWidths.ContainsKey($col.Name)) { $this._columnWidths[$col.Name] } else { $col.Width })
-            $colDefs += @{ Name = $col.Name; Width = $w }
-        }
         
-        # Define Header Grid
-        # Content starts at X+2 (Left border + 1 padding), ends at Width - 1 (Right border)
-        # Use a fixed height of 1 for header row
-        $this._headerColRegions = $engine.DefineGrid("$($this.RegionID)_Header", $this.X + 2, $this.Y + 1, $this.Width - 4, 1, $colDefs)
-
-        # Define template row grids (virtual scrolling means we define for max visible rows)
-        $maxVisibleRows = $this.Height - 6 # Top border, title, header, separator, bottom border, status, actions
-        for ($i = 0; $i -lt $maxVisibleRows; $i++) {
-            $rowY = $this.Y + 3 + $i # Y + 1 (title), Y + 2 (header), Y + 3 (separator), Y + 4 (first data row relative to list's Y)
-            $rowBaseRegionId = "$($this.RegionID)_Row_${i}"
-            $this._rowColRegions[$i] = $engine.DefineGrid($rowBaseRegionId, $this.X + 2, $rowY, $this.Width - 4, 1, $colDefs)
-        }
+        # NOTE: We do not define sub-regions for cells/headers.
+        # We render dynamic content using WriteAt (FilterPanel pattern) 
+        # to ensure robust visibility and precise layout control.
     }
 
-    # === Helper Methods ===
 
     <#
     .SYNOPSIS
@@ -347,6 +341,7 @@ class UniversalList : PmcWidget {
 
             $this._columns.Add($col)
         }
+        try { Add-Content -Path "C:\Users\jhnhe\.gemini\antigravity\brain\2e850957-f348-4b45-8f9f-2a790c833a3d\debug.txt" -Value "[$(Get-Date)] UniversalList.SetColumns: Set $($this._columns.Count) columns." } catch {}
     }
 
     <#
@@ -358,73 +353,34 @@ class UniversalList : PmcWidget {
     #>
     [void] SetData([array]$data) {
         try {
-            $dataTypeStr = $(if ($null -eq $data) { "NULL" } else { $data.GetType().FullName })
-            Write-PmcTuiLog "UniversalList.SetData: START, data param type=$dataTypeStr"
-        }
-        catch {
-            Write-PmcTuiLog "UniversalList.SetData: ERROR getting data type: $_" "ERROR"
-        }
-        try {
-            Write-PmcTuiLog "UniversalList.SetData: About to assign _data"
+            Write-PmcTuiLog "UniversalList.SetData: START" "DEBUG"
+        
             if ($null -ne $data) {
                 $this._data = [object[]]@($data)
             }
             else {
                 $this._data = [object[]]@()
             }
-            Write-PmcTuiLog "UniversalList.SetData: _data assigned successfully"
-            Write-PmcTuiLog "UniversalList.SetData: About to check _data type"
-            $dataType = $this._data.GetType().FullName
-            Write-PmcTuiLog "UniversalList.SetData: _data type=$dataType"
-            Write-PmcTuiLog "UniversalList.SetData: About to access _data.Count"
-            $dataCount = $this._data.Count
-            Write-PmcTuiLog "UniversalList.SetData: _data.Count=$dataCount"
+
+            $this._filteredData = [object[]]@($this._data)
+            $this._selectedIndex = 0
+            $this._scrollOffset = 0
+            $this._selectedIndices.Clear()
+
+            $this._cacheGeneration++
+            $this._rowCache.Clear()
+            $this._cacheAccessOrder.Clear()
+
+            $this._ApplyFilters()
+            $this._ApplySearch()
+
+            $this._InvokeCallback($this.OnDataChanged, $this._data)
+            Write-PmcTuiLog "UniversalList.SetData: COMPLETE ($($this._data.Count) items)" "DEBUG"
         }
         catch {
-            Write-PmcTuiLog "UniversalList.SetData: ERROR in _data assignment: $_" "ERROR"
-            Write-PmcTuiLog "UniversalList.SetData: Stack: $($_.ScriptStackTrace)" "ERROR"
+            Write-PmcTuiLog "FATAL ERROR UniversalList.SetData: $_" "ERROR"
             throw
         }
-        $this._filteredData = [object[]]@($this._data)
-        Write-PmcTuiLog "UniversalList.SetData: _filteredData assigned"
-        $this._selectedIndex = 0
-        $this._scrollOffset = 0
-        Write-PmcTuiLog "UniversalList.SetData: About to clear _selectedIndices"
-        $this._selectedIndices.Clear()
-        Write-PmcTuiLog "UniversalList.SetData: _selectedIndices cleared"
-
-        Write-PmcTuiLog "UniversalList.SetData: Received $($this._data.Count) items"
-        if ($this._data.Count -gt 0) {
-            $firstItem = $this._data[0]
-            if ($null -ne $firstItem) {
-                Write-PmcTuiLog "UniversalList.SetData: First item type=$($firstItem.GetType().Name) isHashtable=$($firstItem -is [hashtable])"
-                if ($firstItem -is [hashtable]) {
-                    Write-PmcTuiLog "UniversalList.SetData: First item keys: $($firstItem.Keys -join ', ')"
-                }
-            }
-            else {
-                Write-PmcTuiLog "UniversalList.SetData: First item is null"
-            }
-        }
-
-        # Invalidate row cache when data changes
-        Write-PmcTuiLog "UniversalList.SetData: Incrementing cache generation"
-        $this._cacheGeneration++
-        Write-PmcTuiLog "UniversalList.SetData: Clearing row cache"
-        $this._rowCache.Clear()
-        # H-MEM-1: Clear LRU access order as well
-        Write-PmcTuiLog "UniversalList.SetData: Clearing cache access order"
-        $this._cacheAccessOrder.Clear()
-
-        # Apply any active filters/search
-        Write-PmcTuiLog "UniversalList.SetData: Applying filters"
-        $this._ApplyFilters()
-        Write-PmcTuiLog "UniversalList.SetData: Applying search"
-        $this._ApplySearch()
-
-        Write-PmcTuiLog "UniversalList.SetData: Invoking OnDataChanged callback"
-        $this._InvokeCallback($this.OnDataChanged, $this._data)
-        Write-PmcTuiLog "UniversalList.SetData: COMPLETE"
     }
 
     <#
@@ -907,6 +863,7 @@ class UniversalList : PmcWidget {
     Render the universal list using native HybridRenderEngine
     #>
     [void] RenderToEngine([object]$engine) {
+        # Ensure layout is registered (for mouse/interaction if supported)
         $this.RegisterLayout($engine)
 
         $borderColor = $this.GetThemedColorInt('Border.Widget')
@@ -914,7 +871,7 @@ class UniversalList : PmcWidget {
         $primaryColor = $this.GetThemedColorInt('Foreground.Title')
         $mutedColor = $this.GetThemedColorInt('Foreground.Muted')
         $successColor = $this.GetThemedColorInt('Foreground.Success')
-        
+
         $rowBg = $this.GetThemedColorInt('Background.Row')
         $selBg = $this.GetThemedColorInt('Background.RowSelected')
         $selFg = $this.GetThemedColorInt('Foreground.RowSelected')
@@ -922,101 +879,78 @@ class UniversalList : PmcWidget {
 
         # 1. Draw Container Box
         $engine.DrawBox($this.X, $this.Y, $this.Width, $this.Height, $borderColor, $rowBg)
-        
+
         # 2. Draw Title
         if (-not [string]::IsNullOrWhiteSpace($this.Title)) {
-            $engine.WriteAt($this.X + 2, $this.Y, " $($this.Title) ", $primaryColor, $rowBg)
+            try {
+                $engine.WriteAt($this.X + 2, $this.Y, " $($this.Title) ", $primaryColor, $rowBg)
+            }
+            catch {}
         }
 
-<<<<<<< HEAD
-        # 3. Draw Header
-        if ($this._headerColRegions.Count -gt 0) {
-            for ($c = 0; $c -lt $this._columns.Count; $c++) {
-                $col = $this._columns[$c]
-                $regionId = $this._headerColRegions[$c]
-                
-                $label = $col.Label
-                if ($col.Name -eq $this._sortColumn) {
-                    $up = [char]0x25B2 # Triangle Up
-                    $down = [char]0x25BC # Triangle Down
-                    $ind = $(if ($this._sortAscending) { " $up" } else { " $down" })
-                    $label += $ind
-                }
-                
-                # Check region ID valid
-                if ($regionId) {
-                    $engine.WriteToRegion($regionId, $label, $primaryColor, $rowBg)
-                }
-=======
+
         # Get Theme Ints directly
         $borderColor = $this.GetThemedInt('Border.Widget')
         $textColor = $this.GetThemedInt('Foreground.Row')
         $primaryColor = $this.GetThemedInt('Foreground.Title')
         $mutedColor = $this.GetThemedInt('Foreground.Muted')
         $defaultBg = -1 # Transparent/Default
-        
+
         $highlightBg = $this.GetThemedBgInt('Background.RowSelected', 1, 0)
         $highlightFg = $this.GetThemedInt('Foreground.RowSelected')
-        
+
         # Fallbacks
         if ($highlightBg -eq -1) { $highlightBg = [HybridRenderEngine]::_PackRGB(64, 94, 117) } # Blue
         if ($highlightFg -eq -1) { $highlightFg = [HybridRenderEngine]::_PackRGB(255, 255, 255) } # White
 
-        # Draw top border
-        # Note: We manually draw top border components to overlay title/count cleanly
-        # But we can use DrawBox for the frame if we careful about not overwriting title immediately
-        # Or just manual draw is fine.
-        $engine.WriteAt($this.X, $this.Y - 1, $this.GetBoxChar('single_topleft'), $borderColor, $defaultBg)
-        $engine.Fill($this.X + 1, $this.Y - 1, $this.Width - 2, 1, $this.GetBoxChar('single_horizontal')[0], $borderColor, $defaultBg)
-        $engine.WriteAt($this.X + $this.Width - 1, $this.Y - 1, $this.GetBoxChar('single_topright'), $borderColor, $defaultBg)
-
-        # Title (overwrites top border part)
-        $titleText = " $($this.Title) "
-        $engine.WriteAt($this.X + 2, $this.Y - 1, $titleText, $primaryColor, $defaultBg)
-
-        # Item count
-        $countText = "($($this._filteredData.Count) items)"
-        $engine.WriteAt($this.X + $this.Width - $countText.Length - 2, $this.Y - 1, $countText, $mutedColor, $defaultBg)
 
         $currentRow = 1
 
-        # Draw Headers into regions
+        # Draw Headers (Using WriteAt - Matching FilterPanel Pattern)
         $supportsUnicode = $env:LANG -match 'UTF-8' -or [Console]::OutputEncoding.EncodingName -match 'UTF'
         $sortUpSymbol = $(if ($supportsUnicode) { "↑" } else { "^" })
         $sortDownSymbol = $(if ($supportsUnicode) { "↓" } else { "v" })
 
-        # Use pre-defined header column regions
-        $headerColRegions = $engine.GetChildRegions("$($this.RegionID)_Header")
-        
+        $currentX = $this.X + 2
         for ($i = 0; $i -lt $this._columns.Count; $i++) {
             $col = $this._columns[$i]
             $label = $col.Label
-            
+
+            # Determine Width
+            $colWidth = 10
+            if ($this._columnWidths.ContainsKey($col.Name)) {
+                $colWidth = $this._columnWidths[$col.Name]
+            }
+            elseif ($col.Width) {
+                $colWidth = $col.Width
+            }
+
             if ($this._sortColumn -eq $col.Name) {
                 $sortIndicator = $(if ($this._sortAscending) { " $sortUpSymbol" } else { " $sortDownSymbol" })
                 $label += $sortIndicator
             }
-            
-            # Write to region (Engine handles clipping/bounds)
-            if ($null -ne $headerColRegions -and $i -lt $headerColRegions.Count) {
-                $engine.WriteToRegion($headerColRegions[$i], $label, $primaryColor, $defaultBg)
->>>>>>> b5bbd6c7f294581f60139c5de10bb9af977c6242
+
+            # Clip Label
+            if ($label.Length -gt $colWidth) {
+                $label = $label.Substring(0, $colWidth)
             }
+            
+            # Write Header directly
+            $engine.WriteAt($currentX, $this.Y + 1, $label, $primaryColor, $defaultBg)
+            $currentX += $colWidth
         }
         
-        # 4. Draw Rows (Virtual Scrolling)
-        $maxVisibleRows = $this.Height - 6 # Match Layout Register logic
+        # 4. Draw Rows (Virtual Scrolling with WriteAt)
+        $maxVisibleRows = $this.Height - 6 
         $visibleStartIndex = $this._scrollOffset
         $itemCount = $this.GetItemCount()
-        $renderCount = [Math]::Min($maxVisibleRows, $itemCount - $visibleStartIndex)
         
         for ($i = 0; $i -lt $maxVisibleRows; $i++) {
             $dataIndex = $visibleStartIndex + $i
-            $regionArr = $this._rowColRegions[$i] # Array of region IDs for this row
+            $rowY = $this.Y + 3 + $i
             
-            # If beyond data, Just clear the row (or leave empty if Fill handled it)
+            # If beyond data, skip
             if ($dataIndex -ge $itemCount) {
-                # Clear row if needed, but DrawBox already cleared background mostly
                 continue
             }
 
@@ -1038,65 +972,61 @@ class UniversalList : PmcWidget {
             }
             
             # Render Cells
-            if ($regionArr) {
-                for ($c = 0; $c -lt $this._columns.Count; $c++) {
-                    $col = $this._columns[$c]
-                    $regionId = $regionArr[$c]
-                    if (-not $regionId) { continue }
-                    
-                    # 4a. Get Value
-                    $val = $this._GetItemProperty($item, $col.Name)
-                    
-                    # 4b. Format Value
-                    if ($col.ContainsKey('Format') -and $col.Format) {
-                        try {
-                            # Create simple CellInfo-like context if needed, or just pass item
-                            # Since we are rewriting, we can simplify or mock CellInfo
-                            # For native speed, let's try calling Format with just item first or standard signature
-                            # Existing Format expects ($item, $cellInfo)
-                            # We can pass $null for cellInfo for now or create a lightweight one
-                            $val = & $col.Format $item $null
-                        }
-                        catch {
-                            # Keep original value on error
-                        }
-                    }
-                    
-                    $strVal = $(if ($val -ne $null) { $val.ToString() } else { "" })
-                    
-                    # 4c. Simple Truncate (HybridRenderEngine handles clipping via Region)
-                    # We just pass the string.
-                    
-                    # 4d. Write
-                    # Use Fill to set background color for the whole cell
-                    # Then Write text
-                    # HybridRenderEngine doesn't strictly expose FillRegion, so we use WriteToRegion
-                    # But WriteToRegion with padding might not fill background?
-                    # We can use Fill on the region rect if we had it.
-                    # Instead, we rely on WriteToRegion behavior.
-                    
-                    $engine.WriteToRegion($regionId, $strVal, $fg, $bg)
+            $cellX = $this.X + 2
+            for ($c = 0; $c -lt $this._columns.Count; $c++) {
+                $col = $this._columns[$c]
+                
+                # Determine Width
+                $colWidth = 10
+                if ($this._columnWidths.ContainsKey($col.Name)) {
+                    $colWidth = $this._columnWidths[$col.Name]
                 }
+                elseif ($col.Width) {
+                    $colWidth = $col.Width
+                }
+                
+                # 4a. Get Value
+                $val = $this._GetItemProperty($item, $col.Name)
+                
+                # 4b. Format Value
+                if ($col.ContainsKey('Format') -and $col.Format) {
+                    try {
+                        $val = & $col.Format $item $null
+                    }
+                    catch { }
+                }
+                
+                $strVal = $(if ($val -ne $null) { $val.ToString() } else { "" })
+                
+                # 4c. Clip & Pad
+                if ($strVal.Length -gt $colWidth) {
+                    $strVal = $strVal.Substring(0, $colWidth)
+                }
+                
+                $strVal = $strVal.PadRight($colWidth)
+                
+                # 4d. Write - Direct WriteAt
+                $engine.WriteAt($cellX, $rowY, $strVal, $fg, $bg)
+                
+                $cellX += $colWidth
             }
         }
         
         # 5. Status Footer (Item Count)
-        $countText = "($($itemCount) items)"
-        $engine.WriteAt($this.X + $this.Width - $countText.Length - 2, $this.Y, $countText, $mutedColor, $rowBg)
+        try {
+            $countText = "($($itemCount) items)"
+            $engine.WriteAt($this.X + $this.Width - $countText.Length - 2, $this.Y, $countText, $mutedColor, $rowBg)
+        }
+        catch {}
         
         # 6. Inline Editor (Delegate)
         if ($this._showInlineEditor -and $this._inlineEditor) {
-            # Position editor over the selected row
-            # Calculate row Visual Render Y:
-            # Header is Y+1. First Row is Y+3.
-            # Row relative index: $this._selectedIndex - $this._scrollOffset
-            
             $relIndex = $this._selectedIndex - $this._scrollOffset
             if ($relIndex -ge 0 -and $relIndex -lt $maxVisibleRows) {
                 $rowY = $this.Y + 3 + $relIndex
                 
                 # Editor takes full width
-                $this._inlineEditor.SetBounds($this.X + 2, $rowY, $this.Width - 4, 1) # Height expands if needed
+                $this._inlineEditor.SetBounds($this.X + 2, $rowY, $this.Width - 4, 1) 
                 
                 # Render Editor
                 $this._inlineEditor.RenderToEngine($engine)

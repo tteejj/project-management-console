@@ -1,0 +1,68 @@
+[2025-12-13 12:26:22.551] [INFO] Loading PMC module...
+[2025-12-13 12:26:23.604] [INFO] PMC module loaded
+[2025-12-13 12:26:23.605] [INFO] Loading dependencies (FieldSchemas, etc.)...
+[2025-12-13 12:26:23.759] [INFO] Dependencies loaded
+[2025-12-13 12:26:23.771] [INFO] Loading SpeedTUI framework...
+[2025-12-13 12:26:24.058] [INFO] SpeedTUI framework loaded
+[2025-12-13 12:26:24.059] [INFO] Loading PraxisVT...
+[2025-12-13 12:26:24.077] [INFO] PraxisVT loaded
+[2025-12-13 12:26:24.087] [INFO] Loading core dependencies...
+[2025-12-13 12:26:24.221] [INFO] Core dependencies loaded
+[2025-12-13 12:26:24.231] [INFO] Loading widget base classes...
+[2025-12-13 12:26:24.426] [INFO] Widget base classes loaded
+[2025-12-13 12:26:24.442] [INFO] Loading services...
+[2025-12-13 12:26:25.138] [INFO] Services loaded
+[2025-12-13 12:26:25.166] [INFO] Loading helpers...
+[2025-12-13 12:26:27.206] [INFO] Helpers loaded
+[2025-12-13 12:26:27.208] [INFO] Loading widgets...
+[2025-12-13 12:26:27.505] [ERROR] Failed to load widgets: At C:\Users\jhnhe\OneDrive\Documents\GitHub\project-management-console\og_transport\HYBRID\module\Pmc.Strict\consoleui\widgets\InlineEditor.ps1:595 char:3
++ <<<<<<< HEAD
++   ~
+Missing file specification after redirection operator.
+
+At C:\Users\jhnhe\OneDrive\Documents\GitHub\project-management-console\og_transport\HYBRID\module\Pmc.Strict\consoleui\widgets\InlineEditor.ps1:595 char:2
++ <<<<<<< HEAD
++  ~
+The '<' operator is reserved for future use.
+
+At C:\Users\jhnhe\OneDrive\Documents\GitHub\project-management-console\og_transport\HYBRID\module\Pmc.Strict\consoleui\widgets\InlineEditor.ps1:595 char:4
++ <<<<<<< HEAD
++    ~
+Missing file specification after redirection operator.
+
+At C:\Users\jhnhe\OneDrive\Documents\GitHub\project-management-console\og_transport\HYBRID\module\Pmc.Strict\consoleui\widgets\InlineEditor.ps1:595 char:3
++ <<<<<<< HEAD
++   ~
+The '<' operator is reserved for future use.
+
+At C:\Users\jhnhe\OneDrive\Documents\GitHub\project-management-console\og_transport\HYBRID\module\Pmc.Strict\consoleui\widgets\InlineEditor.ps1:595 char:5
++ <<<<<<< HEAD
++     ~
+Missing file specification after redirection operator.
+
+At C:\Users\jhnhe\OneDrive\Documents\GitHub\project-management-console\og_transport\HYBRID\module\Pmc.Strict\consoleui\widgets\InlineEditor.ps1:595 char:4
++ <<<<<<< HEAD
++    ~
+The '<' operator is reserved for future use.
+
+At C:\Users\jhnhe\OneDrive\Documents\GitHub\project-management-console\og_transport\HYBRID\module\Pmc.Strict\consoleui\widgets\InlineEditor.ps1:595 char:6
++ <<<<<<< HEAD
++      ~
+Missing file specification after redirection operator.
+
+At C:\Users\jhnhe\OneDrive\Documents\GitHub\project-management-console\og_transport\HYBRID\module\Pmc.Strict\consoleui\widgets\InlineEditor.ps1:595 char:5
++ <<<<<<< HEAD
++     ~
+The '<' operator is reserved for future use.
+
+At C:\Users\jhnhe\OneDrive\Documents\GitHub\project-management-console\og_transport\HYBRID\module\Pmc.Strict\consoleui\widgets\InlineEditor.ps1:595 char:7
++ <<<<<<< HEAD
++       ~
+Missing file specification after redirection operator.
+
+At C:\Users\jhnhe\OneDrive\Documents\GitHub\project-management-console\og_transport\HYBRID\module\Pmc.Strict\consoleui\widgets\InlineEditor.ps1:595 char:6
++ <<<<<<< HEAD
++      ~
+The '<' operator is reserved for future use.
+
+Not all parse errors were reported.  Correct the reported errors and try again.

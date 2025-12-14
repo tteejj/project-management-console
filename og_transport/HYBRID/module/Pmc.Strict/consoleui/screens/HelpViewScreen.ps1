@@ -23,6 +23,8 @@ Static help documentation screen showing:
 No navigation needed, just Esc to exit.
 #>
 class HelpViewScreen : PmcScreen {
+    HelpViewScreen() : base('Help', 'Help') {
+    }
 
 
 

@@ -365,15 +365,7 @@ class TagEditor : PmcWidget {
 
     [void] RegisterLayout([object]$engine) {
         ([PmcWidget]$this).RegisterLayout($engine)
-        
-        $engine.DefineRegion("$($this.RegionID)_Title", $this.X + 2, $this.Y + 1, $this.Width - 4, 1)
-        $engine.DefineRegion("$($this.RegionID)_Count", $this.X + $this.Width - 10, $this.Y + 1, 8, 1)
-        
-        # Chips area (rows 1-2 relative to content start, Y+2, Y+3)
-        $engine.DefineRegion("$($this.RegionID)_Chips", $this.X + 2, $this.Y + 2, $this.Width - 4, 2)
-        
-        $engine.DefineRegion("$($this.RegionID)_Help", $this.X + 2, $this.Y + $this.Height - 2, $this.Width - 4, 1)
-        $engine.DefineRegion("$($this.RegionID)_Error", $this.X + 2, $this.Y + $this.Height - 1, $this.Width - 4, 1)
+        # Regions removed - using direct WriteAt in RenderToEngine
     }
 
     <#
@@ -381,10 +373,19 @@ class TagEditor : PmcWidget {
     Render directly to engine (new high-performance path)
     #>
     [void] RenderToEngine([object]$engine) {
+        $this._blinkFrameCount++
+        if ($this._blinkFrameCount -ge $this._blinkFrameInterval) {
+            $this._showCursor = -not $this._showCursor
+            $this._blinkFrameCount = 0
+        }
+
         $this.RegisterLayout($engine)
 
         # Colors (Ints)
-        $bg = $this.GetThemedBgInt('Background.MenuBar', 1, 0)
+        # Use Panel background
+        $bg = $this.GetThemedBgInt('Background.Panel', 1, 0)
+        if ($bg -eq -1) { $bg = [HybridRenderEngine]::_PackRGB(30, 30, 30) }
+
         $fg = $this.GetThemedInt('Foreground.Row')
         $borderFg = $this.GetThemedInt('Border.Widget')
         $primaryFg = $this.GetThemedInt('Foreground.Title')
@@ -393,82 +394,79 @@ class TagEditor : PmcWidget {
         $highlightBg = $this.GetThemedBgInt('Background.RowSelected', 1, 0)
         $highlightFg = $this.GetThemedInt('Foreground.RowSelected')
         
-        if ($bg -eq -1) { $bg = [HybridRenderEngine]::_PackRGB(30, 30, 30) }
-
         # Draw Box
         $engine.Fill($this.X, $this.Y, $this.Width, $this.Height, ' ', $fg, $bg)
-<<<<<<< HEAD
         $engine.DrawBox($this.X, $this.Y, $this.Width, $this.Height, $borderFg, $bg)
-=======
-        $engine.DrawBox($this.X, $this.Y, $this.Width, $this.Height, 'single', $borderFg, $bg)
->>>>>>> b5bbd6c7f294581f60139c5de10bb9af977c6242
         
         # Title
         $title = " $($this.Label) "
         $pad = [Math]::Max(0, [Math]::Floor(($this.Width - 4 - $title.Length) / 2))
-        $engine.WriteToRegion("$($this.RegionID)_Title", (" " * $pad) + $title, $primaryFg, $bg)
+        $engine.WriteAt($this.X + 2 + $pad, $this.Y + 1, $title, $primaryFg, $bg)
         
         # Count
         $countText = "($($this._selectedTags.Count)/$($this.MaxTags))"
-        $engine.WriteToRegion("$($this.RegionID)_Count", $countText, $mutedFg, $bg)
+        $countX = $this.X + $this.Width - $countText.Length - 2
+        if ($countX -gt $this.X + 2) {
+            $engine.WriteAt($countX, $this.Y + 1, $countText, $mutedFg, $bg)
+        }
         
-        # Chips & Input
-        $chipsRegion = "$($this.RegionID)_Chips"
-        $bounds = $engine.GetRegionBounds($chipsRegion)
+        # Chips & Input Area
+        $chipsX = $this.X + 2
+        $chipsY = $this.Y + 2
+        $chipsWidth = $this.Width - 4
+        $chipsHeight = 2
         
-        if ($bounds) {
-            $currentX = $bounds.X
-            $currentY = $bounds.Y
-            $maxX = $bounds.X + $bounds.Width
-            $maxY = $bounds.Y + $bounds.Height
+        $currentX = $chipsX
+        $currentY = $chipsY
+        $maxX = $chipsX + $chipsWidth
+        $maxY = $chipsY + $chipsHeight
+        
+        # Draw Chips
+        foreach ($tag in $this._selectedTags) {
+            $chipText = "[$tag]"
+            $chipLen = $tag.Length + 2
             
-            # Draw Chips
-            foreach ($tag in $this._selectedTags) {
-                $chipText = "[$tag]"
-                $chipLen = $tag.Length + 2
-                
-                if ($currentX + $chipLen + 1 -gt $maxX) {
-                    $currentX = $bounds.X
-                    $currentY++
-                }
-                
-                if ($currentY -ge $maxY) { break }
-                
-                # Get chip color (Int)
-                $ansiColor = $this._GetChipColor($tag)
-                $chipFg = [HybridRenderEngine]::AnsiColorToInt($ansiColor)
-                
-                $engine.WriteAt($currentX, $currentY, $chipText, $chipFg, $bg)
-                $currentX += $chipLen + 1
+            if ($currentX + $chipLen + 1 -gt $maxX) {
+                $currentX = $chipsX
+                $currentY++
             }
             
-            # Draw Input
+            if ($currentY -ge $maxY) { break }
+            
+            # Get chip color (Int)
+            $ansiColor = $this._GetChipColor($tag)
+            $chipFg = [HybridRenderEngine]::AnsiColorToInt($ansiColor)
+            
+            $engine.WriteAt($currentX, $currentY, $chipText, $chipFg, $bg)
+            $currentX += $chipLen + 1
+        }
+        
+        # Draw Input
+        if ($currentY -lt $maxY) {
+            $inputSpace = $maxX - $currentX
+            if ($inputSpace -lt 15) {
+                # Need new line?
+                $currentX = $chipsX
+                $currentY++
+            }
+            
             if ($currentY -lt $maxY) {
-                $inputSpace = $maxX - $currentX
-                if ($inputSpace -lt 15) {
-                    # Need new line?
-                    $currentX = $bounds.X
-                    $currentY++
-                }
+                $prefix = if ([string]::IsNullOrEmpty($this._inputText)) { "type tag..." } else { $this._inputText }
+                $pColor = if ([string]::IsNullOrEmpty($this._inputText)) { $mutedFg } else { $fg }
                 
-                if ($currentY -lt $maxY) {
-                    $prefix = if ([string]::IsNullOrEmpty($this._inputText)) { "type tag..." } else { $this._inputText }
-                    $pColor = if ([string]::IsNullOrEmpty($this._inputText)) { $mutedFg } else { $fg }
-                    
-                    # Highlight cursor
-                    if ([string]::IsNullOrEmpty($this._inputText)) {
-                        $engine.WriteAt($currentX, $currentY, $prefix, $pColor, $bg)
+                # Highlight cursor
+                if ([string]::IsNullOrEmpty($this._inputText)) {
+                    $engine.WriteAt($currentX, $currentY, $prefix, $pColor, $bg)
+                }
+                else {
+                    # Simple cursor
+                    $engine.WriteAt($currentX, $currentY, $prefix, $pColor, $bg)
+                    if ($this._cursorPosition -lt $prefix.Length) {
+                        $char = $prefix[$this._cursorPosition]
+                        $engine.WriteAt($currentX + $this._cursorPosition, $currentY, "$char", $bg, $pColor) # Invert
                     }
-                    else {
-                        # Simple cursor: draw text, then inverse char at cursor
-                        $engine.WriteAt($currentX, $currentY, $prefix, $pColor, $bg)
-                        if ($this._cursorPosition -lt $prefix.Length) {
-                            $char = $prefix[$this._cursorPosition]
-                            $engine.WriteAt($currentX + $this._cursorPosition, $currentY, "$char", $bg, $pColor) # Invert
-                        }
-                        elseif ($this._cursorPosition -eq $prefix.Length) {
-                            $engine.WriteAt($currentX + $this._cursorPosition, $currentY, " ", $bg, $pColor)
-                        }
+                    elseif ($this._cursorPosition -eq $prefix.Length) {
+                        $engine.WriteAt($currentX + $this._cursorPosition, $currentY, " ", $bg, $pColor)
                     }
                 }
             }
@@ -478,19 +476,17 @@ class TagEditor : PmcWidget {
         if ($this._showAutocomplete -and $this._autocompleteMatches.Count -gt 0) {
             $acX = $this.X + 4
             $acY = $this.Y + 3
+            if ($acY -ge $this.Y + $this.Height) { $acY = $this.Y + $this.Height - 1 } # Clamp/Adjust?
+            # Actually Autocomplete usually floats.
+            
             $acWidth = $this.Width - 8
             $acHeight = [Math]::Min(3, $this._autocompleteMatches.Count) + 2
             
-            # Define popup region on the fly
-            $acRegionId = "$($this.RegionID)_AC"
-            $engine.DefineRegion($acRegionId, $acX, $acY, $acWidth, $acHeight, 100)
+            # Using BeginLayer to ensure popup is on top (if engine supports it, but we are inside widget)
+            # We can just draw over since we render last?
             
             $engine.Fill($acX, $acY, $acWidth, $acHeight, ' ', $fg, $bg)
-<<<<<<< HEAD
             $engine.DrawBox($acX, $acY, $acWidth, $acHeight, $borderFg, $bg)
-=======
-            $engine.DrawBox($acX, $acY, $acWidth, $acHeight, 'single', $borderFg, $bg)
->>>>>>> b5bbd6c7f294581f60139c5de10bb9af977c6242
             
             for ($i = 0; $i -lt [Math]::Min(3, $this._autocompleteMatches.Count); $i++) {
                 $tag = $this._autocompleteMatches[$i]
@@ -504,12 +500,12 @@ class TagEditor : PmcWidget {
         }
         
         # Help
-        $helpText = "Tab/Enter=Add | Backspace=Remove | Esc=Done"
-        $engine.WriteToRegion("$($this.RegionID)_Help", $helpText, $mutedFg, $bg)
+        $helpText = "Tab/Enter=Add | Backspace=Remove | Esc=Cancel"
+        $engine.WriteAt($this.X + 2, $this.Y + $this.Height - 2, $helpText, $mutedFg, $bg)
         
         # Error
         if ($this._errorMessage) {
-            $engine.WriteToRegion("$($this.RegionID)_Error", $this._errorMessage, $errorFg, $bg)
+            $engine.WriteAt($this.X + 2, $this.Y + $this.Height - 1, $this._errorMessage, $errorFg, $bg)
         }
     }
 

@@ -19,6 +19,14 @@ if (-not ([System.Management.Automation.PSTypeName]'PmcThemeEngine').Type) {
     throw "PmcThemeEngine class not found. Ensure PmcThemeEngine.ps1 is loaded before PmcWidget.ps1"
 }
 
+# Ensure ZIndex is loaded (needed by most widgets)
+if (-not ([System.Management.Automation.PSTypeName]'ZIndex').Type) {
+    $zIndexPath = Join-Path $PSScriptRoot '../ZIndex.ps1'
+    if (Test-Path $zIndexPath) {
+        . $zIndexPath
+    }
+}
+
 <#
 .SYNOPSIS
 Base class for all PMC widgets extending SpeedTUI Component
@@ -229,13 +237,15 @@ class PmcWidget : Component {
 
     <#
     .SYNOPSIS
-<<<<<<< HEAD
     Get integer color value for HybridRenderEngine
     #>
     [int] GetThemedColorInt([string]$propertyName) {
         $engine = [PmcThemeEngine]::GetInstance()
         return $engine.GetThemeColorInt($propertyName)
-=======
+    }
+
+    <#
+    .SYNOPSIS
     Get packed RGB integer for a specific role (Hybrid Engine optimized)
 
     .PARAMETER role
@@ -255,8 +265,8 @@ class PmcWidget : Component {
     [int] GetThemedBgInt([string]$role, [int]$width, [int]$charIndex) {
         $engine = [PmcThemeEngine]::GetInstance()
         return $engine.GetBackgroundInt($role, $width, $charIndex)
->>>>>>> b5bbd6c7f294581f60139c5de10bb9af977c6242
     }
+
 
     # === Box Drawing Methods ===
 

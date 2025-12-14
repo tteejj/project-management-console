@@ -118,8 +118,13 @@ class TaskListScreen : StandardListScreen {
     }
 
     # Constructor with container (DI-enabled)
-    TaskListScreen([object]$container) : base("TaskList", "Task List", $container) {
-        $this._InitializeTaskListScreen('active')
+    TaskListScreen([object]$container) : base("TaskList", "Tasks", $container) {
+        Write-PmcTuiLog "TaskListScreen: Constructor started" "DEBUG"
+        
+        # Configure based on view mode (defaulting to 'active' or 'all')
+        $this._InitializeTaskListScreen('active') 
+        
+        Write-PmcTuiLog "TaskListScreen: Constructor completed" "DEBUG"
     }
 
     # Constructor with explicit view mode

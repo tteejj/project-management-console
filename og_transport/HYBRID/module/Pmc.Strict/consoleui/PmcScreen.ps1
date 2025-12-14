@@ -156,6 +156,8 @@ class PmcScreen {
     }
 
     hidden [void] _CreateDefaultWidgets() {
+        Add-Content -Path "C:\Users\jhnhe\.gemini\antigravity\brain\2e850957-f348-4b45-8f9f-2a790c833a3d\debug.txt" -Value "[$(Get-Date)] PmcScreen._CreateDefaultWidgets: START. Screen=$($this.ScreenKey)"
+
         # Menu bar - use shared MenuBar if available (populated by TaskListScreen)
         # CRITICAL: Check if variable exists AND is not null
         if ((Get-Variable -Name PmcSharedMenuBar -Scope Global -ErrorAction SilentlyContinue) -and $global:PmcSharedMenuBar) {
@@ -164,6 +166,7 @@ class PmcScreen {
         else {
             # Create default empty MenuBar (will be populated by TaskListScreen)
             $this.MenuBar = New-Object PmcMenuBar
+
             $this.MenuBar.AddMenu("Tasks", 'T', @())
             $this.MenuBar.AddMenu("Projects", 'P', @())
             $this.MenuBar.AddMenu("Time", 'M', @())
@@ -260,38 +263,51 @@ class PmcScreen {
     Terminal height
     #>
     [void] ApplyLayout([object]$layoutManager, [int]$termWidth, [int]$termHeight) {
-        $this.LayoutManager = $layoutManager
-        $this.TermWidth = $termWidth
-        $this.TermHeight = $termHeight
+        try {
+            Write-Host "DEBUG: PmcScreen.ApplyLayout: START Screen=$($this.ScreenKey) W=$termWidth H=$termHeight"
+            $this.LayoutManager = $layoutManager
+            $this.TermWidth = $termWidth
+            $this.TermHeight = $termHeight
 
-        # Apply layout to standard widgets
-        if ($this.MenuBar) {
-            $rect = $layoutManager.GetRegion('MenuBar', $termWidth, $termHeight)
-            $this.MenuBar.SetPosition($rect.X, $rect.Y)
-            $this.MenuBar.SetSize($rect.Width, $rect.Height)
+            # Apply layout to standard widgets
+            if ($this.MenuBar) {
+                Write-Host "DEBUG: PmcScreen.ApplyLayout: Formatting MenuBar"
+                $rect = $layoutManager.GetRegion('MenuBar', $termWidth, $termHeight)
+                $this.MenuBar.SetPosition($rect.X, $rect.Y)
+                $this.MenuBar.SetSize($rect.Width, $rect.Height)
+            }
+
+            if ($this.Header) {
+                Write-Host "DEBUG: PmcScreen.ApplyLayout: Formatting Header"
+                $rect = $layoutManager.GetRegion('Header', $termWidth, $termHeight)
+                $this.Header.SetPosition($rect.X, $rect.Y)
+                $this.Header.SetSize($rect.Width, $rect.Height)
+            }
+
+            if ($this.Footer) {
+                $rect = $layoutManager.GetRegion('Footer', $termWidth, $termHeight)
+                $this.Footer.SetPosition($rect.X, $rect.Y)
+                $this.Footer.SetSize($rect.Width, $rect.Height)
+            }
+
+            if ($this.StatusBar) {
+                $rect = $layoutManager.GetRegion('StatusBar', $termWidth, $termHeight)
+                $this.StatusBar.SetPosition($rect.X, $rect.Y)
+                $this.StatusBar.SetSize($rect.Width, $rect.Height)
+            }
+
+            # Apply layout to content widgets
+            Write-Host "DEBUG: PmcScreen.ApplyLayout: Calling ApplyContentLayout"
+            $this.ApplyContentLayout($layoutManager, $termWidth, $termHeight)
+            Write-Host "DEBUG: PmcScreen.ApplyLayout: COMPLETE"
         }
-
-        if ($this.Header) {
-            $rect = $layoutManager.GetRegion('Header', $termWidth, $termHeight)
-            $this.Header.SetPosition($rect.X, $rect.Y)
-            $this.Header.SetSize($rect.Width, $rect.Height)
+        catch {
+            Write-Host "FATAL ERROR PmcScreen.ApplyLayout: $_"
+            Write-Host "Stack: $($_.ScriptStackTrace)"
+            throw
         }
-
-        if ($this.Footer) {
-            $rect = $layoutManager.GetRegion('Footer', $termWidth, $termHeight)
-            $this.Footer.SetPosition($rect.X, $rect.Y)
-            $this.Footer.SetSize($rect.Width, $rect.Height)
-        }
-
-        if ($this.StatusBar) {
-            $rect = $layoutManager.GetRegion('StatusBar', $termWidth, $termHeight)
-            $this.StatusBar.SetPosition($rect.X, $rect.Y)
-            $this.StatusBar.SetSize($rect.Width, $rect.Height)
-        }
-
-        # Apply layout to content widgets
-        $this.ApplyContentLayout($layoutManager, $termWidth, $termHeight)
     }
+
 
     <#
     .SYNOPSIS
@@ -430,11 +446,16 @@ class PmcScreen {
         # Layer 20: Panel (content widgets like FilterPanel, DatePicker, etc.)
         $engine.BeginLayer([ZIndex]::Panel)
         $widgetRow = 10
+        # Write-PmcTuiLog "PmcScreen.RenderToEngine: Rendering $($this.ContentWidgets.Count) content widgets" "DEBUG"
         foreach ($widget in $this.ContentWidgets) {
             $widgetName = $(if ($widget.Name) { $widget.Name } else { $widget.GetType().Name })
             try {
                 if ($widget.PSObject.Methods['RenderToEngine']) {
+                    Write-PmcTuiLog "PmcScreen: Calling RenderToEngine on $widgetName" "DEBUG"
                     $widget.RenderToEngine($engine)
+                }
+                else {
+                    Write-PmcTuiLog "PmcScreen: Widget $widgetName missing RenderToEngine method" "WARN"
                 }
             }
             catch {
@@ -619,6 +640,7 @@ class PmcScreen {
     Widget to add
     #>
     [void] AddContentWidget([PmcWidget]$widget) {
+        Write-PmcTuiLog "PmcScreen.AddContentWidget: Adding $($widget.GetType().Name) (Total: $($this.ContentWidgets.Count + 1))" "DEBUG"
         $this.ContentWidgets.Add($widget)
 
         # Initialize if render engine available

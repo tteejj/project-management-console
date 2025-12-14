@@ -1,0 +1,240 @@
+[2025-12-13 12:45:43.674] [INFO] Loading PMC module...
+[2025-12-13 12:45:45.448] [INFO] PMC module loaded
+[2025-12-13 12:45:45.451] [INFO] Loading dependencies (FieldSchemas, etc.)...
+[2025-12-13 12:45:45.806] [INFO] Dependencies loaded
+[2025-12-13 12:45:45.848] [INFO] Loading SpeedTUI framework...
+[2025-12-13 12:45:46.587] [INFO] SpeedTUI framework loaded
+[2025-12-13 12:45:46.615] [INFO] Loading PraxisVT...
+[2025-12-13 12:45:46.676] [INFO] PraxisVT loaded
+[2025-12-13 12:45:46.697] [INFO] Loading core dependencies...
+[2025-12-13 12:45:47.135] [INFO] Core dependencies loaded
+[2025-12-13 12:45:47.167] [INFO] Loading widget base classes...
+[2025-12-13 12:45:47.340] [INFO] Widget base classes loaded
+[2025-12-13 12:45:47.363] [INFO] Loading services...
+[2025-12-13 12:45:47.767] [INFO] Services loaded
+[2025-12-13 12:45:47.803] [INFO] Loading helpers...
+[2025-12-13 12:45:48.898] [INFO] Helpers loaded
+[2025-12-13 12:45:48.914] [INFO] Loading widgets...
+[2025-12-13 12:45:49.518] [INFO] Widgets loaded
+[2025-12-13 12:45:49.523] [INFO] Loading screen base class...
+[2025-12-13 12:45:49.564] [INFO] Screen base class loaded
+[2025-12-13 12:45:49.580] [INFO] Loading HelpViewScreen (needed by base classes)...
+[2025-12-13 12:45:49.615] [INFO] HelpViewScreen loaded
+[2025-12-13 12:45:49.629] [INFO] Loading base classes...
+[2025-12-13 12:45:49.935] [INFO] Base classes loaded
+[2025-12-13 12:45:49.948] [INFO] Loading ServiceContainer (needed by screens)...
+[2025-12-13 12:45:50.009] [INFO] ServiceContainer loaded
+[2025-12-13 12:45:50.023] [INFO] Loading remaining screens...
+[2025-12-13 12:45:50.355] [INFO] Remaining screens loaded
+[2025-12-13 12:45:50.374] [INFO] Loading PmcApplication...
+[2025-12-13 12:45:50.469] [INFO] PmcApplication loaded
+[2025-12-13 12:45:50.486] [INFO] All components loaded successfully
+[2025-12-13 12:45:50.522] [INFO] Starting PMC TUI with screen: TaskList
+[2025-12-13 12:45:50.544] [INFO] Cleared stale PmcSharedMenuBar and MenuRegistry singleton
+[2025-12-13 12:45:50.562] [INFO] Creating ServiceContainer...
+[2025-12-13 12:45:50.588] [INFO] ServiceContainer created
+[2025-12-13 12:45:50.605] [INFO] Registering Theme service...
+[2025-12-13 12:45:50.636] ServiceContainer: Registered 'Theme' (singleton=True)
+[2025-12-13 12:45:50.660] [INFO] Registering ThemeManager...
+[2025-12-13 12:45:50.685] ServiceContainer: Registered 'ThemeManager' (singleton=True)
+[2025-12-13 12:45:50.708] [INFO] Registering Config service...
+[2025-12-13 12:45:50.727] ServiceContainer: Registered 'Config' (singleton=True)
+[2025-12-13 12:45:50.744] [INFO] Registering TaskStore service...
+[2025-12-13 12:45:50.758] ServiceContainer: Registered 'TaskStore' (singleton=True)
+[2025-12-13 12:45:50.774] [INFO] Registering MenuRegistry service...
+[2025-12-13 12:45:50.793] ServiceContainer: Registered 'MenuRegistry' (singleton=True)
+[2025-12-13 12:45:50.820] [INFO] Registering Application service...
+[2025-12-13 12:45:50.841] ServiceContainer: Registered 'Application' (singleton=True)
+[2025-12-13 12:45:50.861] [INFO] Registering CommandService...
+[2025-12-13 12:45:50.877] ServiceContainer: Registered 'CommandService' (singleton=True)
+[2025-12-13 12:45:50.899] [INFO] Registering ChecklistService...
+[2025-12-13 12:45:50.941] ServiceContainer: Registered 'ChecklistService' (singleton=True)
+[2025-12-13 12:45:50.982] [INFO] Registering NoteService...
+[2025-12-13 12:45:51.001] ServiceContainer: Registered 'NoteService' (singleton=True)
+[2025-12-13 12:45:51.024] [INFO] Registering ExcelMappingService...
+[2025-12-13 12:45:51.046] ServiceContainer: Registered 'ExcelMappingService' (singleton=True)
+[2025-12-13 12:45:51.070] [INFO] Registering PreferencesService...
+[2025-12-13 12:45:51.098] ServiceContainer: Registered 'PreferencesService' (singleton=True)
+[2025-12-13 12:45:51.125] [INFO] Registering screen factories...
+[2025-12-13 12:45:51.146] ServiceContainer: Registered 'TaskListScreen' (singleton=False)
+[2025-12-13 12:45:51.167] [INFO] Resolving Application from container...
+[2025-12-13 12:45:51.199] ServiceContainer: Resolving 'Application'...
+[2025-12-13 12:45:51.240] [INFO] Resolving Application...
+[2025-12-13 12:45:51.262] ServiceContainer: Resolving 'Theme'...
+[2025-12-13 12:45:51.290] [INFO] Resolving Theme: Calling Initialize-PmcThemeSystem...
+[2025-12-13 12:45:51.322] [INFO] Theme resolved: #33aaff
+[2025-12-13 12:45:51.341] [INFO] Loading PmcThemeEngine...
+[2025-12-13 12:45:51.501] [DEBUG] Palette [Text] -> #C2EACF (R=194 G=234 B=207)
+[2025-12-13 12:45:51.519] [DEBUG] Palette [Error] -> #BE2914 (R=190 G=41 B=20)
+[2025-12-13 12:45:51.537] [DEBUG] Palette [Warning] -> #7FCA14 (R=127 G=202 B=20)
+[2025-12-13 12:45:51.556] [DEBUG] Palette [Footer] -> #185F30 (R=24 G=95 B=48)
+[2025-12-13 12:45:51.572] [DEBUG] Palette [Cursor] -> #228844 (R=34 G=136 B=68)
+[2025-12-13 12:45:51.586] [DEBUG] Palette [Primary] -> #228844 (R=34 G=136 B=68)
+[2025-12-13 12:45:51.603] [DEBUG] Palette [Highlight] -> #228844 (R=34 G=136 B=68)
+[2025-12-13 12:45:51.621] [DEBUG] Palette [Border] -> #185F30 (R=24 G=95 B=48)
+[2025-12-13 12:45:51.638] [DEBUG] Palette [Success] -> #2CB158 (R=44 G=177 B=88)
+[2025-12-13 12:45:51.655] [DEBUG] Palette [Label] -> #5C8F6D (R=92 G=143 B=109)
+[2025-12-13 12:45:51.669] [DEBUG] Palette [Header] -> #228844 (R=34 G=136 B=68)
+[2025-12-13 12:45:51.689] [DEBUG] Palette [Bright] -> #2CB158 (R=44 G=177 B=88)
+[2025-12-13 12:45:51.704] [DEBUG] Palette [Muted] -> #5C8F6D (R=92 G=143 B=109)
+[2025-12-13 12:45:51.723] [DEBUG] Palette [Status] -> #5C8F6D (R=92 G=143 B=109)
+[2025-12-13 12:45:51.754] [INFO] LoadFromConfig: Loaded Properties with 16 items
+[2025-12-13 12:45:51.779] [INFO] PmcThemeEngine initialized with PMC palette (14 colors)
+[2025-12-13 12:45:51.802] ServiceContainer: Resolved 'Theme' successfully
+[2025-12-13 12:45:51.965] ServiceContainer: Resolving 'ThemeManager'...
+[2025-12-13 12:45:52.008] [INFO] Resolving ThemeManager...
+[2025-12-13 12:45:52.171] ServiceContainer: Resolved 'ThemeManager' successfully
+[2025-12-13 12:45:52.292] ServiceContainer: Resolved 'Application' successfully
+[2025-12-13 12:45:52.316] [INFO] Application resolved and assigned to $global:PmcApp
+[2025-12-13 12:45:52.360] [INFO] Loading menus from manifest...
+[2025-12-13 12:45:52.390] ServiceContainer: Resolving 'MenuRegistry'...
+[2025-12-13 12:45:52.421] [INFO] Resolving MenuRegistry...
+[2025-12-13 12:45:52.458] ServiceContainer: Resolved 'MenuRegistry' successfully
+[2025-12-13 12:45:52.508] MenuRegistry: Loaded manifest with 24 entries
+[2025-12-13 12:45:52.565] ServiceContainer: Registered 'ExcelImportScreen' (singleton=False)
+[2025-12-13 12:45:52.589] MenuRegistry: Registered screen factory 'ExcelImportScreen' in container (viewMode=)
+[2025-12-13 12:45:52.634] MenuRegistry: Registered 'Import from Excel' in 'Projects' menu (hotkey=I order=40)
+[2025-12-13 12:45:52.654] ServiceContainer: Registered 'SettingsScreen' (singleton=False)
+[2025-12-13 12:45:52.675] MenuRegistry: Registered screen factory 'SettingsScreen' in container (viewMode=)
+[2025-12-13 12:45:52.694] MenuRegistry: Registered 'Settings' in 'Options' menu (hotkey=S order=20)
+[2025-12-13 12:45:52.712] ServiceContainer: Registered 'TaskListScreen_Tomorrow' (singleton=False)
+[2025-12-13 12:45:52.729] MenuRegistry: Registered screen factory 'TaskListScreen_Tomorrow' in container (viewMode=tomorrow)
+[2025-12-13 12:45:52.747] MenuRegistry: Registered 'Tomorrow' in 'Tasks' menu (hotkey=T order=15)
+[2025-12-13 12:45:52.767] ServiceContainer: Registered 'TaskListScreen_NextActions' (singleton=False)
+[2025-12-13 12:45:52.790] MenuRegistry: Registered screen factory 'TaskListScreen_NextActions' in container (viewMode=nextactions)
+[2025-12-13 12:45:52.807] MenuRegistry: Registered 'Next Actions' in 'Tasks' menu (hotkey=N order=35)
+[2025-12-13 12:45:52.826] ServiceContainer: Registered 'TaskListScreen_Month' (singleton=False)
+[2025-12-13 12:45:52.842] MenuRegistry: Registered screen factory 'TaskListScreen_Month' in container (viewMode=month)
+[2025-12-13 12:45:52.865] MenuRegistry: Registered 'Month View' in 'Tasks' menu (hotkey=M order=45)
+[2025-12-13 12:45:52.905] ServiceContainer: Registered 'TaskListScreen_Today' (singleton=False)
+[2025-12-13 12:45:52.929] MenuRegistry: Registered screen factory 'TaskListScreen_Today' in container (viewMode=today)
+[2025-12-13 12:45:52.953] MenuRegistry: Registered 'Today' in 'Tasks' menu (hotkey=Y order=10)
+[2025-12-13 12:45:52.972] ServiceContainer: Registered 'CommandLibraryScreen' (singleton=False)
+[2025-12-13 12:45:52.991] MenuRegistry: Registered screen factory 'CommandLibraryScreen' in container (viewMode=)
+[2025-12-13 12:45:53.011] MenuRegistry: Registered 'Command Library' in 'Tools' menu (hotkey=L order=10)
+[2025-12-13 12:45:53.035] ServiceContainer: Registered 'HelpViewScreen' (singleton=False)
+[2025-12-13 12:45:53.053] MenuRegistry: Registered screen factory 'HelpViewScreen' in container (viewMode=)
+[2025-12-13 12:45:53.074] MenuRegistry: Registered 'Help' in 'Help' menu (hotkey=H order=10)
+[2025-12-13 12:45:53.091] ServiceContainer: Registered 'TaskListScreen_NoDate' (singleton=False)
+[2025-12-13 12:45:53.108] MenuRegistry: Registered screen factory 'TaskListScreen_NoDate' in container (viewMode=noduedate)
+[2025-12-13 12:45:53.128] MenuRegistry: Registered 'No Due Date' in 'Tasks' menu (hotkey=D order=40)
+[2025-12-13 12:45:53.156] ServiceContainer: Registered 'NotesMenuScreen' (singleton=False)
+[2025-12-13 12:45:53.203] MenuRegistry: Registered screen factory 'NotesMenuScreen' in container (viewMode=)
+[2025-12-13 12:45:53.237] MenuRegistry: Registered 'Notes' in 'Tools' menu (hotkey=N order=20)
+[2025-12-13 12:45:53.278] ServiceContainer: Registered 'ExcelProfileManagerScreen' (singleton=False)
+[2025-12-13 12:45:53.303] MenuRegistry: Registered screen factory 'ExcelProfileManagerScreen' in container (viewMode=)
+[2025-12-13 12:45:53.340] MenuRegistry: Registered 'Excel Profiles' in 'Projects' menu (hotkey=M order=50)
+[2025-12-13 12:45:53.362] ServiceContainer: Registered 'WeeklyTimeReportScreen' (singleton=False)
+[2025-12-13 12:45:53.378] MenuRegistry: Registered screen factory 'WeeklyTimeReportScreen' in container (viewMode=)
+[2025-12-13 12:45:53.394] MenuRegistry: Registered 'Weekly Report' in 'Time' menu (hotkey=W order=10)
+[2025-12-13 12:45:53.411] ServiceContainer: Registered 'ProjectListScreen' (singleton=False)
+[2025-12-13 12:45:53.429] MenuRegistry: Registered screen factory 'ProjectListScreen' in container (viewMode=)
+[2025-12-13 12:45:53.449] MenuRegistry: Registered 'Project List' in 'Projects' menu (hotkey=L order=10)
+[2025-12-13 12:45:53.466] ServiceContainer: Registered 'TaskListScreen_Default' (singleton=False)
+[2025-12-13 12:45:53.486] MenuRegistry: Registered screen factory 'TaskListScreen_Default' in container (viewMode=)
+[2025-12-13 12:45:53.503] MenuRegistry: Registered 'Task List' in 'Tasks' menu (hotkey=L order=5)
+[2025-12-13 12:45:53.517] ServiceContainer: Registered 'TaskListScreen_Upcoming' (singleton=False)
+[2025-12-13 12:45:53.530] MenuRegistry: Registered screen factory 'TaskListScreen_Upcoming' in container (viewMode=upcoming)
+[2025-12-13 12:45:53.549] MenuRegistry: Registered 'Upcoming' in 'Tasks' menu (hotkey=U order=25)
+[2025-12-13 12:45:53.565] ServiceContainer: Registered 'TaskListScreen_Week' (singleton=False)
+[2025-12-13 12:45:53.585] MenuRegistry: Registered screen factory 'TaskListScreen_Week' in container (viewMode=week)
+[2025-12-13 12:45:53.600] MenuRegistry: Registered 'Week View' in 'Tasks' menu (hotkey=W order=20)
+[2025-12-13 12:45:53.618] ServiceContainer: Registered 'TimeListScreen' (singleton=False)
+[2025-12-13 12:45:53.633] MenuRegistry: Registered screen factory 'TimeListScreen' in container (viewMode=)
+[2025-12-13 12:45:53.649] MenuRegistry: Registered 'Time Tracking' in 'Time' menu (hotkey=T order=5)
+[2025-12-13 12:45:53.668] ServiceContainer: Registered 'ChecklistTemplatesFolderScreen' (singleton=False)
+[2025-12-13 12:45:53.684] MenuRegistry: Registered screen factory 'ChecklistTemplatesFolderScreen' in container (viewMode=)
+[2025-12-13 12:45:53.699] MenuRegistry: Registered 'Checklist Templates' in 'Tools' menu (hotkey=H order=30)
+[2025-12-13 12:45:53.720] ServiceContainer: Registered 'KanbanScreenV2' (singleton=False)
+[2025-12-13 12:45:53.738] MenuRegistry: Registered screen factory 'KanbanScreenV2' in container (viewMode=)
+[2025-12-13 12:45:53.757] MenuRegistry: Registered 'Kanban Board' in 'Tasks' menu (hotkey=K order=55)
+[2025-12-13 12:45:53.775] ServiceContainer: Registered 'ThemeEditorScreen' (singleton=False)
+[2025-12-13 12:45:53.793] MenuRegistry: Registered screen factory 'ThemeEditorScreen' in container (viewMode=)
+[2025-12-13 12:45:53.812] MenuRegistry: Registered 'Theme Editor' in 'Options' menu (hotkey=T order=10)
+[2025-12-13 12:45:53.832] ServiceContainer: Registered 'ChecklistsLauncherScreen' (singleton=False)
+[2025-12-13 12:45:53.852] MenuRegistry: Registered screen factory 'ChecklistsLauncherScreen' in container (viewMode=)
+[2025-12-13 12:45:53.873] MenuRegistry: Registered 'Checklists' in 'Tools' menu (hotkey=C order=25)
+[2025-12-13 12:45:53.891] ServiceContainer: Registered 'TaskListScreen_Overdue' (singleton=False)
+[2025-12-13 12:45:53.909] MenuRegistry: Registered screen factory 'TaskListScreen_Overdue' in container (viewMode=overdue)
+[2025-12-13 12:45:53.927] MenuRegistry: Registered 'Overdue' in 'Tasks' menu (hotkey=O order=30)
+[2025-12-13 12:45:53.945] ServiceContainer: Registered 'TaskListScreen_Agenda' (singleton=False)
+[2025-12-13 12:45:53.962] MenuRegistry: Registered screen factory 'TaskListScreen_Agenda' in container (viewMode=agenda)
+[2025-12-13 12:45:53.978] MenuRegistry: Registered 'Agenda View' in 'Tasks' menu (hotkey=A order=50)
+[2025-12-13 12:45:53.994] ServiceContainer: Registered 'TimeReportScreen' (singleton=False)
+[2025-12-13 12:45:54.013] MenuRegistry: Registered screen factory 'TimeReportScreen' in container (viewMode=)
+[2025-12-13 12:45:54.032] MenuRegistry: Registered 'Time Report' in 'Time' menu (hotkey=R order=20)
+[2025-12-13 12:45:54.048] [INFO] Menus loaded from C:\Users\jhnhe\OneDrive\Documents\GitHub\project-management-console\og_transport\HYBRID\module\Pmc.Strict\consoleui\screens\MenuItems.psd1
+[2025-12-13 12:45:54.066] [INFO] Launching screen: TaskList
+[2025-12-13 12:45:54.085] [INFO] Resolving TaskListScreen from container...
+[2025-12-13 12:45:54.106] ServiceContainer: Resolving 'TaskListScreen'...
+[2025-12-13 12:45:54.152] [INFO] Resolving TaskListScreen...
+[2025-12-13 12:45:54.170] ServiceContainer: Resolving 'TaskStore'...
+[2025-12-13 12:45:54.212] [INFO] Resolving TaskStore...
+[2025-12-13 12:45:54.269] [DEBUG] TaskStore.LoadData: Starting
+[2025-12-13 12:45:54.291] [DEBUG] TaskStore.LoadData: Calling Get-PmcData
+[2025-12-13 12:45:54.644] [DEBUG] TaskStore.LoadData: Get-PmcData returned - tasks=4 projects=2 timelogs=3
+[2025-12-13 12:45:54.676] [DEBUG] TaskStore.LoadData: Loaded 4 tasks
+[2025-12-13 12:45:54.699] [DEBUG] TaskStore.LoadData: Loaded 2 projects
+[2025-12-13 12:45:54.721] [DEBUG] TaskStore.LoadData: First project name='p1' ID1='111'
+[2025-12-13 12:45:54.750] ServiceContainer: Resolved 'TaskStore' successfully
+[2025-12-13 12:45:55.413] MenuRegistry: Loaded manifest with 24 entries
+[2025-12-13 12:45:55.439] MenuRegistry: Registered 'Import from Excel' in 'Projects' menu (hotkey=I order=40)
+[2025-12-13 12:45:55.462] MenuRegistry: Registered 'Settings' in 'Options' menu (hotkey=S order=20)
+[2025-12-13 12:45:55.489] MenuRegistry: Registered 'Tomorrow' in 'Tasks' menu (hotkey=T order=15)
+[2025-12-13 12:45:55.509] MenuRegistry: Registered 'Next Actions' in 'Tasks' menu (hotkey=N order=35)
+[2025-12-13 12:45:55.528] MenuRegistry: Registered 'Month View' in 'Tasks' menu (hotkey=M order=45)
+[2025-12-13 12:45:55.548] MenuRegistry: Registered 'Today' in 'Tasks' menu (hotkey=Y order=10)
+[2025-12-13 12:45:55.568] MenuRegistry: Registered 'Command Library' in 'Tools' menu (hotkey=L order=10)
+[2025-12-13 12:45:55.588] MenuRegistry: Registered 'Help' in 'Help' menu (hotkey=H order=10)
+[2025-12-13 12:45:55.605] MenuRegistry: Registered 'No Due Date' in 'Tasks' menu (hotkey=D order=40)
+[2025-12-13 12:45:55.624] MenuRegistry: Registered 'Notes' in 'Tools' menu (hotkey=N order=20)
+[2025-12-13 12:45:55.641] MenuRegistry: Registered 'Excel Profiles' in 'Projects' menu (hotkey=M order=50)
+[2025-12-13 12:45:55.659] MenuRegistry: Registered 'Weekly Report' in 'Time' menu (hotkey=W order=10)
+[2025-12-13 12:45:55.681] MenuRegistry: Registered 'Project List' in 'Projects' menu (hotkey=L order=10)
+[2025-12-13 12:45:55.700] MenuRegistry: Registered 'Task List' in 'Tasks' menu (hotkey=L order=5)
+[2025-12-13 12:45:55.722] MenuRegistry: Registered 'Upcoming' in 'Tasks' menu (hotkey=U order=25)
+[2025-12-13 12:45:55.743] MenuRegistry: Registered 'Week View' in 'Tasks' menu (hotkey=W order=20)
+[2025-12-13 12:45:55.767] MenuRegistry: Registered 'Time Tracking' in 'Time' menu (hotkey=T order=5)
+[2025-12-13 12:45:55.786] MenuRegistry: Registered 'Checklist Templates' in 'Tools' menu (hotkey=H order=30)
+[2025-12-13 12:45:55.804] MenuRegistry: Registered 'Kanban Board' in 'Tasks' menu (hotkey=K order=55)
+[2025-12-13 12:45:55.831] MenuRegistry: Registered 'Theme Editor' in 'Options' menu (hotkey=T order=10)
+[2025-12-13 12:45:55.851] MenuRegistry: Registered 'Checklists' in 'Tools' menu (hotkey=C order=25)
+[2025-12-13 12:45:55.874] MenuRegistry: Registered 'Overdue' in 'Tasks' menu (hotkey=O order=30)
+[2025-12-13 12:45:55.890] MenuRegistry: Registered 'Agenda View' in 'Tasks' menu (hotkey=A order=50)
+[2025-12-13 12:45:55.912] MenuRegistry: Registered 'Time Report' in 'Time' menu (hotkey=R order=20)
+[2025-12-13 12:45:55.956] _PopulateMenusFromRegistry: Menu 'Time' has 3 items from registry (array)
+[2025-12-13 12:45:55.991] _PopulateMenusFromRegistry: Menu 'Projects' has 3 items from registry (array)
+[2025-12-13 12:45:56.014] _PopulateMenusFromRegistry: Menu 'Tasks' has 11 items from registry (array)
+[2025-12-13 12:45:56.035] _PopulateMenusFromRegistry: Menu 'Tools' has 4 items from registry (array)
+[2025-12-13 12:45:56.055] _PopulateMenusFromRegistry: Menu 'Options' has 2 items from registry (array)
+[2025-12-13 12:45:56.074] _PopulateMenusFromRegistry: Menu 'Help' has 1 items from registry (array)
+[2025-12-13 12:45:56.091] ServiceContainer: Resolved 'TaskListScreen' successfully
+[2025-12-13 12:45:56.110] [INFO] Pushing screen to app...
+[2025-12-13 12:45:56.728] [ERROR] EXCEPTION: Method invocation failed because [System.Threading.Monitor] does not contain a method named 'DoExit'.
+[2025-12-13 12:45:56.748] [ERROR] Stack trace: at FlushQueue, C:\Users\jhnhe\OneDrive\Documents\GitHub\project-management-console\og_transport\HYBRID\lib\SpeedTUI\Core\Logger.ps1: line 259
+at Log, C:\Users\jhnhe\OneDrive\Documents\GitHub\project-management-console\og_transport\HYBRID\lib\SpeedTUI\Core\Logger.ps1: line 164
+at Error, C:\Users\jhnhe\OneDrive\Documents\GitHub\project-management-console\og_transport\HYBRID\lib\SpeedTUI\Core\Logger.ps1: line 219
+at NonNegative, C:\Users\jhnhe\OneDrive\Documents\GitHub\project-management-console\og_transport\HYBRID\lib\SpeedTUI\Core\NullCheck.ps1: line 187
+at SetPosition, C:\Users\jhnhe\OneDrive\Documents\GitHub\project-management-console\og_transport\HYBRID\lib\SpeedTUI\Core\Component.ps1: line 136
+at Resize, C:\Users\jhnhe\OneDrive\Documents\GitHub\project-management-console\og_transport\HYBRID\module\Pmc.Strict\consoleui\base\StandardListScreen.ps1: line 202
+at OnEnter, C:\Users\jhnhe\OneDrive\Documents\GitHub\project-management-console\og_transport\HYBRID\module\Pmc.Strict\consoleui\base\StandardListScreen.ps1: line 596
+at PushScreen, C:\Users\jhnhe\OneDrive\Documents\GitHub\project-management-console\og_transport\HYBRID\module\Pmc.Strict\consoleui\PmcApplication.ps1: line 136
+at Start-PmcTUI, C:\Users\jhnhe\OneDrive\Documents\GitHub\project-management-console\og_transport\HYBRID\module\Pmc.Strict\consoleui\Start-PmcTUI.ps1: line 513
+at <ScriptBlock>, C:\Users\jhnhe\OneDrive\Documents\GitHub\project-management-console\og_transport\HYBRID\module\Pmc.Strict\consoleui\Start-PmcTUI.ps1: line 565
+[2025-12-13 12:45:56.782] [ERROR] Exception details: 
+ErrorRecord                 : Method invocation failed because [System.Threading.Monitor] does not contain a method named 'DoExit'.
+WasThrownFromThrowStatement : False
+TargetSite                  : Void CheckActionPreference(System.Management.Automation.Language.FunctionContext, System.Exception)
+Message                     : Method invocation failed because [System.Threading.Monitor] does not contain a method named 'DoExit'.
+Data                        : {[System.Management.Automation.Interpreter.InterpretedFrameInfo, System.Management.Automation.Interpreter.InterpretedFrameInfo[]]}
+InnerException              : 
+HelpLink                    : 
+Source                      : System.Management.Automation
+HResult                     : -2146233087
+StackTrace                  :    at System.Management.Automation.ExceptionHandlingOps.CheckActionPreference(FunctionContext funcContext, Exception exception)
+                                 at System.Management.Automation.Interpreter.ActionCallInstruction`2.Run(InterpretedFrame frame)
+                                 at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)
+                                 at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)
+
+
+[2025-12-13 12:45:56.833] [INFO] Cleanup - showing cursor and resetting terminal

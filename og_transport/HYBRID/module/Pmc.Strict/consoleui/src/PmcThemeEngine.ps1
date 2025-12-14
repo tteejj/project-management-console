@@ -55,29 +55,19 @@ class PmcThemeEngine {
     [void] LoadFromConfig([hashtable]$themeConfig) {
         if ($themeConfig.ContainsKey('Palette')) {
             $this._palette = $themeConfig.Palette
-<<<<<<< HEAD
             # PERF: Disabled - Add-Content -Path "$($env:TEMP)\pmc-theme-engine-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') LoadFromConfig: Loaded Palette with $($this._palette.Count) colors"
         }
         else {
             # PERF: Disabled - Add-Content -Path "$($env:TEMP)\pmc-theme-engine-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') LoadFromConfig: NO Palette in config"
-=======
->>>>>>> b5bbd6c7f294581f60139c5de10bb9af977c6242
         }
 
         if ($themeConfig.ContainsKey('Properties')) {
             $this._properties = $themeConfig.Properties
-<<<<<<< HEAD
             # DEBUG ENABLED
             Write-PmcTuiLog "LoadFromConfig: Loaded Properties with $($this._properties.Count) items" "INFO"
-            $propKeys = ($this._properties.Keys | Sort-Object) -join ', '
-            # PERF: Disabled - Add-Content -Path "$($env:TEMP)\pmc-theme-engine-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') LoadFromConfig: Property keys: [$propKeys]"
         }
         else {
             # Default properties if not defined
-            # PERF: Disabled - Add-Content -Path "$($env:TEMP)\pmc-theme-engine-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') LoadFromConfig: NO Properties in config, initializing defaults"
-=======
-        } else {
->>>>>>> b5bbd6c7f294581f60139c5de10bb9af977c6242
             $this._InitializeDefaultProperties()
         }
 
@@ -86,21 +76,12 @@ class PmcThemeEngine {
 
     # Get background ANSI - handles solid or gradient
     [string] GetBackgroundAnsi([string]$propertyName, [int]$width, [int]$charIndex) {
-<<<<<<< HEAD
-        # CRITICAL DEBUG: Log property lookup
-        $debugMsg = "GetBackgroundAnsi: propertyName='$propertyName' _properties.Count=$($this._properties.Count) ContainsKey=$($this._properties.ContainsKey($propertyName))"
-        # DEBUG ENABLED
         if (-not $this._properties.ContainsKey($propertyName)) {
-            Write-PmcTuiLog "GetBackgroundAnsi: MISSING '$propertyName'. Keys: $(($this._properties.Keys | Select-Object -First 5) -join ',')" "WARN"
+            Write-PmcTuiLog "GetBackgroundAnsi: MISSING '$propertyName'" "WARN"
         }
 
         if ($this._properties.Count -eq 0) {
-            # FAIL FAST: Do not load defaults
-            # $this._InitializeDefaultProperties()
-=======
-        if ($this._properties.Count -eq 0) {
             $this._InitializeDefaultProperties()
->>>>>>> b5bbd6c7f294581f60139c5de10bb9af977c6242
         }
 
         if (-not $this._properties.ContainsKey($propertyName)) {
@@ -126,20 +107,12 @@ class PmcThemeEngine {
     # Get foreground ANSI - usually solid
     [string] GetForegroundAnsi([string]$propertyName) {
         if ($this._properties.Count -eq 0) {
-<<<<<<< HEAD
-            # FAIL FAST
-            # $this._InitializeDefaultProperties()
+            $this._InitializeDefaultProperties()
         }
 
         if (-not $this._properties.ContainsKey($propertyName)) {
             # DEBUG: Log missing property
             Write-PmcTuiLog "MISSING THEME PROPERTY: $propertyName" "ERROR"
-=======
-            $this._InitializeDefaultProperties()
-        }
-
-        if (-not $this._properties.ContainsKey($propertyName)) {
->>>>>>> b5bbd6c7f294581f60139c5de10bb9af977c6242
             return ''
         }
 
@@ -147,22 +120,17 @@ class PmcThemeEngine {
 
         if ($prop.Type -eq 'Solid') {
             $ansi = $this._GetSolidAnsiCached($prop.Color, $false)
-            # DEBUG
-            if ([string]::IsNullOrEmpty($ansi)) {
-                # Write-Host "THEME SOLID FAILED: $propertyName -> $($prop.Color)" -ForegroundColor Red
-            }
             return $ansi
         }
 
         return ''
     }
 
-<<<<<<< HEAD
-    # Get integer color value for HybridRenderEngine
+    # Get integer color value (Generic - for Solid colors)
     # Returns packed RGB int (0x00RRGGBB)
     [int] GetThemeColorInt([string]$propertyName) {
         if (-not $this._properties.ContainsKey($propertyName)) {
-            Write-PmcTuiLog "GetThemeColorInt: Property '$propertyName' not found" "ERROR"
+            # Write-PmcTuiLog "GetThemeColorInt: Property '$propertyName' not found" "ERROR"
             return 0
         }
 
@@ -181,21 +149,9 @@ class PmcThemeEngine {
 
         if ([string]::IsNullOrEmpty($hex)) { return 0 }
 
-        $hex = $hex.TrimStart('#')
-        if ($hex.Length -ne 6) { return 0 }
+        return $this._ColorToInt($hex)
+    }
 
-        try {
-            $r = [Convert]::ToInt32($hex.Substring(0, 2), 16)
-            $g = [Convert]::ToInt32($hex.Substring(2, 2), 16)
-            $b = [Convert]::ToInt32($hex.Substring(4, 2), 16)
-            
-            # Pack RGB: (R << 16) | (G << 8) | B
-            return ($r -shl 16) -bor ($g -shl 8) -bor $b
-        }
-        catch {
-            return 0
-        }
-=======
     # === INT API (For Hybrid Engine) ===
 
     # Get foreground Packed Int - usually solid
@@ -213,8 +169,9 @@ class PmcThemeEngine {
         if ($prop.Type -eq 'Solid') {
             return $this._GetSolidIntCached($prop.Color)
         }
-
-        return -1
+        
+        # Fallback for gradients acting as foregrounds (use generic)
+        return $this.GetThemeColorInt($propertyName)
     }
 
     # Get background Packed Int
@@ -242,7 +199,6 @@ class PmcThemeEngine {
         }
 
         return -1
->>>>>>> b5bbd6c7f294581f60139c5de10bb9af977c6242
     }
 
     # Cached solid color ANSI
@@ -304,32 +260,7 @@ class PmcThemeEngine {
 
         for ($i = 0; $i -lt $length; $i++) {
             $ratio = $(if ($length -eq 1) { 0.0 } else { $i / ($length - 1) })
-<<<<<<< HEAD
-
-            # Find surrounding stops
-            $beforeStop = $stops[0]
-            $afterStop = $stops[-1]
-
-            for ($s = 0; $s -lt $stops.Count - 1; $s++) {
-                if ($ratio -ge $stops[$s].Position -and $ratio -le $stops[$s + 1].Position) {
-                    $beforeStop = $stops[$s]
-                    $afterStop = $stops[$s + 1]
-                    break
-                }
-            }
-
-            # Local interpolation between the two stops
-            $localRatio = $(if ($afterStop.Position -eq $beforeStop.Position) {
-                    0.0
-                }
-                else {
-                    ($ratio - $beforeStop.Position) / ($afterStop.Position - $beforeStop.Position)
-                })
-
-            $color = $this._InterpolateColor($beforeStop.Color, $afterStop.Color, $localRatio)
-=======
             $color = $this._GetColorAtRatio($stops, $ratio)
->>>>>>> b5bbd6c7f294581f60139c5de10bb9af977c6242
             $result.Add($this._ColorToAnsi($color, $background))
         }
 
@@ -365,10 +296,11 @@ class PmcThemeEngine {
 
         # Local interpolation between the two stops
         $localRatio = $(if ($afterStop.Position -eq $beforeStop.Position) {
-            0.0
-        } else {
-            ($ratio - $beforeStop.Position) / ($afterStop.Position - $beforeStop.Position)
-        })
+                0.0
+            }
+            else {
+                ($ratio - $beforeStop.Position) / ($afterStop.Position - $beforeStop.Position)
+            })
 
         return $this._InterpolateColor($beforeStop.Color, $afterStop.Color, $localRatio)
     }
@@ -432,7 +364,8 @@ class PmcThemeEngine {
 
             # Pack RGB: (R << 16) | (G << 8) | B
             return ($r -shl 16) -bor ($g -shl 8) -bor $b
-        } catch {
+        }
+        catch {
             return -1
         }
     }

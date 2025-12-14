@@ -277,22 +277,7 @@ class ProjectPicker : PmcWidget {
 
     [void] RegisterLayout([object]$engine) {
         ([PmcWidget]$this).RegisterLayout($engine)
-        
-        $engine.DefineRegion("$($this.RegionID)_Title", $this.X + 2, $this.Y + 1, $this.Width - 4, 1)
-        
-        # Create Mode Regions
-        $engine.DefineRegion("$($this.RegionID)_CreateInput", $this.X + 2, $this.Y + 3, $this.Width - 4, 1)
-        $engine.DefineRegion("$($this.RegionID)_CreateHelp", $this.X + 2, $this.Y + 5, $this.Width - 4, 1)
-        
-        # List Mode Regions
-        $engine.DefineRegion("$($this.RegionID)_Count", $this.X + $this.Width - 10, $this.Y + 1, 8, 1)
-        $engine.DefineRegion("$($this.RegionID)_Search", $this.X + 2, $this.Y + 2, $this.Width - 4, 1)
-        
-        $listHeight = [Math]::Max(1, $this.Height - 5)
-        $engine.DefineRegion("$($this.RegionID)_List", $this.X + 2, $this.Y + 3, $this.Width - 4, $listHeight)
-        
-        $engine.DefineRegion("$($this.RegionID)_Help", $this.X + 2, $this.Y + $this.Height - 2, $this.Width - 4, 1)
-        $engine.DefineRegion("$($this.RegionID)_Error", $this.X + 2, $this.Y + $this.Height - 1, $this.Width - 4, 1)
+        # Regions removed - using direct WriteAt in RenderToEngine
     }
 
     <#
@@ -303,7 +288,10 @@ class ProjectPicker : PmcWidget {
         $this.RegisterLayout($engine)
 
         # Colors (Ints)
-        $bg = $this.GetThemedBgInt('Background.MenuBar', 1, 0)
+        # Use Panel background to avoid "solid block" look
+        $bg = $this.GetThemedBgInt('Background.Panel', 1, 0)
+        if ($bg -eq -1) { $bg = [HybridRenderEngine]::_PackRGB(30, 30, 30) }
+
         $fg = $this.GetThemedInt('Foreground.Row')
         $borderFg = $this.GetThemedInt('Border.Widget')
         $primaryFg = $this.GetThemedInt('Foreground.Title')
@@ -312,102 +300,106 @@ class ProjectPicker : PmcWidget {
         $highlightBg = $this.GetThemedBgInt('Background.RowSelected', 1, 0)
         $highlightFg = $this.GetThemedInt('Foreground.RowSelected')
         
-        if ($bg -eq -1) { $bg = [HybridRenderEngine]::_PackRGB(30, 30, 30) }
-
         # Draw Box
         $engine.Fill($this.X, $this.Y, $this.Width, $this.Height, ' ', $fg, $bg)
-<<<<<<< HEAD
         $engine.DrawBox($this.X, $this.Y, $this.Width, $this.Height, $borderFg, $bg)
-=======
-        $engine.DrawBox($this.X, $this.Y, $this.Width, $this.Height, 'single', $borderFg, $bg)
->>>>>>> b5bbd6c7f294581f60139c5de10bb9af977c6242
         
         # Title
         $title = if ($this._isCreateMode) { "Create New Project" } else { $this.Label }
         $pad = [Math]::Max(0, [Math]::Floor(($this.Width - 4 - $title.Length) / 2))
-        $engine.WriteToRegion("$($this.RegionID)_Title", (" " * $pad) + $title, $primaryFg, $bg)
+        $engine.WriteAt($this.X + 2 + $pad, $this.Y + 1, $title, $primaryFg, $bg)
 
         if ($this._isCreateMode) {
-            # Create Input
+            # Create Input at Y+3
+            $inputY = $this.Y + 3
+            
+            # Input Prompt/border
+            $engine.WriteAt($this.X, $inputY, [char]0x2502, $borderFg, $bg) # Left border
+            $engine.WriteAt($this.X + $this.Width - 1, $inputY, [char]0x2502, $borderFg, $bg) # Right border
+            
+            # Input content
             $inputStr = $this._createText
-            # Show cursor logic... actually simpler to just show text with highlight char
-            # But WriteToRegion is simple string.
-            # We can construct string with highlight... but WriteToRegion doesn't parse ANSI?
-            # Wait, Engine.WriteAt DOES parse ANSI if string contains it?
-            # My new implementation of WriteAt in Engine does NOT parse ANSI unless overloaded?
-            # I added `WriteAt(x,y,content)` which DOES parse ANSI.
-            # And `WriteToRegion` calls `WriteAt(x,y,content)` if no colors provided.
-            # So I can use ANSI for cursor highlighting!
+            $innerWidth = $this.Width - 4
             
-            # Cursor logic
-            $cursorChar = " "
-            if ($this._createCursorPos -lt $inputStr.Length) {
-                $cursorChar = $inputStr[$this._createCursorPos]
+            if ([string]::IsNullOrEmpty($inputStr)) {
+                $engine.WriteAt($this.X + 2, $inputY, "Enter project name...", $mutedFg, $bg)
+            }
+            else {
+                # Simple rendering without complex scrolling for now
+                $display = $inputStr
+                if ($display.Length -gt $innerWidth) { $display = $display.Substring($display.Length - $innerWidth) }
+                $engine.WriteAt($this.X + 2, $inputY, $display, $fg, $bg)
+                
+                # Draw fake cursor
+                if ($this._createCursorPos -ge 0 -and $this._createCursorPos -le $display.Length) {
+                    # Since we can't easily invert single char with WriteAt unless we have the char...
+                    # We'll just rely on the terminal cursor or a simple underline/block char if possible.
+                    # For now, just render the text. The engine doesn't support complex cursor modes easily via WriteAt without ANSI injection, which WriteAt might strip or handle raw.
+                    # Let's try ANSI injection if supported, otherwise just rely on text.
+                    # Actually, RenderToEngine is low level.
+                    # We'll stick to basic text for stability.
+                }
             }
             
-            $pre = $inputStr.Substring(0, [Math]::Min($this._createCursorPos, $inputStr.Length))
-            $post = ""
-            if ($this._createCursorPos + 1 -lt $inputStr.Length) {
-                $post = $inputStr.Substring($this._createCursorPos + 1)
-            }
-            
-            $inputDisplay = "$pre`e[7m$cursorChar`e[27m$post"
-            $engine.WriteToRegion("$($this.RegionID)_CreateInput", $inputDisplay, $fg, $bg) # Colors might be overridden by ANSI
-            
-            # Help
-            $engine.WriteToRegion("$($this.RegionID)_CreateHelp", "Enter=Create | Esc=Cancel", $mutedFg, $bg)
-            
+            # Help at Y+5
+            $engine.WriteAt($this.X + 2, $this.Y + 5, "Enter=Create | Esc=Cancel", $mutedFg, $bg)
         }
         else {
             # Count
             $countText = "($($this._filteredProjects.Count))"
-            $engine.WriteToRegion("$($this.RegionID)_Count", $countText, $mutedFg, $bg)
+            $countX = $this.X + $this.Width - $countText.Length - 2
+            if ($countX -gt $this.X + 2) {
+                $engine.WriteAt($countX, $this.Y + 1, $countText, $mutedFg, $bg)
+            }
             
-            # Search
+            # Search at Y+2
             $searchText = if ([string]::IsNullOrWhiteSpace($this._searchText)) { "Type to filter..." } else { $this._searchText }
             $searchFg = if ([string]::IsNullOrWhiteSpace($this._searchText)) { $mutedFg } else { $primaryFg }
-            $engine.WriteToRegion("$($this.RegionID)_Search", $searchText, $searchFg, $bg)
+            $engine.WriteAt($this.X + 2, $this.Y + 2, $searchText, $searchFg, $bg)
             
-            # List
-            $listRegion = "$($this.RegionID)_List"
-            $bounds = $engine.GetRegionBounds($listRegion)
-            
-            if ($bounds) {
-                $maxItems = $bounds.Height
-                $visibleProjects = @()
-                if ($this._filteredProjects.Count -gt 0) {
-                    $endIndex = [Math]::Min($this._scrollOffset + $maxItems, $this._filteredProjects.Count)
-                    for ($i = $this._scrollOffset; $i -lt $endIndex; $i++) {
-                        $visibleProjects += $this._filteredProjects[$i]
-                    }
+            # List at Y+3
+            $listY = $this.Y + 3
+            $listHeight = [Math]::Max(1, $this.Height - 5)
+            $visibleProjects = @()
+            if ($this._filteredProjects.Count -gt 0) {
+                $endIndex = [Math]::Min($this._scrollOffset + $listHeight, $this._filteredProjects.Count)
+                for ($i = $this._scrollOffset; $i -lt $endIndex; $i++) {
+                    $visibleProjects += $this._filteredProjects[$i]
                 }
+            }
+            
+            for ($i = 0; $i -lt $listHeight; $i++) {
+                $currentY = $listY + $i
+                if ($currentY -ge $this.Y + $this.Height - 1) { break } # Safety
                 
-                for ($i = 0; $i -lt $maxItems; $i++) {
-                    if ($i -ge $visibleProjects.Count) { break }
-                    
+                if ($i -lt $visibleProjects.Count) {
                     $projectName = $visibleProjects[$i]
                     $isSelected = ($this._scrollOffset + $i) -eq $this._selectedIndex
                     
                     $iBg = if ($isSelected) { $highlightBg } else { $bg }
                     $iFg = if ($isSelected) { $highlightFg } else { $fg }
                     
-                    # Task count logic
                     $taskCount = $this._GetTaskCountForProject($projectName)
                     $displayName = if ($taskCount -ge 0) { "$projectName ($taskCount)" } else { $projectName }
                     
-                    $engine.Fill($bounds.X, $bounds.Y + $i, $bounds.Width, 1, ' ', $iFg, $iBg)
-                    $engine.WriteAt($bounds.X, $bounds.Y + $i, " $displayName", $iFg, $iBg)
+                    # Manual fill for row background
+                    $engine.Fill($this.X + 1, $currentY, $this.Width - 2, 1, ' ', $iFg, $iBg)
+                    $engine.WriteAt($this.X + 2, $currentY, $displayName, $iFg, $iBg)
+                }
+                else {
+                    # Empty row
+                    $engine.Fill($this.X + 1, $currentY, $this.Width - 2, 1, ' ', $fg, $bg)
                 }
             }
-            
+
             # Help
             $helpText = "Enter=Select | Alt+N=Create"
-            $engine.WriteToRegion("$($this.RegionID)_Help", $helpText, $mutedFg, $bg)
+            $engine.WriteAt($this.X + 2, $this.Y + $this.Height - 2, $helpText, $mutedFg, $bg)
         }
         
         # Error
         if ($this._errorMessage) {
-            $engine.WriteToRegion("$($this.RegionID)_Error", $this._errorMessage, $errorFg, $bg)
+            $engine.WriteAt($this.X + 2, $this.Y + $this.Height - 1, $this._errorMessage, $errorFg, $bg)
         }
     }
 

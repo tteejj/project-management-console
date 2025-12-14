@@ -421,7 +421,7 @@ function Start-PmcTUI {
                 Write-PmcTuiLog "Resolving MenuRegistry..." "INFO"
                 # Ensure theme is initialized first
                 $null = $container.Resolve('Theme')
-                return [MenuRegistry]::new()
+                return [MenuRegistry]::GetInstance()
             }, $true)
 
         # 5. Application (depends on Theme)
@@ -510,8 +510,16 @@ function Start-PmcTUI {
                 Write-PmcTuiLog "Resolving TaskListScreen from container..." "INFO"
                 $screen = $global:PmcContainer.Resolve('TaskListScreen')
                 Write-PmcTuiLog "Pushing screen to app..." "INFO"
-                $global:PmcApp.PushScreen($screen)
-                Write-PmcTuiLog "Screen pushed successfully" "INFO"
+                try {
+                    $global:PmcApp.PushScreen($screen)
+                    Write-PmcTuiLog "Screen pushed successfully" "INFO"
+                }
+                catch {
+                    Add-Content -Path "C:\Users\jhnhe\.gemini\antigravity\brain\2e850957-f348-4b45-8f9f-2a790c833a3d\debug.txt" -Value "[$(Get-Date)] FATAL ERROR IN PUSHSCREEN: $_"
+                    Add-Content -Path "C:\Users\jhnhe\.gemini\antigravity\brain\2e850957-f348-4b45-8f9f-2a790c833a3d\debug.txt" -Value "[$(Get-Date)] Stack Trace: $($_.ScriptStackTrace)"
+                    throw
+                }
+
             }
             'BlockedTasks' {
                 Write-PmcTuiLog "Creating BlockedTasksScreen with container..." "INFO"
@@ -561,6 +569,8 @@ function Start-PmcTUI {
 }
 
 # Allow direct execution
-if ($MyInvocation.InvocationName -match 'Start-PmcTUI') {
+# Allow direct execution
+Write-Host "DEBUG: InvocationName='$($MyInvocation.InvocationName)' MyCommand='$($MyInvocation.MyCommand.Name)'"
+if ($MyInvocation.InvocationName -ne '.' -and $MyInvocation.InvocationName -ne '&') {
     Start-PmcTUI @args
 }

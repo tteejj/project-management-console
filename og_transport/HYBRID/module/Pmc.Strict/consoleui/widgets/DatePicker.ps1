@@ -146,18 +146,7 @@ class DatePicker : PmcWidget {
 
     [void] RegisterLayout([object]$engine) {
         ([PmcWidget]$this).RegisterLayout($engine)
-        
-        $engine.DefineRegion("$($this.RegionID)_Title", $this.X + 2, $this.Y + 1, $this.Width - 4, 1)
-        $engine.DefineRegion("$($this.RegionID)_Status", $this.X + 2, $this.Y + 2, $this.Width - 4, 1)
-        
-        $engine.DefineRegion("$($this.RegionID)_MonthHeader", $this.X + 2, $this.Y + 4, $this.Width - 4, 1)
-        $engine.DefineRegion("$($this.RegionID)_DayNames", $this.X + 2, $this.Y + 5, $this.Width - 4, 1)
-        
-        # Calendar Grid (6 rows)
-        $engine.DefineRegion("$($this.RegionID)_Grid", $this.X + 2, $this.Y + 6, $this.Width - 4, 6)
-        
-        $engine.DefineRegion("$($this.RegionID)_Help", $this.X + 2, $this.Y + $this.Height - 3, $this.Width - 4, 1)
-        $engine.DefineRegion("$($this.RegionID)_Error", $this.X + 2, $this.Y + $this.Height - 2, $this.Width - 4, 1)
+        # Regions removed - using direct WriteAt in RenderToEngine for reliability
     }
 
     <#
@@ -168,8 +157,10 @@ class DatePicker : PmcWidget {
         $this.RegisterLayout($engine)
 
         # Colors (Ints)
-        $bg = $this.GetThemedBgInt('Background.MenuBar', 1, 0)
+        # Use Panel background (usually dark/black) instead of MenuBar (often colored) to avoid "giant block" look
+        $bg = $this.GetThemedBgInt('Background.Panel', 1, 0)
         if ($bg -eq -1) { $bg = [HybridRenderEngine]::_PackRGB(30, 30, 30) }
+        
         $fg = $this.GetThemedInt('Foreground.Row')
         $borderFg = $this.GetThemedInt('Border.Widget')
         $primaryFg = $this.GetThemedInt('Foreground.Title')
@@ -179,32 +170,28 @@ class DatePicker : PmcWidget {
         $highlightBg = $this.GetThemedBgInt('Background.RowSelected', 1, 0)
         $highlightFg = $this.GetThemedInt('Foreground.RowSelected')
 
-        # Draw Box
+        # Draw Box (Panel Background)
         $engine.Fill($this.X, $this.Y, $this.Width, $this.Height, ' ', $fg, $bg)
-<<<<<<< HEAD
         $engine.DrawBox($this.X, $this.Y, $this.Width, $this.Height, $borderFg, $bg)
-=======
-        $engine.DrawBox($this.X, $this.Y, $this.Width, $this.Height, 'single', $borderFg, $bg)
->>>>>>> b5bbd6c7f294581f60139c5de10bb9af977c6242
         
         # Title
         $title = "Select Date"
         $pad = [Math]::Max(0, [Math]::Floor(($this.Width - 4 - $title.Length) / 2))
-        $engine.WriteToRegion("$($this.RegionID)_Title", (" " * $pad) + $title, $primaryFg, $bg)
+        $engine.WriteAt($this.X + 2 + $pad, $this.Y + 1, $title, $primaryFg, $bg)
         
         # Status
-        $currentValue = "Current: " + $this._selectedDate.ToString("yyyy-MM-dd (ddd)")
-        $engine.WriteToRegion("$($this.RegionID)_Status", $currentValue, $fg, $bg)
+        $currentValue = "Current: " + $this._selectedDate.ToString("yyyy-MM-dd ddd")
+        $engine.WriteAt($this.X + 2, $this.Y + 2, $currentValue, $fg, $bg)
         
         # Calendar Header
         $monthYear = $this._calendarMonth.ToString("MMMM yyyy")
         $pad = [Math]::Max(0, [Math]::Floor(($this.Width - 4 - $monthYear.Length) / 2))
-        $engine.WriteToRegion("$($this.RegionID)_MonthHeader", (" " * $pad) + $monthYear, $primaryFg, $bg)
+        $engine.WriteAt($this.X + 2 + $pad, $this.Y + 4, $monthYear, $primaryFg, $bg)
         
         # Day Names
         $dayNames = "Su Mo Tu We Th Fr Sa"
         $pad = [Math]::Max(0, [Math]::Floor(($this.Width - 4 - $dayNames.Length) / 2))
-        $engine.WriteToRegion("$($this.RegionID)_DayNames", (" " * $pad) + $dayNames, $primaryFg, $bg)
+        $engine.WriteAt($this.X + 2 + $pad, $this.Y + 5, $dayNames, $primaryFg, $bg)
         
         # Grid
         $firstDay = [DateTime]::new($this._calendarMonth.Year, $this._calendarMonth.Month, 1)
@@ -212,52 +199,49 @@ class DatePicker : PmcWidget {
         $startDayOfWeek = [int]$firstDay.DayOfWeek
         $today = [DateTime]::Today
         
-        $gridBounds = $engine.GetRegionBounds("$($this.RegionID)_Grid")
-        if ($gridBounds) {
-            # Manually calculate grid positions since it's a specialized layout
-            for ($week = 0; $week -lt 6; $week++) {
-                $rowY = $gridBounds.Y + $week
-                # Calculate X offset to center the grid (approx 20 chars wide: "Su Mo Tu We Th Fr Sa")
-                # $this.Width is 35. 20 chars wide. Padding ~7 chars.
-                # Or just align with headers? Day Names string is 20 chars.
-                # Let's align left to X+4 (padding from box)
-                $startX = $gridBounds.X + 2 
+        # Manually calculate grid positions since it's a specialized layout
+        for ($week = 0; $week -lt 6; $week++) {
+            $rowY = $this.Y + 6 + $week
+            # Calculate X offset to center the grid (approx 20 chars wide: "Su Mo Tu We Th Fr Sa")
+            # Day Names string is 20 chars wide.
+            # Align center similar to day names pad
+            $padGrid = [Math]::Max(0, [Math]::Floor(($this.Width - 4 - 20) / 2))
+            $startX = $this.X + 2 + $padGrid
+            
+            for ($dow = 0; $dow -lt 7; $dow++) {
+                $dayNum = ($week * 7 + $dow) - $startDayOfWeek + 1
+                $cellX = $startX + ($dow * 3)
                 
-                for ($dow = 0; $dow -lt 7; $dow++) {
-                    $dayNum = ($week * 7 + $dow) - $startDayOfWeek + 1
-                    $cellX = $startX + ($dow * 3)
+                if ($dayNum -ge 1 -and $dayNum -le $daysInMonth) {
+                    $thisDate = [DateTime]::new($this._calendarMonth.Year, $this._calendarMonth.Month, $dayNum)
+                    $dayStr = $dayNum.ToString().PadLeft(2)
                     
-                    if ($dayNum -ge 1 -and $dayNum -le $daysInMonth) {
-                        $thisDate = [DateTime]::new($this._calendarMonth.Year, $this._calendarMonth.Month, $dayNum)
-                        $dayStr = $dayNum.ToString().PadLeft(2)
-                        
-                        $isSelected = ($thisDate.Date -eq $this._selectedDate.Date)
-                        $isToday = ($thisDate.Date -eq $today)
-                        
-                        $cBg = $bg
-                        $cFg = $fg
-                        
-                        if ($isSelected) {
-                            $cBg = $highlightBg
-                            $cFg = $highlightFg
-                        }
-                        elseif ($isToday) {
-                            $cFg = $primaryFg
-                        }
-                        
-                        $engine.WriteAt($cellX, $rowY, $dayStr, $cFg, $cBg)
+                    $isSelected = ($thisDate.Date -eq $this._selectedDate.Date)
+                    $isToday = ($thisDate.Date -eq $today)
+                    
+                    $cBg = $bg
+                    $cFg = $fg
+                    
+                    if ($isSelected) {
+                        $cBg = $highlightBg
+                        $cFg = $highlightFg
                     }
+                    elseif ($isToday) {
+                        $cFg = $primaryFg
+                    }
+                    
+                    $engine.WriteAt($cellX, $rowY, $dayStr, $cFg, $cBg)
                 }
             }
         }
         
         # Help
-        $helpText = "Arrows: Navigate | Enter: OK"
-        $engine.WriteToRegion("$($this.RegionID)_Help", $helpText, $mutedFg, $bg)
+        $helpText = "Arrows: Navigate | Enter: Select"
+        $engine.WriteAt($this.X + 2, $this.Y + $this.Height - 3, $helpText, $mutedFg, $bg)
         
         # Error
         if ($this._errorMessage) {
-            $engine.WriteToRegion("$($this.RegionID)_Error", $this._errorMessage, $errorFg, $bg)
+            $engine.WriteAt($this.X + 2, $this.Y + $this.Height - 2, $this._errorMessage, $errorFg, $bg)
         }
     }
 

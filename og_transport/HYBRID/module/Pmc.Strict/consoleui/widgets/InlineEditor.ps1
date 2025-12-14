@@ -588,94 +588,15 @@ class InlineEditor : PmcWidget {
         $this._ProcessDebouncedValidation()
 
         # Use Z-layer for popup effect (Editor is always on top)
+        # CRITICAL FIX: Base panels render at Z=20. We must be higher.
+        # using 100 (Dropdown/Overlay level) ensures we are visible.
         if ($engine.PSObject.Methods['BeginLayer']) {
-            $engine.BeginLayer(10)
+            $engine.BeginLayer(100)
         }
 
-<<<<<<< HEAD
-        # Handle Expanded Widget Mode (DatePicker, ProjectPicker, etc.)
-        if ($this._showFieldWidgets -and -not [string]::IsNullOrWhiteSpace($this._expandedFieldName)) {
-            $field = $this._fields | Where-Object { $_.Name -eq $this._expandedFieldName } | Select-Object -First 1
-            if ($null -ne $field) {
-                # Find the correct widget
-                $widget = $null
-                # Check for DatePicker in date mode
-                if ($field.Type -eq 'date' -and $this._datePickerMode -and $this._datePickerWidgets.ContainsKey($field.Name)) {
-                    $widget = $this._datePickerWidgets[$field.Name]
-                }
-                elseif ($this._fieldWidgets.ContainsKey($field.Name)) {
-=======
-        # LAYOUT SYSTEM: Use target region if available (Perfect Alignment Mode)
-        if (-not [string]::IsNullOrEmpty($this.TargetRegionID) -and $this.LayoutMode -eq 'horizontal') {
-            # Get grid regions from engine
-            $colRegions = $engine.GetChildRegions($this.TargetRegionID)
-            
-            # Colors
-            $focusBg = $this.GetThemedBgInt('Background.FieldFocused', 10, 0)
-            $focusFg = $this.GetThemedInt('Foreground.FieldFocused')
-            $normalBg = $this.GetThemedBgInt('Background.Field', 10, 0)
-            $normalFg = $this.GetThemedInt('Foreground.Field')
-            
-            # Fallbacks
-            if ($focusBg -eq -1) { $focusBg = [HybridRenderEngine]::_PackRGB(0, 100, 180) } # Blue
-            if ($focusFg -eq -1) { $focusFg = [HybridRenderEngine]::_PackRGB(255, 255, 255) }
-            if ($normalBg -eq -1) { $normalBg = -1 } # Default
-            if ($normalFg -eq -1) { $normalFg = [HybridRenderEngine]::_PackRGB(200, 200, 200) }
 
-            # Render fields into regions
-            for ($i = 0; $i -lt [Math]::Min($this._fields.Count, $colRegions.Count); $i++) {
-                $field = $this._fields[$i]
-                $regionId = $colRegions[$i]
-                $isFocused = ($i -eq $this._currentFieldIndex)
-                
-                $fg = $(if ($isFocused) { $focusFg } else { $normalFg })
-                $bg = $(if ($isFocused) { $focusBg } else { $normalBg })
-                
-                # Get display value
-                $val = $this._GetFieldValuePreview($field)
-                
-                # If TextInput widget active, use its value (shows cursor logic if we implemented cursor in WriteToRegion)
-                # For now, just show text value. Cursor implementation would require region-relative cursor support.
-                if ($isFocused -and $this._fieldWidgets.ContainsKey($field.Name)) {
->>>>>>> b5bbd6c7f294581f60139c5de10bb9af977c6242
-                    $widget = $this._fieldWidgets[$field.Name]
-                }
 
-                if ($null -ne $widget) {
-                    # Update widget position to match editor position
-                    # This ensures popup widgets render at the correct location even if editor moved
-                    # We position it slightly indented
-                    $widget.X = $this.X + 2
-                    $widget.Y = $this.Y
-                    # Ensure widget width fits
-                    if ($widget.PSObject.Properties['Width']) {
-                        $widget.Width = [Math]::Max(20, $this.Width - 4)
-                    }
-
-                    # Render the widget directly to engine
-                    if ($widget.PSObject.Methods['RenderToEngine']) {
-                        $widget.RenderToEngine($engine)
-                    }
-                    else {
-                        # Fallback for widgets without RenderToEngine (though user said they have it)
-                        # We use WriteAt manually if strictly needed, or just log error
-                        # Write-PmcTuiLog "InlineEditor: Widget $($widget.GetType().Name) missing RenderToEngine" "ERROR"
-                        
-                        # Last resort: Legacy render call + WriteAt
-                        $out = $widget.Render()
-                        if ($out) { $engine.WriteAt($widget.X, $widget.Y, $out) }
-                    }
-                    
-                    if ($engine.PSObject.Methods['EndLayer']) {
-                        $engine.EndLayer()
-                    }
-                    return
-                }
-            }
-        }
-
-        # LAYOUT SYSTEM: Use target region if available (Perfect Alignment Mode)
-        # Standard native rendering logic (replaces _RenderHorizontal)
+        # LAYOUT SYSTEM: Render fields horizontally
         
         $currentX = $this.X
         
@@ -704,22 +625,13 @@ class InlineEditor : PmcWidget {
                 if ($widget.GetType().Name -eq 'TextInput') {
                     $text = $widget.GetText()
                     
-                    # Ensure widget width logic from _RenderHorizontal is matched for scrolling
+                    # Ensure widget width logic
                     $widget.Width = $fieldWidth + 4
-                    # Recalc scroll logic (simplified here, TextInput usually handles this if we call it)
-                    # But since we are drawing manually, we need visible text.
-                    # We can reuse the logic from _RenderHorizontal or trust TextInput.GetVisibleText()?
-                    # TextInput doesn't expose GetVisibleText publically usually.
-                    
-                    # We will implement simplified visible window logic here or rely on widget being rendered?
-                    # Ideally we invoke $widget.RenderToEngine()!
-                    # BUT TextInput.RenderToEngine draws a Box. We want inline text.
-                    # So manual drawing is appropriate here.
                     
                     $cursorPos = $widget._cursorPosition
                     $scrollOffset = $widget._scrollOffset
                      
-                    # Scroll logic (copied from _RenderHorizontal)
+                    # Scroll logic 
                     if ($cursorPos -lt $scrollOffset) { $scrollOffset = $cursorPos }
                     if ($cursorPos -gt ($scrollOffset + $fieldWidth - 1)) { $scrollOffset = $cursorPos - $fieldWidth + 1 }
                     if ($scrollOffset -lt 0) { $scrollOffset = 0 }
@@ -734,43 +646,76 @@ class InlineEditor : PmcWidget {
                     }
                     $displayText = $visibleText
                     
-                    # Render Field Background
-                    $engine.Fill($currentX, $this.Y, $fieldWidth + 2, 1, ' ', $fg, $bg)
-                    
-                    # Render Text
+                    # Render Field Background & Text
+                    $engine.Fill($currentX, $this.Y, $fieldWidth, 1, ' ', $fg, $bg)
                     $engine.WriteAt($currentX, $this.Y, $displayText, $fg, $bg)
                     
                     # Render Cursor
                     $relCursor = $cursorPos - $scrollOffset
                     if ($relCursor -ge 0 -and $relCursor -le $fieldWidth) {
-                        # Allow cursor at end
-                        # Invert colors for cursor
+                        # Draw cursor (Inverted BG/FG usually)
                         $cursorChar = " "
                         if ($relCursor -lt $displayText.Length) {
                             $cursorChar = $displayText[$relCursor]
                         }
-                        # Draw cursor (Inverted BG/FG usually, or specific cursor color)
-                        # HybridRenderEngine doesn't support 'Invert' flag directly on WriteAt easily
-                        # Swap FG/BG
+                        # Swap FG/BG for cursor
                         $engine.WriteAt($currentX + $relCursor, $this.Y, $cursorChar, $bg, $fg)
                     }
                 }
                 else {
                     # Non-TextInput widget focused
-                    $engine.Fill($currentX, $this.Y, $fieldWidth + 2, 1, ' ', $fg, $bg)
+                    $engine.Fill($currentX, $this.Y, $fieldWidth, 1, ' ', $fg, $bg)
                     $engine.WriteAt($currentX, $this.Y, $displayText, $fg, $bg)
                 }
             }
             else {
                 # Normal Field
-                $engine.Fill($currentX, $this.Y, $fieldWidth + 2, 1, ' ', $fg, $bg)
+                $engine.Fill($currentX, $this.Y, $fieldWidth, 1, ' ', $fg, $bg)
                 $engine.WriteAt($currentX, $this.Y, $displayText, $fg, $bg)
             }
             
             # Advance X position
-            $currentX += $fieldWidth + 6
+            $currentX += $fieldWidth
         }
+        
+        # Handle Expanded Widget Mode (Overlay)
+        if ($this._showFieldWidgets -and -not [string]::IsNullOrWhiteSpace($this._expandedFieldName)) {
+            $field = $this._fields | Where-Object { $_.Name -eq $this._expandedFieldName } | Select-Object -First 1
+            if ($null -ne $field) {
+                $widget = $null
+                if ($field.Type -eq 'date' -and $this._datePickerMode -and $this._datePickerWidgets.ContainsKey($field.Name)) {
+                    $widget = $this._datePickerWidgets[$field.Name]
+                }
+                elseif ($this._fieldWidgets.ContainsKey($field.Name)) {
+                    $widget = $this._fieldWidgets[$field.Name]
+                }
 
+                if ($null -ne $widget) {
+                    $fieldXOffset = 0
+                    foreach ($f in $this._fields) {
+                        if ($f.Name -eq $field.Name) { break }
+                        $w = $(if ($f.ContainsKey('Width')) { $f.Width } else { 20 })
+                        $fieldXOffset += $w
+                    }
+                    
+                    $widget.X = $this.X + 2 + $fieldXOffset
+                    $widget.Y = $this.Y + 1
+                    if ($widget.PSObject.Properties['Width']) {
+                        if ($field.Type -eq 'date') { $widget.Width = 26 }
+                        else { $widget.Width = [Math]::Max(20, $this.Width - 4) }
+                    }
+                    
+                    if ($widget.PSObject.Methods['RenderToEngine']) {
+                        $widget.RenderToEngine($engine)
+                    }
+                    else {
+                        $out = $widget.Render()
+                        if ($out) { $engine.WriteAt($widget.X, $widget.Y, $out) }
+                    }
+                }
+            }
+        }
+        
         if ($engine.PSObject.Methods['EndLayer']) {
             $engine.EndLayer()
         }

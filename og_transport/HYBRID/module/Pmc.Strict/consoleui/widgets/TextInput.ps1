@@ -311,10 +311,7 @@ class TextInput : PmcWidget {
 
     [void] RegisterLayout([object]$engine) {
         ([PmcWidget]$this).RegisterLayout($engine)
-        
-        $engine.DefineRegion("$($this.RegionID)_Label", $this.X + 2, $this.Y, $this.Width - 4, 1)
-        $engine.DefineRegion("$($this.RegionID)_Input", $this.X + 2, $this.Y + 1, $this.Width - 4, 1)
-        $engine.DefineRegion("$($this.RegionID)_Error", $this.X + 2, $this.Y + 2, $this.Width - 4, 1)
+        # Regions removed - using direct WriteAt in RenderToEngine
     }
 
     <#
@@ -331,7 +328,8 @@ class TextInput : PmcWidget {
         $this.RegisterLayout($engine)
 
         # Colors (Ints)
-        $bg = $this.GetThemedBgInt('Background.MenuBar', 1, 0)
+        # using Panel background for consistency with other inputs
+        $bg = $this.GetThemedBgInt('Background.Panel', 1, 0)
         if ($bg -eq -1) { $bg = [HybridRenderEngine]::_PackRGB(30, 30, 30) }
 
         $fg = $this.GetThemedInt('Foreground.Row')
@@ -345,84 +343,71 @@ class TextInput : PmcWidget {
 
         # Draw Box
         $engine.Fill($this.X, $this.Y, $this.Width, $this.Height, ' ', $fg, $bg)
-<<<<<<< HEAD
         $engine.DrawBox($this.X, $this.Y, $this.Width, $this.Height, $activeBorderFg, $bg)
-        # Redraw border with active color? DrawBox uses default colors?
-        # My DrawBox doesn't take color. I should probably add color support or manually draw it.
-        # But wait, DrawBox uses WriteAt. If I set colors in engine state...
-        # HybridRenderEngine doesn't have "current color" state for DrawBox.
-        # DrawBox just writes chars. So it uses "current" color? Or default?
-        # The DrawBox implementation: 
-        # $this.WriteAt($x, $y, $topLine)
-        # WriteAt parses ANSI if present. DrawBox chars are plain.
-        # So DrawBox uses default/transparent colors unless WriteAt context is set?
-        # My new WriteAt takes colors. DrawBox calls WriteAt(x,y,string).
-        # So it uses -1, -1.
-        # I should probably update DrawBox to take color, or just overlay color?
-        # For now, let's manually draw the border color by writing spaces with color? No.
-        # Let's assume DrawBox is fine for now, or use `WriteToRegion` tricks.
-        # Actually, I can just write the border chars manually with color if needed.
-        # But let's skip coloring the border for now to save complexity, or assume it inherits.
-=======
-        $engine.DrawBox($this.X, $this.Y, $this.Width, $this.Height, 'single', $activeBorderFg, $bg)
->>>>>>> b5bbd6c7f294581f60139c5de10bb9af977c6242
         
         # Title
         if ($this.Label) {
-            $engine.WriteToRegion("$($this.RegionID)_Label", " $($this.Label) ", $primaryFg, $bg)
+            $engine.WriteAt($this.X + 2, $this.Y, " $($this.Label) ", $primaryFg, $bg)
         }
         
-        # Input
-        $bounds = $engine.GetRegionBounds("$($this.RegionID)_Input")
-        if ($bounds) {
-            $displayText = ""
-            if ([string]::IsNullOrEmpty($this.Text)) {
-                if (-not $this.HasFocus) {
-                    $displayText = $this.Placeholder
-                    $engine.WriteToRegion("$($this.RegionID)_Input", $displayText, $mutedFg, $bg)
+        # Input Area logic
+        $inputX = $this.X + 2
+        $inputY = $this.Y + 1
+        $inputWidth = $this.Width - 4
+        
+        $displayText = ""
+        if ([string]::IsNullOrEmpty($this.Text)) {
+            if (-not $this.HasFocus) {
+                # Placeholder
+                $displayText = $this.Placeholder
+                if ($displayText.Length -gt $inputWidth) { $displayText = $displayText.Substring(0, $inputWidth) }
+                $engine.WriteAt($inputX, $inputY, $displayText, $mutedFg, $bg)
+            }
+            else {
+                # Focused but empty - show cursor at 0
+                if ($this._showCursor) {
+                    $engine.WriteAt($inputX, $inputY, " ", $bg, $fg) # Inverse space
                 }
-                else {
-                    # Focused but empty - show cursor at 0
-                    if ($this._showCursor) {
-                        $engine.WriteAt($bounds.X, $bounds.Y, " ", $bg, $fg) # Inverse space
-                    }
-                    if ($this.Placeholder) {
-                        # Show placeholder starting at 1? Or overwrite cursor?
-                        # Placeholder should be visible if text empty.
-                        $engine.WriteAt($bounds.X + 1, $bounds.Y, $this.Placeholder, $mutedFg, $bg)
+                if ($this.Placeholder) {
+                    # Show placeholder starting at 1? Or overwrite cursor?
+                    # Generally placeholders disappear when typing starts, but here we are empty.
+                    # If cursor is at 0, we can show placeholder starting at 1 if valid?
+                    # Or just show cursor.
+                    # Previous logic showed placeholder at X+1.
+                    if ($inputWidth -gt 1) {
+                        $ph = $this.Placeholder
+                        if ($ph.Length -gt ($inputWidth - 1)) { $ph = $ph.Substring(0, $inputWidth - 1) }
+                        $engine.WriteAt($inputX + 1, $inputY, $ph, $mutedFg, $bg)
                     }
                 }
             }
-            else {
-                # Visible Text
-                $innerWidth = $bounds.Width
-                $visibleText = $this.Text.Substring($this._scrollOffset)
-                if ($visibleText.Length -gt $innerWidth) {
-                    $visibleText = $visibleText.Substring(0, $innerWidth)
-                }
+        }
+        else {
+            # Visible Text
+            $visibleText = $this.Text.Substring($this._scrollOffset)
+            if ($visibleText.Length -gt $inputWidth) {
+                $visibleText = $visibleText.Substring(0, $inputWidth)
+            }
+            
+            $cursorOffset = $this._cursorPosition - $this._scrollOffset
+            
+            # Simple rendering: just write text
+            $engine.WriteAt($inputX, $inputY, $visibleText, $fg, $bg)
+            
+            # Overwrite cursor char if focused and visible
+            if ($this.HasFocus -and $this._showCursor -and $cursorOffset -ge 0 -and $cursorOffset -le $visibleText.Length) {
                 
-                $cursorOffset = $this._cursorPosition - $this._scrollOffset
-                
-                # Draw text char by char or construct string?
-                # Constructing string with ANSI highlight for cursor is easiest.
-                
-                if ($this.HasFocus -and $this._showCursor -and $cursorOffset -ge 0 -and $cursorOffset -le $visibleText.Length) {
-                    $pre = $visibleText.Substring(0, $cursorOffset)
-                    $char = if ($cursorOffset -lt $visibleText.Length) { $visibleText[$cursorOffset] } else { ' ' }
-                    $post = if ($cursorOffset + 1 -lt $visibleText.Length) { $visibleText.Substring($cursorOffset + 1) } else { "" }
-                    
-                    $finalStr = "$pre`e[7m$char`e[27m$post"
-                    $engine.WriteToRegion("$($this.RegionID)_Input", $finalStr, $fg, $bg)
-                }
-                else {
-                    $engine.WriteToRegion("$($this.RegionID)_Input", $visibleText, $fg, $bg)
-                }
+                $char = if ($cursorOffset -lt $visibleText.Length) { $visibleText[$cursorOffset] } else { ' ' }
+                $engine.WriteAt($inputX + $cursorOffset, $inputY, "$char", $bg, $fg) # Inverse
             }
         }
         
         # Error
         if (-not $this.IsValid -and $this._validationError) {
-            $engine.WriteToRegion("$($this.RegionID)_Error", " $($this._validationError) ", $errorFg, $bg)
+            # Truncate error to width
+            $err = " $($this._validationError) "
+            if ($err.Length -gt $inputWidth) { $err = $err.Substring(0, $inputWidth) }
+            $engine.WriteAt($this.X + 2, $this.Y + 2, $err, $errorFg, $bg)
         }
     }
 
