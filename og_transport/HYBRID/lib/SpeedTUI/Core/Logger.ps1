@@ -62,7 +62,7 @@ class Logger {
         $this._logQueue = [ConcurrentQueue[LogEntry]]::new()
         
         # Set up log directory
-        $this.LogDirectory = Join-Path $PSScriptRoot ".." "Logs"
+        $this.LogDirectory = Join-Path (Join-Path $PSScriptRoot "..") "Logs"
         if (-not (Test-Path $this.LogDirectory)) {
             New-Item -ItemType Directory -Path $this.LogDirectory -Force | Out-Null
         }
