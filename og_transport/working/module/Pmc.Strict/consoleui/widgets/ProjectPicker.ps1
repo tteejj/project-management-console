@@ -1,4 +1,8 @@
-﻿# ProjectPicker.ps1 - Project selection widget with fuzzy search and inline create
+﻿using namespace System
+using namespace System.Collections.Generic
+using namespace System.Text
+
+# ProjectPicker.ps1 - Project selection widget with fuzzy search and inline create
 #
 # Usage:
 #   $picker = [ProjectPicker]::new()
@@ -7,8 +11,7 @@
 #   $picker.OnProjectSelected = { param($project) Write-Host "Selected: $project" }
 #
 #   # Render
-#   $ansiOutput = $picker.Render()
-#   Write-Host $ansiOutput -NoNewline
+#   $picker.RenderToEngine($engine)
 #
 #   # Handle input
 #   $key = [Console]::ReadKey($true)
@@ -18,10 +21,6 @@
 #   if ($picker.IsConfirmed) {
 #       $selected = $picker.GetSelectedProject()
 #   }
-
-using namespace System
-using namespace System.Collections.Generic
-using namespace System.Text
 
 Set-StrictMode -Version Latest
 
@@ -53,7 +52,7 @@ $picker.SetPosition(10, 5)
 $picker.SetSize(35, 12)
 $picker.OnProjectSelected = { param($projectName) Write-Host "Selected: $projectName" }
 $picker.OnProjectCreated = { param($projectName) Write-Host "Created: $projectName" }
-$ansiOutput = $picker.Render()
+$picker.RenderToEngine($engine)
 #>
 class ProjectPicker : PmcWidget {
     # === Public Properties ===
@@ -113,7 +112,9 @@ class ProjectPicker : PmcWidget {
         }
 
         if ($this._selectedIndex -ge 0 -and $this._selectedIndex -lt $this._filteredProjects.Count) {
-            return $this._filteredProjects[$this._selectedIndex]
+            $selected = $this._filteredProjects[$this._selectedIndex]
+            if ($selected -eq "(No Project)") { return "" }
+            return $selected
         }
 
         return ""
@@ -122,9 +123,6 @@ class ProjectPicker : PmcWidget {
     <#
     .SYNOPSIS
     Set initial search filter text
-
-    .PARAMETER text
-    Search text to pre-populate
     #>
     [void] SetSearchText([string]$text) {
         $this._searchText = $text
@@ -134,9 +132,6 @@ class ProjectPicker : PmcWidget {
     <#
     .SYNOPSIS
     Set the selected project by name (without filtering)
-
-    .PARAMETER projectName
-    Project name to select
     #>
     [void] SetSelectedProject([string]$projectName) {
         # Find the project in the full list
@@ -155,12 +150,6 @@ class ProjectPicker : PmcWidget {
     <#
     .SYNOPSIS
     Handle keyboard input
-
-    .PARAMETER keyInfo
-    ConsoleKeyInfo from [Console]::ReadKey($true)
-
-    .OUTPUTS
-    True if input was handled, False otherwise
     #>
     [bool] HandleInput([ConsoleKeyInfo]$keyInfo) {
         # Check if we need to refresh projects (every 5 seconds)
@@ -177,14 +166,9 @@ class ProjectPicker : PmcWidget {
         # Enter - select current project
         if ($keyInfo.Key -eq 'Enter') {
             $selected = $this.GetSelectedProject()
-            # PERF: Disabled - Add-Content -Path "$($env:TEMP)\pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') ProjectPicker: Enter pressed, selected='$selected' isEmpty=$([string]::IsNullOrWhiteSpace($selected))"
-            if (-not [string]::IsNullOrWhiteSpace($selected)) {
-                $this.IsConfirmed = $true
-                # PERF: Disabled - Add-Content -Path "$($env:TEMP)\pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') ProjectPicker: Calling OnProjectSelected callback with '$selected'"
-                $this._InvokeCallback($this.OnProjectSelected, $selected)
-                return $true
-            }
-            # PERF: Disabled - Add-Content -Path "$($env:TEMP)\pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') ProjectPicker: Enter pressed but selected is empty, returning without calling callback"
+            $this.IsConfirmed = $true
+            # Callback with selected project (empty string if No Project)
+            $this._InvokeCallback($this.OnProjectSelected, $selected)
             return $true
         }
 
@@ -203,13 +187,11 @@ class ProjectPicker : PmcWidget {
 
         # Navigation
         if ($keyInfo.Key -eq 'UpArrow') {
-            # PERF: Disabled - Add-Content -Path "$($env:TEMP)\pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') ProjectPicker: UpArrow pressed, moving selection up"
             $this._MoveSelectionUp()
             return $true
         }
 
         if ($keyInfo.Key -eq 'DownArrow') {
-            # PERF: Disabled - Add-Content -Path "$($env:TEMP)\pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') ProjectPicker: DownArrow pressed, moving selection down"
             $this._MoveSelectionDown()
             return $true
         }
@@ -273,254 +255,215 @@ class ProjectPicker : PmcWidget {
         return $false
     }
 
+    # === Layout System ===
+
+    [void] RegisterLayout([object]$engine) {
+        ([PmcWidget]$this).RegisterLayout($engine)
+        # Regions removed - using direct WriteAt in RenderToEngine
+    }
+
     <#
     .SYNOPSIS
-    Render the project picker widget
-
-    .OUTPUTS
-    ANSI string ready for display
+    Render directly to engine (new high-performance path)
     #>
-    [string] Render() {
-        $sb = [StringBuilder]::new(2048)
+    [void] RenderToEngine([object]$engine) {
+        $this.RegisterLayout($engine)
 
-        # Colors from new theme system
-        $borderColor = $this.GetThemedFg('Border.Widget')
-        $textColor = $this.GetThemedFg('Foreground.Row')
-        $primaryColor = $this.GetThemedFg('Foreground.Title')
-        $mutedColor = $this.GetThemedFg('Foreground.Muted')
-        $errorColor = $this.GetThemedFg('Foreground.Error')
-        $successColor = $this.GetThemedFg('Foreground.Success')
-        $highlightBg = $this.GetThemedBg('Background.RowSelected', 1, 0)
-        $highlightFg = $this.GetThemedFg('Foreground.RowSelected')
-        $reset = "`e[0m"
+        $logMsg = "$(Get-Date -Format 'HH:mm:ss.fff') [ProjectPicker] RenderToEngine X=$($this.X) Y=$($this.Y) W=$($this.Width) H=$($this.Height) EngineW=$($engine.Width) EngineH=$($engine.Height)"
+        $logFile = "$($env:TEMP)\pmc_debug_render.log"
+        $logMsg | Out-File -Append $logFile
 
-        # Reset any inherited formatting from parent
-        $sb.Append($reset)
 
-        # Draw top border
-        $sb.Append($this.BuildMoveTo($this.X, $this.Y))
-        $sb.Append($borderColor)
-        $sb.Append($this.BuildBoxBorder($this.Width, 'top', 'single'))
+        # Colors (Ints)
+        # Use Panel background but ensure it is OPAQUE
+        $bg = $this.GetThemedBgInt('Background.Panel', 1, 0)
+        
+        # DOUBLE BORDER FIX: Force opaque background. 
+        # If theme returns -1 (Transparent), use hardcoded Black (0,0,0) packed int.
+        if ($bg -eq -1) { 
+            # 0xFF000000 (Alpha=255) if engine supports it, or just 0 for Black RGB packed?
+            # HybridRenderEngine uses packed RGB. 0 = Black.
+            # Let's use a dark gray to be safe and visible: RGB(10,10,10)
+            $bg = [HybridRenderEngine]::_PackRGB(10, 10, 10) 
+        }
+        
+        # Force strict bounding box for visual stability
+        if ($this.Width -lt 20) { $this.Width = 20 }
 
-        # Title
-        $title = $(if ($this._isCreateMode) { "Create New Project" } else { $this.Label })
-        $titlePos = 2
-        $sb.Append($this.BuildMoveTo($this.X + $titlePos, $this.Y))
-        $sb.Append($primaryColor)
-        $sb.Append(" $title ")
-
-        # Project count
-        if (-not $this._isCreateMode) {
-            $countText = "($($this._filteredProjects.Count))"
-            $sb.Append($this.BuildMoveTo($this.X + $this.Width - $countText.Length - 2, $this.Y))
-            $sb.Append($mutedColor)
-            $sb.Append($countText)
+        # Clamp AFTER size adjustments to prevent growing off-screen
+        $this._ClampToBounds($engine)
+        
+        # === LAYER ELEVATION ===
+        # DOUBLE BORDER FIX: Ensure Popup is drawn ABOVE everything else (e.g. List Borders)
+        # by explicitly setting a high Z-Index layer.
+        if ($engine.PSObject.Methods['BeginLayer']) {
+            $engine.BeginLayer(100) # Arbitrary high number
         }
 
-        $currentRow = 1
+        $fg = $this.GetThemedInt('Foreground.Row')
+        $borderFg = $this.GetThemedInt('Border.Widget')
+        $primaryFg = $this.GetThemedInt('Foreground.Title')
+        $mutedFg = $this.GetThemedInt('Foreground.Muted')
+        $errorFg = $this.GetThemedInt('Foreground.Error')
+        $highlightBg = $this.GetThemedBgInt('Background.RowSelected', 1, 0)
+        $highlightFg = $this.GetThemedInt('Foreground.RowSelected')
+        
+        # 1. Fill Background (Strict Opaque)
+        $engine.Fill($this.X, $this.Y, $this.Width, $this.Height, ' ', $fg, $bg)
+        
+        # 2. Draw Box (Strict single border)
+        $engine.DrawBox($this.X, $this.Y, $this.Width, $this.Height, $borderFg, $bg)
+        
+        # Title
+        $title = if ($this._isCreateMode) { "Create New Project" } else { $this.Label }
+        $pad = [Math]::Max(0, [Math]::Floor(($this.Width - 4 - $title.Length) / 2))
+        $titleX = $this.X + 2 + $pad
+        # Ensure title fits
+        if ($title.Length -gt ($this.Width - 4)) {
+            $title = $title.Substring(0, $this.Width - 4)
+            $titleX = $this.X + 2
+        }
+        $engine.WriteAt($titleX, $this.Y + 1, $title, $primaryFg, $bg)
+        
+        # Count (if not in create mode)
+        if (-not $this._isCreateMode) {
+            $countStr = "($($this._filteredProjects.Count))"
+            $engine.WriteAt($this.X + $this.Width - $countStr.Length - 2, $this.Y + 1, $countStr, $mutedFg, $bg)
+        }
+        
+        # Separator line under title
+        $engine.Fill($this.X + 1, $this.Y + 2, $this.Width - 2, 1, '─', $borderFg, $bg)
+        
+        # Search Box or List...
+        
+        # (Rest of rendering logic)
+        
 
-        # Create mode UI
+
         if ($this._isCreateMode) {
-            # Input row
-            $sb.Append($this.BuildMoveTo($this.X, $this.Y + $currentRow))
-            $sb.Append($borderColor)
-            $sb.Append($this.GetBoxChar('single_vertical'))
-
-            $sb.Append($this.BuildMoveTo($this.X + 2, $this.Y + $currentRow))
-            $sb.Append($textColor)
-
-            # Render input with cursor
+            # Create Input at Y+3
+            $inputY = $this.Y + 3
+            
+            # Input Prompt/border
+            $engine.WriteAt($this.X, $inputY, [char]0x2502, $borderFg, $bg) # Left border
+            $engine.WriteAt($this.X + $this.Width - 1, $inputY, [char]0x2502, $borderFg, $bg) # Right border
+            
+            # Input content
+            $inputStr = $this._createText
             $innerWidth = $this.Width - 4
-            if ([string]::IsNullOrEmpty($this._createText)) {
-                $sb.Append($mutedColor)
-                $sb.Append($this.TruncateText("Enter project name...", $innerWidth))
-            } else {
-                $displayText = $this._createText
-                if ($displayText.Length -gt $innerWidth) {
-                    $displayText = $displayText.Substring(0, $innerWidth)
-                }
-
-                # Text before cursor
-                if ($this._createCursorPos -gt 0 -and $this._createCursorPos -le $displayText.Length) {
-                    $sb.Append($displayText.Substring(0, $this._createCursorPos))
-                }
-
-                # Cursor
-                if ($this._createCursorPos -lt $displayText.Length) {
-                    $sb.Append("`e[7m")
-                    $sb.Append($displayText[$this._createCursorPos])
-                    $sb.Append("`e[27m")
-
-                    if ($this._createCursorPos + 1 -lt $displayText.Length) {
-                        $sb.Append($displayText.Substring($this._createCursorPos + 1))
-                    }
-                } elseif ($this._createCursorPos -eq $displayText.Length) {
-                    $sb.Append($displayText)
-                    $sb.Append("`e[7m `e[27m")
-                }
-
-                # Padding
-                $textLen = $displayText.Length
-                $padding = $innerWidth - $textLen - 1
-                if ($padding -gt 0) {
-                    $sb.Append(" " * $padding)
-                }
+            
+            if ([string]::IsNullOrEmpty($inputStr)) {
+                $engine.WriteAt($this.X + 2, $inputY, "Enter project name...", $mutedFg, $bg)
             }
-
-            $sb.Append($this.BuildMoveTo($this.X + $this.Width - 1, $this.Y + $currentRow))
-            $sb.Append($borderColor)
-            $sb.Append($this.GetBoxChar('single_vertical'))
-
-            $currentRow++
-
-            # Instructions
-            $sb.Append($this.BuildMoveTo($this.X, $this.Y + $currentRow))
-            $sb.Append($borderColor)
-            $sb.Append($this.GetBoxChar('single_vertical'))
-
-            $sb.Append($this.BuildMoveTo($this.X + 2, $this.Y + $currentRow))
-            $sb.Append($mutedColor)
-            $sb.Append($this.TruncateText("Enter=Create | Esc=Cancel", $this.Width - 4))
-
-            $sb.Append($this.BuildMoveTo($this.X + $this.Width - 1, $this.Y + $currentRow))
-            $sb.Append($borderColor)
-            $sb.Append($this.GetBoxChar('single_vertical'))
-
-            $currentRow++
-
-            # Fill remaining rows
-            for ($i = $currentRow; $i -lt $this.Height - 1; $i++) {
-                $sb.Append($this.BuildMoveTo($this.X, $this.Y + $i))
-                $sb.Append($borderColor)
-                $sb.Append($this.GetBoxChar('single_vertical'))
-                $sb.Append(" " * ($this.Width - 2))
-                $sb.Append($this.GetBoxChar('single_vertical'))
+            else {
+                # Simple rendering without complex scrolling for now
+                $display = $inputStr
+                if ($display.Length -gt $innerWidth) { $display = $display.Substring($display.Length - $innerWidth) }
+                $engine.WriteAt($this.X + 2, $inputY, $display, $fg, $bg)
             }
-        } else {
-            # Search filter row
-            $sb.Append($this.BuildMoveTo($this.X, $this.Y + $currentRow))
-            $sb.Append($borderColor)
-            $sb.Append($this.GetBoxChar('single_vertical'))
-
-            $sb.Append($this.BuildMoveTo($this.X + 2, $this.Y + $currentRow))
-            if ([string]::IsNullOrWhiteSpace($this._searchText)) {
-                $sb.Append($mutedColor)
-                $sb.Append($this.TruncateText("Type to filter...", $this.Width - 4))
-            } else {
-                $sb.Append($primaryColor)
-                $sb.Append($this.TruncateText($this._searchText, $this.Width - 4))
+            
+            # Help at Y+5
+            $helpText = "Enter=Create | Esc=Cancel"
+            $engine.WriteAt($this.X + 2, $this.Y + 5, $this.PadText($helpText, $this.Width - 4, 'left'), $mutedFg, $bg)
+        }
+        else {
+            # Count
+            $countText = "($($this._filteredProjects.Count))"
+            $countX = $this.X + $this.Width - $countText.Length - 2
+            if ($countX -gt $this.X + 2) {
+                $engine.WriteAt($countX, $this.Y + 1, $countText, $mutedFg, $bg)
             }
-
-            $sb.Append($this.BuildMoveTo($this.X + $this.Width - 1, $this.Y + $currentRow))
-            $sb.Append($borderColor)
-            $sb.Append($this.GetBoxChar('single_vertical'))
-
-            $currentRow++
-
-            # Project list
-            $maxVisibleItems = $this.Height - 4  # Top, search, bottom, help
+            
+            # Search at Y+2
+            $searchText = if ([string]::IsNullOrWhiteSpace($this._searchText)) { "Type to filter..." } else { $this._searchText }
+            $searchFg = if ([string]::IsNullOrWhiteSpace($this._searchText)) { $mutedFg } else { $primaryFg }
+            $engine.WriteAt($this.X + 2, $this.Y + 2, $this.PadText($searchText, $this.Width - 4, 'left'), $searchFg, $bg)
+            
+            # List at Y+3
+            $listY = $this.Y + 3
+            $listHeight = [Math]::Max(1, $this.Height - 5)
             $visibleProjects = @()
             if ($this._filteredProjects.Count -gt 0) {
-                $endIndex = [Math]::Min($this._scrollOffset + $maxVisibleItems, $this._filteredProjects.Count)
+                $endIndex = [Math]::Min($this._scrollOffset + $listHeight, $this._filteredProjects.Count)
                 for ($i = $this._scrollOffset; $i -lt $endIndex; $i++) {
                     $visibleProjects += $this._filteredProjects[$i]
                 }
             }
-
-            # DEBUG: Log render state
-            # PERF: Disabled - Add-Content -Path "$($env:TEMP)\pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') ProjectPicker.Render: _selectedIndex=$($this._selectedIndex) _scrollOffset=$($this._scrollOffset) visibleCount=$($visibleProjects.Count)"
-
-            # Render visible project items
-            for ($i = 0; $i -lt $maxVisibleItems; $i++) {
-                $rowY = $this.Y + $currentRow + $i
-                $sb.Append($this.BuildMoveTo($this.X, $rowY))
-                $sb.Append($borderColor)
-                $sb.Append($this.GetBoxChar('single_vertical'))
-
+            
+            for ($i = 0; $i -lt $listHeight; $i++) {
+                $currentY = $listY + $i
+                if ($currentY -ge $this.Y + $this.Height - 1) { break } # Safety
+                
                 if ($i -lt $visibleProjects.Count) {
                     $projectName = $visibleProjects[$i]
                     $isSelected = ($this._scrollOffset + $i) -eq $this._selectedIndex
-
-                    # DEBUG: Log selection state for each row
-                    if ($isSelected) {
-                        # PERF: Disabled - Add-Content -Path "$($env:TEMP)\pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') ProjectPicker.Render: Row $i is SELECTED (project=$projectName)"
-                    }
-
-                    if ($isSelected) {
-                        $sb.Append($highlightBg)
-                        $sb.Append($highlightFg)
-                    } else {
-                        $sb.Append($textColor)
-                    }
-
-                    # L-POL-8: Show task count after project name
+                    
+                    $iBg = if ($isSelected) { $highlightBg } else { $bg }
+                    $iFg = if ($isSelected) { $highlightFg } else { $fg }
+                    
                     $taskCount = $this._GetTaskCountForProject($projectName)
-                    $displayName = $(if ($taskCount -ge 0) {
-                        "$projectName ($taskCount)"
-                    } else {
-                        $projectName
-                    })
-
-                    $sb.Append(" ")
-                    $truncatedName = $this.TruncateText($displayName, $this.Width - 4)
-                    $sb.Append($truncatedName)
-
-                    # Padding - fill rest of row width
-                    $visibleLen = $this.GetVisibleLength($truncatedName)
-                    $padding = $this.Width - 3 - $visibleLen
-                    if ($padding -gt 0) {
-                        $sb.Append(" " * $padding)
-                    }
-                    # Reset after entire row (text + padding)
-                    $sb.Append($reset)
-                } else {
-                    # Empty row
-                    $sb.Append(" " * ($this.Width - 2))
+                    $displayName = if ($taskCount -ge 0) { "$projectName ($taskCount)" } else { $projectName }
+                    
+                    # Manual fill for row background
+                    $engine.Fill($this.X + 1, $currentY, $this.Width - 2, 1, ' ', $iFg, $iBg)
+                    $engine.WriteAt($this.X + 2, $currentY, $this.TruncateText($displayName, $this.Width - 4), $iFg, $iBg)
                 }
-
-                $sb.Append($this.BuildMoveTo($this.X + $this.Width - 1, $rowY))
-                $sb.Append($borderColor)
-                $sb.Append($this.GetBoxChar('single_vertical'))
+                else {
+                    # Empty row
+                    $engine.Fill($this.X + 1, $currentY, $this.Width - 2, 1, ' ', $fg, $bg)
+                }
             }
 
-            $currentRow += $maxVisibleItems
+            # Help
+            $helpText = "Enter=Select | Alt+N=Create"
+            $engine.WriteAt($this.X + 2, $this.Y + $this.Height - 2, $this.PadText($helpText, $this.Width - 4, 'left'), $mutedFg, $bg)
+        }
+        
+        if ($this._errorMessage) {
+            $engine.WriteAt($this.X + 2, $this.Y + $this.Height - 1, $this.PadText($this._errorMessage, $this.Width - 4, 'left'), $errorFg, $bg)
+        }
+        
+        # === END LAYER ELEVATION ===
+        if ($engine.PSObject.Methods['BeginLayer']) {
+            $engine.BeginLayer(0)
+        }
+    }
 
-            # Help row
-            $sb.Append($this.BuildMoveTo($this.X, $this.Y + $currentRow))
-            $sb.Append($borderColor)
-            $sb.Append($this.GetBoxChar('single_vertical'))
-
-            $sb.Append($this.BuildMoveTo($this.X + 2, $this.Y + $currentRow))
-            $sb.Append($mutedColor)
-
-            if ($this._filteredProjects.Count -eq 0) {
-                $sb.Append($this.TruncateText("Alt+N=Create", $this.Width - 4))
-            } else {
-                $sb.Append($this.TruncateText("Enter=Select | Alt+N=Create", $this.Width - 4))
+    <#
+    .SYNOPSIS
+    Ensure widget stays within screen bounds
+    #>
+    <#
+    .SYNOPSIS
+    Ensure widget stays within screen bounds (Engine Viewport)
+    #>
+    hidden [void] _ClampToBounds([object]$engine) {
+        # Check Engine bounds first (Authoritative Viewport)
+        if ($engine -and $engine.PSObject.Properties['Width']) {
+            $termWidth = $engine.Width
+            $termHeight = $engine.Height
+        }
+        else {
+            # Fallback to console (but verify console availability)
+            try {
+                $termWidth = [Console]::WindowWidth
+                $termHeight = [Console]::WindowHeight
             }
-
-            $sb.Append($this.BuildMoveTo($this.X + $this.Width - 1, $this.Y + $currentRow))
-            $sb.Append($borderColor)
-            $sb.Append($this.GetBoxChar('single_vertical'))
-
-            $currentRow++
+            catch {
+                $termWidth = 80
+                $termHeight = 24
+            }
         }
-
-        # Bottom border
-        $sb.Append($this.BuildMoveTo($this.X, $this.Y + $this.Height - 1))
-        $sb.Append($borderColor)
-        $sb.Append($this.BuildBoxBorder($this.Width, 'bottom', 'single'))
-
-        # Error message in bottom border
-        if (-not [string]::IsNullOrWhiteSpace($this._errorMessage)) {
-            $errorMsg = " $($this._errorMessage) "
-            $sb.Append($this.BuildMoveTo($this.X + 2, $this.Y + $this.Height - 1))
-            $sb.Append($errorColor)
-            $sb.Append($this.TruncateText($errorMsg, $this.Width - 4))
+        
+        # Clamp X
+        if ($this.X + $this.Width -ge $termWidth) {
+            $this.X = [Math]::Max(0, $termWidth - $this.Width)
         }
-
-        $sb.Append($reset)
-        return $sb.ToString()
+        
+        # Clamp Y
+        if ($this.Y + $this.Height -ge $termHeight) {
+            $this.Y = [Math]::Max(0, $termHeight - $this.Height)
+        }
     }
 
     # === Private Helper Methods ===
@@ -548,7 +491,8 @@ class ProjectPicker : PmcWidget {
 
             $this._allProjects = $projects
             $this._lastRefresh = [DateTime]::Now
-        } catch {
+        }
+        catch {
             # Failed to load projects - use "(No Project)" only
             $this._allProjects = @("(No Project)")
         }
@@ -564,7 +508,8 @@ class ProjectPicker : PmcWidget {
     hidden [void] _ApplyDoFilter() {
         if ([string]::IsNullOrWhiteSpace($this._searchText)) {
             $this._filteredProjects = $this._allProjects
-        } else {
+        }
+        else {
             $searchLower = $this._searchText.ToLower()
             $filtered = @()
 
@@ -631,13 +576,9 @@ class ProjectPicker : PmcWidget {
     Move selection up
     #>
     hidden [void] _MoveSelectionUp() {
-        $oldIndex = $this._selectedIndex
         if ($this._selectedIndex -gt 0) {
             $this._selectedIndex--
             $this._AdjustScrollOffset()
-            # PERF: Disabled - Add-Content -Path "$($env:TEMP)\pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') _MoveSelectionUp: Changed from $oldIndex to $($this._selectedIndex)"
-        } else {
-            # PERF: Disabled - Add-Content -Path "$($env:TEMP)\pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') _MoveSelectionUp: Already at top (index=$($this._selectedIndex))"
         }
     }
 
@@ -646,13 +587,9 @@ class ProjectPicker : PmcWidget {
     Move selection down
     #>
     hidden [void] _MoveSelectionDown() {
-        $oldIndex = $this._selectedIndex
         if ($this._selectedIndex -lt ($this._filteredProjects.Count - 1)) {
             $this._selectedIndex++
             $this._AdjustScrollOffset()
-            # PERF: Disabled - Add-Content -Path "$($env:TEMP)\pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') _MoveSelectionDown: Changed from $oldIndex to $($this._selectedIndex), total=$($this._filteredProjects.Count)"
-        } else {
-            # PERF: Disabled - Add-Content -Path "$($env:TEMP)\pmc-edit-debug.log" -Value "$(Get-Date -Format 'HH:mm:ss.fff') _MoveSelectionDown: Already at bottom (index=$($this._selectedIndex), total=$($this._filteredProjects.Count))"
         }
     }
 
@@ -737,10 +674,10 @@ class ProjectPicker : PmcWidget {
                 }
 
                 $newProject = [PSCustomObject]@{
-                    name = $projectName
+                    name        = $projectName
                     description = ""
-                    aliases = @()
-                    created = (Get-Date).ToString('yyyy-MM-dd HH:mm:ss')
+                    aliases     = @()
+                    created     = (Get-Date).ToString('yyyy-MM-dd HH:mm:ss')
                 }
 
                 $data.projects += $newProject
@@ -766,7 +703,8 @@ class ProjectPicker : PmcWidget {
                 $this._InvokeCallback($this.OnProjectSelected, $projectName)
 
                 return $true
-            } catch {
+            }
+            catch {
                 $this._errorMessage = "Failed to create project"
                 return $true
             }
@@ -786,8 +724,9 @@ class ProjectPicker : PmcWidget {
             if ($this._createCursorPos -gt 0) {
                 $before = $this._createText.Substring(0, $this._createCursorPos - 1)
                 $after = $(if ($this._createCursorPos -lt $this._createText.Length) {
-                    $this._createText.Substring($this._createCursorPos)
-                } else { "" })
+                        $this._createText.Substring($this._createCursorPos)
+                    }
+                    else { "" })
                 $this._createText = $before + $after
                 $this._createCursorPos--
             }
@@ -799,8 +738,9 @@ class ProjectPicker : PmcWidget {
             if ($this._createCursorPos -lt $this._createText.Length) {
                 $before = $this._createText.Substring(0, $this._createCursorPos)
                 $after = $(if ($this._createCursorPos + 1 -lt $this._createText.Length) {
-                    $this._createText.Substring($this._createCursorPos + 1)
-                } else { "" })
+                        $this._createText.Substring($this._createCursorPos + 1)
+                    }
+                    else { "" })
                 $this._createText = $before + $after
             }
             return $true
@@ -835,8 +775,9 @@ class ProjectPicker : PmcWidget {
         if ($keyInfo.KeyChar -ge 32 -and $keyInfo.KeyChar -le 126) {
             $before = $this._createText.Substring(0, $this._createCursorPos)
             $after = $(if ($this._createCursorPos -lt $this._createText.Length) {
-                $this._createText.Substring($this._createCursorPos)
-            } else { "" })
+                    $this._createText.Substring($this._createCursorPos)
+                }
+                else { "" })
             $this._createText = $before + $keyInfo.KeyChar + $after
             $this._createCursorPos++
             return $true
@@ -846,8 +787,9 @@ class ProjectPicker : PmcWidget {
         if ($keyInfo.Key -eq 'Spacebar') {
             $before = $this._createText.Substring(0, $this._createCursorPos)
             $after = $(if ($this._createCursorPos -lt $this._createText.Length) {
-                $this._createText.Substring($this._createCursorPos)
-            } else { "" })
+                    $this._createText.Substring($this._createCursorPos)
+                }
+                else { "" })
             $this._createText = $before + ' ' + $after
             $this._createCursorPos++
             return $true
@@ -885,7 +827,8 @@ class ProjectPicker : PmcWidget {
             }
 
             return $count
-        } catch {
+        }
+        catch {
             # Failed to get count - return -1 to skip displaying count
             return -1
         }
@@ -906,10 +849,12 @@ class ProjectPicker : PmcWidget {
             try {
                 if ($null -ne $argument) {
                     & $callback $argument
-                } else {
+                }
+                else {
                     & $callback
                 }
-            } catch {
+            }
+            catch {
                 # Callback failed - log but don't crash widget
             }
         }
