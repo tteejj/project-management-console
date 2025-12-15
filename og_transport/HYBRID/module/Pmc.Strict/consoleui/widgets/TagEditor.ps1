@@ -501,7 +501,7 @@ class TagEditor : PmcWidget {
         
         # Help
         $helpText = "Tab/Enter=Add | Backspace=Remove | Esc=Cancel"
-        $engine.WriteAt($this.X + 2, $this.Y + $this.Height - 2, $helpText, $mutedFg, $bg)
+        $engine.WriteAt($this.X + 2, $this.Y + $this.Height - 2, $this.PadText($helpText, $this.Width - 4, 'left'), $mutedFg, $bg)
         
         # Error
         if ($this._errorMessage) {

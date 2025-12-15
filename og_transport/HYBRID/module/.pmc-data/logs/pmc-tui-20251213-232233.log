@@ -220,3 +220,5 @@
 [2025-12-13 23:23:23.632] [DEBUG] StandardListScreen: After HandleInput - IsConfirmed=False IsCancelled=False ShowInlineEditor=True
 [2025-12-13 23:23:23.646] [DEBUG] StandardListScreen: After close check - ShowInlineEditor=True
 [2025-12-13 23:23:23.936] [DEBUG] PmcScreen: Calling RenderToEngine on UniversalList
+[2025-12-13 23:26:02.963] [INFO] Event loop exited normally
+[2025-12-13 23:26:02.965] [INFO] Cleanup - showing cursor and resetting terminal

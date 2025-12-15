@@ -619,6 +619,26 @@ class InlineEditor : PmcWidget {
             $val = $this._GetFieldValuePreview($field)
             $displayText = $val
             
+            # PREVENT DOUBLE BORDER ARTIFACTS:
+            # If this field is currently expanded with a "Replacement" widget (Project/Tags), 
+            # we must BLANK OUT the underlying area to erase the List Grid lines.
+            # But we skip drawing the text content to avoid "text bleeding" at the edges.
+            if ($isFocused -and $this._showFieldWidgets -and $this._expandedFieldName -eq $field.Name) {
+                if ($field.Type -eq 'project' -or $field.Type -eq 'tags') {
+                    # Erase the entire field area with opaque background
+                    # This hides the underlying List Grid / Separators
+                    $logMsg = "$(Get-Date -Format 'HH:mm:ss.fff') [InlineEditor] Filling Gap X=$currentX Y=$($this.Y) W=$fieldWidth"
+                    $logFile = "$($env:TEMP)\pmc_debug_render.log"
+                    $logMsg | Out-File -Append $logFile
+
+                    $engine.Fill($currentX, $this.Y, $fieldWidth, 1, ' ', $fg, $bg)
+                    
+                    # Advance X and skip drawing text/cursor (replaced by widget)
+                    $currentX += $fieldWidth
+                    continue
+                }
+            }
+            
             # Text Input Handling (Cursor logic)
             if ($isFocused -and ($field.Type -eq 'text' -or $field.Type -eq 'textarea' -or $field.Type -eq 'date' -or $field.Type -eq 'tags' -or $field.Type -eq 'project') -and $this._fieldWidgets.ContainsKey($field.Name)) {
                 $widget = $this._fieldWidgets[$field.Name]
@@ -698,11 +718,15 @@ class InlineEditor : PmcWidget {
                         $fieldXOffset += $w
                     }
                     
-                    $widget.X = $this.X + 2 + $fieldXOffset
-                    $widget.Y = $this.Y + 1
+                    $widget.X = $this.X + $fieldXOffset
+                    $widget.Y = $this.Y
                     if ($widget.PSObject.Properties['Width']) {
                         if ($field.Type -eq 'date') { $widget.Width = 26 }
-                        else { $widget.Width = [Math]::Max(20, $this.Width - 4) }
+                        else { 
+                            # Cap width at 60 to prevent massive dropdowns on wide screens
+                            $calcWidth = [Math]::Max(20, $this.Width - 4)
+                            $widget.Width = [Math]::Min(60, $calcWidth)
+                        }
                     }
                     
                     if ($widget.PSObject.Methods['RenderToEngine']) {

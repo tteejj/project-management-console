@@ -161,6 +161,15 @@ class DatePicker : PmcWidget {
         $bg = $this.GetThemedBgInt('Background.Panel', 1, 0)
         if ($bg -eq -1) { $bg = [HybridRenderEngine]::_PackRGB(30, 30, 30) }
         
+        # Clamp bounds immediately before drawing
+        $this._ClampToBounds($engine)
+        
+        # === LAYER ELEVATION ===
+        # Ensure Popup is drawn ABOVE everything else
+        if ($engine.PSObject.Methods['BeginLayer']) {
+            $engine.BeginLayer(100)
+        }
+
         $fg = $this.GetThemedInt('Foreground.Row')
         $borderFg = $this.GetThemedInt('Border.Widget')
         $primaryFg = $this.GetThemedInt('Foreground.Title')
@@ -180,8 +189,10 @@ class DatePicker : PmcWidget {
         $engine.WriteAt($this.X + 2 + $pad, $this.Y + 1, $title, $primaryFg, $bg)
         
         # Status
+        # Status
         $currentValue = "Current: " + $this._selectedDate.ToString("yyyy-MM-dd ddd")
-        $engine.WriteAt($this.X + 2, $this.Y + 2, $currentValue, $fg, $bg)
+        # Pad to ensure line clearing
+        $engine.WriteAt($this.X + 2, $this.Y + 2, $this.PadText($currentValue, $this.Width - 4, 'left'), $fg, $bg)
         
         # Calendar Header
         $monthYear = $this._calendarMonth.ToString("MMMM yyyy")
@@ -236,12 +247,51 @@ class DatePicker : PmcWidget {
         }
         
         # Help
-        $helpText = "Arrows: Navigate | Enter: Select"
-        $engine.WriteAt($this.X + 2, $this.Y + $this.Height - 3, $helpText, $mutedFg, $bg)
+        $helpText = "Enter: Select"
+        # Pad help text to clear any potential artifacts from previous renders
+        $engine.WriteAt($this.X + 2, $this.Y + $this.Height - 3, $this.PadText($helpText, $this.Width - 4, 'left'), $mutedFg, $bg)
         
         # Error
         if ($this._errorMessage) {
-            $engine.WriteAt($this.X + 2, $this.Y + $this.Height - 2, $this._errorMessage, $errorFg, $bg)
+            $engine.WriteAt($this.X + 2, $this.Y + $this.Height - 1, $this.PadText($this._errorMessage, $this.Width - 4, 'left'), $errorFg, $bg)
+        }
+        
+        # === END LAYER ELEVATION ===
+        if ($engine.PSObject.Methods['BeginLayer']) {
+            $engine.BeginLayer(0)
+        }
+    }
+
+    <#
+    .SYNOPSIS
+    Ensure widget stays within screen bounds (Engine Viewport)
+    #>
+    hidden [void] _ClampToBounds([object]$engine) {
+        # Check Engine bounds first (Authoritative Viewport)
+        if ($engine -and $engine.PSObject.Properties['Width']) {
+            $termWidth = $engine.Width
+            $termHeight = $engine.Height
+        }
+        else {
+            # Fallback to console (but verify console availability)
+            try {
+                $termWidth = [Console]::WindowWidth
+                $termHeight = [Console]::WindowHeight
+            }
+            catch {
+                $termWidth = 80
+                $termHeight = 24
+            }
+        }
+        
+        # Clamp X
+        if ($this.X + $this.Width -ge $termWidth) {
+            $this.X = [Math]::Max(0, $termWidth - $this.Width)
+        }
+        
+        # Clamp Y
+        if ($this.Y + $this.Height -ge $termHeight) {
+            $this.Y = [Math]::Max(0, $termHeight - $this.Height)
         }
     }
 
@@ -252,81 +302,12 @@ class DatePicker : PmcWidget {
     .OUTPUTS
     ANSI string ready for display
     #>
+    <#
+    .SYNOPSIS
+    Render the date picker widget (Legacy)
+    #>
     [string] Render() {
-        $sb = [StringBuilder]::new(2048)
-
-        # Colors from new theme system
-        $borderColor = $this.GetThemedFg('Border.Widget')
-        $textColor = $this.GetThemedFg('Foreground.Row')
-        $primaryColor = $this.GetThemedFg('Foreground.Title')
-        $mutedColor = $this.GetThemedFg('Foreground.Muted')
-        $errorColor = $this.GetThemedFg('Foreground.Error')
-        $successColor = $this.GetThemedFg('Foreground.Success')
-        $reset = "`e[0m"
-
-        # DON'T reset inherited formatting - let cell background show through in inline edit mode
-        # $sb.Append($reset)
-
-        # Title
-        $title = "Select Date"
-
-        # Draw border and title
-        $sb.Append($this.BuildMoveTo($this.X, $this.Y))
-        $sb.Append($borderColor)
-        $sb.Append($this.BuildBoxBorder($this.Width, 'top', 'single'))
-
-        # Title centered in top border
-        $titlePos = [Math]::Floor(($this.Width - $title.Length) / 2)
-        $sb.Append($this.BuildMoveTo($this.X + $titlePos, $this.Y))
-        $sb.Append($primaryColor)
-        $sb.Append($title)
-
-        # Current value display (row 1)
-        $currentValue = "Current: " + $this._selectedDate.ToString("yyyy-MM-dd (ddd)")
-        $sb.Append($this.BuildMoveTo($this.X, $this.Y + 1))
-        $sb.Append($borderColor)
-        $sb.Append($this.GetBoxChar('single_vertical'))
-        $sb.Append($textColor)
-        $sb.Append(" " + $this.PadText($currentValue, $this.Width - 3, 'left'))
-        $sb.Append($borderColor)
-        $sb.Append($this.GetBoxChar('single_vertical'))
-
-        # Content area (rows 2-10) - ALWAYS calendar mode
-        $this._RenderCalendar($sb, $borderColor, $textColor, $primaryColor, $mutedColor, $successColor, $reset)
-
-        # Help text (row 11)
-        $helpText = "Arrows: Navigate | PgUp/Dn: Month | Enter: Confirm | Esc: Cancel"
-        $sb.Append($this.BuildMoveTo($this.X, $this.Y + 11))
-        $sb.Append($borderColor)
-        $sb.Append($this.GetBoxChar('single_vertical'))
-        $sb.Append($mutedColor)
-        $sb.Append(" " + $this.TruncateText($helpText, $this.Width - 3))
-        $sb.Append($borderColor)
-        $sb.Append($this.BuildMoveTo($this.X + $this.Width - 1, $this.Y + 11))
-        $sb.Append($this.GetBoxChar('single_vertical'))
-
-        # Error message (row 12) if present
-        $sb.Append($this.BuildMoveTo($this.X, $this.Y + 12))
-        $sb.Append($borderColor)
-        $sb.Append($this.GetBoxChar('single_vertical'))
-        if ($this._errorMessage) {
-            $sb.Append($errorColor)
-            $sb.Append(" " + $this.TruncateText($this._errorMessage, $this.Width - 3))
-        }
-        else {
-            $sb.Append(" " * ($this.Width - 2))
-        }
-        $sb.Append($borderColor)
-        $sb.Append($this.BuildMoveTo($this.X + $this.Width - 1, $this.Y + 12))
-        $sb.Append($this.GetBoxChar('single_vertical'))
-
-        # Bottom border
-        $sb.Append($this.BuildMoveTo($this.X, $this.Y + 13))
-        $sb.Append($borderColor)
-        $sb.Append($this.BuildBoxBorder($this.Width, 'bottom', 'single'))
-
-        $sb.Append($reset)
-        return $sb.ToString()
+        return ""
     }
 
     # === Private Helper Methods ===

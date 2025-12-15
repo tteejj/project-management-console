@@ -43,11 +43,8 @@ PmcWidget provides the foundation for all PMC UI components:
 .EXAMPLE
 # Example: Custom widget implementation
 # class MyCustomWidget : PmcWidget {
-#     [string] OnRender() {
-#         $sb = Get-PooledStringBuilder
-#         $color = $this.GetThemedColor('Primary')
-#         # ... build your output
-#         return $sb.ToString()
+#     [void] RenderToEngine([object]$engine) {
+#         $this.DrawBox($this.X, $this.Y, 20, 5, $this.GetThemedInt('Border'), $this.GetThemedBgInt('Background', 20, 0))
 #     }
 # }
 #>

@@ -1,0 +1,68 @@
+[2025-12-14 15:59:05.731] [INFO] Loading PMC module...
+[2025-12-14 15:59:08.110] [INFO] PMC module loaded
+[2025-12-14 15:59:08.112] [INFO] Loading dependencies (FieldSchemas, etc.)...
+[2025-12-14 15:59:08.230] [INFO] Dependencies loaded
+[2025-12-14 15:59:08.244] [INFO] Loading SpeedTUI framework...
+[2025-12-14 15:59:08.763] [INFO] SpeedTUI framework loaded
+[2025-12-14 15:59:08.774] [INFO] Loading PraxisVT...
+[2025-12-14 15:59:08.794] [INFO] PraxisVT loaded
+[2025-12-14 15:59:08.804] [INFO] Loading core dependencies...
+[2025-12-14 15:59:08.942] [INFO] Core dependencies loaded
+[2025-12-14 15:59:08.951] [INFO] Loading widget base classes...
+[2025-12-14 15:59:09.043] [INFO] Widget base classes loaded
+[2025-12-14 15:59:09.054] [INFO] Loading services...
+[2025-12-14 15:59:09.414] [INFO] Services loaded
+[2025-12-14 15:59:09.424] [INFO] Loading helpers...
+[2025-12-14 15:59:10.479] [INFO] Helpers loaded
+[2025-12-14 15:59:10.489] [INFO] Loading widgets...
+[2025-12-14 15:59:10.548] [ERROR] Failed to load widgets: At C:\Users\jhnhe\OneDrive\Documents\GitHub\project-management-console\og_transport\HYBRID\module\Pmc.Strict\consoleui\widgets\ProjectPicker.ps1:275 char:13
++         if ($bg -eq -1) {
++             ~~~
+Variable is not assigned in the method.
+
+At C:\Users\jhnhe\OneDrive\Documents\GitHub\project-management-console\og_transport\HYBRID\module\Pmc.Strict\consoleui\widgets\ProjectPicker.ps1:304 char:77
++ … gine.Fill($this.X, $this.Y, $this.Width, $this.Height, ' ', $fg, $bg)
++                                                                    ~~~
+Variable is not assigned in the method.
+
+At C:\Users\jhnhe\OneDrive\Documents\GitHub\project-management-console\og_transport\HYBRID\module\Pmc.Strict\consoleui\widgets\ProjectPicker.ps1:307 char:81
++ … .DrawBox($this.X, $this.Y, $this.Width, $this.Height, $borderFg, $bg)
++                                                                    ~~~
+Variable is not assigned in the method.
+
+At C:\Users\jhnhe\OneDrive\Documents\GitHub\project-management-console\og_transport\HYBRID\module\Pmc.Strict\consoleui\widgets\ProjectPicker.ps1:318 char:67
++ …        $engine.WriteAt($titleX, $this.Y + 1, $title, $primaryFg, $bg)
++                                                                    ~~~
+Variable is not assigned in the method.
+
+At C:\Users\jhnhe\OneDrive\Documents\GitHub\project-management-console\og_transport\HYBRID\module\Pmc.Strict\consoleui\widgets\ProjectPicker.ps1:323 char:109
++ … .Width - $countStr.Length - 2, $this.Y + 1, $countStr, $mutedFg, $bg)
++                                                                    ~~~
+Variable is not assigned in the method.
+
+At C:\Users\jhnhe\OneDrive\Documents\GitHub\project-management-console\og_transport\HYBRID\module\Pmc.Strict\consoleui\widgets\ProjectPicker.ps1:327 char:84
++ … ll($this.X + 1, $this.Y + 2, $this.Width - 2, 1, '─', $borderFg, $bg)
++                                                                    ~~~
+Variable is not assigned in the method.
+
+At C:\Users\jhnhe\OneDrive\Documents\GitHub\project-management-console\og_transport\HYBRID\module\Pmc.Strict\consoleui\widgets\ProjectPicker.ps1:340 char:72
++ … engine.WriteAt($this.X, $inputY, [char]0x2502, $borderFg, $bg) # Left …
++                                                             ~~~
+Variable is not assigned in the method.
+
+At C:\Users\jhnhe\OneDrive\Documents\GitHub\project-management-console\og_transport\HYBRID\module\Pmc.Strict\consoleui\widgets\ProjectPicker.ps1:341 char:90
++ … is.X + $this.Width - 1, $inputY, [char]0x2502, $borderFg, $bg) # Righ …
++                                                             ~~~
+Variable is not assigned in the method.
+
+At C:\Users\jhnhe\OneDrive\Documents\GitHub\project-management-console\og_transport\HYBRID\module\Pmc.Strict\consoleui\widgets\ProjectPicker.ps1:348 char:90
++ … WriteAt($this.X + 2, $inputY, "Enter project name...", $mutedFg, $bg)
++                                                                    ~~~
+Variable is not assigned in the method.
+
+At C:\Users\jhnhe\OneDrive\Documents\GitHub\project-management-console\og_transport\HYBRID\module\Pmc.Strict\consoleui\widgets\ProjectPicker.ps1:354 char:70
++ …             $engine.WriteAt($this.X + 2, $inputY, $display, $fg, $bg)
++                                                                    ~~~
+Variable is not assigned in the method.
+
+Not all parse errors were reported.  Correct the reported errors and try again.
